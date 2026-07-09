@@ -153,7 +153,7 @@ t.test('should return all the exact matches + X% of the partial matches', async 
   t.same(r2.count, 3)
 })
 
-// Related issue: https://github.com/micheleriva/zbsearch/issues/911
+// Related issue: https://github.com/oramasearch/orama/issues/911
 t.test('should return results for words with same root if threshold is 0', async (t) => {
   const db = create({
     schema: {

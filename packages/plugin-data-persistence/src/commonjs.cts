@@ -3,7 +3,7 @@ import type {
   restore as esmRestore,
   persistToFile as esmPersistToFile,
   restoreFromFile as esmRestoreFromFile
-} from './index.js'
+} from './index.js' with { 'resolution-mode': 'import' }
 
 export interface ZBSearchPluginDataPersistenceExport {
   persist: typeof esmPersist

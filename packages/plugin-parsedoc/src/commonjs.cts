@@ -1,4 +1,4 @@
-import type { populate as esmPopulate, populateFromGlob as esmPopulateFromGlob } from './index.js'
+import type { populate as esmPopulate, populateFromGlob as esmPopulateFromGlob } from './index.js' with { 'resolution-mode': 'import' }
 
 // Keep in sync with the one in index.ts
 export const defaultHtmlSchema = {

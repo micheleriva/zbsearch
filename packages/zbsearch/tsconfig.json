@@ -3,6 +3,7 @@
     "allowJs": true,
     "target": "ESNext",
     "module": "NodeNext",
+    "rootDir": "src",
     "outDir": "dist",
     "lib": ["ESNext", "DOM"],
     "esModuleInterop": true,

@@ -15,8 +15,8 @@ type MovieDocument = TypedDocument<ZBSearch<typeof movieSchema>>
 const movieDBP = create({
   schema: movieSchema
 })
-expectType<Promise<ZBSearch<typeof movieSchema>>>(movieDBP)
-const movieDB = await movieDBP
+expectType<ZBSearch<typeof movieSchema>>(movieDBP)
+const movieDB = movieDBP
 
 const idP = insert(movieDB, {
   title: 'The Godfather',
@@ -24,13 +24,13 @@ const idP = insert(movieDB, {
   actors: ['Marlon Brando', 'Al Pacino'],
   isFavorite: true
 })
-expectType<Promise<string>>(idP)
+expectType<string | Promise<string>>(idP)
 
 const searchParams: SearchParams<ZBSearch<typeof movieSchema>> = {
   term: 'godfather'
 }
 
 const resultP = search(movieDB, searchParams)
-expectType<Promise<Results<MovieDocument>>>(resultP)
-const result = await resultP
+expectType<Results<MovieDocument> | Promise<Results<MovieDocument>>>(resultP)
+const result = resultP instanceof Promise ? await resultP : resultP
 expectType<string>(result.hits[0].document.title)

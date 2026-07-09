@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
     "allowJs": true,
-    "target": "ES5",
+    "target": "ES2020",
     "module": "NodeNext",
+    "rootDir": "src",
     "outDir": "dist",
     "jsx": "react",
     "noImplicitAny": false,
@@ -14,7 +15,8 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "sourceMap": true,
-    "moduleResolution": "nodenext"
+    "moduleResolution": "nodenext",
+    "types": ["node"]
   },
   "include": ["src/*.ts", "src/**/*.ts", "src/*.tsx", "src/**/*.tsx"]
 }

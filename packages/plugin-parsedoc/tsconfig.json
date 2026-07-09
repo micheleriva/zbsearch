@@ -3,6 +3,7 @@
     "allowJs": true,
     "target": "ESNext",
     "module": "NodeNext",
+    "rootDir": "src",
     "outDir": "dist",
     "lib": ["ESNext", "DOM"],
     "esModuleInterop": true,
@@ -12,7 +13,8 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "sourceMap": true,
-    "moduleResolution": "nodenext"
+    "moduleResolution": "nodenext",
+    "types": ["node"]
   },
   "include": ["src/*.ts", "src/**/*.ts"]
 }

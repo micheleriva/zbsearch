@@ -1,8 +1,7 @@
 import type { AnyZBSearch } from 'zbsearch'
 import { save, create, load } from 'zbsearch'
 import { encode, decode } from '@msgpack/msgpack'
-// @ts-expect-error dpack does not expose types
-import * as dpack from 'dpack'
+import * as dpack from './dpack.js'
 import type { FileSystem, PersistenceFormat, Runtime } from './types.js'
 import { FILESYSTEM_NOT_SUPPORTED_ON_RUNTIME, UNSUPPORTED_FORMAT } from './errors.js'
 import { persist, restore } from './index.js'

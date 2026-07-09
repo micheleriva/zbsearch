@@ -5,12 +5,7 @@ const rootDir = process.cwd()
 
 const packages = [
   'zbsearch',
-  'plugin-astro',
   'plugin-data-persistence',
-  'plugin-docusaurus',
-  'plugin-docusaurus-v3',
-  'plugin-vitepress',
-  'plugin-nextra',
   'plugin-parsedoc',
   'plugin-analytics',
   'plugin-secure-proxy',
@@ -20,8 +15,7 @@ const packages = [
   'plugin-pt15',
   'stemmers',
   'stopwords',
-  'tokenizers',
-  'switch'
+  'tokenizers'
 ]
 
 function step(message) {

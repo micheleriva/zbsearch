@@ -277,7 +277,10 @@ t.test('sorter', (t) => {
       constructor(private doc: IDocumentsStore<DocumentsStore>) {
         this.doc = doc
       }
-      create<T extends AnyZBSearch<any>>(zbsearch: T, sharedInternalDocumentStore: InternalDocumentIDStore): DocStorage {
+      create<T extends AnyZBSearch<any>>(
+        zbsearch: T,
+        sharedInternalDocumentStore: InternalDocumentIDStore
+      ): DocStorage {
         const originalDoc = this.doc.create(zbsearch, sharedInternalDocumentStore)
         return {
           storage: originalDoc,

@@ -236,7 +236,16 @@ function indexAndSortDocumentSync<T extends AnyZBSearch>(
     const expectedType = zbsearch.index.getSearchablePropertiesWithTypes(zbsearch.data.index)[prop]
 
     const internalDocumentId = getInternalDocumentId(zbsearch.internalDocumentIDStore, id)
-    zbsearch.index.beforeInsert?.(zbsearch.data.index, prop, id, value, expectedType, language, zbsearch.tokenizer, docsCount)
+    zbsearch.index.beforeInsert?.(
+      zbsearch.data.index,
+      prop,
+      id,
+      value,
+      expectedType,
+      language,
+      zbsearch.tokenizer,
+      docsCount
+    )
     zbsearch.index.insert(
       zbsearch.index,
       zbsearch.data.index,
@@ -250,7 +259,16 @@ function indexAndSortDocumentSync<T extends AnyZBSearch>(
       docsCount,
       options
     )
-    zbsearch.index.afterInsert?.(zbsearch.data.index, prop, id, value, expectedType, language, zbsearch.tokenizer, docsCount)
+    zbsearch.index.afterInsert?.(
+      zbsearch.data.index,
+      prop,
+      id,
+      value,
+      expectedType,
+      language,
+      zbsearch.tokenizer,
+      docsCount
+    )
   }
 
   const sortableProperties = zbsearch.sorter.getSortableProperties(zbsearch.data.sorting)

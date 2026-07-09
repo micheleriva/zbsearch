@@ -13,7 +13,10 @@ export interface DocumentsStore extends AnyDocumentStore {
   count: number
 }
 
-export function create<T extends AnyZBSearch>(_: T, sharedInternalDocumentStore: InternalDocumentIDStore): DocumentsStore {
+export function create<T extends AnyZBSearch>(
+  _: T,
+  sharedInternalDocumentStore: InternalDocumentIDStore
+): DocumentsStore {
   return {
     sharedInternalDocumentStore,
     docs: {},

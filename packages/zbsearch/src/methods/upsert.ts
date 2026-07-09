@@ -247,7 +247,14 @@ function upsertMultipleSync<T extends AnyZBSearch>(
   const results: string[] = []
 
   if (docsToUpdate.length > 0) {
-    const updateResults = updateMultiple(zbsearch, idsToUpdate, docsToUpdate, batchSize, language, skipHooks) as string[]
+    const updateResults = updateMultiple(
+      zbsearch,
+      idsToUpdate,
+      docsToUpdate,
+      batchSize,
+      language,
+      skipHooks
+    ) as string[]
     results.push(...updateResults)
   }
 

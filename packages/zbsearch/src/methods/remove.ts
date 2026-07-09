@@ -118,7 +118,12 @@ async function removeAsync<T extends AnyZBSearch>(
   return result
 }
 
-function removeSync<T extends AnyZBSearch>(zbsearch: T, id: DocumentID, language?: string, skipHooks?: boolean): boolean {
+function removeSync<T extends AnyZBSearch>(
+  zbsearch: T,
+  id: DocumentID,
+  language?: string,
+  skipHooks?: boolean
+): boolean {
   let result = true
   const { index, docs } = zbsearch.data
 
@@ -147,7 +152,16 @@ function removeSync<T extends AnyZBSearch>(zbsearch: T, id: DocumentID, language
 
     const schemaType = indexablePropertiesWithTypes[prop]
 
-    zbsearch.index.beforeRemove?.(zbsearch.data.index, prop, docId, value, schemaType, language, zbsearch.tokenizer, docsCount)
+    zbsearch.index.beforeRemove?.(
+      zbsearch.data.index,
+      prop,
+      docId,
+      value,
+      schemaType,
+      language,
+      zbsearch.tokenizer,
+      docsCount
+    )
 
     if (
       !zbsearch.index.remove(
@@ -166,7 +180,16 @@ function removeSync<T extends AnyZBSearch>(zbsearch: T, id: DocumentID, language
       result = false
     }
 
-    zbsearch.index.afterRemove?.(zbsearch.data.index, prop, docId, value, schemaType, language, zbsearch.tokenizer, docsCount)
+    zbsearch.index.afterRemove?.(
+      zbsearch.data.index,
+      prop,
+      docId,
+      value,
+      schemaType,
+      language,
+      zbsearch.tokenizer,
+      docsCount
+    )
   }
 
   const sortableProperties = zbsearch.sorter.getSortableProperties(zbsearch.data.sorting)

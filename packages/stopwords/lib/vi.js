@@ -81,5 +81,5 @@ export const stopwords = [
   'vì',
   'việc',
   'với',
-  'vừa',
+  'vừa'
 ]

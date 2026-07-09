@@ -5,7 +5,8 @@ ZBSearch (_zee bee search_) is a zero-bs fork of Orama maintained by **the origi
 - Michele Riva (ex Co-Founder, CTO)
 - Angela Angelini (ex Co-Founder, CDO)
 - Tommaso Allevi (ex Sr. Engineer)
-- Alberto Moretti (ex St. Engineer)
+- Alberto Moretti (ex Sr. Engineer)
+- Aileen Villanueva Lecuona (ex Sr. Engineer)
 - Fausto Quaggia (ex Eng. Manager)
 
 After [Michele's departure](https://www.micheleriva.dev/writings/my-last-day-at-orama), the entire engineering team left Orama and reassembled to maintain this popular project with no external influence. No VC, no business incentives, no bs. Just open source software. Help us get 10.5k stars back!

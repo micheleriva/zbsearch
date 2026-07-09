@@ -1,14 +1,14 @@
 import type { InsertOptions } from './methods/insert.js'
-import { MODE_FULLTEXT_SEARCH, MODE_HYBRID_SEARCH, MODE_VECTOR_SEARCH } from './constants.js'
+import { MODE_FULLTEXT_SEARCH, MODE_HYBRID_SEARCH, MODE_VECTOR_SEARCH, RESERVED_VECTOR_INDEX_KEY } from './constants.js'
 import { DocumentsStore } from './components/documents-store.js'
 import { Index, TTree } from './components/index.js'
 import { DocumentID, InternalDocumentID, InternalDocumentIDStore } from './components/internal-document-id-store.js'
 import { Sorter } from './components/sorter.js'
 import { Language } from './components/tokenizer/languages.js'
 import { Point } from './trees/bkd.js'
-import { VectorIndex, VectorType } from './trees/vector.js'
+import { VectorIndex, VectorType, VectorTypeLike } from './trees/vector.js'
 
-export { MODE_FULLTEXT_SEARCH, MODE_HYBRID_SEARCH, MODE_VECTOR_SEARCH } from './constants.js'
+export { MODE_FULLTEXT_SEARCH, MODE_HYBRID_SEARCH, MODE_VECTOR_SEARCH, RESERVED_VECTOR_INDEX_KEY } from './constants.js'
 
 export type { DefaultTokenizer } from './components/tokenizer/index.js'
 
@@ -19,6 +19,37 @@ export type Optional<T> = T | undefined
 export type SingleOrArray<T> = T | T[]
 
 export type SyncOrAsyncValue<T = void> = T | PromiseLike<T>
+
+export type VectorIndexContext = {
+  dim: number
+  property: string
+}
+
+export type SimilarVector = [id: InternalDocumentID, score: number]
+
+export interface VectorIndexLike {
+  readonly size: number
+  add(internalDocumentId: InternalDocumentID, value: VectorTypeLike): void
+  remove(internalDocumentId: InternalDocumentID): void
+  find(
+    vector: VectorTypeLike,
+    similarity: number,
+    whereFiltersIDs: Set<InternalDocumentID> | undefined
+  ): SimilarVector[]
+  toJSON(): unknown
+}
+
+export interface VectorIndexFactory {
+  (ctx: VectorIndexContext): VectorIndexLike
+  kind: 'flat' | 'ivf'
+  fromJSON: (json: unknown) => VectorIndexLike
+}
+
+export type VectorIndexConfig = 'flat' | VectorIndexFactory
+
+export type IndexesConfig = {
+  [RESERVED_VECTOR_INDEX_KEY]?: VectorIndexConfig
+} & Record<string, VectorIndexConfig | undefined>
 
 export type HybridWeights = {
   text: number
@@ -915,7 +946,7 @@ export type IIndexInsertOrRemoveHookFunction = <R = void>(
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AnyIndexStore {
-  vectorIndexes: Record<string, TTree<'Vector', VectorIndex>>
+  vectorIndexes: Record<string, TTree<'Vector', VectorIndexLike>>
 }
 export type AnyIndex = IIndex<AnyIndexStore>
 
@@ -999,7 +1030,7 @@ export interface IIndex<I extends AnyIndexStore> {
   getSearchableProperties(index: I): string[]
   getSearchablePropertiesWithTypes(index: I): Record<string, SearchableType>
 
-  load<R = unknown>(sharedInternalDocumentStore: InternalDocumentIDStore, raw: R): I
+  load<R = unknown>(sharedInternalDocumentStore: InternalDocumentIDStore, raw: R, indexes?: IndexesConfig): I
   save<R = unknown>(index: I): SyncOrAsyncValue<R>
 }
 
@@ -1303,6 +1334,7 @@ type Internals<
 
 type ZBSearchID = {
   id: string
+  indexes?: IndexesConfig
 }
 
 export type ExtractSchema<T> = T extends { schema: infer RawSchema } ? Schema<RawSchema> : never

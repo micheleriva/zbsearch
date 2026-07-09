@@ -12,7 +12,7 @@ export interface RawData {
 
 export function load<T extends AnyZBSearch>(zbsearch: T, raw: RawData): void {
   zbsearch.internalDocumentIDStore.load(zbsearch, raw.internalDocumentIDStore)
-  zbsearch.data.index = zbsearch.index.load(zbsearch.internalDocumentIDStore, raw.index)
+  zbsearch.data.index = zbsearch.index.load(zbsearch.internalDocumentIDStore, raw.index, zbsearch.indexes)
   zbsearch.data.docs = zbsearch.documentsStore.load(zbsearch.internalDocumentIDStore, raw.docs)
   zbsearch.data.sorting = zbsearch.sorter.load(zbsearch.internalDocumentIDStore, raw.sorting)
   zbsearch.data.pinning = zbsearch.pinning.load(zbsearch.internalDocumentIDStore, raw.pinning)

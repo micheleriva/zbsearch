@@ -10,6 +10,8 @@
     "benchmark:bkd": "node bkd.js",
     "benchmark:avl": "node avl.js",
     "benchmark:facets": "node facets.js",
+    "benchmark:vector": "node vector.js",
+    "benchmark:vector-ivf": "node vector-ivf.js",
     "benchmark:bundle-size": "node bundle-size.js"
   },
   "keywords": [],

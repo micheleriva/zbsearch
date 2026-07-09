@@ -221,7 +221,7 @@ t.test('geosearch', async (t) => {
   })
 
   // Test cases to verify that issue #547 is fixed
-  // https://github.com/micheleriva/zbsearch/issues/547
+  // https://github.com/oramasearch/orama/issues/547
   t.test('should fix issue #547 - geosearch results should be sorted by distance', async (t) => {
     t.test('should sort radius search results by distance without search terms', async (t) => {
       const db = create({

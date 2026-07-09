@@ -103,7 +103,7 @@ t.test('zbsearch.dataset', async (t) => {
     t.end()
   })
 
-  //  Tests for https://github.com/micheleriva/zbsearch/issues/159
+  //  Tests for https://github.com/oramasearch/orama/issues/159
   t.test('should correctly search long strings', async (t) => {
     const s1 = await search(db, {
       term: 'e into the',

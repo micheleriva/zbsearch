@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-this-alias */
 import { syncBoundedLevenshtein } from '../components/levenshtein.js'
 import { InternalDocumentID } from '../components/internal-document-id-store.js'
-import { getOwnProperty } from '../utils.js'
 
 interface FindParams {
   term: string
@@ -55,38 +54,26 @@ export class RadixNode {
           continue
         }
 
-        // check if _output[w] exists and then add the doc to it
-        // always check in own property to prevent access to inherited properties
-        // fix https://github.com/micheleriva/zbsearch/issues/137
-        if (getOwnProperty(output, w) !== null) {
-          if (tolerance) {
-            const difference = Math.abs(term.length - w.length)
+        if (tolerance) {
+          const difference = Math.abs(term.length - w.length)
 
-            if (difference <= tolerance && syncBoundedLevenshtein(term, w, tolerance).isBounded) {
-              output[w] = []
-            } else {
-              continue
-            }
-          } else {
-            output[w] = []
+          if (difference > tolerance || !syncBoundedLevenshtein(term, w, tolerance).isBounded) {
+            continue
           }
         }
 
-        // check if _output[w] exists and then add the doc to it
-        // always check in own property to prevent access to inherited properties
-        // fix https://github.com/micheleriva/zbsearch/issues/137
-        if (getOwnProperty(output, w) != null && docIDs.size > 0) {
-          const docs = output[w]
-          for (const docID of docIDs) {
-            if (!docs.includes(docID)) {
-              docs.push(docID)
-            }
-          }
+        if (docIDs.size > 0) {
+          output[w] = Array.from(docIDs)
+        } else {
+          output[w] = []
         }
       }
 
-      if (node.c.size > 0) {
-        stack.push(...node.c.values())
+      const children = node.c
+      if (children.size > 0) {
+        for (const child of children.values()) {
+          stack.push(child)
+        }
       }
     }
     return output
@@ -107,7 +94,7 @@ export class RadixNode {
         let j = 0
 
         // Find the common prefix length between edgeLabel and the remaining word
-        while (j < edgeLabelLength && i + j < wordLength && edgeLabel[j] === word[i + j]) {
+        while (j < edgeLabelLength && i + j < wordLength && edgeLabel.charCodeAt(j) === word.charCodeAt(i + j)) {
           j++
         }
 
@@ -194,17 +181,20 @@ export class RadixNode {
 
       if (node.e) {
         const { w, d: docIDs } = node
-        if (w) {
-          if (syncBoundedLevenshtein(term, w, originalTolerance).isBounded) {
-            output[w] = []
-          }
-          if (getOwnProperty(output, w) !== undefined && docIDs.size > 0) {
-            const docs = new Set(output[w])
-
-            for (const docID of docIDs) {
-              docs.add(docID)
+        if (w && syncBoundedLevenshtein(term, w, originalTolerance).isBounded) {
+          if (docIDs.size > 0) {
+            if (Object.hasOwn(output, w)) {
+              const existing = output[w]
+              for (const docID of docIDs) {
+                if (!existing.includes(docID)) {
+                  existing.push(docID)
+                }
+              }
+            } else {
+              output[w] = Array.from(docIDs)
             }
-            output[w] = Array.from(docs)
+          } else {
+            output[w] = []
           }
         }
       }
@@ -214,18 +204,19 @@ export class RadixNode {
       }
 
       const currentChar = term[index]
+      const children = node.c
 
       // 1. If node has child matching term[index], push { node: childNode, index +1, tolerance }
-      if (node.c.has(currentChar)) {
-        const childNode = node.c.get(currentChar)!
-        stack.push({ node: childNode, index: index + 1, tolerance })
+      const matchingChild = children.get(currentChar)
+      if (matchingChild) {
+        stack.push({ node: matchingChild, index: index + 1, tolerance })
       }
 
       // 2. Push { node, index +1, tolerance -1 } (Delete operation)
       stack.push({ node: node, index: index + 1, tolerance: tolerance - 1 })
 
       // 3. For each child:
-      for (const [character, childNode] of node.c) {
+      for (const [character, childNode] of children) {
         // a) Insert operation
         stack.push({ node: childNode, index: index, tolerance: tolerance - 1 })
 
@@ -258,7 +249,7 @@ export class RadixNode {
           let j = 0
 
           // Compare edge label with the term starting from position i
-          while (j < edgeLabelLength && i + j < termLength && edgeLabel[j] === term[i + j]) {
+          while (j < edgeLabelLength && i + j < termLength && edgeLabel.charCodeAt(j) === term.charCodeAt(i + j)) {
             j++
           }
 
@@ -316,7 +307,7 @@ export class RadixNode {
         const edgeLabelLength = edgeLabel.length
         let j = 0
 
-        while (j < edgeLabelLength && i + j < termLength && edgeLabel[j] === term[i + j]) {
+        while (j < edgeLabelLength && i + j < termLength && edgeLabel.charCodeAt(j) === term.charCodeAt(i + j)) {
           j++
         }
 
@@ -391,15 +382,6 @@ export class RadixNode {
       }
     }
     return true
-  }
-
-  private static getCommonPrefix(a: string, b: string): string {
-    const len = Math.min(a.length, b.length)
-    let i = 0
-    while (i < len && a.charCodeAt(i) === b.charCodeAt(i)) {
-      i++
-    }
-    return a.slice(0, i)
   }
 
   public toJSON(): object {

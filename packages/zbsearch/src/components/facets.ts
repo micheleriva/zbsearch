@@ -1,5 +1,6 @@
 import type {
   AnyZBSearch,
+  AnyDocument,
   FacetResult,
   FacetSorting,
   FacetsParams,
@@ -9,9 +10,20 @@ import type {
   TokenScore
 } from '../types.js'
 import { createError } from '../errors.js'
-import { getNested } from '../utils.js'
 
 type FacetValue = string | boolean | number
+
+interface PreparedRange {
+  from: number
+  to: number
+  key: string
+}
+
+interface PreparedFacet {
+  values: Record<string, number>
+  process: (doc: AnyDocument) => void
+  finalize: () => Record<string, number>
+}
 
 function sortAsc(a: [string, number], b: [string, number]) {
   return a[1] - b[1]
@@ -25,150 +37,207 @@ function sortingPredicateBuilder(order: FacetSorting = 'desc') {
   return order.toLowerCase() === 'asc' ? sortAsc : sortDesc
 }
 
+function getValueAtPath(doc: AnyDocument, pathParts: string[]): SearchableValue | undefined {
+  let value: unknown = doc
+  for (let i = 0; i < pathParts.length; i++) {
+    if (value === null || value === undefined || typeof value !== 'object') {
+      return undefined
+    }
+    value = (value as Record<string, unknown>)[pathParts[i]!]
+  }
+  return value as SearchableValue | undefined
+}
+
+function incrementNumberFacet(
+  ranges: PreparedRange[],
+  values: Record<string, number>,
+  facetValue: number,
+  alreadyInsertedValues?: Set<string>
+) {
+  for (let i = 0; i < ranges.length; i++) {
+    const range = ranges[i]!
+    if (alreadyInsertedValues?.has(range.key)) {
+      continue
+    }
+
+    if (facetValue >= range.from && facetValue <= range.to) {
+      const current = values[range.key]
+      if (current === undefined) {
+        values[range.key] = 1
+      } else {
+        values[range.key] = current + 1
+        alreadyInsertedValues?.add(range.key)
+      }
+    }
+  }
+}
+
+function incrementBooleanStringOrEnumFacet(
+  values: Record<string, number>,
+  propertyType: 'string' | 'boolean' | 'enum',
+  facetValue: FacetValue,
+  alreadyInsertedValues?: Set<string>
+) {
+  const defaultValue = propertyType === 'boolean' ? 'false' : ''
+  const value = facetValue?.toString() ?? defaultValue
+  if (alreadyInsertedValues?.has(value)) {
+    return
+  }
+
+  const current = values[value]
+  values[value] = current === undefined ? 1 : current + 1
+  alreadyInsertedValues?.add(value)
+}
+
+function prepareRangeValues(ranges: NumberFacetDefinition['ranges']): Record<string, number> {
+  const values: Record<string, number> = {}
+  for (let i = 0; i < ranges.length; i++) {
+    const range = ranges[i]!
+    values[`${range.from}-${range.to}`] = 0
+  }
+  return values
+}
+
+function prepareRanges(ranges: NumberFacetDefinition['ranges']): PreparedRange[] {
+  const prepared: PreparedRange[] = Array.from({ length: ranges.length })
+  for (let i = 0; i < ranges.length; i++) {
+    const range = ranges[i]!
+    prepared[i] = {
+      from: range.from,
+      to: range.to,
+      key: `${range.from}-${range.to}`
+    }
+  }
+  return prepared
+}
+
+function prepareFacet<T extends AnyZBSearch>(
+  facet: string,
+  facetsConfig: FacetsParams<T>,
+  propertyType: string,
+  pathParts: string[] | null
+): PreparedFacet {
+  const getFacetValue = pathParts ? (doc: AnyDocument) => getValueAtPath(doc, pathParts) : (doc: AnyDocument) => doc[facet]
+
+  let values: Record<string, number> = {}
+  let process: (doc: AnyDocument) => void
+  let finalize: () => Record<string, number> = () => values
+
+  switch (propertyType) {
+    case 'number': {
+      const { ranges } = facetsConfig[facet] as NumberFacetDefinition
+      const preparedRanges = prepareRanges(ranges)
+      values = prepareRangeValues(ranges)
+      process = (doc) => {
+        const facetValue = getFacetValue(doc)
+        if (typeof facetValue === 'number') {
+          incrementNumberFacet(preparedRanges, values, facetValue)
+        }
+      }
+      break
+    }
+    case 'number[]': {
+      const { ranges } = facetsConfig[facet] as NumberFacetDefinition
+      const preparedRanges = prepareRanges(ranges)
+      values = prepareRangeValues(ranges)
+      process = (doc) => {
+        const facetValue = getFacetValue(doc)
+        if (!Array.isArray(facetValue)) {
+          return
+        }
+
+        const alreadyInsertedValues = new Set<string>()
+        for (let i = 0; i < facetValue.length; i++) {
+          incrementNumberFacet(preparedRanges, values, facetValue[i] as number, alreadyInsertedValues)
+        }
+      }
+      break
+    }
+    case 'boolean':
+    case 'enum':
+    case 'string': {
+      const innerType = propertyType as 'string' | 'boolean' | 'enum'
+      process = (doc) => {
+        const facetValue = getFacetValue(doc)
+        incrementBooleanStringOrEnumFacet(values, innerType, facetValue as FacetValue)
+      }
+      if (propertyType === 'string') {
+        const stringFacetDefinition = facetsConfig[facet] as StringFacetDefinition
+        const sortingPredicate = sortingPredicateBuilder(stringFacetDefinition.sort)
+        const offset = stringFacetDefinition.offset ?? 0
+        const limit = stringFacetDefinition.limit ?? 10
+        finalize = () =>
+          Object.fromEntries(
+            Object.entries(values)
+              .sort(sortingPredicate)
+              .slice(offset, offset + limit)
+          )
+      }
+      break
+    }
+    case 'boolean[]':
+    case 'enum[]':
+    case 'string[]': {
+      const innerType = propertyType === 'boolean[]' ? 'boolean' : 'string'
+      process = (doc) => {
+        const facetValue = getFacetValue(doc)
+        if (!Array.isArray(facetValue)) {
+          return
+        }
+
+        const alreadyInsertedValues = new Set<string>()
+        for (let i = 0; i < facetValue.length; i++) {
+          incrementBooleanStringOrEnumFacet(values, innerType, facetValue[i] as FacetValue, alreadyInsertedValues)
+        }
+      }
+      break
+    }
+    default:
+      throw createError('FACET_NOT_SUPPORTED', propertyType)
+  }
+
+  return { values, process, finalize }
+}
+
 export function getFacets<T extends AnyZBSearch>(
   zbsearch: T,
   results: TokenScore[],
   facetsConfig: FacetsParams<T>
 ): FacetResult {
   const facets: FacetResult = {}
-  const allIDs = results.map(([id]) => id)
-  const allDocs = zbsearch.documentsStore.getMultiple(zbsearch.data.docs, allIDs)
   const facetKeys = Object.keys(facetsConfig!)
-
   const properties = zbsearch.index.getSearchablePropertiesWithTypes(zbsearch.data.index)
+  const docs = zbsearch.data.docs.docs
 
-  for (const facet of facetKeys) {
-    let values
-
-    // Hack to guarantee the same order of ranges as specified by the user
-    // TODO: Revisit this once components land
-    if (properties[facet] === 'number') {
-      const { ranges } = facetsConfig[facet] as NumberFacetDefinition
-      const rangesLength = ranges.length
-      const tmp: [string, number][] = Array.from({ length: rangesLength })
-      for (let i = 0; i < rangesLength; i++) {
-        const range = ranges[i]
-        tmp[i] = [`${range.from}-${range.to}`, 0]
-      }
-      values = Object.fromEntries(tmp)
-    }
-
+  const preparedFacets: PreparedFacet[] = Array.from({ length: facetKeys.length })
+  for (let i = 0; i < facetKeys.length; i++) {
+    const facet = facetKeys[i]!
+    const pathParts = facet.includes('.') ? facet.split('.') : null
+    preparedFacets[i] = prepareFacet(facet, facetsConfig, properties[facet]!, pathParts)
     facets[facet] = {
       count: 0,
-      values: values ?? {}
+      values: preparedFacets[i]!.values
     }
   }
 
-  const allDocsLength = allDocs.length
-  for (let i = 0; i < allDocsLength; i++) {
-    const doc = allDocs[i]
+  const resultsLength = results.length
+  for (let i = 0; i < resultsLength; i++) {
+    const doc = docs[results[i]![0]!]
+    if (!doc) {
+      continue
+    }
 
-    for (const facet of facetKeys) {
-      const facetValue = facet.includes('.') ? getNested<string>(doc!, facet)! : (doc![facet] as SearchableValue)
-
-      const propertyType = properties[facet]
-      const facetValues = facets[facet].values
-      switch (propertyType) {
-        case 'number': {
-          const ranges = (facetsConfig[facet] as NumberFacetDefinition).ranges
-          calculateNumberFacetBuilder(ranges, facetValues)(facetValue as number)
-          break
-        }
-        case 'number[]': {
-          const alreadyInsertedValues = new Set<string>()
-          const ranges = (facetsConfig[facet] as NumberFacetDefinition).ranges
-          const calculateNumberFacet = calculateNumberFacetBuilder(ranges, facetValues, alreadyInsertedValues)
-          for (const v of facetValue as Array<number>) {
-            calculateNumberFacet(v)
-          }
-          break
-        }
-        case 'boolean':
-        case 'enum':
-        case 'string': {
-          calculateBooleanStringOrEnumFacetBuilder(facetValues, propertyType)(facetValue as FacetValue)
-          break
-        }
-        case 'boolean[]':
-        case 'enum[]':
-        case 'string[]': {
-          const alreadyInsertedValues = new Set<string>()
-          const innerType = propertyType === 'boolean[]' ? 'boolean' : 'string'
-          const calculateBooleanStringOrEnumFacet = calculateBooleanStringOrEnumFacetBuilder(
-            facetValues,
-            innerType,
-            alreadyInsertedValues
-          )
-          for (const v of facetValue as Array<FacetValue>) {
-            calculateBooleanStringOrEnumFacet(v)
-          }
-          break
-        }
-        default:
-          throw createError('FACET_NOT_SUPPORTED', propertyType)
-      }
+    for (let j = 0; j < facetKeys.length; j++) {
+      preparedFacets[j]!.process(doc)
     }
   }
 
-  // TODO: We are looping again with the same previous keys, should we creat a single loop instead?
-  for (const facet of facetKeys) {
-    const currentFacet = facets[facet]
-    // Count the number of values for each facet
-    currentFacet.count = Object.keys(currentFacet.values).length
-    // Sort only string-based facets
-    if (properties[facet] === 'string') {
-      const stringFacetDefinition = facetsConfig[facet] as StringFacetDefinition
-      const sortingPredicate = sortingPredicateBuilder(stringFacetDefinition.sort)
-
-      currentFacet.values = Object.fromEntries(
-        Object.entries(currentFacet.values)
-          .sort(sortingPredicate)
-          .slice(stringFacetDefinition.offset ?? 0, stringFacetDefinition.limit ?? 10)
-      )
-    }
+  for (let i = 0; i < facetKeys.length; i++) {
+    const facet = facetKeys[i]!
+    const preparedFacet = preparedFacets[i]!
+    facets[facet]!.count = Object.keys(preparedFacet.values).length
+    facets[facet]!.values = preparedFacet.finalize()
   }
 
   return facets
-}
-
-function calculateNumberFacetBuilder(
-  ranges: NumberFacetDefinition['ranges'],
-  values: Record<string, number>,
-  alreadyInsertedValues?: Set<string>
-) {
-  return (facetValue: number) => {
-    for (const range of ranges) {
-      const value = `${range.from}-${range.to}`
-      if (alreadyInsertedValues?.has(value)) {
-        continue
-      }
-
-      if (facetValue >= range.from && facetValue <= range.to) {
-        if (values[value] === undefined) {
-          values[value] = 1
-        } else {
-          values[value]++
-
-          alreadyInsertedValues?.add(value)
-        }
-      }
-    }
-  }
-}
-
-function calculateBooleanStringOrEnumFacetBuilder(
-  values: Record<string, number>,
-  propertyType: 'string' | 'boolean' | 'enum',
-  alreadyInsertedValues?: Set<string>
-) {
-  const defaultValue = propertyType === 'boolean' ? 'false' : ''
-  return (facetValue: FacetValue) => {
-    // String or boolean based facets
-    const value = facetValue?.toString() ?? defaultValue
-    if (alreadyInsertedValues?.has(value)) {
-      return
-    }
-    values[value] = (values[value] ?? 0) + 1
-    alreadyInsertedValues?.add(value)
-  }
 }

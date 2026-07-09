@@ -79,7 +79,9 @@ export class BKDTree {
   }
 
   insert(point: Point, docIDs: InternalDocumentID[]): void {
-    const pointKey = this.getPointKey(point)
+    const lon = point.lon
+    const lat = point.lat
+    const pointKey = lon + ',' + lat
     const existingNode = this.nodeMap.get(pointKey)
     if (existingNode) {
       for (let i = 0; i < docIDs.length; i++) {
@@ -91,33 +93,37 @@ export class BKDTree {
     const newNode = new BKDNode(point, docIDs)
     this.nodeMap.set(pointKey, newNode)
 
-    if (this.root == null) {
+    const root = this.root
+    if (root == null) {
       this.root = newNode
       return
     }
 
-    let node = this.root
+    let node = root
     let depth = 0
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const goLeft =
-        (depth & 1 ? point.lat : point.lon) < (depth & 1 ? node.point.lat : node.point.lon)
+      const axis = depth & 1
+      const nodePoint = node.point
+      const goLeft = (axis ? lat : lon) < (axis ? nodePoint.lat : nodePoint.lon)
 
       if (goLeft) {
-        if (node.left == null) {
+        const left = node.left
+        if (left == null) {
           node.left = newNode
           newNode.parent = node
           return
         }
-        node = node.left
+        node = left
       } else {
-        if (node.right == null) {
+        const right = node.right
+        if (right == null) {
           node.right = newNode
           newNode.parent = node
           return
         }
-        node = node.right
+        node = right
       }
 
       depth++
@@ -125,8 +131,7 @@ export class BKDTree {
   }
 
   contains(point: Point): boolean {
-    const pointKey = this.getPointKey(point)
-    return this.nodeMap.has(pointKey)
+    return this.nodeMap.has(point.lon + ',' + point.lat)
   }
 
   getDocIDsByCoordinates(point: Point): Nullable<InternalDocumentID[]> {

@@ -8,6 +8,7 @@
     "benchmark": "node index.js",
     "benchmark:algorithms": "node algorithms.js",
     "benchmark:bkd": "node bkd.js",
+    "benchmark:avl": "node avl.js",
     "benchmark:bundle-size": "node bundle-size.js"
   },
   "keywords": [],

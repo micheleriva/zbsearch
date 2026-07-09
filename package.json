@@ -61,23 +61,8 @@
       "path": "cz-conventional-changelog"
     }
   },
-  "pnpm": {
-    "peerDependencyRules": {
-      "ignoreMissing": [
-        "@algolia/client-search",
-        "@babel/plugin-syntax-flow",
-        "@babel/plugin-transform-react-jsx",
-        "algoliasearch",
-        "eslint",
-        "typescript"
-      ]
-    },
-    "overrides": {
-      "hastscript": "^9.0.1"
-    }
-  },
   "engines": {
     "node": ">= 20.0.0"
   },
-  "packageManager": "pnpm@10.9.0+sha512.0486e394640d3c1fb3c9d43d49cf92879ff74f8516959c235308f5a8f62e2e19528a65cdc2a3058f587cde71eba3d5b56327c8c33a97e4c4051ca48a10ca2d5f"
+  "packageManager": "pnpm@11.10.0+sha512.0b7f8b98060031904c017e3a41eb187a16d40eeb829b95c4f8cb03681761fc4ab53dd219115b9b447f4dce1a05a214764461e7d3703392a9f32f9511ce8c86c8"
 }

@@ -1,3 +1,21 @@
 packages:
   - 'packages/*'
   - 'sandboxes/*'
+
+allowBuilds:
+  '@swc/core': true
+  esbuild: true
+
+enablePrePostScripts: true
+
+overrides:
+  hastscript: ^9.0.1
+
+peerDependencyRules:
+  ignoreMissing:
+    - '@algolia/client-search'
+    - '@babel/plugin-syntax-flow'
+    - '@babel/plugin-transform-react-jsx'
+    - algoliasearch
+    - eslint
+    - typescript

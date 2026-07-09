@@ -282,5 +282,3 @@ Write your own plugin: [https://docs.zbsearch.com/docs/zbsearch-js/plugins/writi
 # License
 
 ZBSearch is licensed under the [Apache 2.0](/LICENSE.md) license.
-
-<img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=fb0c2057-e709-49a9-b634-cf90bdfb2dbd" />

@@ -1,29 +1,29 @@
 import zlib from 'node:zlib'
 import fs from 'node:fs'
-import { persistToFile } from '@zbsearch/plugin-data-persistence/server'
-import { insertMultiple, db211, db300rc2, dbLatest, dbLatestPT15, dbLatestQPS } from './src/get-zbsearch.js'
+import * as orama from '@orama/orama'
+import * as zbsearch from 'zbsearch'
+import { versions, insertMultiple, dbOrama, dbZBSearch } from './src/get-engines.js'
 
-const db211Path = './bundle/db211.json'
-const db300rc2Path = './bundle/db300rc2.json'
-const dbLatestPath = './bundle/dbLatest.json'
-const dbLatestPT15Path = './bundle/dbLatestPT15.json'
-const dbLatestQPSPath = './bundle/dbLatestQPS.json'
+const oramaPath = './bundle/orama.json'
+const zbsearchPath = './bundle/zbsearch.json'
 
-await insertMultiple.zbsearch211()
-insertMultiple.zbsearch300rc2()
-insertMultiple.zbsearchLatest()
-insertMultiple.zbsearchLatestPT15()
-insertMultiple.zbsearchLatestQPS()
+insertMultiple.orama()
+insertMultiple.zbsearch()
 
-await persistToFile(db211, 'json', db211Path)
-await persistToFile(db300rc2, 'json', db300rc2Path)
-await persistToFile(dbLatest, 'json', dbLatestPath)
-await persistToFile(dbLatestPT15, 'json', dbLatestPT15Path)
-await persistToFile(dbLatestQPS, 'json', dbLatestQPSPath)
+fs.writeFileSync(oramaPath, JSON.stringify(orama.save(dbOrama)))
+fs.writeFileSync(zbsearchPath, JSON.stringify(zbsearch.save(dbZBSearch)))
 
+fs.writeFileSync(oramaPath + '.gz', zlib.gzipSync(fs.readFileSync(oramaPath)))
+fs.writeFileSync(zbsearchPath + '.gz', zlib.gzipSync(fs.readFileSync(zbsearchPath)))
 
-fs.writeFileSync(db211Path + '.gz', zlib.gzipSync(fs.readFileSync(db211Path)))
-fs.writeFileSync(db300rc2Path + '.gz', zlib.gzipSync(fs.readFileSync(db300rc2Path)))
-fs.writeFileSync(dbLatestPath + '.gz', zlib.gzipSync(fs.readFileSync(dbLatestPath)))
-fs.writeFileSync(dbLatestPT15Path + '.gz', zlib.gzipSync(fs.readFileSync(dbLatestPT15Path)))
-fs.writeFileSync(dbLatestQPSPath + '.gz', zlib.gzipSync(fs.readFileSync(dbLatestQPSPath)))
+const oramaSize = fs.statSync(oramaPath).size
+const zbsearchSize = fs.statSync(zbsearchPath).size
+const oramaGzipSize = fs.statSync(oramaPath + '.gz').size
+const zbsearchGzipSize = fs.statSync(zbsearchPath + '.gz').size
+
+console.log(`Orama ${versions.orama}`)
+console.log(`  JSON: ${oramaSize} bytes`)
+console.log(`  GZIP: ${oramaGzipSize} bytes`)
+console.log(`ZBSearch ${versions.zbsearch}`)
+console.log(`  JSON: ${zbsearchSize} bytes`)
+console.log(`  GZIP: ${zbsearchGzipSize} bytes`)

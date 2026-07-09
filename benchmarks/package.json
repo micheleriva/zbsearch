@@ -1,23 +1,23 @@
 {
   "name": "benchmarks",
   "version": "1.0.0",
-  "description": "",
+  "description": "Performance benchmarks comparing Orama and ZBSearch",
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "benchmark": "node index.js",
+    "benchmark:algorithms": "node algorithms.js",
+    "benchmark:bundle-size": "node bundle-size.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "zbsearch_211": "npm:zbsearch@2.1.1",
-    "zbsearch_300_rc_2": "npm:zbsearch@3.0.0-rc-2",
-    "zbsearch_latest": "file:../packages/zbsearch",
+    "@orama/orama": "^3.1.18",
+    "zbsearch": "file:../packages/zbsearch",
     "@zbsearch/stopwords": "file:../packages/stopwords",
     "@zbsearch/plugin-pt15": "file:../packages/plugin-pt15",
-    "@zbsearch/plugin-qps": "file:../packages/plugin-qps",
-    "@zbsearch/plugin-data-persistence": "file:../packages/plugin-data-persistence"
+    "@zbsearch/plugin-qps": "file:../packages/plugin-qps"
   },
   "devDependencies": {
     "benny": "^3.7.1"

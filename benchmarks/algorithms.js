@@ -1,8 +1,8 @@
 import b from 'benny'
-import { create, insertMultiple, search } from 'zbsearch_latest'
+import { create, insertMultiple, search } from 'zbsearch'
 import { pluginPT15 } from '@zbsearch/plugin-pt15'
 import { pluginQPS } from '@zbsearch/plugin-qps'
-import dataset from './src/dataset.json' assert { type: 'json' }
+import dataset from './src/dataset.json' with { type: 'json' }
 import {stopwords} from '@zbsearch/stopwords/english'
 
 const dbBM25 = create({

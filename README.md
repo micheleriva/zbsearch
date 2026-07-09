@@ -1,6 +1,6 @@
 # ZBSearch
 
-ZBSearch (_zee bee search_) is a zero-bs fork of ZBSearch maintained by the original ZBSearch team.
+ZBSearch (_zee bee search_) is a zero-bs fork of Orama maintained by **the original Orama team**.
 
 - Michele Rive (ex Co-Founder, CTO)
 - Angela Angelini (ex Co-Founder, CDO)
@@ -8,7 +8,7 @@ ZBSearch (_zee bee search_) is a zero-bs fork of ZBSearch maintained by the orig
 - Alberto Moretti (ex St. Engineer)
 - Fausto Quaggia (ex Eng. Manager)
 
-After [Michele's departure](https://www.micheleriva.dev/writings/my-last-day-at-ZBSearch), the entire engineering team left ZBSearch and reassembled to maintain this popular project with no external influence. No VC, no business incentives, no bs. Help us get 10.5k stars back!
+After [Michele's departure](https://www.micheleriva.dev/writings/my-last-day-at-orama), the entire engineering team left Orama and reassembled to maintain this popular project with no external influence. No VC, no business incentives, no bs. Help us get 10.5k stars back!
 
 # Highlighted features
 

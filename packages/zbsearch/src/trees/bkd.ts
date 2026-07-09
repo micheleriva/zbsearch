@@ -18,6 +18,13 @@ type SearchTask = {
   depth: number
 }
 
+type PolygonBounds = {
+  minLon: number
+  maxLon: number
+  minLat: number
+  maxLat: number
+}
+
 const K = 2 // 2D points
 const EARTH_RADIUS = 6371e3 // Earth radius in meters
 
@@ -68,14 +75,16 @@ export class BKDTree {
   }
 
   private getPointKey(point: Point): string {
-    return `${point.lon},${point.lat}`
+    return point.lon + ',' + point.lat
   }
 
   insert(point: Point, docIDs: InternalDocumentID[]): void {
     const pointKey = this.getPointKey(point)
     const existingNode = this.nodeMap.get(pointKey)
     if (existingNode) {
-      docIDs.forEach((id) => existingNode.docIDs.add(id))
+      for (let i = 0; i < docIDs.length; i++) {
+        existingNode.docIDs.add(docIDs[i])
+      }
       return
     }
 
@@ -92,40 +101,23 @@ export class BKDTree {
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const axis = depth % K
+      const goLeft =
+        (depth & 1 ? point.lat : point.lon) < (depth & 1 ? node.point.lat : node.point.lon)
 
-      if (axis === 0) {
-        if (point.lon < node.point.lon) {
-          if (node.left == null) {
-            node.left = newNode
-            newNode.parent = node
-            return
-          }
-          node = node.left
-        } else {
-          if (node.right == null) {
-            node.right = newNode
-            newNode.parent = node
-            return
-          }
-          node = node.right
+      if (goLeft) {
+        if (node.left == null) {
+          node.left = newNode
+          newNode.parent = node
+          return
         }
+        node = node.left
       } else {
-        if (point.lat < node.point.lat) {
-          if (node.left == null) {
-            node.left = newNode
-            newNode.parent = node
-            return
-          }
-          node = node.left
-        } else {
-          if (node.right == null) {
-            node.right = newNode
-            newNode.parent = node
-            return
-          }
-          node = node.right
+        if (node.right == null) {
+          node.right = newNode
+          newNode.parent = node
+          return
         }
+        node = node.right
       }
 
       depth++
@@ -186,34 +178,81 @@ export class BKDTree {
     sort: SortGeoPoints = 'asc',
     highPrecision = false
   ): GeoSearchResult[] {
+    const root = this.root
+    if (root == null) {
+      return []
+    }
+
     const distanceFn = highPrecision ? BKDTree.vincentyDistance : BKDTree.haversineDistance
-    const stack: Array<{ node: Nullable<BKDNode>; depth: number }> = [{ node: this.root, depth: 0 }]
+    const axisDistanceFn = highPrecision ? BKDTree.vincentyAxisDistance : BKDTree.haversineAxisDistance
     const result: GeoSearchResult[] = []
+    const sortedEntries: Array<[number, GeoSearchResult]> = []
+    const isAsc = sort == null || sort.toLowerCase() === 'asc'
 
-    while (stack.length > 0) {
-      const { node, depth } = stack.pop()!
-      if (node == null) continue
+    if (inclusive) {
+      const stack: BKDNode[] = [root]
+      const depths: number[] = [0]
 
-      const dist = distanceFn(center, node.point)
+      while (stack.length > 0) {
+        const node = stack.pop()!
+        const depth = depths.pop()!
 
-      if (inclusive ? dist <= radius : dist > radius) {
-        result.push({ point: node.point, docIDs: Array.from(node.docIDs) })
+        const dist = distanceFn(center, node.point)
+        if (dist <= radius) {
+          const entry: GeoSearchResult = { point: node.point, docIDs: Array.from(node.docIDs) }
+          if (sort) {
+            sortedEntries.push([dist, entry])
+          } else {
+            result.push(entry)
+          }
+        }
+
+        const axis = depth & 1
+        const centerCoord = axis === 0 ? center.lon : center.lat
+        const nodeCoord = axis === 0 ? node.point.lon : node.point.lat
+        const searchLeft = centerCoord < nodeCoord
+
+        const near = searchLeft ? node.left : node.right
+        const far = searchLeft ? node.right : node.left
+
+        if (near != null) {
+          stack.push(near)
+          depths.push(depth + 1)
+        }
+
+        if (far != null && axisDistanceFn(center, node.point, axis) <= radius) {
+          stack.push(far)
+          depths.push(depth + 1)
+        }
       }
+    } else {
+      const stack: BKDNode[] = [root]
 
-      if (node.left != null) {
-        stack.push({ node: node.left, depth: depth + 1 })
-      }
-      if (node.right != null) {
-        stack.push({ node: node.right, depth: depth + 1 })
+      while (stack.length > 0) {
+        const node = stack.pop()!
+
+        const dist = distanceFn(center, node.point)
+        if (dist > radius) {
+          const entry: GeoSearchResult = { point: node.point, docIDs: Array.from(node.docIDs) }
+          if (sort) {
+            sortedEntries.push([dist, entry])
+          } else {
+            result.push(entry)
+          }
+        }
+
+        if (node.left != null) {
+          stack.push(node.left)
+        }
+        if (node.right != null) {
+          stack.push(node.right)
+        }
       }
     }
 
-    if (sort) {
-      result.sort((a, b) => {
-        const distA = distanceFn(center, a.point)
-        const distB = distanceFn(center, b.point)
-        return sort.toLowerCase() === 'asc' ? distA - distB : distB - distA
-      })
+    if (sort && sortedEntries.length > 0) {
+      sortedEntries.sort((a, b) => (isAsc ? a[0] - b[0] : b[0] - a[0]))
+      return sortedEntries.map(([, entry]) => entry)
     }
 
     return result
@@ -225,36 +264,96 @@ export class BKDTree {
     sort: SortGeoPoints = null,
     highPrecision = false
   ): GeoSearchResult[] {
-    const stack: SearchTask[] = [{ node: this.root, depth: 0 }]
+    const root = this.root
+    if (root == null) {
+      return []
+    }
+
+    const bounds = BKDTree.getPolygonBounds(polygon)
     const result: GeoSearchResult[] = []
+    const sortedEntries: Array<[number, GeoSearchResult]> = []
+    const isAsc = sort == null || sort.toLowerCase() === 'asc'
+    const centroid = sort ? BKDTree.calculatePolygonCentroid(polygon) : null
+    const distanceFn =
+      sort != null ? (highPrecision ? BKDTree.vincentyDistance : BKDTree.haversineDistance) : null
 
-    while (stack.length > 0) {
-      const { node, depth } = stack.pop()!
-      if (node == null) continue
+    if (inclusive) {
+      const stack: BKDNode[] = [root]
+      const depths: number[] = [0]
 
-      if (node.left != null) {
-        stack.push({ node: node.left, depth: depth + 1 })
+      while (stack.length > 0) {
+        const node = stack.pop()!
+        const depth = depths.pop()!
+        const axis = depth & 1
+
+        if (axis === 0 ? bounds.minLon < node.point.lon : bounds.minLat < node.point.lat) {
+          const left = node.left
+          if (left != null) {
+            stack.push(left)
+            depths.push(depth + 1)
+          }
+        }
+
+        if (axis === 0 ? bounds.maxLon >= node.point.lon : bounds.maxLat >= node.point.lat) {
+          const right = node.right
+          if (right != null) {
+            stack.push(right)
+            depths.push(depth + 1)
+          }
+        }
+
+        const point = node.point
+        if (
+          point.lon >= bounds.minLon &&
+          point.lon <= bounds.maxLon &&
+          point.lat >= bounds.minLat &&
+          point.lat <= bounds.maxLat &&
+          BKDTree.isPointInPolygon(polygon, point)
+        ) {
+          const entry: GeoSearchResult = { point, docIDs: Array.from(node.docIDs) }
+          if (sort && distanceFn && centroid) {
+            sortedEntries.push([distanceFn(centroid, point), entry])
+          } else {
+            result.push(entry)
+          }
+        }
       }
-      if (node.right != null) {
-        stack.push({ node: node.right, depth: depth + 1 })
-      }
+    } else {
+      const stack: SearchTask[] = [{ node: root, depth: 0 }]
 
-      const isInsidePolygon = BKDTree.isPointInPolygon(polygon, node.point)
+      while (stack.length > 0) {
+        const { node, depth } = stack.pop()!
+        if (node == null) continue
 
-      if ((isInsidePolygon && inclusive) || (!isInsidePolygon && !inclusive)) {
-        result.push({ point: node.point, docIDs: Array.from(node.docIDs) })
+        if (node.left != null) {
+          stack.push({ node: node.left, depth: depth + 1 })
+        }
+        if (node.right != null) {
+          stack.push({ node: node.right, depth: depth + 1 })
+        }
+
+        const point = node.point
+        const inBounds =
+          point.lon >= bounds.minLon &&
+          point.lon <= bounds.maxLon &&
+          point.lat >= bounds.minLat &&
+          point.lat <= bounds.maxLat
+        const isInsidePolygon = inBounds && BKDTree.isPointInPolygon(polygon, point)
+
+        if (!isInsidePolygon) {
+          const entry: GeoSearchResult = { point, docIDs: Array.from(node.docIDs) }
+          if (sort && distanceFn && centroid) {
+            sortedEntries.push([distanceFn(centroid, point), entry])
+          } else {
+            result.push(entry)
+          }
+        }
       }
     }
 
-    const centroid = BKDTree.calculatePolygonCentroid(polygon)
-
-    if (sort) {
-      const distanceFn = highPrecision ? BKDTree.vincentyDistance : BKDTree.haversineDistance
-      result.sort((a, b) => {
-        const distA = distanceFn(centroid, a.point)
-        const distB = distanceFn(centroid, b.point)
-        return sort!.toLowerCase() === 'asc' ? distA - distB : distB - distA
-      })
+    if (sort && sortedEntries.length > 0) {
+      sortedEntries.sort((a, b) => (isAsc ? a[0] - b[0] : b[0] - a[0]))
+      return sortedEntries.map(([, entry]) => entry)
     }
 
     return result
@@ -285,6 +384,23 @@ export class BKDTree {
     if (node.right) {
       this.buildNodeMap(node.right)
     }
+  }
+
+  private static getPolygonBounds(polygon: Point[]): PolygonBounds {
+    let minLon = polygon[0].lon
+    let maxLon = polygon[0].lon
+    let minLat = polygon[0].lat
+    let maxLat = polygon[0].lat
+
+    for (let i = 1; i < polygon.length; i++) {
+      const p = polygon[i]
+      if (p.lon < minLon) minLon = p.lon
+      if (p.lon > maxLon) maxLon = p.lon
+      if (p.lat < minLat) minLat = p.lat
+      if (p.lat > maxLat) maxLat = p.lat
+    }
+
+    return { minLon, maxLon, minLat, maxLat }
   }
 
   static calculatePolygonCentroid(polygon: Point[]): Point {
@@ -331,6 +447,20 @@ export class BKDTree {
     }
 
     return isInside
+  }
+
+  static haversineAxisDistance(center: Point, planePoint: Point, axis: number): number {
+    if (axis === 0) {
+      return BKDTree.haversineDistance(center, { lon: planePoint.lon, lat: center.lat })
+    }
+    return BKDTree.haversineDistance(center, { lon: center.lon, lat: planePoint.lat })
+  }
+
+  static vincentyAxisDistance(center: Point, planePoint: Point, axis: number): number {
+    if (axis === 0) {
+      return BKDTree.vincentyDistance(center, { lon: planePoint.lon, lat: center.lat })
+    }
+    return BKDTree.vincentyDistance(center, { lon: center.lon, lat: planePoint.lat })
   }
 
   static haversineDistance(coord1: Point, coord2: Point): number {

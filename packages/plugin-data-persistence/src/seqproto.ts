@@ -1,11 +1,11 @@
 import type { Ser, Des } from 'seqproto'
-import type { RawData, AnyOrama } from '@orama/orama'
-import { save } from '@orama/orama'
+import type { RawData, AnyZBSearch } from 'zbsearch'
+import { save } from 'zbsearch'
 import { createSer, createDes } from 'seqproto'
 
 type JSONLike = null | string | number | boolean | undefined | JSONLike[] | { [k: string]: JSONLike }
 
-// Fast serializers for known Orama structures
+// Fast serializers for known ZBSearch structures
 function serializeStringArray(ser: Ser, arr: string[]): void {
   ser.serializeUInt32(arr.length)
   for (let i = 0; i < arr.length; i++) {
@@ -279,9 +279,9 @@ function deserializeValue(des: Des): JSONLike {
 }
 
 /**
- * Serialize an Orama instance using seqproto with schema-aware optimization.
+ * Serialize an ZBSearch instance using seqproto with schema-aware optimization.
  */
-export function serializeOramaInstance<T extends AnyOrama>(db: T): ArrayBuffer {
+export function serializeZBSearchInstance<T extends AnyZBSearch>(db: T): ArrayBuffer {
   const raw = save(db) as any
   const ser = createSer()
 
@@ -445,7 +445,7 @@ export function serializeOramaInstance<T extends AnyOrama>(db: T): ArrayBuffer {
 /**
  * Deserialize a previously serialized snapshot with schema-aware deserialization.
  */
-export function deserializeOramaInstance(buffer: ArrayBuffer): RawData {
+export function deserializeZBSearchInstance(buffer: ArrayBuffer): RawData {
   const des = createDes(buffer as any)
   const version = des.deserializeUInt32()
 
@@ -456,7 +456,7 @@ export function deserializeOramaInstance(buffer: ArrayBuffer): RawData {
   }
 
   if (version !== 2) {
-    throw new Error(`Unsupported seqproto Orama serialization version: ${version}`)
+    throw new Error(`Unsupported seqproto ZBSearch serialization version: ${version}`)
   }
 
   // Schema-aware deserialization
@@ -623,7 +623,7 @@ export function deserializeOramaInstance(buffer: ArrayBuffer): RawData {
   }
   raw.pinning = { rules: pinningRules }
 
-  // Set empty sorting - it will be reconstructed by Orama when needed
+  // Set empty sorting - it will be reconstructed by ZBSearch when needed
   raw.sorting = {}
 
   return raw as RawData

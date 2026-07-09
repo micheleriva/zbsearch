@@ -1,13 +1,13 @@
 name: Bug Report
-description: Create a bug report for Orama
+description: Create a bug report for ZBSearch
 labels: ['template: bug']
 body:
   - type: markdown
     attributes:
       value: |
-        This template is for Orama bugs.
+        This template is for ZBSearch bugs.
 
-        Before opening a new issue, check existing [issues](https://github.com/oramasearch/orama/issues) and upvote if applicable.
+        Before opening a new issue, check existing [issues](https://github.com/micheleriva/zbsearch/issues) and upvote if applicable.
 
   - type: textarea
     attributes:
@@ -22,7 +22,7 @@ body:
       label: To Reproduce
       description: Steps to reproduce the behavior.
       placeholder: |
-        1. Initialize Orama
+        1. Initialize ZBSearch
         2. Insert X data
         3. Search for Y
     validations:
@@ -44,7 +44,7 @@ body:
       placeholder: |
         OS: MacOS 12.1
         Node: 18.17.1
-        Orama: 2.1.3
+        ZBSearch: 2.1.3
     validations:
       required: true
 

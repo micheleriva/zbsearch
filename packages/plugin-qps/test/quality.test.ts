@@ -1,5 +1,5 @@
 import t from 'tap'
-import { AnyOrama, create, insertMultiple, search } from '@orama/orama'
+import { AnyZBSearch, create, insertMultiple, search } from 'zbsearch'
 import { bitmask_20, calculateTokenQuantum, count, numberOfOnes } from '../src/algorithm.js'
 import { pluginQPS } from '../src/index.js'
 
@@ -21,7 +21,7 @@ async function createNew(docs: { description: string }[]) {
   )
   return db
 }
-async function searchNew(db: AnyOrama, { term }: { term: string }) {
+async function searchNew(db: AnyZBSearch, { term }: { term: string }) {
   const searchResult = await search(db, {
     mode: 'fulltext',
     term

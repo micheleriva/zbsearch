@@ -1,21 +1,21 @@
 {
-  "name": "@orama/plugin-nextra",
+  "name": "@zbsearch/plugin-nextra",
   "version": "3.2.0",
-  "description": "Nextra plugin for local search powered by orama",
+  "description": "Nextra plugin for local search powered by zbsearch",
   "keywords": [
-    "orama",
+    "zbsearch",
     "nextra"
   ],
   "license": "Apache-2.0",
   "main": "./dist/index.js",
   "type": "module",
   "bugs": {
-    "url": "https://github.com/oramasearch/orama/issues"
+    "url": "https://github.com/micheleriva/zbsearch/issues"
   },
-  "homepage": "https://github.com/oramasearch/orama#readme",
+  "homepage": "https://github.com/micheleriva/zbsearch#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/oramasearch/orama.git"
+    "url": "git+https://github.com/micheleriva/zbsearch.git"
   },
   "sideEffects": false,
   "types": "./dist/index.d.ts",
@@ -28,8 +28,8 @@
     "test": "tsc --noEmit"
   },
   "dependencies": {
-    "@orama/orama": "workspace:*",
-    "@orama/plugin-match-highlight": "workspace:*",
+    "zbsearch": "workspace:*",
+    "@zbsearch/plugin-match-highlight": "workspace:*",
     "classnames": "^2.5.1"
   },
   "peerDependencies": {

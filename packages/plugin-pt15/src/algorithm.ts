@@ -1,6 +1,6 @@
-import { AnyIndexStore, AnyOrama, SearchableType, Tokenizer } from '@orama/orama'
-import { avl, bkd, flat, bool, vector } from '@orama/orama/trees'
-import { getVectorSize, internalDocumentIDStore, isVectorType } from '@orama/orama/components'
+import { AnyIndexStore, AnyZBSearch, SearchableType, Tokenizer } from 'zbsearch'
+import { avl, bkd, flat, bool, vector } from 'zbsearch/trees'
+import { getVectorSize, internalDocumentIDStore, isVectorType } from 'zbsearch/components'
 
 type InternalDocumentID = internalDocumentIDStore.InternalDocumentID
 
@@ -51,7 +51,7 @@ function create_obj() {
   return Object.create(null)
 }
 
-export function recursiveCreate<T extends AnyOrama>(
+export function recursiveCreate<T extends AnyZBSearch>(
   indexDatastore: PT15IndexStore,
   schema: T['schema'],
   prefix: string

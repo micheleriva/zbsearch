@@ -4,17 +4,17 @@ import { inc, valid } from 'semver'
 import { simpleGit } from 'simple-git'
 import { fileURLToPath } from 'url'
 
-const oramaPackage = JSON.parse(readFileSync('../packages/orama/package.json', 'utf-8'))
+const zbsearchPackage = JSON.parse(readFileSync('../packages/zbsearch/package.json', 'utf-8'))
 
 const dryRun = process.env.DRY_RUN === 'true'
 const skipGit = process.env.SKIP_GIT === 'true'
 const skip = (process.env.SKIP ?? '').split(/\s*,\s*/).map(s => s.trim())
 
-const REPO_URL = 'https://github.com/oramasearch/orama'
+const REPO_URL = 'https://github.com/micheleriva/zbsearch'
 
 // Every published package (kept in sync with scripts/release.mjs).
 const packages = [
-  'orama',
+  'zbsearch',
   'plugin-astro',
   'plugin-data-persistence',
   'plugin-docusaurus',
@@ -102,18 +102,18 @@ async function main() {
     process.exit(1)
   }
 
-  const previousVersion = oramaPackage.version
+  const previousVersion = zbsearchPackage.version
 
-  // Check if the new version is absolute, otherwise we take it from @orama/orama and increase
+  // Check if the new version is absolute, otherwise we take it from zbsearch and increase
   let version = process.argv[2]
 
   if (!valid(version)) {
-    version = inc(oramaPackage.version, version, process.argv[3])
+    version = inc(zbsearchPackage.version, version, process.argv[3])
   }
 
   if (!valid(version)) {
     console.error(
-      `\x1b[31mCannot increase version \x1b[1m${oramaPackage.version}\x1b[22m using operator \x1b[1m${process.argv[2]}\x1b[22m.\x1b[0m`,
+      `\x1b[31mCannot increase version \x1b[1m${zbsearchPackage.version}\x1b[22m using operator \x1b[1m${process.argv[2]}\x1b[22m.\x1b[0m`,
     )
     process.exit(1)
   }

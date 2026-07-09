@@ -1,5 +1,5 @@
-import type { AnyOrama } from '@orama/orama'
-import { save, create, load } from '@orama/orama'
+import type { AnyZBSearch } from 'zbsearch'
+import { save, create, load } from 'zbsearch'
 import { encode, decode } from '@msgpack/msgpack'
 // @ts-expect-error dpack does not expose types
 import * as dpack from 'dpack'
@@ -7,13 +7,13 @@ import type { FileSystem, PersistenceFormat, Runtime } from './types.js'
 import { FILESYSTEM_NOT_SUPPORTED_ON_RUNTIME, UNSUPPORTED_FORMAT } from './errors.js'
 import { persist, restore } from './index.js'
 import { detectRuntime } from './utils.js'
-import { serializeOramaInstance } from './seqproto.js'
+import { serializeZBSearchInstance } from './seqproto.js'
 
-export const DEFAULT_DB_NAME = `orama_bump_${+new Date()}`
+export const DEFAULT_DB_NAME = `zbsearch_bump_${+new Date()}`
 
 let _fs: FileSystem
 
-export async function persistToFile<T extends AnyOrama>(
+export async function persistToFile<T extends AnyZBSearch>(
   db: T,
   format: PersistenceFormat = 'binary',
   path?: string,
@@ -37,7 +37,7 @@ export async function persistToFile<T extends AnyOrama>(
   return path
 }
 
-export async function restoreFromFile<T extends AnyOrama>(
+export async function restoreFromFile<T extends AnyZBSearch>(
   format: PersistenceFormat = 'binary',
   path?: string,
   runtime?: Runtime
@@ -134,16 +134,16 @@ export async function getDefaultFileName(format: PersistenceFormat, runtime?: Ru
   /* c8 ignore next 3 */
   if (runtime === 'deno') {
     // @ts-expect-error Deno is only available in Deno
-    dbName = Deno.env.get('ORAMA_DB_NAME') ?? DEFAULT_DB_NAME
+    dbName = Deno.env.get('ZBSEARCH_DB_NAME') ?? DEFAULT_DB_NAME
   } else {
-    dbName = process?.env?.ORAMA_DB_NAME ?? DEFAULT_DB_NAME
+    dbName = process?.env?.ZBSEARCH_DB_NAME ?? DEFAULT_DB_NAME
   }
 
   return `${dbName}.${extension}`
 }
 
 // Streaming implementation to handle large datasets without memory issues
-async function persistToFileStreaming<T extends AnyOrama>(
+async function persistToFileStreaming<T extends AnyZBSearch>(
   db: T,
   format: PersistenceFormat,
   filePath: string,
@@ -165,7 +165,7 @@ async function persistToFileStreaming<T extends AnyOrama>(
       await _fs.writeFile(filePath, dpackSerialized)
       break
     case 'seqproto':
-      const seqprotoSerialized = serializeOramaInstance(db)
+      const seqprotoSerialized = serializeZBSearchInstance(db)
       const buffer = Buffer.from(seqprotoSerialized)
       await _fs.writeFile(filePath, buffer)
       break
@@ -276,7 +276,7 @@ async function streamBinaryToFile(data: any, filePath: string, runtime: Runtime)
 }
 
 // Helper function to restore from binary data directly
-async function restoreFromBinaryData<T extends AnyOrama>(data: Buffer, runtime: Runtime): Promise<T> {
+async function restoreFromBinaryData<T extends AnyZBSearch>(data: Buffer, runtime: Runtime): Promise<T> {
   const db = create({
     schema: {
       __placeholder: 'string'

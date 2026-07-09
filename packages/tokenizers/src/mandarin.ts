@@ -1,5 +1,5 @@
-import type { DefaultTokenizer, DefaultTokenizerConfig } from "@orama/orama";
-import { normalizeToken } from "@orama/orama/internals";
+import type { DefaultTokenizer, DefaultTokenizerConfig } from "zbsearch";
+import { normalizeToken } from "zbsearch/internals";
 
 const tokenizerLanguage = "mandarin";
 

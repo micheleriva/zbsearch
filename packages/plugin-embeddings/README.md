@@ -1,13 +1,13 @@
-# Orama Plugin Embeddings
+# ZBSearch Plugin Embeddings
 
-**Orama Plugin Embeddings** allows you to generate fast text embeddings at insert and search time offline, directly on your machine - no OpenAI needed!
+**ZBSearch Plugin Embeddings** allows you to generate fast text embeddings at insert and search time offline, directly on your machine - no OpenAI needed!
 
 ## Installation
 
-To get started with **Orama Plugin Embeddings**, just install it with npm:
+To get started with **ZBSearch Plugin Embeddings**, just install it with npm:
 
 ```sh
-npm i @orama/plugin-embeddings
+npm i @zbsearch/plugin-embeddings
 ```
 
 **Important note**: to use this plugin, you'll also need to install one of the following TensorflowJS backend:
@@ -19,13 +19,13 @@ npm i @orama/plugin-embeddings
 - `@tensorflow/tfjs-node-gpu`
 - `@tensorflow/tfjs-backend-wasm`
 
-For example, if you're running Orama on the browser, we highly recommend using `@tensorflow/tfjs-backend-webgl`:
+For example, if you're running ZBSearch on the browser, we highly recommend using `@tensorflow/tfjs-backend-webgl`:
 
 ```sh
 npm i @tensorflow/tfjs-backend-webgl
 ```
 
-If you're using Orama in Node.js, we recommend using `@tensorflow/tfjs-node`:
+If you're using ZBSearch in Node.js, we recommend using `@tensorflow/tfjs-node`:
 
 ```sh
 npm i @tensorflow/tfjs-node
@@ -34,8 +34,8 @@ npm i @tensorflow/tfjs-node
 ## Usage
 
 ```js
-import { create } from '@orama/orama'
-import { pluginEmbeddings } from '@orama/plugin-embeddings'
+import { create } from 'zbsearch'
+import { pluginEmbeddings } from '@zbsearch/plugin-embeddings'
 import '@tensorflow/tfjs-node' // Or any other appropriate TensorflowJS backend
 
 const plugin = await pluginEmbeddings({
@@ -52,7 +52,7 @@ const plugin = await pluginEmbeddings({
 const db = await create({
   schema: {
     description: 'string',
-    embeddings: 'vector[512]' // Orama generates 512-dimensions vectors
+    embeddings: 'vector[512]' // ZBSearch generates 512-dimensions vectors
   },
   plugins: [plugin]
 })
@@ -78,7 +78,7 @@ await insert(db, {
 })
 ```
 
-Orama will automatically generate text embeddings and store them into the `embeddings` property.
+ZBSearch will automatically generate text embeddings and store them into the `embeddings` property.
 
 Then, you can use the `vector` or `hybrid` setting to perform hybrid or vector search at runtime:
 
@@ -89,7 +89,7 @@ await search(db, {
 })
 ```
 
-Orama will generate embeddings at search time and perform vector or hybrid search for you.
+ZBSearch will generate embeddings at search time and perform vector or hybrid search for you.
 
 # License
 

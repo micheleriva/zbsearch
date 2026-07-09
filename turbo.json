@@ -13,52 +13,36 @@
     "deploy": {
       "dependsOn": ["^lint", "^build", "^test"]
     },
-    "@orama/orama#build": {
-      "dependsOn": ["@orama/stemmers#build", "^build"],
+    "zbsearch#build": {
+      "dependsOn": ["@zbsearch/stemmers#build", "^build"],
       "outputs": ["dist/**"]
     },
-    "@orama/plugin-match-highlight#build": {
-      "dependsOn": ["@orama/orama#build", "^build"],
+    "@zbsearch/plugin-match-highlight#build": {
+      "dependsOn": ["zbsearch#build", "^build"],
       "outputs": ["dist/**"]
     },
-    "@orama/plugin-parsedoc#build": {
-      "dependsOn": ["@orama/orama#build", "^build"],
+    "@zbsearch/plugin-parsedoc#build": {
+      "dependsOn": ["zbsearch#build", "^build"],
       "outputs": ["dist/**"]
     },
-    "@orama/plugin-astro#build": {
-      "dependsOn": ["@orama/orama#build", "^build"],
+    "@zbsearch/plugin-astro#build": {
+      "dependsOn": ["zbsearch#build", "^build"],
       "outputs": ["dist/**"]
     },
-    "@orama/plugin-nextra#build": {
-      "dependsOn": ["@orama/orama#build", "@orama/plugin-match-highlight#build", "^build"],
+    "@zbsearch/plugin-nextra#build": {
+      "dependsOn": ["zbsearch#build", "@zbsearch/plugin-match-highlight#build", "^build"],
       "outputs": ["dist/**"]
     },
-    "@orama/plugin-docusaurus#build": {
-      "dependsOn": [
-        "@orama/orama#build",
-        "@orama/plugin-match-highlight#build",
-        "@orama/plugin-parsedoc#build",
-        "^build"
-      ],
+    "@zbsearch/plugin-embeddings#build": {
+      "dependsOn": ["zbsearch#build"],
       "outputs": ["dist/**"]
     },
-    "@orama/plugin-secure-proxy#build": {
-      "dependsOn": ["@orama/orama#build"],
+    "@zbsearch/plugin-pt15#build": {
+      "dependsOn": ["zbsearch#build"],
       "outputs": ["dist/**"]
     },
-    "@orama/plugin-embeddings#build": {
-      "dependsOn": ["@orama/orama#build"],
-      "outputs": ["dist/**"]
-    },
-    "@orama/plugin-pt15#build": {
-      "dependsOn": ["@orama/orama#build"],
-      "outputs": ["dist/**"]
-    },
-    "@orama/tokenizers#build": {
-      "dependsOn": ["@orama/orama#build"]
-    },
-    "@orama/switch#build": {
-      "dependsOn": ["@orama/orama#build"]
+    "@zbsearch/tokenizers#build": {
+      "dependsOn": ["zbsearch#build"]
     }
   }
 }

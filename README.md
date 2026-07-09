@@ -8,24 +8,24 @@ ZBSearch (_zee bee search_) is a zero-bs fork of Orama maintained by **the origi
 - Alberto Moretti (ex St. Engineer)
 - Fausto Quaggia (ex Eng. Manager)
 
-After [Michele's departure](https://www.micheleriva.dev/writings/my-last-day-at-orama), the entire engineering team left Orama and reassembled to maintain this popular project with no external influence. No VC, no business incentives, no bs. Help us get 10.5k stars back!
+After [Michele's departure](https://www.micheleriva.dev/writings/my-last-day-at-zbsearch), the entire engineering team left Orama and reassembled to maintain this popular project with no external influence. No VC, no business incentives, no bs. Just open source software. Help us get 10.5k stars back!
 
 # Highlighted features
 
-- [Full-Text search](https://docs.zbsearch.com/docs/ZBSearch-js/search)
-- [Vector Search](https://docs.zbsearch.com/docs/ZBSearch-js/search/vector-search)
-- [Hybrid Search](https://docs.zbsearch.com/docs/ZBSearch-js/search/hybrid-search)
-- [GenAI Chat Sessions](https://docs.zbsearch.com/docs/ZBSearch-js/answer-engine)
-- [Search Filters](https://docs.zbsearch.com/docs/ZBSearch-js/search/filters)
-- [Geosearch](https://docs.zbsearch.com/docs/ZBSearch-js/search/geosearch)
-- [Pinning Rules (Merchandising)](https://docs.zbsearch.com/docs/ZBSearch-js/results-pinning)
-- [Facets](https://docs.zbsearch.com/docs/ZBSearch-js/search/facets)
-- [Fields Boosting](https://docs.zbsearch.com/docs/ZBSearch-js/search/fields-boosting)
-- [Typo Tolerance](https://docs.zbsearch.com/docs/ZBSearch-js/search#typo-tolerance)
-- [Exact Match](https://docs.zbsearch.com/docs/ZBSearch-js/search#exact-match)
-- [BM25](https://docs.zbsearch.com/docs/ZBSearch-js/search/bm25)
-- [Stemming and tokenization in 30 languages](https://docs.zbsearch.com/docs/ZBSearch-js/text-analysis/stemming)
-- [Plugin System](https://docs.zbsearch.com/docs/ZBSearch-js/plugins)
+- [Full-Text search](https://zbsearch.dev/docs/ZBSearch-js/search)
+- [Vector Search](https://zbsearch.dev/docs/ZBSearch-js/search/vector-search)
+- [Hybrid Search](https://zbsearch.dev/docs/ZBSearch-js/search/hybrid-search)
+- [GenAI Chat Sessions](https://zbsearch.dev/docs/ZBSearch-js/answer-engine)
+- [Search Filters](https://zbsearch.dev/docs/ZBSearch-js/search/filters)
+- [Geosearch](https://zbsearch.dev/docs/ZBSearch-js/search/geosearch)
+- [Pinning Rules (Merchandising)](https://zbsearch.dev/docs/ZBSearch-js/results-pinning)
+- [Facets](https://zbsearch.dev/docs/ZBSearch-js/search/facets)
+- [Fields Boosting](https://zbsearch.dev/docs/ZBSearch-js/search/fields-boosting)
+- [Typo Tolerance](https://zbsearch.dev/docs/ZBSearch-js/search#typo-tolerance)
+- [Exact Match](https://zbsearch.dev/docs/ZBSearch-js/search#exact-match)
+- [BM25](https://zbsearch.dev/docs/ZBSearch-js/search/bm25)
+- [Stemming and tokenization in 30 languages](https://zbsearch.dev/docs/ZBSearch-js/text-analysis/stemming)
+- [Plugin System](https://zbsearch.dev/docs/ZBSearch-js/plugins)
 
 # Installation
 
@@ -53,7 +53,7 @@ With Deno, you can just use the same CDN URL or use npm specifiers:
 import { create, search, insert } from 'npm:zbsearch'
 ```
 
-Read the complete documentation at [https://docs.zbsearch.com](https://docs.zbsearch.com).
+Read the complete documentation at [https://zbsearch.dev](https://zbsearch.dev).
 
 # ZBSearch Features
 
@@ -172,7 +172,7 @@ Have trouble generating embeddings for vector and hybrid search? Try our `zbsear
 
 ```js
 import { create } from 'zbsearch'
-import { pluginEmbeddings } from 'zbsearch/plugin-embeddings'
+import { pluginEmbeddings } from '@zbsearch/plugin-embeddings'
 import '@tensorflow/tfjs-node' // Or any other appropriate TensorflowJS backend, like @tensorflow/tfjs-backend-webgl
 
 const plugin = await pluginEmbeddings({
@@ -214,26 +214,23 @@ const searchResults = await search(db, {
 })
 ```
 
-Read the complete [documentation](https://docs.zbsearch.com/docs/ZBSearch-js/answer-engine).
+Read the complete [documentation](https://zbsearch.dev).
 
 # Official Docs
 
-Read the complete documentation at [https://docs.zbsearch.com/open-source](https://docs.zbsearch.com/open-source).
+Read the complete documentation at [https://zbsearch.dev](https://zbsearch.dev).
 
 # Official ZBSearch Plugins
 
-- [Plugin Secure Proxy](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-secure-proxy)
-- [Plugin Embeddings](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-embeddings)
-- [Plugin Analytics](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-analytics)
-- [Plugin Data Persistence](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-data-persistence)
-- [Plugin QPS](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-qps)
-- [Plugin PT15](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-pt15)
-- [Plugin Vitepress](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-vitepress)
-- [Plugin Docusaurus](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-docusaurus)
-- [Plugin Astro](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-astro)
-- [Plugin Nextra](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-nextra)
+- [Plugin Embeddings](https://zbsearch.dev/docs/ZBSearch-js/plugins/plugin-embeddings)
+- [Plugin Data Persistence](https://zbsearch.dev/docs/ZBSearch-js/plugins/plugin-data-persistence)
+- [Plugin QPS](https://zbsearch.dev/docs/ZBSearch-js/plugins/plugin-qps)
+- [Plugin PT15](https://zbsearch.dev/docs/ZBSearch-js/plugins/plugin-pt15)
+- [Plugin Vitepress](https://zbsearch.dev/docs/ZBSearch-js/plugins/plugin-vitepress)
+- [Plugin Astro](https://zbsearch.dev/docs/ZBSearch-js/plugins/plugin-astro)
+- [Plugin Nextra](https://zbsearch.dev/docs/ZBSearch-js/plugins/plugin-nextra)
 
-Write your own plugin: [https://docs.zbsearch.com/docs/ZBSearch-js/plugins/writing-your-own-plugins](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/writing-your-own-plugins)
+Write your own plugin: [https://zbsearch.dev](https://zbsearch.dev)
 
 # License
 

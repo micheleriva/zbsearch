@@ -1,7 +1,7 @@
 {
-  "name": "@orama/plugin-data-persistence",
+  "name": "@zbsearch/plugin-data-persistence",
   "version": "3.2.0",
-  "description": "Data persistence plugin for Orama",
+  "description": "Data persistence plugin for ZBSearch",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/commonjs.cjs",
@@ -31,18 +31,18 @@
     "benchmark": "tsx benchmark/index.ts"
   },
   "keywords": [
-    "orama",
+    "zbsearch",
     "disk persistence",
     "full-text search"
   ],
   "author": {
-    "email": "michele@orama.com",
+    "email": "michele@zbsearch.com",
     "name": "Michele Riva",
     "url": "https://github.com/MicheleRiva"
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@orama/orama": "workspace:*",
+    "zbsearch": "workspace:*",
     "@msgpack/msgpack": "^3.1.2",
     "dpack": "^0.6.22",
     "seqproto": "^0.2.3"

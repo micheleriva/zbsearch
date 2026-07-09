@@ -1,8 +1,8 @@
 {
-  "name": "@orama/stopwords",
+  "name": "@zbsearch/stopwords",
   "version": "3.2.0",
   "type": "module",
-  "description": "Stop-words for Orama",
+  "description": "Stop-words for ZBSearch",
   "sideEffects": false,
   "main": "./dist/en.cjs",
   "types": "./dist/en.d.ts",
@@ -178,10 +178,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/oramasearch/orama"
+    "url": "https://github.com/micheleriva/zbsearch"
   },
   "bugs": {
-    "url": "https://github.com/oramasearch/orama"
+    "url": "https://github.com/micheleriva/zbsearch"
   },
   "scripts": {
     "build": "node scripts/build.js",
@@ -200,7 +200,7 @@
   ],
   "author": {
     "name": "Michele Riva",
-    "email": "michele.riva@oramasearch.com",
+    "email": "riva.michele.95@gmail.com",
     "url": "https://github.com/MicheleRiva",
     "author": true
   },

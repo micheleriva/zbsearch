@@ -33,18 +33,18 @@ async function execute(command, cwd) {
 }
 
 const pluginInfo = JSON.parse(
-  await readFile(fileURLToPath(new URL('../packages/orama/package.json', import.meta.url)), 'utf-8'),
+  await readFile(fileURLToPath(new URL('../packages/zbsearch/package.json', import.meta.url)), 'utf-8'),
 )
 
 await rm(destinationDir, { force: true, recursive: true })
-for (const pkg of ['orama', 'plugin-match-highlight', 'plugin-parsedoc', 'plugin-astro', 'plugin-docusaurus']) {
-  const pluginPath = fileURLToPath(new URL(`../dist/orama-${pkg}-${pluginInfo.version}.tgz`, import.meta.url))
+for (const pkg of ['zbsearch', 'plugin-match-highlight', 'plugin-parsedoc', 'plugin-astro', 'plugin-docusaurus']) {
+  const pluginPath = fileURLToPath(new URL(`../dist/zbsearch-${pkg}-${pluginInfo.version}.tgz`, import.meta.url))
 
   if (existsSync(pluginPath)) {
     continue
   }
 
-  console.log(`\x1b[1m\x1b[32m--- Packing @orama/${pkg}-${pluginInfo.version} for testing ...\x1b[0m`)
+  console.log(`\x1b[1m\x1b[32m--- Packing @zbsearch/${pkg}-${pluginInfo.version} for testing ...\x1b[0m`)
   const packResult = await execute(`pnpm pack --pack-destination ${destinationDir}`, resolve(rootDir, 'packages', pkg))
   console.log(packResult.stdout.trim())
   assert.equal(packResult.code, 0)

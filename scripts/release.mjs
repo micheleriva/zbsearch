@@ -4,7 +4,7 @@ import { relative, resolve } from 'node:path'
 const rootDir = process.cwd()
 
 const packages = [
-  'orama',
+  'zbsearch',
   'plugin-astro',
   'plugin-data-persistence',
   'plugin-docusaurus',

@@ -1,6 +1,6 @@
 import fs from 'fs'
 import t from 'tap'
-import { create, insert, search } from '@orama/orama'
+import { create, insert, search } from 'zbsearch'
 import { createTokenizer } from '../src/mandarin.js'
 
 const db = create({

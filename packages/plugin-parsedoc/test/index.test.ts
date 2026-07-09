@@ -1,9 +1,9 @@
-import { AnyDocument, AnyOrama, create, search } from '@orama/orama'
+import { AnyDocument, AnyZBSearch, create, search } from 'zbsearch'
 import t from 'tap'
 import { populateFromGlob, defaultHtmlSchema as schema } from '../src/index.js'
 
-function getDocs<T extends AnyOrama>(orama: T): AnyDocument[] {
-  return Object.values(orama.data.docs.docs)
+function getDocs<T extends AnyZBSearch>(zbsearch: T): AnyDocument[] {
+  return Object.values(zbsearch.data.docs.docs)
 }
 
 t.test('it should store the values', async (t) => {

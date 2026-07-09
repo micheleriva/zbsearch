@@ -1,22 +1,22 @@
 import b from 'benny'
-import { insert, insertMultiple, searchPlain, searchWithFilters, searchWithLongTextAndComplexFilters } from './src/get-orama.js'
+import { insert, insertMultiple, searchPlain, searchWithFilters, searchWithLongTextAndComplexFilters } from './src/get-zbsearch.js'
 
 function benchmarkInsert() {
   return b.suite('insert',
-    b.add('insert in Orama 2.1.1', async () => {
-      await insert.orama211()
+    b.add('insert in ZBSearch 2.1.1', async () => {
+      await insert.zbsearch211()
     }),
-    b.add('insert in Orama 3.0.0-rc-2', () => {
-      insert.orama300rc2()
+    b.add('insert in ZBSearch 3.0.0-rc-2', () => {
+      insert.zbsearch300rc2()
     }),
-    b.add('insert in Orama latest', () => {
-      insert.oramaLatest()
+    b.add('insert in ZBSearch latest', () => {
+      insert.zbsearchLatest()
     }),
-    b.add('insert in Orama latest with PT15', () => {
-      insert.oramaLatestPT15()
+    b.add('insert in ZBSearch latest with PT15', () => {
+      insert.zbsearchLatestPT15()
     }),
-    b.add('insert in Orama latest with QPS', () => {
-      insert.oramaLatestQPS()
+    b.add('insert in ZBSearch latest with QPS', () => {
+      insert.zbsearchLatestQPS()
     }),
     b.cycle(),
     b.complete(),
@@ -27,20 +27,20 @@ function benchmarkInsert() {
 
 function benchmarkInsertMultiple() {
   return b.suite('insert multiple',
-    b.add('insert multiple in Orama 2.1.1', async () => {
-      await insertMultiple.orama211()
+    b.add('insert multiple in ZBSearch 2.1.1', async () => {
+      await insertMultiple.zbsearch211()
     }),
-    b.add('insert multiple in Orama 3.0.0-rc-2', () => {
-      insertMultiple.orama300rc2()
+    b.add('insert multiple in ZBSearch 3.0.0-rc-2', () => {
+      insertMultiple.zbsearch300rc2()
     }),
-    b.add('insert multiple in Orama latest', () => {
-      insertMultiple.oramaLatest()
+    b.add('insert multiple in ZBSearch latest', () => {
+      insertMultiple.zbsearchLatest()
     }),
-    b.add('insert multiple in Orama latest with PT15', () => {
-      insertMultiple.oramaLatestPT15()
+    b.add('insert multiple in ZBSearch latest with PT15', () => {
+      insertMultiple.zbsearchLatestPT15()
     }),
-    b.add('insert multiple in Orama latest with QPS', () => {
-      insertMultiple.oramaLatestQPS()
+    b.add('insert multiple in ZBSearch latest with QPS', () => {
+      insertMultiple.zbsearchLatestQPS()
     }),
     b.cycle(),
     b.complete(),
@@ -51,20 +51,20 @@ function benchmarkInsertMultiple() {
 
 function benchmarkSearch() {
   return b.suite('plain search',
-    b.add('plain search in Orama 2.1.1', async () => {
-      await searchPlain.orama211()
+    b.add('plain search in ZBSearch 2.1.1', async () => {
+      await searchPlain.zbsearch211()
     }),
-    b.add('plain search in Orama 3.0.0-rc-2', () => {
-      searchPlain.orama300rc2()
+    b.add('plain search in ZBSearch 3.0.0-rc-2', () => {
+      searchPlain.zbsearch300rc2()
     }),
-    b.add('plain search in Orama latest', () => {
-      searchPlain.oramaLatest()
+    b.add('plain search in ZBSearch latest', () => {
+      searchPlain.zbsearchLatest()
     }),
-    b.add('plain search in Orama latest with PT15', () => {
-      searchPlain.oramaLatestPT15()
+    b.add('plain search in ZBSearch latest with PT15', () => {
+      searchPlain.zbsearchLatestPT15()
     }),
-    b.add('plain search in Orama latest with QPS', () => {
-      searchPlain.oramaLatestQPS()
+    b.add('plain search in ZBSearch latest with QPS', () => {
+      searchPlain.zbsearchLatestQPS()
     }),
     b.cycle(),
     b.complete(),
@@ -75,20 +75,20 @@ function benchmarkSearch() {
 
 function benchmarkSearchWithFilters() {
   return b.suite('search with filters',
-    b.add('search with filters in Orama 2.1.1', async () => {
-      await searchWithFilters.orama211()
+    b.add('search with filters in ZBSearch 2.1.1', async () => {
+      await searchWithFilters.zbsearch211()
     }),
-    b.add('search with filters in Orama 3.0.0-rc-2', () => {
-      searchWithFilters.orama300rc2()
+    b.add('search with filters in ZBSearch 3.0.0-rc-2', () => {
+      searchWithFilters.zbsearch300rc2()
     }),
-    b.add('search with filters in Orama latest', () => {
-      searchWithFilters.oramaLatest()
+    b.add('search with filters in ZBSearch latest', () => {
+      searchWithFilters.zbsearchLatest()
     }),
-    b.add('search with filters in Orama latest with PT15', () => {
-      searchWithFilters.oramaLatestPT15()
+    b.add('search with filters in ZBSearch latest with PT15', () => {
+      searchWithFilters.zbsearchLatestPT15()
     }),
-    b.add('search with filters in Orama latest with QPS', () => {
-      searchWithFilters.oramaLatestQPS()
+    b.add('search with filters in ZBSearch latest with QPS', () => {
+      searchWithFilters.zbsearchLatestQPS()
     }),
     b.cycle(),
     b.complete(),
@@ -99,20 +99,20 @@ function benchmarkSearchWithFilters() {
 
 function benchmarkSearchWithLongTextAndComplexFilters() {
   return b.suite('search with long text and complex filters',
-    b.add('search with long text and complex filters in Orama 2.1.1', async () => {
-      await searchWithLongTextAndComplexFilters.orama211()
+    b.add('search with long text and complex filters in ZBSearch 2.1.1', async () => {
+      await searchWithLongTextAndComplexFilters.zbsearch211()
     }),
-    b.add('search with long text and complex filters in Orama 3.0.0-rc-2', () => {
-      searchWithLongTextAndComplexFilters.orama300rc2()
+    b.add('search with long text and complex filters in ZBSearch 3.0.0-rc-2', () => {
+      searchWithLongTextAndComplexFilters.zbsearch300rc2()
     }),
-    b.add('search with long text and complex filters in Orama latest', () => {
-      searchWithLongTextAndComplexFilters.oramaLatest()
+    b.add('search with long text and complex filters in ZBSearch latest', () => {
+      searchWithLongTextAndComplexFilters.zbsearchLatest()
     }),
-    b.add('search with long text and complex filters in Orama latest with PT15', () => {
-      searchWithLongTextAndComplexFilters.oramaLatestPT15()
+    b.add('search with long text and complex filters in ZBSearch latest with PT15', () => {
+      searchWithLongTextAndComplexFilters.zbsearchLatestPT15()
     }),
-    b.add('search with long text and complex filters in Orama latest with QPS', () => {
-      searchWithLongTextAndComplexFilters.oramaLatestQPS()
+    b.add('search with long text and complex filters in ZBSearch latest with QPS', () => {
+      searchWithLongTextAndComplexFilters.zbsearchLatestQPS()
     }),
     b.cycle(),
     b.complete(),

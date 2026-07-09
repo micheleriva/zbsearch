@@ -1,8 +1,8 @@
-import * as orama211 from 'orama_211'
-import * as orama300rc2 from 'orama_300_rc_2'
-import * as oramaLatest from 'orama_latest'
-import { pluginPT15 } from '@orama/plugin-pt15'
-import { pluginQPS } from '@orama/plugin-qps'
+import * as zbsearch211 from 'zbsearch_211'
+import * as zbsearch300rc2 from 'zbsearch_300_rc_2'
+import * as zbsearchLatest from 'zbsearch_latest'
+import { pluginPT15 } from '@zbsearch/plugin-pt15'
+import { pluginQPS } from '@zbsearch/plugin-qps'
 import dataset from './dataset.json' assert { type: 'json' }
 
 export const schema = {
@@ -13,120 +13,120 @@ export const schema = {
 }
 
 const create = {
-  orama211: () => orama211.create({ schema }),
-  orama300rc2: () => orama300rc2.create({ schema }),
-  oramaLatest: () => oramaLatest.create({ schema }),
-  oramaLatestPT15: () => oramaLatest.create({ schema, plugins: [pluginPT15()] }),
-  oramaLatestQPS: () => oramaLatest.create({ schema, plugins: [pluginQPS()] })
+  zbsearch211: () => zbsearch211.create({ schema }),
+  zbsearch300rc2: () => zbsearch300rc2.create({ schema }),
+  zbsearchLatest: () => zbsearchLatest.create({ schema }),
+  zbsearchLatestPT15: () => zbsearchLatest.create({ schema, plugins: [pluginPT15()] }),
+  zbsearchLatestQPS: () => zbsearchLatest.create({ schema, plugins: [pluginQPS()] })
 }
 
-export const db211 = await create.orama211()
-export const db300rc2 = create.orama300rc2()
-export const dbLatest = create.oramaLatest()
-export const dbLatestPT15 = create.oramaLatestPT15()
-export const dbLatestQPS = create.oramaLatestQPS()
+export const db211 = await create.zbsearch211()
+export const db300rc2 = create.zbsearch300rc2()
+export const dbLatest = create.zbsearchLatest()
+export const dbLatestPT15 = create.zbsearchLatestPT15()
+export const dbLatestQPS = create.zbsearchLatestQPS()
 
 export const insert = {
-  orama211: async () => {
-    const db = await create.orama211()
+  zbsearch211: async () => {
+    const db = await create.zbsearch211()
     for (const record of dataset) {
-      await orama211.insert(db, record)
+      await zbsearch211.insert(db, record)
     }
   },
-  orama300rc2: () => {
-    const db = create.orama300rc2()
+  zbsearch300rc2: () => {
+    const db = create.zbsearch300rc2()
     for (const record of dataset) {
-      orama300rc2.insert(db, record)
+      zbsearch300rc2.insert(db, record)
     }
   },
-  oramaLatest: () => {
-    const db = create.oramaLatest()
+  zbsearchLatest: () => {
+    const db = create.zbsearchLatest()
     for (const record of dataset) {
-      oramaLatest.insert(db, record)
+      zbsearchLatest.insert(db, record)
     }
   },
-  oramaLatestPT15: () => {
-    const db = create.oramaLatestPT15()
+  zbsearchLatestPT15: () => {
+    const db = create.zbsearchLatestPT15()
     for (const record of dataset) {
-      oramaLatest.insert(db, record)
+      zbsearchLatest.insert(db, record)
     }
   },
-  oramaLatestQPS: () => {
-    const db = create.oramaLatestQPS()
+  zbsearchLatestQPS: () => {
+    const db = create.zbsearchLatestQPS()
     for (const record of dataset) {
-      oramaLatest.insert(db, record)
+      zbsearchLatest.insert(db, record)
     }
   },
 }
 
 export const insertMultiple = {
-  orama211: async () => {
-    await orama211.insertMultiple(db211, dataset, 50)
+  zbsearch211: async () => {
+    await zbsearch211.insertMultiple(db211, dataset, 50)
   },
-  orama300rc2: () => {
-    orama300rc2.insertMultiple(db300rc2, dataset, 50)
+  zbsearch300rc2: () => {
+    zbsearch300rc2.insertMultiple(db300rc2, dataset, 50)
   },
-  oramaLatest: () => {
-    oramaLatest.insertMultiple(dbLatest, dataset, 50)
+  zbsearchLatest: () => {
+    zbsearchLatest.insertMultiple(dbLatest, dataset, 50)
   },
-  oramaLatestPT15: () => {
-    oramaLatest.insertMultiple(dbLatestPT15, dataset, 50)
+  zbsearchLatestPT15: () => {
+    zbsearchLatest.insertMultiple(dbLatestPT15, dataset, 50)
   },
-  oramaLatestQPS: () => {
-    oramaLatest.insertMultiple(dbLatestQPS, dataset, 50)
+  zbsearchLatestQPS: () => {
+    zbsearchLatest.insertMultiple(dbLatestQPS, dataset, 50)
   },
 }
 
 export const searchPlain = {
-  orama211: async () => {
-    await orama211.search(db211, { term: 'Legend of Zelda' })
+  zbsearch211: async () => {
+    await zbsearch211.search(db211, { term: 'Legend of Zelda' })
   },
-  orama300rc2: () => {
-    orama300rc2.search(db300rc2, { term: 'Legend of Zelda' })
+  zbsearch300rc2: () => {
+    zbsearch300rc2.search(db300rc2, { term: 'Legend of Zelda' })
   },
-  oramaLatest: () => {
-    oramaLatest.search(dbLatest, { term: 'Legend of Zelda' })
+  zbsearchLatest: () => {
+    zbsearchLatest.search(dbLatest, { term: 'Legend of Zelda' })
   },
-  oramaLatestPT15: () => {
-    oramaLatest.search(dbLatestPT15, { term: 'Legend of Zelda' })
+  zbsearchLatestPT15: () => {
+    zbsearchLatest.search(dbLatestPT15, { term: 'Legend of Zelda' })
   },
-  oramaLatestQPS: () => {
-    oramaLatest.search(dbLatestQPS, { term: 'Legend of Zelda' })
+  zbsearchLatestQPS: () => {
+    zbsearchLatest.search(dbLatestQPS, { term: 'Legend of Zelda' })
   },
 }
 
 export const searchWithFilters = {
-  orama211: async () => {
-    await orama211.search(db211, { term: 'Super Hero', where: { rating: { gte: 4 } } })
+  zbsearch211: async () => {
+    await zbsearch211.search(db211, { term: 'Super Hero', where: { rating: { gte: 4 } } })
   },
-  orama300rc2: () => {
-    orama300rc2.search(db300rc2, { term: 'Super Hero', where: { rating: { gte: 4 } } })
+  zbsearch300rc2: () => {
+    zbsearch300rc2.search(db300rc2, { term: 'Super Hero', where: { rating: { gte: 4 } } })
   },
-  oramaLatest: () => {
-    oramaLatest.search(dbLatest, { term: 'Super Hero', where: { rating: { gte: 4 } } })
+  zbsearchLatest: () => {
+    zbsearchLatest.search(dbLatest, { term: 'Super Hero', where: { rating: { gte: 4 } } })
   },
-  oramaLatestPT15: () => {
-    oramaLatest.search(dbLatestPT15, { term: 'Super Hero', where: { rating: { gte: 4 } } })
+  zbsearchLatestPT15: () => {
+    zbsearchLatest.search(dbLatestPT15, { term: 'Super Hero', where: { rating: { gte: 4 } } })
   },
-  oramaLatestQPS: () => {
-    oramaLatest.search(dbLatestQPS, { term: 'Super Hero', where: { rating: { gte: 4 } } })
+  zbsearchLatestQPS: () => {
+    zbsearchLatest.search(dbLatestQPS, { term: 'Super Hero', where: { rating: { gte: 4 } } })
   },
 }
 
 export const searchWithLongTextAndComplexFilters = {
-  orama211: async () => {
-    await orama211.search(db211, { term: 'classic run gun, action game focused on boss battles', where: { rating: { gte: 4 }, genres: { containsAll: ['Shooter'] } } })
+  zbsearch211: async () => {
+    await zbsearch211.search(db211, { term: 'classic run gun, action game focused on boss battles', where: { rating: { gte: 4 }, genres: { containsAll: ['Shooter'] } } })
   },
-  orama300rc2: () => {
-    orama300rc2.search(db300rc2, { term: 'classic run gun, action game focused on boss battles', where: { rating: { gte: 4 }, genres: { containsAll: ['Shooter'] } } })
+  zbsearch300rc2: () => {
+    zbsearch300rc2.search(db300rc2, { term: 'classic run gun, action game focused on boss battles', where: { rating: { gte: 4 }, genres: { containsAll: ['Shooter'] } } })
   },
-  oramaLatest: () => {
-    oramaLatest.search(dbLatest, { term: 'classic run gun, action game focused on boss battles', where: { rating: { gte: 4 }, genres: { containsAll: ['Shooter'] } } })
+  zbsearchLatest: () => {
+    zbsearchLatest.search(dbLatest, { term: 'classic run gun, action game focused on boss battles', where: { rating: { gte: 4 }, genres: { containsAll: ['Shooter'] } } })
   },
-  oramaLatestPT15: () => {
-    oramaLatest.search(dbLatestPT15, { term: 'classic run gun, action game focused on boss battles', where: { rating: { gte: 4 }, genres: { containsAll: ['Shooter'] } } })
+  zbsearchLatestPT15: () => {
+    zbsearchLatest.search(dbLatestPT15, { term: 'classic run gun, action game focused on boss battles', where: { rating: { gte: 4 }, genres: { containsAll: ['Shooter'] } } })
   },
-  oramaLatestQPS: () => {
-    oramaLatest.search(dbLatestQPS, { term: 'classic run gun, action game focused on boss battles', where: { rating: { gte: 4 }, genres: { containsAll: ['Shooter'] } } })
+  zbsearchLatestQPS: () => {
+    zbsearchLatest.search(dbLatestQPS, { term: 'classic run gun, action game focused on boss battles', where: { rating: { gte: 4 }, genres: { containsAll: ['Shooter'] } } })
   },
 }

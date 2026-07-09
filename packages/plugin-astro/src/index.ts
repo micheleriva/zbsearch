@@ -1,5 +1,5 @@
-import type { AnyOrama, Orama, SearchParams } from '@orama/orama'
-import { create as createOramaDB, insert as insertIntoOramaDB, save as saveOramaDB } from '@orama/orama'
+import type { AnyZBSearch, ZBSearch, SearchParams } from 'zbsearch'
+import { create as createZBSearchDB, insert as insertIntoZBSearchDB, save as saveZBSearchDB } from 'zbsearch'
 import type { AstroIntegration } from 'astro'
 import { compile } from 'html-to-text'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -21,7 +21,7 @@ export const defaultSchema = {
 
 export type PageIndexSchema = typeof defaultSchema
 
-export interface OramaOptions {
+export interface ZBSearchOptions {
   language: string
   /**
    * Controls whether generatedFilePath is filter
@@ -32,10 +32,10 @@ export interface OramaOptions {
   caseSensitive?: boolean
   pathMatcher: RegExp
   contentSelectors?: string[]
-  searchOptions?: Omit<SearchParams<AnyOrama, any>, 'term'> | undefined
+  searchOptions?: Omit<SearchParams<AnyZBSearch, any>, 'term'> | undefined
 }
 
-const PKG_NAME = '@orama/plugin-astro'
+const PKG_NAME = '@zbsearch/plugin-astro'
 
 const titleConverter = compile({
   baseElements: { selectors: ['title'] }
@@ -44,12 +44,12 @@ const h1Converter = compile({
   baseElements: { selectors: ['h1'] }
 })
 
-async function prepareOramaDb(
-  dbConfig: OramaOptions,
+async function prepareZBSearchDb(
+  dbConfig: ZBSearchOptions,
   pages: AstroPage[],
   assets: Map<string, (URL | string)[]>,
   dir: URL
-): Promise<Orama<PageIndexSchema, any, any, any>> {
+): Promise<ZBSearch<PageIndexSchema, any, any, any>> {
   const contentConverter = compile({
     baseElements: {
       selectors: dbConfig.contentSelectors?.length ? dbConfig.contentSelectors : ['body']
@@ -73,7 +73,7 @@ async function prepareOramaDb(
     })
     .filter(({ generatedFilePath }) => !!generatedFilePath)
 
-  const oramaDB = createOramaDB({
+  const zbsearchDB = createZBSearchDB({
     schema: defaultSchema,
     ...(dbConfig.language ? { language: dbConfig.language } : undefined)
   })
@@ -85,8 +85,8 @@ async function prepareOramaDb(
     const h1 = h1Converter(htmlContent) ?? ''
     const content = contentConverter(htmlContent)
 
-    insertIntoOramaDB(
-      oramaDB,
+    insertIntoZBSearchDB(
+      zbsearchDB,
       {
         path: `/${pathname}`,
         title,
@@ -97,10 +97,10 @@ async function prepareOramaDb(
     )
   }
 
-  return oramaDB
+  return zbsearchDB
 }
 
-export function createPlugin(options: Record<string, OramaOptions>): AstroIntegration {
+export function createPlugin(options: Record<string, ZBSearchOptions>): AstroIntegration {
   return {
     name: PKG_NAME,
     hooks: {
@@ -111,9 +111,9 @@ export function createPlugin(options: Record<string, OramaOptions>): AstroIntegr
         }
 
         for (const [dbName, dbConfig] of Object.entries(options)) {
-          const namedDb = await prepareOramaDb(dbConfig, pages, assets, dir)
+          const namedDb = await prepareZBSearchDb(dbConfig, pages, assets, dir)
 
-          writeFileSync(joinPath(assetsDir, `oramaDB_${dbName}.json`), JSON.stringify(saveOramaDB(namedDb)), {
+          writeFileSync(joinPath(assetsDir, `zbsearchDB_${dbName}.json`), JSON.stringify(saveZBSearchDB(namedDb)), {
             encoding: 'utf8'
           })
         }

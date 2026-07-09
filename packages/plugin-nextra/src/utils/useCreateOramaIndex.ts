@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { createOramaIndex } from './index.js'
+import { createZBSearchIndex } from './index.js'
 import { useRouter } from 'next/router.js'
 
-export const useCreateOramaIndex = () => {
+export const useCreateZBSearchIndex = () => {
   const [, setIndexing] = useState(false)
   const [indexes, setIndexes] = useState({})
   const router = useRouter()
@@ -12,7 +12,7 @@ export const useCreateOramaIndex = () => {
   useEffect(() => {
     setIndexing(true)
 
-    createOramaIndex(basePath, locale).then((index) => {
+    createZBSearchIndex(basePath, locale).then((index) => {
       setIndexes((i) => ({
         ...i,
         [locale]: index
@@ -25,7 +25,7 @@ export const useCreateOramaIndex = () => {
   useEffect(() => {
     if (!(locale in indexes)) {
       setIndexing(true)
-      createOramaIndex(basePath, locale).then((index) => {
+      createZBSearchIndex(basePath, locale).then((index) => {
         setIndexes((i) => ({
           ...i,
           [locale]: index

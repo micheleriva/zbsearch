@@ -5,12 +5,12 @@ import type {
   restoreFromFile as esmRestoreFromFile
 } from './index.js'
 
-export interface OramaPluginDataPersistenceExport {
+export interface ZBSearchPluginDataPersistenceExport {
   persist: typeof esmPersist
   restore: typeof esmRestore
 }
 
-export type RequireCallback = (err: Error | undefined, orama?: OramaPluginDataPersistenceExport) => void
+export type RequireCallback = (err: Error | undefined, zbsearch?: ZBSearchPluginDataPersistenceExport) => void
 
 let _esmRestore: typeof esmRestore
 let _esmPersist: typeof esmPersist
@@ -52,8 +52,8 @@ export function restoreFromFile(...args: Parameters<typeof esmRestoreFromFile>):
   return _esmRestoreFromFile(...args)
 }
 
-export function requireOramaPluginDataPersistence(callback: RequireCallback): void {
+export function requireZBSearchPluginDataPersistence(callback: RequireCallback): void {
   import('./index.js')
-    .then((loaded: OramaPluginDataPersistenceExport) => setTimeout(() => callback(undefined, loaded), 1))
+    .then((loaded: ZBSearchPluginDataPersistenceExport) => setTimeout(() => callback(undefined, loaded), 1))
     .catch((error: Error) => setTimeout(() => callback(error), 1))
 }

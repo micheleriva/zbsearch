@@ -1,4 +1,4 @@
-import { create as createOramaDB, load as loadOramaDB, Schema, search } from '@orama/orama'
+import { create as createZBSearchDB, load as loadZBSearchDB, Schema, search } from 'zbsearch'
 import assert from 'node:assert'
 import { exec, ExecException } from 'node:child_process'
 import { existsSync } from 'node:fs'
@@ -18,8 +18,8 @@ interface Execution {
 
 const sandboxSource = fileURLToPath(new URL('./sandbox', import.meta.url))
 const sandbox = process.env.KEEP_SANDBOX_ASTRO
-  ? '/tmp/orama-astro-sandbox'
-  : resolve(tmpdir(), `orama-plugin-astro-${Date.now()}`)
+  ? '/tmp/zbsearch-astro-sandbox'
+  : resolve(tmpdir(), `zbsearch-plugin-astro-${Date.now()}`)
 
 async function cleanup(): Promise<void> {
   await rm(sandbox, { force: true, recursive: true })
@@ -51,7 +51,7 @@ async function execute(command: string, cwd?: string): Promise<Execution> {
 
 await cleanup()
 
-await test('plugin is able to generate orama DB at build time', async () => {
+await test('plugin is able to generate zbsearch DB at build time', async () => {
   // Obtain general information
   const pluginInfo: Record<string, string> = JSON.parse(
     await readFile(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf-8')
@@ -77,43 +77,43 @@ await test('plugin is able to generate orama DB at build time', async () => {
   const buildResult = await execute('./node_modules/.bin/astro build', sandbox)
   assert.equal(buildResult.code, 0)
 
-  // The Orama DBs have been generated
-  assert.ok(existsSync(resolve(sandbox, 'dist', 'assets', 'oramaDB_animals.json')))
-  assert.ok(existsSync(resolve(sandbox, 'dist', 'assets', 'oramaDB_games.json')))
-  assert.ok(existsSync(resolve(sandbox, 'dist', 'assets', 'oramaDB_dynamic.json')))
-  assert.ok(existsSync(resolve(sandbox, 'dist', 'assets', 'oramaDB_leadingSlash.json')))
+  // The ZBSearch DBs have been generated
+  assert.ok(existsSync(resolve(sandbox, 'dist', 'assets', 'zbsearchDB_animals.json')))
+  assert.ok(existsSync(resolve(sandbox, 'dist', 'assets', 'zbsearchDB_games.json')))
+  assert.ok(existsSync(resolve(sandbox, 'dist', 'assets', 'zbsearchDB_dynamic.json')))
+  assert.ok(existsSync(resolve(sandbox, 'dist', 'assets', 'zbsearchDB_leadingSlash.json')))
 })
 
 await test('generated DBs have indexed pages content', async () => {
   // Loading "animals DB"
-  const rawAnimalsData = await readFile(resolve(sandbox, 'dist/assets/oramaDB_animals.json'), 'utf8')
+  const rawAnimalsData = await readFile(resolve(sandbox, 'dist/assets/zbsearchDB_animals.json'), 'utf8')
   const animalsData = JSON.parse(rawAnimalsData)
-  const animalsDB = await createOramaDB({ schema: { _: 'string' } })
-  await loadOramaDB(animalsDB, animalsData as any)
+  const animalsDB = await createZBSearchDB({ schema: { _: 'string' } })
+  await loadZBSearchDB(animalsDB, animalsData as any)
 
   // Loading "games DB"
-  const rawGamesData = await readFile(resolve(sandbox, 'dist/assets/oramaDB_games.json'), 'utf8')
+  const rawGamesData = await readFile(resolve(sandbox, 'dist/assets/zbsearchDB_games.json'), 'utf8')
   const gamesData = JSON.parse(rawGamesData)
-  const gamesDB = await createOramaDB({ schema: { _: 'string' } })
-  await loadOramaDB(gamesDB, gamesData as any)
+  const gamesDB = await createZBSearchDB({ schema: { _: 'string' } })
+  await loadZBSearchDB(gamesDB, gamesData as any)
 
   // Loading "dynamic DB"
-  const rawDynamicData = await readFile(resolve(sandbox, 'dist/assets/oramaDB_dynamic.json'), 'utf8')
+  const rawDynamicData = await readFile(resolve(sandbox, 'dist/assets/zbsearchDB_dynamic.json'), 'utf8')
   const dynamicData = JSON.parse(rawDynamicData)
-  const dynamicDB = await createOramaDB({ schema: { _: 'string' } })
-  await loadOramaDB(dynamicDB, dynamicData as any)
+  const dynamicDB = await createZBSearchDB({ schema: { _: 'string' } })
+  await loadZBSearchDB(dynamicDB, dynamicData as any)
 
   // Loading "allSite DB"
-  const rawAllSiteData = await readFile(resolve(sandbox, 'dist/assets/oramaDB_allSite.json'), 'utf8')
+  const rawAllSiteData = await readFile(resolve(sandbox, 'dist/assets/zbsearchDB_allSite.json'), 'utf8')
   const allSiteData = JSON.parse(rawAllSiteData)
-  const allSiteDB = await createOramaDB({ schema: { _: 'string' } })
-  await loadOramaDB(allSiteDB, allSiteData as any)
+  const allSiteDB = await createZBSearchDB({ schema: { _: 'string' } })
+  await loadZBSearchDB(allSiteDB, allSiteData as any)
 
   // Loading "leadingSlash DB"
-  const rawLeadingSlashData = await readFile(resolve(sandbox, 'dist/assets/oramaDB_leadingSlash.json'), 'utf8')
+  const rawLeadingSlashData = await readFile(resolve(sandbox, 'dist/assets/zbsearchDB_leadingSlash.json'), 'utf8')
   const leadingSlashData = JSON.parse(rawLeadingSlashData)
-  const leadingSlashDB = await createOramaDB({ schema: { _: 'string' } })
-  await loadOramaDB(leadingSlashDB, leadingSlashData as any)
+  const leadingSlashDB = await createZBSearchDB({ schema: { _: 'string' } })
+  await loadZBSearchDB(leadingSlashDB, leadingSlashData as any)
 
   // Search results seem reasonable
   const catSearchResult = await search(animalsDB, { term: 'cat' })

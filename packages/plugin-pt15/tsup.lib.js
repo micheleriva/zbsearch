@@ -9,7 +9,7 @@ export default defineConfig({
   sourcemap: true,
   minify: true,
   format: ['cjs', 'esm', 'iife'],
-  globalName: 'orama.plugin.pt15',
+  globalName: 'zbsearch.plugin.pt15',
   dts: true,
   clean: true,
   bundle: true,

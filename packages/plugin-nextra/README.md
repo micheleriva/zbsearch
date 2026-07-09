@@ -1,12 +1,12 @@
 # Nextra Plugin
 
-[![Tests](https://github.com/oramasearch/orama/actions/workflows/turbo.yml/badge.svg)](https://github.com/oramasearch/orama/actions/workflows/turbo.yml)
+[![Tests](https://github.com/micheleriva/zbsearch/actions/workflows/turbo.yml/badge.svg)](https://github.com/micheleriva/zbsearch/actions/workflows/turbo.yml)
 
-Official plugin to provide search capabilities through Orama on any Nextra website!
+Official plugin to provide search capabilities through ZBSearch on any Nextra website!
 
 # Usage
 
-For the complete usage guide, please refer to the [official plugin documentation](https://docs.orama.com/docs/orama-js/plugins/plugin-nextra).
+For the complete usage guide, please refer to the [official plugin documentation](https://docs.zbsearch.com/docs/zbsearch-js/plugins/plugin-nextra).
 
 # License
 

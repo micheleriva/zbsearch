@@ -1,4 +1,4 @@
-import { create, insert, search, insertPin, getAllPins } from '@orama/orama'
+import { create, insert, search, insertPin, getAllPins } from 'zbsearch'
 import t from 'tap'
 import { UNSUPPORTED_FORMAT, METHOD_MOVED } from '../src/errors.js'
 import {
@@ -149,16 +149,16 @@ t.test('binary persistence', (t) => {
     t.same(q2.hits, qp2.hits)
   })
 
-  t.test('should generate a persistence file on the disk using ORAMA_DB_NAME env', async (t) => {
+  t.test('should generate a persistence file on the disk using ZBSEARCH_DB_NAME env', async (t) => {
     t.plan(3)
-    let currentOramaDBNameValue: string | undefined
+    let currentZBSearchDBNameValue: string | undefined
 
     if (typeof Deno !== 'undefined') {
-      currentOramaDBNameValue = Deno.env.get('ORAMA_DB_NAME')
-      Deno.env.set('ORAMA_DB_NAME', 'example_db_dump')
+      currentZBSearchDBNameValue = Deno.env.get('ZBSEARCH_DB_NAME')
+      Deno.env.set('ZBSEARCH_DB_NAME', 'example_db_dump')
     } else {
-      currentOramaDBNameValue = process.env.ORAMA_DB_NAME
-      process.env.ORAMA_DB_NAME = 'example_db_dump'
+      currentZBSearchDBNameValue = process.env.ZBSEARCH_DB_NAME
+      process.env.ZBSEARCH_DB_NAME = 'example_db_dump'
     }
 
     const db = await generateTestDBInstance()
@@ -194,11 +194,11 @@ t.test('binary persistence', (t) => {
     t.ok(hitsApproxEqual(q1.hits, qp1.hits))
     t.same(q2.hits, qp2.hits)
 
-    if (currentOramaDBNameValue) {
+    if (currentZBSearchDBNameValue) {
       if (typeof Deno !== 'undefined') {
-        Deno.env.set('ORAMA_DB_NAME', currentOramaDBNameValue)
+        Deno.env.set('ZBSEARCH_DB_NAME', currentZBSearchDBNameValue)
       } else {
-        process.env.ORAMA_DB_NAME = currentOramaDBNameValue
+        process.env.ZBSEARCH_DB_NAME = currentZBSearchDBNameValue
       }
     }
   })
@@ -577,15 +577,15 @@ t.test('seqproto persistence', (t) => {
     t.ok(hitsApproxEqual(q2.hits, qp2.hits))
   })
 
-  t.test('should generate a persistence file on the disk using ORAMA_DB_NAME env (seqproto)', async (t) => {
+  t.test('should generate a persistence file on the disk using ZBSEARCH_DB_NAME env (seqproto)', async (t) => {
     t.plan(3)
-    let currentOramaDBNameValue: string | undefined
+    let currentZBSearchDBNameValue: string | undefined
     if (typeof Deno !== 'undefined') {
-      currentOramaDBNameValue = Deno.env.get('ORAMA_DB_NAME')
-      Deno.env.set('ORAMA_DB_NAME', 'example_db_dump_seqproto')
+      currentZBSearchDBNameValue = Deno.env.get('ZBSEARCH_DB_NAME')
+      Deno.env.set('ZBSEARCH_DB_NAME', 'example_db_dump_seqproto')
     } else {
-      currentOramaDBNameValue = process.env.ORAMA_DB_NAME
-      process.env.ORAMA_DB_NAME = 'example_db_dump_seqproto'
+      currentZBSearchDBNameValue = process.env.ZBSEARCH_DB_NAME
+      process.env.ZBSEARCH_DB_NAME = 'example_db_dump_seqproto'
     }
     const db = await generateTestDBInstance()
     const q1 = await search(db, { mode: 'fulltext', term: 'way' })
@@ -598,11 +598,11 @@ t.test('seqproto persistence', (t) => {
     const qp2 = await search(db2, { mode: 'fulltext', term: 'i' })
     t.ok(hitsApproxEqual(q1.hits, qp1.hits))
     t.ok(hitsApproxEqual(q2.hits, qp2.hits))
-    if (currentOramaDBNameValue) {
+    if (currentZBSearchDBNameValue) {
       if (typeof Deno !== 'undefined') {
-        Deno.env.set('ORAMA_DB_NAME', currentOramaDBNameValue)
+        Deno.env.set('ZBSEARCH_DB_NAME', currentZBSearchDBNameValue)
       } else {
-        process.env.ORAMA_DB_NAME = currentOramaDBNameValue
+        process.env.ZBSEARCH_DB_NAME = currentZBSearchDBNameValue
       }
     }
   })

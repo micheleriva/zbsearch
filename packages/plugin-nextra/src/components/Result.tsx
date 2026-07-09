@@ -2,9 +2,9 @@ import React, { useState } from 'react'
 import { listItem, resultText } from '../utils/classNames.js'
 import NextLink from 'next/link'
 import { HighlightedDocument } from './HighlightedDocument.js'
-import { Result, TypedDocument } from '@orama/orama'
-import { NextraOrama } from '../utils/index.js'
-import { Position } from '@orama/plugin-match-highlight'
+import { Result, TypedDocument } from 'zbsearch'
+import { NextraZBSearch } from '../utils/index.js'
+import { Position } from '@zbsearch/plugin-match-highlight'
 
 export const SearchResult = ({ document, positions }) => {
   const [hovered, setHovered] = useState(false)
@@ -19,7 +19,7 @@ export const SearchResult = ({ document, positions }) => {
         <div className={resultText}>
           <HighlightedDocument
             hit={
-              { document, positions } as Result<TypedDocument<NextraOrama>> & {
+              { document, positions } as Result<TypedDocument<NextraZBSearch>> & {
                 positions: Record<string, Record<string, Position[]>>
               }
             }

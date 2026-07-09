@@ -6,12 +6,12 @@
  */
 
 import { defineConfig } from 'astro/config'
-import orama from '@orama/plugin-astro'
+import zbsearch from '@zbsearch/plugin-astro'
 
 // https://astro.build/config
 export default defineConfig({
   integrations: [
-    orama({
+    zbsearch({
       animals: { pathMatcher: /animals_.+$/ },
       games: { pathMatcher: /games_.+$/ },
       dynamic: { pathMatcher: /blog\/inner-path\/article(.*)$/ },

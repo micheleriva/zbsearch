@@ -1,5 +1,5 @@
 import t from 'tap'
-import { create, insert, Results, search } from '@orama/orama'
+import { create, insert, Results, search } from 'zbsearch'
 import { createTokenizer } from '../src/japanese.js'
 
 const db = create({

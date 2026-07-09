@@ -1,5 +1,5 @@
 import t from 'tap'
-import { create, insertMultiple, load, remove, save, search } from '@orama/orama'
+import { create, insertMultiple, load, remove, save, search } from 'zbsearch'
 import { pluginQPS } from '../src/index.js'
 
 t.test('plugin-qps', async (t) => {

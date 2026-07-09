@@ -1,11 +1,11 @@
-import { TypedDocument } from '@orama/orama'
-import type { Position, SearchResultWithHighlight } from '@orama/plugin-match-highlight'
+import { TypedDocument } from 'zbsearch'
+import type { Position, SearchResultWithHighlight } from '@zbsearch/plugin-match-highlight'
 import React from 'react'
-import { NextraOrama } from '../utils/index.js'
+import { NextraZBSearch } from '../utils/index.js'
 
 type HighlightedDocumentProps = {
   trim?: number
-  hit: SearchResultWithHighlight<TypedDocument<NextraOrama>>['hits'][0]
+  hit: SearchResultWithHighlight<TypedDocument<NextraZBSearch>>['hits'][0]
 }
 
 export function HighlightedDocument({ hit, trim = 200 }: HighlightedDocumentProps) {

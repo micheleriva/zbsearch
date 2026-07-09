@@ -1,9 +1,9 @@
 import b from 'benny'
-import { create, insertMultiple, search } from 'orama_latest'
-import { pluginPT15 } from '@orama/plugin-pt15'
-import { pluginQPS } from '@orama/plugin-qps'
+import { create, insertMultiple, search } from 'zbsearch_latest'
+import { pluginPT15 } from '@zbsearch/plugin-pt15'
+import { pluginQPS } from '@zbsearch/plugin-qps'
 import dataset from './src/dataset.json' assert { type: 'json' }
-import {stopwords} from '@orama/stopwords/english'
+import {stopwords} from '@zbsearch/stopwords/english'
 
 const dbBM25 = create({
     schema: {

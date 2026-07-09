@@ -1,6 +1,6 @@
-# Orama Tokenizers
+# ZBSearch Tokenizers
 
-This package provides support for additional tokenizers for the Orama Search Engine.
+This package provides support for additional tokenizers for the ZBSearch Search Engine.
 
 Available tokenizers:
 
@@ -11,8 +11,8 @@ Available tokenizers:
 Usage:
 
 ```js
-import { create } from "@orama/orama";
-import { createTokenizer } from "@orama/tokenizers/mandarin";
+import { create } from "zbsearch";
+import { createTokenizer } from "@zbsearch/tokenizers/mandarin";
 
 const db = await create({
   schema: {

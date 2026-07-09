@@ -1,5 +1,5 @@
 import t from 'tap'
-import { create, insert, search } from '@orama/orama'
+import { create, insert, search } from 'zbsearch'
 import { createTokenizer } from '../src/korean.js'
 
 const db = create({
@@ -32,7 +32,7 @@ t.test('Korean tokenizer', async (t) => {
   // space-less compounds such as '서울대학교' stay a single token and are NOT split into '서울' + '대학교'
   // (unlike the Japanese/Mandarin tokenizers, where dictionary segmentation splits e.g. '東京大学' into
   // '東京' + '大学'). This is an experimental limitation of the Korean tokenizer. The '서울'/'부산'/'포항'
-  // searches below still return the compound because Orama matches the radix index by prefix
+  // searches below still return the compound because ZBSearch matches the radix index by prefix
   // (default exact: false): '서울' is a prefix of the '서울대학교' token.
   const resultsSeoul = await search(db, { term: '서울', threshold: 0 })
 

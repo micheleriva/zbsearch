@@ -1,5 +1,5 @@
 {
-    "name": "orama devcontainer",
+    "name": "zbsearch devcontainer",
     "build": {
       "dockerfile": "Dockerfile"
     },
@@ -22,8 +22,8 @@
       }
     },
     "mounts": [
-      "source=orama-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume", // deps volume
-      "source=orama-pnpm_store,target=${containerWorkspaceFolder}/.pnpm-store,type=volume", // pnpm-store volume
-      "source=orama-vscode-extensions,target=/root/.vscode-server/extensions,type=volume" // vscode extensions volume
+      "source=zbsearch-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume", // deps volume
+      "source=zbsearch-pnpm_store,target=${containerWorkspaceFolder}/.pnpm-store,type=volume", // pnpm-store volume
+      "source=zbsearch-vscode-extensions,target=/root/.vscode-server/extensions,type=volume" // vscode extensions volume
     ]
   }

@@ -1,7 +1,7 @@
 import zlib from 'node:zlib'
 import fs from 'node:fs'
-import { persistToFile } from '@orama/plugin-data-persistence/server'
-import { insertMultiple, db211, db300rc2, dbLatest, dbLatestPT15, dbLatestQPS } from './src/get-orama.js'
+import { persistToFile } from '@zbsearch/plugin-data-persistence/server'
+import { insertMultiple, db211, db300rc2, dbLatest, dbLatestPT15, dbLatestQPS } from './src/get-zbsearch.js'
 
 const db211Path = './bundle/db211.json'
 const db300rc2Path = './bundle/db300rc2.json'
@@ -9,11 +9,11 @@ const dbLatestPath = './bundle/dbLatest.json'
 const dbLatestPT15Path = './bundle/dbLatestPT15.json'
 const dbLatestQPSPath = './bundle/dbLatestQPS.json'
 
-await insertMultiple.orama211()
-insertMultiple.orama300rc2()
-insertMultiple.oramaLatest()
-insertMultiple.oramaLatestPT15()
-insertMultiple.oramaLatestQPS()
+await insertMultiple.zbsearch211()
+insertMultiple.zbsearch300rc2()
+insertMultiple.zbsearchLatest()
+insertMultiple.zbsearchLatestPT15()
+insertMultiple.zbsearchLatestQPS()
 
 await persistToFile(db211, 'json', db211Path)
 await persistToFile(db300rc2, 'json', db300rc2Path)

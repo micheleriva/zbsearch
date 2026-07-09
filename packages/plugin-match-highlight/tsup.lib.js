@@ -9,7 +9,7 @@ export default defineConfig({
   sourcemap: true,
   minify: true,
   format: ['cjs', 'esm', 'iife'],
-  globalName: 'orama.plugin.matchHighlight',
+  globalName: 'zbsearch.plugin.matchHighlight',
   dts: true,
   clean: true,
   bundle: true,

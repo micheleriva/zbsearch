@@ -1,16 +1,16 @@
-import type { TypedDocument } from '@orama/orama'
-import type { SearchResultWithHighlight } from '@orama/plugin-match-highlight'
-import { searchWithHighlight } from '@orama/plugin-match-highlight'
+import type { TypedDocument } from 'zbsearch'
+import type { SearchResultWithHighlight } from '@zbsearch/plugin-match-highlight'
+import { searchWithHighlight } from '@zbsearch/plugin-match-highlight'
 import { useRouter } from 'next/compat/router.js'
 import React, { useEffect, useRef, useState } from 'react'
-import { NextraOrama, groupDocumentsBy } from './utils/index.js'
+import { NextraZBSearch, groupDocumentsBy } from './utils/index.js'
 import { inputStyles, inputWrapper, kbdStyles, titleDiv, wrapperDiv, wrapperUl } from './utils/classNames.js'
-import { OramaFooter } from './components/OramaFoter.js'
+import { ZBSearchFooter } from './components/ZBSearchFoter.js'
 import { SearchResult } from './components/Result.js'
-import { useCreateOramaIndex } from './utils/useCreateOramaIndex.js'
+import { useCreateZBSearchIndex } from './utils/useCreateZBSearchIndex.js'
 import { useFocus } from './utils/useFocus.js'
 
-export type OramaSearchProps = {
+export type ZBSearchSearchProps = {
   limitResults: number
   boost: {
     title: number
@@ -19,7 +19,7 @@ export type OramaSearchProps = {
   }
 }
 
-const defaultProps: OramaSearchProps = {
+const defaultProps: ZBSearchSearchProps = {
   limitResults: 30,
   boost: {
     title: 2,
@@ -28,21 +28,21 @@ const defaultProps: OramaSearchProps = {
   }
 }
 
-export function OramaSearch(props = defaultProps) {
+export function ZBSearchSearch(props = defaultProps) {
   const router = useRouter()
 
-  return router?.isReady ? <OramaSearchPlugin {...props} router={router} /> : null
+  return router?.isReady ? <ZBSearchSearchPlugin {...props} router={router} /> : null
 }
 
-function OramaSearchPlugin({ router, ...props }) {
+function ZBSearchSearchPlugin({ router, ...props }) {
   const inputRef = useRef(null)
   const wrapperRef = useRef(null)
-  const { indexes } = useCreateOramaIndex()
+  const { indexes } = useCreateZBSearchIndex()
   const { hasFocus, setHasFocus } = useFocus({
     inputRef
   })
   const [searchTerm, setSearchTerm] = useState('')
-  const [results, setResults] = useState<SearchResultWithHighlight<TypedDocument<NextraOrama>>>()
+  const [results, setResults] = useState<SearchResultWithHighlight<TypedDocument<NextraZBSearch>>>()
   const [groupedResults, setGroupedResults] = useState({})
 
   const { locale = 'en-US', asPath } = router
@@ -116,7 +116,7 @@ function OramaSearchPlugin({ router, ...props }) {
                       ))}
                     </>
                   ))}
-                  <OramaFooter results={results} />
+                  <ZBSearchFooter results={results} />
                 </ul>
               </div>
             </>

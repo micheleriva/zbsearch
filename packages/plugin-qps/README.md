@@ -1,20 +1,20 @@
-# Orama Plugin Quantum Proximity Scoring
+# ZBSearch Plugin Quantum Proximity Scoring
 
-**Orama Plugin Quantum Proximity Scoring** ranks search results based on the proximity of query tokens in the document.
+**ZBSearch Plugin Quantum Proximity Scoring** ranks search results based on the proximity of query tokens in the document.
 
 ## Installation
 
-To get started with **Orama Plugin QPS**, just install it with npm:
+To get started with **ZBSearch Plugin QPS**, just install it with npm:
 
 ```sh
-npm i @orama/plugin-qps
+npm i @zbsearch/plugin-qps
 ```
 
 ## Usage
 
 ```js
-import { create } from '@orama/orama'
-import { pluginQPS } from '@orama/plugin-qps'
+import { create } from 'zbsearch'
+import { pluginQPS } from '@zbsearch/plugin-qps'
 
 const db = await create({
   schema: {

@@ -1,8 +1,8 @@
-# Orama's Astro Plugin
+# ZBSearch's Astro Plugin
 
-[![Tests](https://github.com/oramasearch/orama/actions/workflows/turbo.yml/badge.svg)](https://github.com/oramasearch/orama/actions/workflows/turbo.yml)
+[![Tests](https://github.com/micheleriva/zbsearch/actions/workflows/turbo.yml/badge.svg)](https://github.com/micheleriva/zbsearch/actions/workflows/turbo.yml)
 
-This package is a (still experimental) [Orama](https://oramasearch.com) integration for
+This package is a (still experimental) [ZBSearch](https://zbsearchsearch.com) integration for
 [Astro](https://astro.build).
 
 ## Usage
@@ -11,12 +11,12 @@ This package is a (still experimental) [Orama](https://oramasearch.com) integrat
 
 ```typescript
 // In `astro.config.mjs`
-import orama from '@orama/plugin-astro'
+import zbsearch from '@zbsearch/plugin-astro'
 
 // https://astro.build/config
 export default defineConfig({
   integrations: [
-    orama({
+    zbsearch({
       // We can generate more than one DB, with different configurations
       mydb: {
         // Required. Only pages matching this path regex will be indexed
@@ -36,7 +36,7 @@ export default defineConfig({
 
 When running the `astro build` command, a new DB file will be persisted in the
 `dist/assets` directory. For the particular case of this example, it will be
-saved in the file `dist/assets/oramaDB_mydb.json`.
+saved in the file `dist/assets/zbsearchDB_mydb.json`.
 
 ### Using generated DBs in your pages
 
@@ -48,11 +48,11 @@ To use the generated DBs in your pages, you can include a script in your
   <!-- Other stuff -->
   <script>
     // Astro will do the job of bundling everything for you
-    import { getOramaDB, search } from "@orama/plugin-astro/client"
+    import { getZBSearchDB, search } from "@zbsearch/plugin-astro/client"
 
     // We load the DB that we generated at build time, this is an asynchronous
     // operation, so we must either await, or rely on `.then` calls.
-    const db = await getOramaDB('mydb')
+    const db = await getZBSearchDB('mydb')
 
     // Now we can search inside our DB. Of course, feel free to use it in more
     // interesting ways.

@@ -1,12 +1,12 @@
 import { decode, encode } from '@msgpack/msgpack'
-import type { AnyOrama } from '@orama/orama'
-import { create, load, save } from '@orama/orama'
+import type { AnyZBSearch } from 'zbsearch'
+import { create, load, save } from 'zbsearch'
 import type { PersistenceFormat, Runtime } from './types.js'
 // @ts-expect-error dpack does not expose types
 import * as dpack from 'dpack'
 import { METHOD_MOVED, UNSUPPORTED_FORMAT } from './errors.js'
 import { detectRuntime } from './utils.js'
-import { serializeOramaInstance, deserializeOramaInstance } from './seqproto.js'
+import { serializeZBSearchInstance, deserializeZBSearchInstance } from './seqproto.js'
 
 const hexFromMap: Record<string, number> = {
   0: 0,
@@ -51,7 +51,7 @@ function slowHexToString(bytes: Uint8Array): string {
     .join('')
 }
 
-export async function persist<T extends AnyOrama>(
+export async function persist<T extends AnyZBSearch>(
   db: T,
   format: PersistenceFormat = 'binary',
   runtime?: Runtime
@@ -82,7 +82,7 @@ export async function persist<T extends AnyOrama>(
       break
     }
     case 'seqproto':
-      serialized = serializeOramaInstance(db)
+      serialized = serializeZBSearchInstance(db)
       break
     default:
       throw new Error(UNSUPPORTED_FORMAT(format))
@@ -91,7 +91,7 @@ export async function persist<T extends AnyOrama>(
   return serialized
 }
 
-export async function restore<T extends AnyOrama>(
+export async function restore<T extends AnyZBSearch>(
   format: PersistenceFormat,
   data: string | Buffer | ArrayBuffer,
   runtime?: Runtime
@@ -146,7 +146,7 @@ export async function restore<T extends AnyOrama>(
         } else {
           throw new Error('Unsupported data type for seqproto restore')
         }
-        deserialized = deserializeOramaInstance(ab)
+        deserialized = deserializeZBSearchInstance(ab)
       }
       break
     default:
@@ -158,7 +158,7 @@ export async function restore<T extends AnyOrama>(
   return db as unknown as T
 }
 
-export async function persistToFile<T extends AnyOrama>(
+export async function persistToFile<T extends AnyZBSearch>(
   db: T,
   format: PersistenceFormat = 'json',
   path?: string,
@@ -167,7 +167,7 @@ export async function persistToFile<T extends AnyOrama>(
   throw new Error(METHOD_MOVED('persistToFile'))
 }
 
-export async function restoreFromFile<T extends AnyOrama>(
+export async function restoreFromFile<T extends AnyZBSearch>(
   format: PersistenceFormat = 'json',
   path?: string,
   runtime?: Runtime

@@ -1,4 +1,4 @@
-import type { AnyOrama, SearchParams, TypedDocument, OramaPluginAsync, PartialSchemaDeep } from '@orama/orama'
+import type { AnyZBSearch, SearchParams, TypedDocument, ZBSearchPluginAsync, PartialSchemaDeep } from 'zbsearch'
 import { load as loadModel } from '@tensorflow-models/universal-sentence-encoder'
 
 export type PluginEmbeddingsParams = {
@@ -32,13 +32,13 @@ function normalizeVector(v: number[]): number[] {
 
 export const embeddingsType = 'vector[512]'
 
-export async function pluginEmbeddings(pluginParams: PluginEmbeddingsParams): Promise<OramaPluginAsync> {
+export async function pluginEmbeddings(pluginParams: PluginEmbeddingsParams): Promise<ZBSearchPluginAsync> {
   const model = await loadModel()
 
   return {
-    name: 'orama-plugin-embeddings',
+    name: 'zbsearch-plugin-embeddings',
 
-    async beforeInsert<T extends TypedDocument<any>>(_db: AnyOrama, _id: string, params: PartialSchemaDeep<T>) {
+    async beforeInsert<T extends TypedDocument<any>>(_db: AnyZBSearch, _id: string, params: PartialSchemaDeep<T>) {
       if (!pluginParams.embeddings?.onInsert?.generate) {
         return
       }
@@ -59,7 +59,7 @@ export async function pluginEmbeddings(pluginParams: PluginEmbeddingsParams): Pr
       params[pluginParams.embeddings.defaultProperty] = normalizeVector(embeddings)
     },
 
-    async beforeSearch<T extends AnyOrama>(_db: AnyOrama, params: SearchParams<T, TypedDocument<any>>) {
+    async beforeSearch<T extends AnyZBSearch>(_db: AnyZBSearch, params: SearchParams<T, TypedDocument<any>>) {
       if (params.mode !== 'vector' && params.mode !== 'hybrid') {
         return
       }

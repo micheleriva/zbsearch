@@ -1,8 +1,8 @@
 {
-  "name": "@orama/tokenizers",
+  "name": "@zbsearch/tokenizers",
   "version": "3.2.0",
   "type": "module",
-  "description": "Additional tokenizers for Orama",
+  "description": "Additional tokenizers for ZBSearch",
   "sideEffects": false,
   "exports": {
     "./japanese": {
@@ -38,17 +38,17 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "@orama/orama": "workspace:*"
+    "zbsearch": "workspace:*"
   },
   "files": [
     "dist"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/oramasearch/orama"
+    "url": "https://github.com/micheleriva/zbsearch"
   },
   "bugs": {
-    "url": "https://github.com/oramasearch/orama"
+    "url": "https://github.com/micheleriva/zbsearch"
   },
   "scripts": {
     "build": "tshy",
@@ -69,7 +69,7 @@
   ],
   "author": {
     "name": "Michele Riva",
-    "email": "michele.riva@oramasearch.com",
+    "email": "riva.michele.95@gmail.com",
     "url": "https://github.com/MicheleRiva",
     "author": true
   },

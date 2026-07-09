@@ -1,5 +1,5 @@
 {
-  "name": "orama-monorepo",
+  "name": "zbsearch-monorepo",
   "version": "3.2.0",
   "description": "A complete search engine and RAG pipeline in your browser, server, or edge network with support for full-text, vector, and hybrid search in less than 2kb.",
   "workspaces": [
@@ -38,14 +38,14 @@
   },
   "author": {
     "name": "Michele Riva",
-    "email": "michele@orama.com",
+    "email": "riva.michele.95@gmail.com",
     "url": "https://github.com/MicheleRiva",
     "author": true
   },
   "contributors": [
     {
       "name": "Tommaso Allevi",
-      "email": "tommaso.allevi@orama.com",
+      "email": "tommaso.allevi@zbsearch.com",
       "url": "https://github.com/allevo",
       "author": true
     }

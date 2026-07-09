@@ -1,11 +1,11 @@
-import type { Orama, TypedDocument } from '@orama/orama'
-import { create, insertMultiple } from '@orama/orama'
-import type { SearchResultWithHighlight } from '@orama/plugin-match-highlight'
-import { afterInsert as highlightAfterInsertHook } from '@orama/plugin-match-highlight'
+import type { ZBSearch, TypedDocument } from 'zbsearch'
+import { create, insertMultiple } from 'zbsearch'
+import type { SearchResultWithHighlight } from '@zbsearch/plugin-match-highlight'
+import { afterInsert as highlightAfterInsertHook } from '@zbsearch/plugin-match-highlight'
 
-export type NextraOrama = Orama<typeof defaultSchema>
+export type NextraZBSearch = ZBSearch<typeof defaultSchema>
 
-type HighlightedHits = SearchResultWithHighlight<NextraOrama>['hits']
+type HighlightedHits = SearchResultWithHighlight<NextraZBSearch>['hits']
 
 export function groupDocumentsBy(arr: HighlightedHits, key: string) {
   return arr.reduce((acc, current) => {
@@ -27,7 +27,7 @@ const defaultSchema = {
   content: 'string'
 } as const
 
-export async function createOramaIndex(basePath, locale): Promise<NextraOrama> {
+export async function createZBSearchIndex(basePath, locale): Promise<NextraZBSearch> {
   const response = await fetch(`${basePath}/_next/static/chunks/nextra-data-${locale}.json`)
   const data = await response.json()
 
@@ -47,7 +47,7 @@ export async function createOramaIndex(basePath, locale): Promise<NextraOrama> {
   })
 
   const paths = Object.keys(data)
-  const documents: TypedDocument<NextraOrama>[] = []
+  const documents: TypedDocument<NextraZBSearch>[] = []
 
   for (const path of paths) {
     const url = path

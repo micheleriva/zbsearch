@@ -1,9 +1,9 @@
-import { create, insert, Tokenizer } from '@orama/orama'
+import { create, insert, Tokenizer } from 'zbsearch'
 import t from 'tap'
 import {
   afterInsert,
   loadWithHighlight,
-  OramaWithHighlight,
+  ZBSearchWithHighlight,
   saveWithHighlight,
   searchWithHighlight
 } from '../src/index.js'
@@ -23,7 +23,7 @@ t.test('it should store the position of tokens', async (t) => {
 
   const id = await insert(db, { text: 'hello world' })
 
-  t.same((db as OramaWithHighlight<typeof db>).data.positions[id], {
+  t.same((db as ZBSearchWithHighlight<typeof db>).data.positions[id], {
     text: { hello: [{ start: 0, length: 5 }], world: [{ start: 6, length: 5 }] }
   })
 })
@@ -39,7 +39,7 @@ t.test('it should manage nested schemas', async (t) => {
 
   const id = await insert(db, { other: { text: 'hello world' } })
 
-  t.same((db as OramaWithHighlight<typeof db>).data.positions[id], {
+  t.same((db as ZBSearchWithHighlight<typeof db>).data.positions[id], {
     'other.text': { hello: [{ start: 0, length: 5 }], world: [{ start: 6, length: 5 }] }
   })
 })
@@ -62,7 +62,7 @@ t.test("it shouldn't stem tokens", async (t) => {
 
   const id = await insert(db, { text: 'hello personalization' })
 
-  t.same((db as OramaWithHighlight<typeof db>).data.positions[id], {
+  t.same((db as ZBSearchWithHighlight<typeof db>).data.positions[id], {
     text: { hello: [{ start: 0, length: 5 }], personalization: [{ start: 6, length: 15 }] }
   })
 })
@@ -139,12 +139,12 @@ t.test('should correctly save and load data with positions', async (t) => {
 
   loadWithHighlight(newDB, DBData)
 
-  t.same((newDB as OramaWithHighlight<typeof newDB>).data.positions[id], {
+  t.same((newDB as ZBSearchWithHighlight<typeof newDB>).data.positions[id], {
     text: { hello: [{ start: 0, length: 5 }], world: [{ start: 6, length: 5 }] }
   })
 })
 
-// A minimal word-granularity CJK tokenizer, equivalent to @orama/tokenizers/mandarin.
+// A minimal word-granularity CJK tokenizer, equivalent to @zbsearch/tokenizers/mandarin.
 // CJK text has no word spaces, so a whole run is matched as a single word by the
 // position indexer and the tokenizer splits it into several tokens.
 function createCjkTokenizer(): Tokenizer {
@@ -176,7 +176,7 @@ t.test('it should record a position for every token of a multi-token word (CJK)'
   t.ok(expected.size > 1, 'the tokenizer splits the run into multiple tokens')
 
   const id = await insert(db, { text })
-  const recorded = (db as OramaWithHighlight<typeof db>).data.positions[id].text
+  const recorded = (db as ZBSearchWithHighlight<typeof db>).data.positions[id].text
 
   t.same(new Set(Object.keys(recorded)), expected, 'every token has a recorded position')
 

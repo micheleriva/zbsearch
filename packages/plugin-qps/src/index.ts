@@ -1,5 +1,5 @@
 import type {
-  AnyOrama,
+  AnyZBSearch,
   SearchableType,
   IIndex,
   SearchableValue,
@@ -8,15 +8,15 @@ import type {
   FlattenSchemaProperty,
   TokenScore,
   WhereCondition,
-  OramaPluginSync,
+  ZBSearchPluginSync,
   AnySchema,
   ObjectComponents,
   BM25Params
-} from '@orama/orama'
-import { index as Index, internalDocumentIDStore } from '@orama/orama/components'
+} from 'zbsearch'
+import { index as Index, internalDocumentIDStore } from 'zbsearch/components'
 import { insertString, QPSIndex as QPSIndexStorage, recursiveCreate, removeString, searchString } from './algorithm.js'
-import { radix } from '@orama/orama/trees'
-import { setIntersection } from '@orama/orama/internals'
+import { radix } from 'zbsearch/trees'
+import { setIntersection } from 'zbsearch/internals'
 
 type InternalDocumentID = internalDocumentIDStore.InternalDocumentID
 type InternalDocumentIDStore = internalDocumentIDStore.InternalDocumentIDStore
@@ -28,7 +28,7 @@ const unusedStats = {
   tokensLength: new Map()
 }
 
-function search<T extends AnyOrama>(
+function search<T extends AnyZBSearch>(
   index: QPSIndexStorage,
   term: string,
   tokenizer: Tokenizer,
@@ -80,7 +80,7 @@ function search<T extends AnyOrama>(
   return res
 }
 
-export function pluginQPS(): OramaPluginSync<unknown> {
+export function pluginQPS(): ZBSearchPluginSync<unknown> {
   return {
     name: 'qps',
     getComponents(schema: AnySchema) {
@@ -206,7 +206,7 @@ function qpsComponents(schema: AnySchema): Partial<ObjectComponents<any, any, an
         throw new Error()
       },
       search,
-      searchByWhereClause: function searchByWhereClause<T extends AnyOrama>(
+      searchByWhereClause: function searchByWhereClause<T extends AnyZBSearch>(
         index: QPSIndexStorage,
         tokenizer: Tokenizer,
         filters: Partial<WhereCondition<T['schema']>>,

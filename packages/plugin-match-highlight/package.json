@@ -1,7 +1,7 @@
 {
-  "name": "@orama/plugin-match-highlight",
+  "name": "@zbsearch/plugin-match-highlight",
   "version": "3.2.0",
-  "description": "Orama plugin for search match highlighting",
+  "description": "ZBSearch plugin for search match highlighting",
   "keywords": [
     "full-text search",
     "search",
@@ -12,10 +12,10 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/oramasearch/orama"
+    "url": "https://github.com/micheleriva/zbsearch"
   },
   "bugs": {
-    "url": "https://github.com/oramasearch/orama"
+    "url": "https://github.com/micheleriva/zbsearch"
   },
   "type": "module",
   "sideEffects": false,
@@ -38,7 +38,7 @@
     "test": "node --test --import tsx test/*.test.ts"
   },
   "dependencies": {
-    "@orama/orama": "workspace:*"
+    "zbsearch": "workspace:*"
   },
   "devDependencies": {
     "@swc/cli": "^0.1.59",

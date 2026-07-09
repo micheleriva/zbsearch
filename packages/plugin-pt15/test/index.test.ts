@@ -1,5 +1,5 @@
 import t from 'tap'
-import { create, insertMultiple, load, remove, save, search } from '@orama/orama'
+import { create, insertMultiple, load, remove, save, search } from 'zbsearch'
 import { pluginPT15 } from '../src/index.js'
 import { get_position } from '../src/algorithm.js'
 

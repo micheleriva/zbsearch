@@ -1,4 +1,4 @@
-import { AnyDocument, AnyOrama, insertMultiple } from '@orama/orama'
+import { AnyDocument, AnyZBSearch, insertMultiple } from 'zbsearch'
 import glob from 'glob'
 import { Content, Element, Parent, Properties, Root } from 'hast'
 import { fromHtml } from 'hast-util-from-html'
@@ -42,7 +42,7 @@ type PopulateOptions = PopulateFromGlobOptions & { basePath?: string }
 type FileType = 'html' | 'md'
 const asyncGlob = promisify(glob)
 
-export async function populateFromGlob<T extends AnyOrama>(
+export async function populateFromGlob<T extends AnyZBSearch>(
   db: T,
   pattern: string,
   options?: PopulateFromGlobOptions
@@ -51,7 +51,7 @@ export async function populateFromGlob<T extends AnyOrama>(
   await Promise.all(files.map(async (filename) => populateFromFile(db, filename, options)))
 }
 
-async function populateFromFile<T extends AnyOrama>(
+async function populateFromFile<T extends AnyZBSearch>(
   db: T,
   filename: string,
   options?: PopulateFromGlobOptions
@@ -75,11 +75,11 @@ export const parseFile = async (
         .use(remarkRehype)
         .use(rehypeDocument)
         .use(rehypePresetMinify)
-        .use(rehypeOrama, records, options)
+        .use(rehypeZBSearch, records, options)
         .run(tree)
       break
     case 'html':
-      await rehype().use(rehypePresetMinify).use(rehypeOrama, records, options).process(data)
+      await rehype().use(rehypePresetMinify).use(rehypeZBSearch, records, options).process(data)
       break
     /* c8 ignore start */
     default:
@@ -90,7 +90,7 @@ export const parseFile = async (
   return records
 }
 
-export async function populate<T extends AnyOrama>(
+export async function populate<T extends AnyZBSearch>(
   db: T,
   data: Buffer | string,
   fileType: FileType,
@@ -99,7 +99,7 @@ export async function populate<T extends AnyOrama>(
   return insertMultiple(db, (await parseFile(data, fileType, options)) as AnyDocument)
 }
 
-function rehypeOrama(records: DefaultSchemaElement[], options?: PopulateOptions): (tree: Root) => void {
+function rehypeZBSearch(records: DefaultSchemaElement[], options?: PopulateOptions): (tree: Root) => void {
   if (!options) {
     options = {}
   }

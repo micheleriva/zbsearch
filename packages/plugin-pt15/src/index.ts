@@ -1,5 +1,5 @@
 import type {
-  AnyOrama,
+  AnyZBSearch,
   SearchableType,
   IIndex,
   SearchableValue,
@@ -8,12 +8,12 @@ import type {
   FlattenSchemaProperty,
   TokenScore,
   WhereCondition,
-  OramaPluginSync,
+  ZBSearchPluginSync,
   AnySchema,
   ObjectComponents,
   BM25Params
-} from '@orama/orama'
-import { index as Index, internalDocumentIDStore } from '@orama/orama/components'
+} from 'zbsearch'
+import { index as Index, internalDocumentIDStore } from 'zbsearch/components'
 import {
   PT15IndexStore,
   insertString,
@@ -27,9 +27,9 @@ type InternalDocumentID = internalDocumentIDStore.InternalDocumentID
 type InternalDocumentIDStore = internalDocumentIDStore.InternalDocumentIDStore
 type DocumentID = internalDocumentIDStore.DocumentID
 
-export function pluginPT15(): OramaPluginSync {
+export function pluginPT15(): ZBSearchPluginSync {
   return {
-    name: 'orama-plugin-pt15',
+    name: 'zbsearch-plugin-pt15',
 
     getComponents: function getComponents(schema: AnySchema) {
       return createComponents(schema)
@@ -144,7 +144,7 @@ function createComponents(schema: AnySchema): Partial<ObjectComponents<any, any,
       calculateResultScores: () => {
         throw new Error()
       },
-      search: function search<T extends AnyOrama>(
+      search: function search<T extends AnyZBSearch>(
         index: PT15IndexStore,
         term: string,
         tokenizer: Tokenizer,
@@ -206,7 +206,7 @@ function createComponents(schema: AnySchema): Partial<ObjectComponents<any, any,
 
         return Array.from(base)
       },
-      searchByWhereClause: function searchByWhereClause<T extends AnyOrama>(
+      searchByWhereClause: function searchByWhereClause<T extends AnyZBSearch>(
         index: PT15IndexStore,
         tokenizer: Tokenizer,
         filters: Partial<WhereCondition<T['schema']>>,

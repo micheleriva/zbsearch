@@ -1,18 +1,18 @@
 {
-  "name": "@orama/plugin-parsedoc",
+  "name": "@zbsearch/plugin-parsedoc",
   "version": "3.2.0",
-  "description": "Orama plugin to populate an index with HTML/Markdown documents",
+  "description": "ZBSearch plugin to populate an index with HTML/Markdown documents",
   "keywords": [],
   "author": "",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/oramasearch/orama.git"
+    "url": "git+https://github.com/micheleriva/zbsearch.git"
   },
   "bugs": {
-    "url": "https://github.com/oramasearch/orama/issues"
+    "url": "https://github.com/micheleriva/zbsearch/issues"
   },
-  "homepage": "https://github.com/oramasearch/orama#readme",
+  "homepage": "https://github.com/micheleriva/zbsearch#readme",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/commonjs.cjs",
@@ -34,7 +34,7 @@
     "test": "c8 -c test/config/c8.json tap test/*.test.ts"
   },
   "dependencies": {
-    "@orama/orama": "workspace:*",
+    "zbsearch": "workspace:*",
     "glob": "^8.1.0",
     "hast-util-from-html": "^1.0.1",
     "hast-util-from-string": "^2.0.0",

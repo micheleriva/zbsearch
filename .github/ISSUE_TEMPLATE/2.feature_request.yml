@@ -1,5 +1,5 @@
 name: Feature Request
-description: Propose a new feature for Orama
+description: Propose a new feature for ZBSearch
 labels: ['template: feature']
 body:
   - type: textarea
@@ -14,7 +14,7 @@ body:
     attributes:
       label: Proposed Solution
       description: How do you envision the solution?
-      placeholder: 'Orama could implement...'
+      placeholder: 'ZBSearch could implement...'
     validations:
       required: true
 

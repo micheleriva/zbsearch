@@ -7,13 +7,13 @@ export const defaultHtmlSchema = {
   path: 'string'
 }
 
-export interface OramaPluginParseDoc {
+export interface ZBSearchPluginParseDoc {
   populateFromGlob: typeof esmPopulateFromGlob
   populate: typeof esmPopulate
   defaultHtmlSchema: typeof defaultHtmlSchema
 }
 
-export type RequireCallback = (err: Error | undefined, orama?: OramaPluginParseDoc) => void
+export type RequireCallback = (err: Error | undefined, zbsearch?: ZBSearchPluginParseDoc) => void
 
 let _esmPopulateFromGlob: typeof esmPopulateFromGlob
 let _esmPopulate: typeof esmPopulate
@@ -38,8 +38,8 @@ export async function populate(...args: Parameters<typeof esmPopulate>): ReturnT
   return _esmPopulate(...args)
 }
 
-export function requireOramaPluginParseDoc(callback: RequireCallback): void {
+export function requireZBSearchPluginParseDoc(callback: RequireCallback): void {
   import('./index.js')
-    .then((loaded: OramaPluginParseDoc) => setTimeout(() => callback(undefined, loaded), 1))
+    .then((loaded: ZBSearchPluginParseDoc) => setTimeout(() => callback(undefined, loaded), 1))
     .catch((error: Error) => setTimeout(() => callback(error), 1))
 }

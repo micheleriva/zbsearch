@@ -1,15 +1,15 @@
 {
-  "name": "@orama/plugin-astro",
-  "description": "An Astro integration for Orama",
+  "name": "@zbsearch/plugin-astro",
+  "description": "An Astro integration for ZBSearch",
   "version": "3.2.0",
   "keywords": [
     "astro",
     "astro-component",
     "cms",
-    "orama",
+    "zbsearch",
     "search"
   ],
-  "repository": "https://github.com/oramasearch/orama",
+  "repository": "https://github.com/micheleriva/zbsearch",
   "author": {
     "name": "Andres Correa Casablanca",
     "email": "andres.casablanca@nearform.com",
@@ -41,7 +41,7 @@
     "lint": "eslint src --ext .js,.ts,.tsx,.cts"
   },
   "dependencies": {
-    "@orama/orama": "workspace:*",
+    "zbsearch": "workspace:*",
     "astro": "^5.0.0",
     "html-to-text": "^9.0.3"
   },

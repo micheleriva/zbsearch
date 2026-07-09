@@ -1,6 +1,6 @@
-import { AnyIndexStore, AnyOrama, SearchableType, Tokenizer } from '@orama/orama'
-import { avl, bkd, flat, radix, bool, vector } from '@orama/orama/trees'
-import { getVectorSize, index as Index, internalDocumentIDStore, isVectorType } from '@orama/orama/components'
+import { AnyIndexStore, AnyZBSearch, SearchableType, Tokenizer } from 'zbsearch'
+import { avl, bkd, flat, radix, bool, vector } from 'zbsearch/trees'
+import { getVectorSize, index as Index, internalDocumentIDStore, isVectorType } from 'zbsearch/components'
 
 type InternalDocumentID = internalDocumentIDStore.InternalDocumentID
 
@@ -17,7 +17,7 @@ export interface QPSIndex extends AnyIndexStore {
   >
 }
 
-export function recursiveCreate<T extends AnyOrama>(indexDatastore: QPSIndex, schema: T['schema'], prefix: string) {
+export function recursiveCreate<T extends AnyZBSearch>(indexDatastore: QPSIndex, schema: T['schema'], prefix: string) {
   for (const entry of Object.entries<SearchableType>(schema)) {
     const prop = entry[0]
     const type = entry[1]

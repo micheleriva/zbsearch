@@ -4,13 +4,13 @@ import type {
   restoreFromFile as esmRestoreFromFile
 } from './server.js'
 
-export interface OramaPluginDataPersistenceExport {
+export interface ZBSearchPluginDataPersistenceExport {
   getDefaultFileName: typeof esmGetDefaultFileName
   persistToFile: typeof esmPersistToFile
   restoreFromFile: typeof esmRestoreFromFile
 }
 
-export type RequireCallback = (err: Error | undefined, orama?: OramaPluginDataPersistenceExport) => void
+export type RequireCallback = (err: Error | undefined, zbsearch?: ZBSearchPluginDataPersistenceExport) => void
 
 let _esmRestoreFromFile: typeof esmRestoreFromFile
 let _esmPersistToFile: typeof esmPersistToFile

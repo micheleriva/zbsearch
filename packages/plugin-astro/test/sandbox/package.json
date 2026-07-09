@@ -1,5 +1,5 @@
 {
-  "name": "@orama/plugin-astro-sandbox",
+  "name": "@zbsearch/plugin-astro-sandbox",
   "type": "module",
   "version": "@VERSION@",
   "private": true,
@@ -8,13 +8,13 @@
     "test": "exit 0"
   },
   "dependencies": {
-    "@orama/plugin-astro": "^@VERSION@",
+    "@zbsearch/plugin-astro": "^@VERSION@",
     "astro": "^5.0.0"
   },
   "pnpm": {
     "overrides": {
-      "@orama/orama": "@ROOT@/packages/plugin-astro/tmp/orama-orama-@VERSION@.tgz",
-      "@orama/plugin-astro": "@ROOT@/packages/plugin-astro/tmp/orama-plugin-astro-@VERSION@.tgz"
+      "zbsearch": "@ROOT@/packages/plugin-astro/tmp/zbsearch-zbsearch-@VERSION@.tgz",
+      "@zbsearch/plugin-astro": "@ROOT@/packages/plugin-astro/tmp/zbsearch-plugin-astro-@VERSION@.tgz"
     }
   }
 }

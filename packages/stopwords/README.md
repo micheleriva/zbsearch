@@ -1,4 +1,4 @@
-# Orama Stop-words
+# ZBSearch Stop-words
 
 <!-- LANGUAGES:START -->
 This package provides support for stop-words removal in 33 languages:
@@ -39,8 +39,8 @@ This package provides support for stop-words removal in 33 languages:
 <!-- LANGUAGES:END -->
 
 ```js
-import { create } from '@orama/orama'
-import { stopwords as italianStopwords } from '@orama/stopwords/italian'
+import { create } from 'zbsearch'
+import { stopwords as italianStopwords } from '@zbsearch/stopwords/italian'
 
 const db = create({
   schema: {
@@ -52,7 +52,7 @@ const db = create({
 })
 ```
 
-Read more in the official docs: [https://docs.orama.com/docs/orama-js/text-analysis/stop-words](https://docs.orama.com/docs/orama-js/text-analysis/stop-words).
+Read more in the official docs: [https://docs.zbsearch.com/docs/zbsearch-js/text-analysis/stop-words](https://docs.zbsearch.com/docs/zbsearch-js/text-analysis/stop-words).
 
 # License
 

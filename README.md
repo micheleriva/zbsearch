@@ -8,7 +8,7 @@ ZBSearch (_zee bee search_) is a zero-bs fork of Orama maintained by **the origi
 - Alberto Moretti (ex St. Engineer)
 - Fausto Quaggia (ex Eng. Manager)
 
-After [Michele's departure](https://www.micheleriva.dev/writings/my-last-day-at-zbsearch), the entire engineering team left Orama and reassembled to maintain this popular project with no external influence. No VC, no business incentives, no bs. Just open source software. Help us get 10.5k stars back!
+After [Michele's departure](https://www.micheleriva.dev/writings/my-last-day-at-orama), the entire engineering team left Orama and reassembled to maintain this popular project with no external influence. No VC, no business incentives, no bs. Just open source software. Help us get 10.5k stars back!
 
 # Highlighted features
 

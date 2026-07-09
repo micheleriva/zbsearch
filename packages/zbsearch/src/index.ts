@@ -8,7 +8,6 @@ export { searchVector } from './methods/search-vector.js'
 export { load, save } from './methods/serialization.js'
 export { update, updateMultiple } from './methods/update.js'
 export { upsert, upsertMultiple } from './methods/upsert.js'
-export { AnswerSession } from './methods/answer-session.js'
 
 export * from './types.js'
 export * as components from './components.js'

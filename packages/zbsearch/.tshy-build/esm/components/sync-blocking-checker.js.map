@@ -1,1 +1,0 @@
-{"version":3,"file":"sync-blocking-checker.js","sourceRoot":"","sources":["../../../src/components/sync-blocking-checker.ts"],"names":[],"mappings":"AAEA,mFAAmF;AACnF,MAAM,IAAI,GACR,UAAU,CAAC,OAAO,EAAE,WAAW;IAC/B,SAAS,WAAW,CAAC,OAAe,EAAE,OAAyB;QAC7D,OAAO,CAAC,IAAI,CAAC,cAAc,OAAO,CAAC,IAAI,KAAK,OAAO,EAAE,CAAC,CAAA;IACxD,CAAC,CAAA"}

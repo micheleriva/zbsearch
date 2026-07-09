@@ -2,7 +2,7 @@
   "name": "zbsearch",
   "version": "3.2.0",
   "type": "module",
-  "description": "A complete search engine and RAG pipeline in your browser, server, or edge network with support for full-text, vector, and hybrid search in less than 2kb.",
+  "description": "A complete search engine in your browser, server, or edge network with support for full-text, vector, and hybrid search in less than 2kb.",
   "sideEffects": false,
   "main": "./dist/commonjs/index.js",
   "exports": {
@@ -145,9 +145,7 @@
     "@types/tap": "^15.0.7",
     "auto-changelog": "^2.4.0",
     "c8": "^7.12.0",
-    "commitizen": "^4.2.6",
     "glob": "^9.2.3",
-    "prettier": "^2.8.1",
     "tap": "^21.0.1",
     "tap-mocha-reporter": "^5.0.3",
     "tape": "^5.6.1",

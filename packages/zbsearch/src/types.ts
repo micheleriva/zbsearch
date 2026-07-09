@@ -8,18 +8,6 @@ import { Language } from './components/tokenizer/languages.js'
 import { Point } from './trees/bkd.js'
 import { VectorIndex, VectorType } from './trees/vector.js'
 
-export type {
-  IAnswerSessionConfig,
-  AnswerSession,
-  AnswerSessionEvents,
-  AskParams,
-  GenericContext,
-  Interaction,
-  Message,
-  MessageRole,
-  RegenerateLastParams
-} from './methods/answer-session.js'
-
 export { MODE_FULLTEXT_SEARCH, MODE_HYBRID_SEARCH, MODE_VECTOR_SEARCH } from './constants.js'
 
 export type { DefaultTokenizer } from './components/tokenizer/index.js'

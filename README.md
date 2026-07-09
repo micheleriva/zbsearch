@@ -55,8 +55,6 @@ import { create, search, insert } from 'npm:zbsearch'
 
 Read the complete documentation at [https://zbsearch.dev](https://zbsearch.dev).
 
-# ZBSearch Features
-
 # Usage
 
 ZBSearch is quite simple to use. The first thing to do is to create a new database
@@ -226,7 +224,6 @@ Read the complete documentation at [https://zbsearch.dev](https://zbsearch.dev).
 - [Plugin Data Persistence](https://zbsearch.dev/docs/ZBSearch-js/plugins/plugin-data-persistence)
 - [Plugin QPS](https://zbsearch.dev/docs/ZBSearch-js/plugins/plugin-qps)
 - [Plugin PT15](https://zbsearch.dev/docs/ZBSearch-js/plugins/plugin-pt15)
-- [Plugin Vitepress](https://zbsearch.dev/docs/ZBSearch-js/plugins/plugin-vitepress)
 - [Plugin Astro](https://zbsearch.dev/docs/ZBSearch-js/plugins/plugin-astro)
 - [Plugin Nextra](https://zbsearch.dev/docs/ZBSearch-js/plugins/plugin-nextra)
 

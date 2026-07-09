@@ -116,19 +116,17 @@
   ],
   "author": {
     "name": "Michele Riva",
-    "email": "michele.riva@zbsearch.com",
+    "email": "riva.michele.95@gmail.com",
     "url": "https://github.com/MicheleRiva",
     "author": true
   },
   "contributors": [
     {
       "name": "Tommaso Allevi",
-      "email": "tommaso.allevi@zbsearch.com",
       "url": "https://github.com/allevo"
     },
     {
       "name": "Paolo Insogna",
-      "email": "paolo.insogna@zbsearchsearch.com",
       "url": "http://cowtech.it",
       "author": true
     }

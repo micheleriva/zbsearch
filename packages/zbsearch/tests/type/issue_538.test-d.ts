@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // https://github.com/micheleriva/zbsearch/issues/538
 import { expectAssignable } from 'tsd'
-import { create, search } from '../../src/index.ts'
+import { create, search } from '../../src/index.js'
 
 const movieSchema = {
   title: 'string'

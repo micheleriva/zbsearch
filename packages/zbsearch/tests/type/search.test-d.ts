@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { expectAssignable, expectNotAssignable, expectNotType } from 'tsd'
-import type { SearchParams, ZBSearch } from '../../src/types.d.ts'
+import { expectAssignable, expectNotAssignable } from 'tsd'
+import type { SearchParamsFullText, ZBSearch } from '../../src/types.d.ts'
 
 const movieSchema = {
   title: 'string',
@@ -15,7 +15,7 @@ const movieSchema = {
 
 // Test search properties type
 {
-  type MovieSearchParamsProperties = SearchParams<ZBSearch<typeof movieSchema>>['properties']
+  type MovieSearchParamsProperties = SearchParamsFullText<ZBSearch<typeof movieSchema>>['properties']
 
   expectAssignable<MovieSearchParamsProperties>('*')
   expectAssignable<MovieSearchParamsProperties>(['title'])
@@ -25,7 +25,7 @@ const movieSchema = {
 
   // Test search properties type with unknown schema
   {
-    type MovieSearchParamsProperties = SearchParams<ZBSearch<any>>['properties']
+    type MovieSearchParamsProperties = SearchParamsFullText<ZBSearch<any>>['properties']
     expectAssignable<MovieSearchParamsProperties>('*')
     expectAssignable<MovieSearchParamsProperties>(['title'])
   }
@@ -33,7 +33,7 @@ const movieSchema = {
 
 // Test boost
 {
-  type MovieSearchParamsBoost = SearchParams<ZBSearch<typeof movieSchema>>['boost']
+  type MovieSearchParamsBoost = SearchParamsFullText<ZBSearch<typeof movieSchema>>['boost']
 
   expectAssignable<MovieSearchParamsBoost>(undefined)
   expectAssignable<MovieSearchParamsBoost>({})
@@ -44,7 +44,7 @@ const movieSchema = {
 
   // Test search boost type with unknown schema
   {
-    type MovieSearchParamsBoost = SearchParams<ZBSearch<any>>['boost']
+    type MovieSearchParamsBoost = SearchParamsFullText<ZBSearch<any>>['boost']
     expectAssignable<MovieSearchParamsBoost>(undefined)
     expectAssignable<MovieSearchParamsBoost>({})
     expectAssignable<MovieSearchParamsBoost>({ title: 1 })

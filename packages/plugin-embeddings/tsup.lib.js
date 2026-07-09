@@ -10,7 +10,8 @@ export default defineConfig({
   minify: true,
   format: ['cjs', 'esm', 'iife'],
   globalName: 'pluginEmbeddings',
-  dts: true,
+  target: 'es5',
+  dts: false,
   clean: true,
   bundle: true,
   outDir

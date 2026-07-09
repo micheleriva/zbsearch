@@ -56,8 +56,11 @@ export interface ZBSearchError extends Error {
 export function createError(code: ErrorCode, ...args: Array<string | number>): ZBSearchError {
   const error = new Error(sprintf(errors[code] ?? `Unsupported ZBSearch Error code: ${code}`, ...args)) as ZBSearchError
   error.code = code
-  if ('captureStackTrace' in Error.prototype) {
-    Error.captureStackTrace(error)
+  const errorCtor = Error as ErrorConstructor & {
+    captureStackTrace?: (error: Error) => void
+  }
+  if (typeof errorCtor.captureStackTrace === 'function') {
+    errorCtor.captureStackTrace(error)
   }
 
   return error

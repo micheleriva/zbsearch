@@ -10,7 +10,7 @@ export default defineConfig({
   minify: true,
   format: ['cjs', 'esm', 'iife'],
   globalName: 'zbsearch.plugin.matchHighlight',
-  dts: true,
+  dts: false,
   clean: true,
   bundle: true,
   outDir

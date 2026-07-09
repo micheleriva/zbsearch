@@ -9,6 +9,15 @@ const nano = BigInt(1e3)
 const milli = BigInt(1e6)
 const second = BigInt(1e9)
 
+type NodeProcessLike = {
+  release?: { name?: string }
+  hrtime?: { bigint?: () => bigint }
+}
+
+function getNodeProcess(): NodeProcessLike | undefined {
+  return (globalThis as { process?: NodeProcessLike }).process
+}
+
 export const isServer = typeof window === 'undefined'
 
 /**
@@ -89,7 +98,8 @@ export function isInsideWebWorker(): boolean {
 }
 
 export function isInsideNode(): boolean {
-  return typeof process !== 'undefined' && process.release && process.release.name === 'node'
+  const nodeProcess = getNodeProcess()
+  return nodeProcess?.release?.name === 'node'
 }
 
 export function getNanosecondTimeViaPerformance() {
@@ -118,11 +128,15 @@ export function getNanosecondsTime(): bigint {
   }
 
   if (isInsideNode()) {
-    return process.hrtime.bigint()
+    const nodeProcess = getNodeProcess()
+    if (nodeProcess?.hrtime?.bigint) {
+      return nodeProcess.hrtime.bigint()
+    }
   }
 
-  if (typeof process !== 'undefined' && typeof process?.hrtime?.bigint === 'function') {
-    return process.hrtime.bigint()
+  const nodeProcess = getNodeProcess()
+  if (typeof nodeProcess?.hrtime?.bigint === 'function') {
+    return nodeProcess.hrtime.bigint()
   }
 
   if (typeof performance !== 'undefined') {

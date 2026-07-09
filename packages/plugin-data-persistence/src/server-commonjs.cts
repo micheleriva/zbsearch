@@ -2,7 +2,7 @@ import type {
   getDefaultFileName as esmGetDefaultFileName,
   persistToFile as esmPersistToFile,
   restoreFromFile as esmRestoreFromFile
-} from './server.js'
+} from './server.js' with { 'resolution-mode': 'import' }
 
 export interface ZBSearchPluginDataPersistenceExport {
   getDefaultFileName: typeof esmGetDefaultFileName

@@ -1,37 +1,38 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/oramasearch/orama/refs/heads/main/misc/readme/orama-readme-hero-dark.png#gh-dark-mode-only" />
-  <img src="https://raw.githubusercontent.com/oramasearch/orama/refs/heads/main/misc/readme/orama-readme-hero-light.png#gh-light-mode-only" />
-</p>
+# ZBSearch
 
-[![npm version](https://img.shields.io/npm/v/@orama/orama)](https://www.npmjs.com/package/@orama/orama)
-[![Tests](https://github.com/oramasearch/orama/actions/workflows/turbo.yml/badge.svg)](https://github.com/oramasearch/orama/actions/workflows/turbo.yml)
-[![Changelog](https://img.shields.io/badge/changelog-Keep%20a%20Changelog-E05735)](https://github.com/oramasearch/orama/blob/main/CHANGELOG.md)
+ZBSearch (_zee bee search_) is a zero-bs fork of ZBSearch maintained by the original ZBSearch team.
 
-If you need more info, help, or want to provide general feedback on Orama, join the [Orama Slack channel](https://orama.to/slack)
+- Michele Rive (ex Co-Founder, CTO)
+- Angela Angelini (ex Co-Founder, CDO)
+- Tommaso Allevi (ex Sr. Engineer)
+- Alberto Moretti (ex St. Engineer)
+- Fausto Quaggia (ex Eng. Manager)
+
+After [Michele's departure](https://www.micheleriva.dev/writings/my-last-day-at-ZBSearch), the entire engineering team left ZBSearch and reassembled to maintain this popular project with no external influence. No VC, no business incentives, no bs. Help us get 10.5k stars back!
 
 # Highlighted features
 
-- [Full-Text search](https://docs.orama.com/docs/orama-js/search)
-- [Vector Search](https://docs.orama.com/docs/orama-js/search/vector-search)
-- [Hybrid Search](https://docs.orama.com/docs/orama-js/search/hybrid-search)
-- [GenAI Chat Sessions](https://docs.orama.com/docs/orama-js/answer-engine)
-- [Search Filters](https://docs.orama.com/docs/orama-js/search/filters)
-- [Geosearch](https://docs.orama.com/docs/orama-js/search/geosearch)
-- [Pinning Rules (Merchandising)](https://docs.orama.com/docs/orama-js/results-pinning)
-- [Facets](https://docs.orama.com/docs/orama-js/search/facets)
-- [Fields Boosting](https://docs.orama.com/docs/orama-js/search/fields-boosting)
-- [Typo Tolerance](https://docs.orama.com/docs/orama-js/search#typo-tolerance)
-- [Exact Match](https://docs.orama.com/docs/orama-js/search#exact-match)
-- [BM25](https://docs.orama.com/docs/orama-js/search/bm25)
-- [Stemming and tokenization in 30 languages](https://docs.orama.com/docs/orama-js/text-analysis/stemming)
-- [Plugin System](https://docs.orama.com/docs/orama-js/plugins)
+- [Full-Text search](https://docs.zbsearch.com/docs/ZBSearch-js/search)
+- [Vector Search](https://docs.zbsearch.com/docs/ZBSearch-js/search/vector-search)
+- [Hybrid Search](https://docs.zbsearch.com/docs/ZBSearch-js/search/hybrid-search)
+- [GenAI Chat Sessions](https://docs.zbsearch.com/docs/ZBSearch-js/answer-engine)
+- [Search Filters](https://docs.zbsearch.com/docs/ZBSearch-js/search/filters)
+- [Geosearch](https://docs.zbsearch.com/docs/ZBSearch-js/search/geosearch)
+- [Pinning Rules (Merchandising)](https://docs.zbsearch.com/docs/ZBSearch-js/results-pinning)
+- [Facets](https://docs.zbsearch.com/docs/ZBSearch-js/search/facets)
+- [Fields Boosting](https://docs.zbsearch.com/docs/ZBSearch-js/search/fields-boosting)
+- [Typo Tolerance](https://docs.zbsearch.com/docs/ZBSearch-js/search#typo-tolerance)
+- [Exact Match](https://docs.zbsearch.com/docs/ZBSearch-js/search#exact-match)
+- [BM25](https://docs.zbsearch.com/docs/ZBSearch-js/search/bm25)
+- [Stemming and tokenization in 30 languages](https://docs.zbsearch.com/docs/ZBSearch-js/text-analysis/stemming)
+- [Plugin System](https://docs.zbsearch.com/docs/ZBSearch-js/plugins)
 
 # Installation
 
-You can install Orama using `npm`, `yarn`, `pnpm`, `bun`:
+You can install ZBSearch using `npm`, `yarn`, `pnpm`, `bun`:
 
 ```sh
-npm i @orama/orama
+npm i zbsearch
 ```
 
 Or import it directly in a browser module:
@@ -40,7 +41,7 @@ Or import it directly in a browser module:
 <html>
   <body>
     <script type="module">
-      import { create, insert, search } from 'https://cdn.jsdelivr.net/npm/@orama/orama@latest/+esm'
+      import { create, insert, search } from 'https://cdn.jsdelivr.net/npm/zbsearch@latest/+esm'
     </script>
   </body>
 </html>
@@ -49,25 +50,20 @@ Or import it directly in a browser module:
 With Deno, you can just use the same CDN URL or use npm specifiers:
 
 ```js
-import { create, search, insert } from 'npm:@orama/orama'
+import { create, search, insert } from 'npm:zbsearch'
 ```
 
-Read the complete documentation at [https://docs.orama.com](https://docs.orama.com).
+Read the complete documentation at [https://docs.zbsearch.com](https://docs.zbsearch.com).
 
-# Orama Features
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/oramasearch/orama/refs/heads/main/misc/readme/features-dark.png#gh-dark-mode-only" />
-  <img src="https://raw.githubusercontent.com/oramasearch/orama/refs/heads/main/misc/readme/features-light.png#gh-light-mode-only" />
-</p>
+# ZBSearch Features
 
 # Usage
 
-Orama is quite simple to use. The first thing to do is to create a new database
+ZBSearch is quite simple to use. The first thing to do is to create a new database
 instance and set an indexing schema:
 
 ```js
-import { create, insert, remove, search, searchVector } from '@orama/orama'
+import { create, insert, remove, search, searchVector } from 'zbsearch'
 
 const db = create({
   schema: {
@@ -119,7 +115,7 @@ const results = search(db, {
 // }
 ```
 
-Orama currently supports 10 different data types:
+ZBSearch currently supports 10 different data types:
 
 | Type             | Description                                                                 | Example                                                                     |
 | ---------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
@@ -136,12 +132,12 @@ Orama currently supports 10 different data types:
 
 # Vector and Hybrid Search Support
 
-Orama supports both vector and hybrid search by just setting `mode: 'vector'` when performing search.
+ZBSearch supports both vector and hybrid search by just setting `mode: 'vector'` when performing search.
 
 To perform this kind of search, you'll need to provide [text embeddings](https://en.wikipedia.org/wiki/Word_embedding) at search time:
 
 ```js
-import { create, insertMultiple, search } from '@orama/orama'
+import { create, insertMultiple, search } from 'zbsearch'
 
 const db = create({
   schema: {
@@ -162,7 +158,7 @@ const results = search(db, {
   vector: {
     // The vector (text embedding) to use for search
     value: [0.938292, 0.284961, 0.248264, 0.748276, 0.26472],
-    // The schema property where Orama should compare embeddings
+    // The schema property where ZBSearch should compare embeddings
     property: 'embedding',
   },
   // Minimum similarity to determine a match. Defaults to `0.8`
@@ -172,11 +168,11 @@ const results = search(db, {
 })
 ```
 
-Have trouble generating embeddings for vector and hybrid search? Try our `@orama/plugin-embeddings` plugin!
+Have trouble generating embeddings for vector and hybrid search? Try our `zbsearch/plugin-embeddings` plugin!
 
 ```js
-import { create } from '@orama/orama'
-import { pluginEmbeddings } from '@orama/plugin-embeddings'
+import { create } from 'zbsearch'
+import { pluginEmbeddings } from 'zbsearch/plugin-embeddings'
 import '@tensorflow/tfjs-node' // Or any other appropriate TensorflowJS backend, like @tensorflow/tfjs-backend-webgl
 
 const plugin = await pluginEmbeddings({
@@ -197,20 +193,20 @@ const plugin = await pluginEmbeddings({
 const db = create({
   schema: {
     description: 'string',
-    // Orama generates 512-dimensions vectors.
-    // When using @orama/plugin-embeddings, set the property where you want to store embeddings as `vector[512]`.
+    // ZBSearch generates 512-dimensions vectors.
+    // When using zbsearch/plugin-embeddings, set the property where you want to store embeddings as `vector[512]`.
     embeddings: 'vector[512]'
   },
   plugins: [plugin]
 })
 
-// Orama will generate and store embeddings at insert-time!
+// ZBSearch will generate and store embeddings at insert-time!
 await insert(db, { description: 'Classroom Headphones Bulk 5 Pack, Student On Ear Color Varieties' })
 await insert(db, { description: 'Kids Wired Headphones for School Students K-12' })
 await insert(db, { description: 'Kids Headphones Bulk 5-Pack for K-12 School' })
 await insert(db, { description: 'Bose QuietComfort Bluetooth Headphones' })
 
-// Orama will also generate and use embeddings at search time when search mode is set to "vector" or "hybrid"!
+// ZBSearch will also generate and use embeddings at search time when search mode is set to "vector" or "hybrid"!
 const searchResults = await search(db, {
   term: 'Headphones for 12th grade students',
   mode: 'vector',
@@ -218,74 +214,27 @@ const searchResults = await search(db, {
 })
 ```
 
-Want to use OpenAI embedding models? Use our [Secure Proxy](https://docs.orama.com/docs/orama-js/plugins/plugin-secure-proxy) plugin to call OpenAI from the client-side securely.
-
-# RAG and Chat Experiences with Orama
-
-Since `v3.0.0`, Orama allows you to create your own ChatGPT/Perplexity/SearchGPT-like experience. You will need to call the OpenAI APIs, so we strongly recommend using the [Secure Proxy Plugin](https://docs.orama.com/docs/orama-js/plugins/plugin-secure-proxy) to do that securely from your client side. It's free!
-
-```js
-import { create, insert } from '@orama/orama'
-import { pluginSecureProxy } from '@orama/plugin-secure-proxy'
-
-const secureProxy = await pluginSecureProxy({
-  apiKey: 'my-api-key',
-  defaultProperty: 'embeddings',
-  models: {
-    // The chat model to use to generate the chat answer
-    chat: 'openai/gpt-4o-mini'
-  }
-})
-
-const db = create({
-  schema: {
-    name: 'string'
-  },
-  plugins: [secureProxy]
-})
-
-insert(db, { name: 'John Doe' })
-insert(db, { name: 'Jane Doe' })
-
-const session = new AnswerSession(db, {
-  // Customize the prompt for the system
-  systemPrompt: 'You will get a name as context, please provide a greeting message',
-  events: {
-    // Log all state changes. Useful to reactively update a UI on a new message chunk, sources, etc.
-    onStateChange: console.log,
-  }
-})
-
-const response = await session.ask({
-  term: 'john'
-})
-
-console.log(response) // Hello, John Doe! How are you doing?
-```
-
-Read the complete [documentation](https://docs.orama.com/docs/orama-js/answer-engine).
+Read the complete [documentation](https://docs.zbsearch.com/docs/ZBSearch-js/answer-engine).
 
 # Official Docs
 
-Read the complete documentation at [https://docs.orama.com/open-source](https://docs.orama.com/open-source).
+Read the complete documentation at [https://docs.zbsearch.com/open-source](https://docs.zbsearch.com/open-source).
 
-# Official Orama Plugins
+# Official ZBSearch Plugins
 
-- [Plugin Embeddings](https://docs.orama.com/docs/orama-js/plugins/plugin-embeddings)
-- [Plugin Secure Proxy](https://docs.orama.com/docs/orama-js/plugins/plugin-secure-proxy)
-- [Plugin Analytics](https://docs.orama.com/docs/orama-js/plugins/plugin-analytics)
-- [Plugin Data Persistence](https://docs.orama.com/docs/orama-js/plugins/plugin-data-persistence)
-- [Plugin QPS](https://docs.orama.com/docs/orama-js/plugins/plugin-qps)
-- [Plugin PT15](https://docs.orama.com/docs/orama-js/plugins/plugin-pt15)
-- [Plugin Vitepress](https://docs.orama.com/docs/orama-js/plugins/plugin-vitepress)
-- [Plugin Docusaurus](https://docs.orama.com/docs/orama-js/plugins/plugin-docusaurus)
-- [Plugin Astro](https://docs.orama.com/docs/orama-js/plugins/plugin-astro)
-- [Plugin Nextra](https://docs.orama.com/docs/orama-js/plugins/plugin-nextra)
+- [Plugin Secure Proxy](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-secure-proxy)
+- [Plugin Embeddings](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-embeddings)
+- [Plugin Analytics](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-analytics)
+- [Plugin Data Persistence](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-data-persistence)
+- [Plugin QPS](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-qps)
+- [Plugin PT15](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-pt15)
+- [Plugin Vitepress](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-vitepress)
+- [Plugin Docusaurus](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-docusaurus)
+- [Plugin Astro](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-astro)
+- [Plugin Nextra](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/plugin-nextra)
 
-Write your own plugin: [https://docs.orama.com/docs/orama-js/plugins/writing-your-own-plugins](https://docs.orama.com/docs/orama-js/plugins/writing-your-own-plugins)
+Write your own plugin: [https://docs.zbsearch.com/docs/ZBSearch-js/plugins/writing-your-own-plugins](https://docs.zbsearch.com/docs/ZBSearch-js/plugins/writing-your-own-plugins)
 
 # License
 
-Orama is licensed under the [Apache 2.0](/LICENSE.md) license.
-
-<img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=16782f89-15fb-4e03-8e9c-2a06106542f7" />
+ZBSearch is licensed under the [Apache 2.0](/LICENSE.md) license.

@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/stopwords",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "type": "module",
   "description": "Stop-words for ZBSearch",
   "sideEffects": false,

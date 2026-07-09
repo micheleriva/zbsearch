@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/tokenizers",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "type": "module",
   "description": "Additional tokenizers for ZBSearch",
   "sideEffects": false,

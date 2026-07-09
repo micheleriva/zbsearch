@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/stemmers",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "type": "module",
   "description": "Stemmers for ZBSearch",
   "sideEffects": false,

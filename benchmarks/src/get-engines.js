@@ -22,8 +22,17 @@ const create = {
   zbsearch: () => zbsearch.create({ schema })
 }
 
-export const dbOrama = create.orama()
-export const dbZBSearch = create.zbsearch()
+function createPopulatedDatabases() {
+  const dbOrama = create.orama()
+  const dbZBSearch = create.zbsearch()
+
+  orama.insertMultiple(dbOrama, dataset, 50)
+  zbsearch.insertMultiple(dbZBSearch, dataset, 50)
+
+  return { dbOrama, dbZBSearch }
+}
+
+const { dbOrama, dbZBSearch } = createPopulatedDatabases()
 
 export const insert = {
   orama: () => {
@@ -42,10 +51,12 @@ export const insert = {
 
 export const insertMultiple = {
   orama: () => {
-    orama.insertMultiple(dbOrama, dataset, 50)
+    const db = create.orama()
+    orama.insertMultiple(db, dataset, 50)
   },
   zbsearch: () => {
-    zbsearch.insertMultiple(dbZBSearch, dataset, 50)
+    const db = create.zbsearch()
+    zbsearch.insertMultiple(db, dataset, 50)
   }
 }
 

@@ -22,10 +22,10 @@ export function generatePoints(count = POINT_COUNT) {
 
 export const SEARCH_CENTER = { lon: -122.45, lat: 37.78 }
 
-/** 500m radius — selective query with few matches */
+/** 500m radius - selective query with few matches */
 export const SMALL_RADIUS = 500
 
-/** 5km radius — broader query with more matches */
+/** 5km radius - broader query with more matches */
 export const LARGE_RADIUS = 5_000
 
 /** Polygon covering most of the generated point cloud */

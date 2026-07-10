@@ -1,0 +1,124 @@
+---
+title: ZBSearch vs Orama
+description: Head-to-head performance benchmarks comparing ZBSearch and Orama on the same workloads.
+---
+
+ZBSearch is a fork of Orama maintained by the original engineering team. The API is compatible, but the internals have been optimized. This page summarizes benchmark results from the [`benchmarks/`](https://github.com/micheleriva/zbsearch/tree/main/benchmarks) suite in this repository.
+
+<Callout title="Test environment">
+Results below were collected on **July 9, 2026** using **Orama 3.1.18** and **ZBSearch 3.2.1**, run via [Benny](https://github.com/caderek/benny). Higher **ops/s** is better. Percentages show how much slower the loser is relative to the winner in each suite.
+</Callout>
+
+## Summary
+
+| Area | Verdict |
+| --- | --- |
+| Full-text search | ZBSearch is **14–61% faster** on search; indexing is **effectively equal** |
+| Facets | ZBSearch is **30–59% faster** across all facet scenarios |
+| Vector search | ZBSearch is **12–56% faster** on flat indexes; **IVF** pushes gains to **~225–508%** over Orama |
+| Geosearch (BKD) | ZBSearch is up to **~8,700% faster** on radius queries at 500m |
+| Sorted indexes (AVL) | ZBSearch is **faster on most** AVL operations (insert, find, range search) |
+| Persistence size | **Identical** serialized size for the same dataset |
+
+## Core full-text search
+
+Dataset: **1,512** video-game records with `title`, `description`, `rating`, and `genres` fields. Search benchmarks run against a database populated once before timing; insert benchmarks create a fresh database on each iteration.
+
+| Benchmark | Orama 3.1.18 | ZBSearch 3.2.1 | Difference |
+| --- | ---: | ---: | --- |
+| Plain search | 2,696 ops/s | 4,055 ops/s | ZBSearch **33.5%** faster |
+| Search with filters | 29,992 ops/s | 35,014 ops/s | ZBSearch **14.3%** faster |
+| Long text + complex filters | 5,976 ops/s | 15,219 ops/s | ZBSearch **60.7%** faster |
+
+ZBSearch is faster across all search scenarios tested here, with the largest gap on long-text queries with complex filters. Indexing throughput is effectively identical between the two engines.
+
+## Facets
+
+| Benchmark | Orama 3.1.18 | ZBSearch 3.2.1 | Difference |
+| --- | ---: | ---: | --- |
+| Search with facets | 10,205 ops/s | 14,477 ops/s | ZBSearch **29.5%** faster |
+| Facets (all documents) | 2,982 ops/s | 5,285 ops/s | ZBSearch **43.6%** faster |
+| Facets + filters | 4,947 ops/s | 8,976 ops/s | ZBSearch **44.9%** faster |
+| Facets + long text + filters | 4,977 ops/s | 12,130 ops/s | ZBSearch **59.0%** faster |
+
+## Vector search
+
+Dataset: **2,000 documents**, **128-dimensional** vectors.
+
+| Benchmark | Orama 3.1.18 | ZBSearch 3.2.1 (flat) | Difference |
+| --- | ---: | ---: | --- |
+| Vector search | 2,351 ops/s | 2,850 ops/s | ZBSearch **17.5%** faster |
+| Strict similarity | 4,864 ops/s | 7,558 ops/s | ZBSearch **35.6%** faster |
+| Vector + filters | 5,800 ops/s | 6,538 ops/s | ZBSearch **11.3%** faster |
+| Vector + facets | 1,398 ops/s | 2,075 ops/s | ZBSearch **32.6%** faster |
+
+### ZBSearch IVF vs Orama flat
+
+ZBSearch adds an optional [IVF index](/docs/zbsearch-js/usage/create#choosing-an-ivf-index) for approximate nearest-neighbor search. Orama does not ship an equivalent in the JS core.
+
+| Benchmark | Orama 3.1.18 (flat) | ZBSearch 3.2.1 (flat) | ZBSearch 3.2.1 (IVF) |
+| --- | ---: | ---: | ---: |
+| Vector search | 2,359 ops/s | 2,933 ops/s | **14,335 ops/s** |
+| Strict similarity | 4,624 ops/s | 7,014 ops/s | **19,258 ops/s** |
+| Vector + filters | 5,946 ops/s | 6,664 ops/s | **19,301 ops/s** |
+
+With IVF (`nlist=179`, `nprobe=16`), ZBSearch vector search is **~225–508% faster** than Orama's flat index on this dataset.
+
+## Geosearch (BKD tree)
+
+Dataset: **10,000 geopoints**.
+
+| Benchmark | Orama 3.1.18 | ZBSearch 3.2.1 | Difference |
+| --- | ---: | ---: | --- |
+| Insert | 319 ops/s | 324 ops/s | ZBSearch **1.5%** faster |
+| Search by radius (500m) | 4,359 ops/s | 384,158 ops/s | ZBSearch **98.9%** faster |
+| Search by radius (5km) | 3,613 ops/s | 5,710 ops/s | ZBSearch **36.7%** faster |
+| Search by radius sorted (5km) | 697 ops/s | 1,756 ops/s | ZBSearch **60.3%** faster |
+| Search by polygon | 3,942 ops/s | 4,321 ops/s | ZBSearch **8.8%** faster |
+| Contains (10k lookups) | 1,042 ops/s | 1,041 ops/s | ~equal |
+
+The largest geosearch gain is on tight-radius queries, where ZBSearch's BKD implementation avoids scanning the full point set.
+
+## Sorted indexes (AVL tree)
+
+Dataset: **10,000 numeric keys**.
+
+| Benchmark | Orama 3.1.18 | ZBSearch 3.2.1 | Difference |
+| --- | ---: | ---: | --- |
+| Insert | 485 ops/s | 640 ops/s | ZBSearch **24.2%** faster |
+| Insert batched (1k threshold) | 520 ops/s | 689 ops/s | ZBSearch **24.5%** faster |
+| Find (10k lookups) | 3,028 ops/s | 4,322 ops/s | ZBSearch **29.9%** faster |
+| Contains (10k lookups) | 2,324 ops/s | 5,376 ops/s | ZBSearch **56.8%** faster |
+| Range search (narrow) | 30,022 ops/s | 62,238 ops/s | ZBSearch **51.8%** faster |
+| Range search (wide) | 6,357 ops/s | 7,010 ops/s | ZBSearch **9.3%** faster |
+| Greater than | 7,898 ops/s | 7,884 ops/s | ~equal |
+| Less than | 7,922 ops/s | 7,948 ops/s | ~equal |
+| Remove (5k keys) | 491 ops/s | 558 ops/s | ZBSearch **12.0%** faster |
+
+## Persistence size
+
+Serializing the same indexed dataset produces identical on-disk size:
+
+| Engine | JSON | GZIP |
+| --- | ---: | ---: |
+| Orama 3.1.18 | 5,997,650 bytes | 1,425,774 bytes |
+| ZBSearch 3.2.1 | 5,997,650 bytes | 1,425,774 bytes |
+
+## Run the benchmarks yourself
+
+From the repository root, build ZBSearch first, then run any suite in `benchmarks/`:
+
+```bash
+cd packages/zbsearch && npm run build
+cd ../../benchmarks && npm install
+
+npm run benchmark              # core insert/search
+npm run benchmark:facets       # facet workloads
+npm run benchmark:vector         # vector search (flat)
+npm run benchmark:vector-ivf     # vector flat vs IVF
+npm run benchmark:bkd            # geosearch BKD tree
+npm run benchmark:avl            # sorted AVL tree
+npm run benchmark:bundle-size    # serialized DB size
+```
+
+Results are saved as JSON and HTML charts under `benchmarks/benchmark/results/`.

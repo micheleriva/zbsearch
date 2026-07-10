@@ -1,0 +1,12 @@
+{
+  "pages": [
+    "index",
+    "writing-your-own-plugins",
+    "plugin-embeddings",
+    "plugin-data-persistence",
+    "plugin-qps",
+    "plugin-pt15",
+    "plugin-parsedoc",
+    "plugin-match-highlight"
+  ]
+}

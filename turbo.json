@@ -66,6 +66,15 @@
     },
     "@zbsearch/edge-core#test": {
       "dependsOn": ["@zbsearch/edge-core#build"]
+    },
+    "@zbsearch/storage-s3#test": {
+      "dependsOn": ["@zbsearch/storage-s3#build"]
+    },
+    "@zbsearch/edge-index-builder#test": {
+      "dependsOn": ["@zbsearch/edge-index-builder#build"]
+    },
+    "@zbsearch/runtime-cloudflare#test": {
+      "dependsOn": ["@zbsearch/runtime-cloudflare#build"]
     }
   }
 }

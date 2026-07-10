@@ -17,7 +17,8 @@
   "files": ["dist"],
   "scripts": {
     "build": "swc --delete-dir-on-start --extensions .ts -d dist src && tsc -p . --emitDeclarationOnly",
-    "rebuild": "node dist/cli.js rebuild"
+    "rebuild": "node dist/cli.js rebuild",
+    "test": "node --import tsx --test tests/**/*.test.ts"
   },
   "license": "Apache-2.0",
   "dependencies": {
@@ -28,6 +29,7 @@
     "@swc/cli": "^0.1.59",
     "@swc/core": "^1.3.27",
     "@types/node": "^20.19.43",
+    "tsx": "^4.20.6",
     "typescript": "npm:@typescript/typescript6@^6.0.2"
   }
 }

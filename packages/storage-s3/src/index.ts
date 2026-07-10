@@ -16,6 +16,7 @@ export interface S3StorageConfig {
   accessKeyId: string
   secretAccessKey: string
   forcePathStyle?: boolean
+  client?: S3Client
 }
 
 async function bodyToUint8(body: unknown): Promise<Uint8Array> {
@@ -58,7 +59,7 @@ export class S3ObjectStorage implements ObjectStorage {
       clientConfig.endpoint = config.endpoint
       clientConfig.forcePathStyle = config.forcePathStyle ?? true
     }
-    this.client = new S3Client(clientConfig)
+    this.client = config.client ?? new S3Client(clientConfig)
     this.bucket = config.bucket
   }
 

@@ -177,6 +177,9 @@ importers:
       '@types/node':
         specifier: ^20.19.43
         version: 20.19.43
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
       typescript:
         specifier: npm:@typescript/typescript6@^6.0.2
         version: '@typescript/typescript6@6.0.2'
@@ -421,6 +424,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20250224.0
         version: 4.20260702.1
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
       typescript:
         specifier: npm:@typescript/typescript6@^6.0.2
         version: '@typescript/typescript6@6.0.2'

@@ -44,7 +44,9 @@ const errors = {
   PLUGIN_SECURE_PROXY_NOT_FOUND: `Could not find '@zbsearch/secure-proxy-plugin' installed in your ZBSearch instance.\nPlease install it before proceeding with creating an answer session.\nRead more at https://docs.zbsearch.com/docs/zbsearch-js/plugins/plugin-secure-proxy#plugin-secure-proxy\n`,
   PLUGIN_SECURE_PROXY_MISSING_CHAT_MODEL: `Could not find a chat model defined in the secure proxy plugin configuration.\nPlease provide a chat model before proceeding with creating an answer session.\nRead more at https://docs.zbsearch.com/docs/zbsearch-js/plugins/plugin-secure-proxy#plugin-secure-proxy\n`,
   ANSWER_SESSION_LAST_MESSAGE_IS_NOT_ASSISTANT: `The last message in the session is not an assistant message. Cannot regenerate non-assistant messages.`,
-  PLUGIN_COMPONENT_CONFLICT: `The component "%s" is already defined. The plugin "%s" is trying to redefine it.`
+  PLUGIN_COMPONENT_CONFLICT: `The component "%s" is already defined. The plugin "%s" is trying to redefine it.`,
+  IVF_INDEX_REQUIRES_FACTORY: `Vector index "%s" was serialized as IVF. Import ivf from "zbsearch/trees/vector-ivf" and pass indexes.%s at create().`,
+  RESERVED_SCHEMA_PROPERTY: `"%s" is a reserved property name and cannot be used in the schema.`
 }
 
 export type ErrorCode = keyof typeof errors

@@ -78,6 +78,24 @@
         "types": "./dist/commonjs/trees.d.ts",
         "default": "./dist/commonjs/trees.js"
       }
+    },
+    "./trees/vector-ivf": {
+      "deno": {
+        "types": "./dist/deno/trees/vector-ivf.d.ts",
+        "default": "./dist/deno/trees/vector-ivf.js"
+      },
+      "browser": {
+        "types": "./dist/browser/trees/vector-ivf.d.ts",
+        "default": "./dist/browser/trees/vector-ivf.js"
+      },
+      "import": {
+        "types": "./dist/esm/trees/vector-ivf.d.ts",
+        "default": "./dist/esm/trees/vector-ivf.js"
+      },
+      "require": {
+        "types": "./dist/commonjs/trees/vector-ivf.d.ts",
+        "default": "./dist/commonjs/trees/vector-ivf.js"
+      }
     }
   },
   "types": "./dist/commonjs/index.d.ts",
@@ -166,7 +184,8 @@
       ".": "./src/index.ts",
       "./internals": "./src/internals.ts",
       "./components": "./src/components.ts",
-      "./trees": "./src/trees.ts"
+      "./trees": "./src/trees.ts",
+      "./trees/vector-ivf": "./src/trees/vector-ivf.ts"
     },
     "esmDialects": [
       "deno",

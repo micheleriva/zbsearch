@@ -37,7 +37,8 @@ import {
   InternalDocumentID,
   InternalDocumentIDStore
 } from './internal-document-id-store.js'
-import { VectorIndex, VectorType } from '../trees/vector.js'
+import { VectorType } from '../trees/vector.js'
+import { deserializeVectorIndex, resolveVectorIndexFactory } from '../trees/vector-index.js'
 
 export type FrequencyMap = {
   [property: string]: {
@@ -166,11 +167,12 @@ export function create<T extends AnyZBSearch, TSchema extends T['schema']>(
     }
 
     if (isVectorType(type)) {
+      const factory = resolveVectorIndexFactory(path, zbsearch.indexes)
       index.searchableProperties.push(path)
       index.searchablePropertiesWithTypes[path] = type
       index.vectorIndexes[path] = {
         type: 'Vector',
-        node: new VectorIndex(getVectorSize(type)),
+        node: factory({ dim: getVectorSize(type), property: path }),
         isArray: false
       }
     } else {
@@ -778,7 +780,11 @@ export function getSearchablePropertiesWithTypes(index: Index): Record<string, S
   return index.searchablePropertiesWithTypes
 }
 
-export function load<R = unknown>(sharedInternalDocumentStore: InternalDocumentIDStore, raw: R): Index {
+export function load<R = unknown>(
+  sharedInternalDocumentStore: InternalDocumentIDStore,
+  raw: R,
+  indexesConfig?: import('../types.js').IndexesConfig
+): Index {
   const {
     indexes: rawIndexes,
     vectorIndexes: rawVectorIndexes,
@@ -841,7 +847,7 @@ export function load<R = unknown>(sharedInternalDocumentStore: InternalDocumentI
     vectorIndexes[idx] = {
       type: 'Vector',
       isArray: false,
-      node: VectorIndex.fromJSON(rawVectorIndexes[idx])
+      node: deserializeVectorIndex(idx, rawVectorIndexes[idx], indexesConfig)
     }
   }
 

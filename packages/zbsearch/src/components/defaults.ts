@@ -1,8 +1,10 @@
 import type { Optional } from '../types.js'
+import { RESERVED_VECTOR_INDEX_KEY } from '../constants.js'
 import { createError } from '../errors.js'
 import { Point } from '../trees/bkd.js'
 import {
   AnyDocument,
+  AnySchema,
   AnyZBSearch,
   ArraySearchableType,
   ElapsedTime,
@@ -32,6 +34,18 @@ export function getDocumentIndexId(doc: AnyDocument): string {
   }
 
   return uniqueId()
+}
+
+export function assertSchemaHasNoReservedKeys(schema: AnySchema, prefix = ''): void {
+  for (const [prop, type] of Object.entries(schema)) {
+    if (prop === RESERVED_VECTOR_INDEX_KEY) {
+      throw createError('RESERVED_SCHEMA_PROPERTY', `${prefix}${prop}`)
+    }
+
+    if (typeof type === 'object' && type !== null && !Array.isArray(type)) {
+      assertSchemaHasNoReservedKeys(type as AnySchema, `${prefix}${prop}.`)
+    }
+  }
 }
 
 export function validateSchema<T extends AnyZBSearch, ResultDocument extends TypedDocument<T>>(

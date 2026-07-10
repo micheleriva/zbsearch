@@ -1,4 +1,4 @@
-import { formatElapsedTime, getDocumentIndexId, getDocumentProperties, validateSchema } from '../components/defaults.js'
+import { formatElapsedTime, getDocumentIndexId, getDocumentProperties, validateSchema, assertSchemaHasNoReservedKeys } from '../components/defaults.js'
 import { DocumentsStore, createDocumentsStore } from '../components/documents-store.js'
 import { AVAILABLE_PLUGIN_HOOKS, getAllPluginsByHook } from '../components/plugins.js'
 import { FUNCTION_COMPONENTS, OBJECT_COMPONENTS, runAfterCreate } from '../components/hooks.js'
@@ -14,6 +14,7 @@ import {
   FunctionComponents,
   IDocumentsStore,
   IIndex,
+  IndexesConfig,
   ISorter,
   ObjectComponents,
   ZBSearch,
@@ -25,6 +26,7 @@ import { uniqueId } from '../utils.js'
 
 interface CreateArguments<ZBSearchSchema, TIndex, TDocumentStore, TSorter, TPinning> {
   schema: ZBSearchSchema
+  indexes?: IndexesConfig
   sort?: SorterConfig
   language?: string
   components?: Components<
@@ -81,6 +83,7 @@ export function create<
   TPinning = any
 >({
   schema,
+  indexes,
   sort,
   language,
   components,
@@ -124,6 +127,8 @@ export function create<
   if (!id) {
     id = uniqueId()
   }
+
+  assertSchemaHasNoReservedKeys(schema)
 
   let tokenizer = components.tokenizer
   let index: TIndex | undefined = components.index
@@ -194,6 +199,7 @@ export function create<
     afterCreate: [],
     formatElapsedTime,
     id,
+    indexes,
     plugins,
     version: getVersion()
   } as unknown as ZBSearch<ZBSearchSchema, TIndex, TDocumentStore, TSorter, TPinning>

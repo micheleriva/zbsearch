@@ -1,6 +1,19 @@
 /* eslint-disable @typescript-eslint/no-this-alias */
 import { syncBoundedLevenshtein } from '../components/levenshtein.js'
 import { InternalDocumentID } from '../components/internal-document-id-store.js'
+import {
+  addPosting,
+  clearPostings,
+  collectLegacyNodePostings,
+  createPostingsMap,
+  deserializePostingsMap,
+  getDocumentFrequency,
+  getPostings,
+  PostingsMap,
+  removePosting,
+  serializePostingsMap,
+  SerializedPostings
+} from './postings.js'
 
 interface FindParams {
   term: string
@@ -10,6 +23,16 @@ interface FindParams {
 
 export type FindResult = Record<string, InternalDocumentID[]>
 
+export type RadixNodeJSON = {
+  w: string
+  s: string
+  e: boolean
+  k: string
+  c: [string, RadixNodeJSON][]
+  postings?: SerializedPostings
+  d?: InternalDocumentID[]
+}
+
 export class RadixNode {
   // Node key
   public k: string
@@ -17,8 +40,6 @@ export class RadixNode {
   public s: string
   // Node children
   public c: Map<string, RadixNode> = new Map()
-  // Node documents
-  public d: Set<InternalDocumentID> = new Set()
   // Node end
   public e: boolean
   // Node word
@@ -34,21 +55,35 @@ export class RadixNode {
     this.w = parent.w + this.s
   }
 
-  public addDocument(docID: InternalDocumentID): void {
-    this.d.add(docID)
+  protected addDocumentToPostings(postings: PostingsMap, docID: InternalDocumentID): void {
+    addPosting(postings, this.w, docID)
   }
 
-  public removeDocument(docID: InternalDocumentID): boolean {
-    return this.d.delete(docID)
+  protected removeDocumentFromPostings(postings: PostingsMap, docID: InternalDocumentID): boolean {
+    return removePosting(postings, this.w, docID)
   }
 
-  public findAllWords(output: FindResult, term: string, exact?: boolean, tolerance?: number): FindResult {
+  protected getDocumentsFromPostings(postings: PostingsMap): InternalDocumentID[] {
+    return getPostings(postings, this.w)
+  }
+
+  protected hasDocumentsInPostings(postings: PostingsMap): boolean {
+    return getPostings(postings, this.w).length > 0
+  }
+
+  public findAllWords(
+    output: FindResult,
+    term: string,
+    postings: PostingsMap,
+    exact?: boolean,
+    tolerance?: number
+  ): FindResult {
     const stack: RadixNode[] = [this]
     while (stack.length > 0) {
       const node = stack.pop()!
 
       if (node.e) {
-        const { w, d: docIDs } = node
+        const { w } = node
 
         if (exact && w !== term) {
           continue
@@ -62,8 +97,9 @@ export class RadixNode {
           }
         }
 
-        if (docIDs.size > 0) {
-          output[w] = Array.from(docIDs)
+        const docIDs = node.getDocumentsFromPostings(postings)
+        if (docIDs.length > 0) {
+          output[w] = [...docIDs]
         } else {
           output[w] = []
         }
@@ -79,7 +115,7 @@ export class RadixNode {
     return output
   }
 
-  public insert(word: string, docId: InternalDocumentID): void {
+  public insertWithPostings(word: string, docId: InternalDocumentID, postings: PostingsMap): void {
     let node: RadixNode = this
     let i = 0
     const wordLength = word.length
@@ -93,69 +129,60 @@ export class RadixNode {
         const edgeLabelLength = edgeLabel.length
         let j = 0
 
-        // Find the common prefix length between edgeLabel and the remaining word
         while (j < edgeLabelLength && i + j < wordLength && edgeLabel.charCodeAt(j) === word.charCodeAt(i + j)) {
           j++
         }
 
         if (j === edgeLabelLength) {
-          // Edge label fully matches; proceed to the child node
           node = childNode
           i += j
           if (i === wordLength) {
-            // The word is a prefix of an existing word
             if (!childNode.e) {
               childNode.e = true
             }
-            childNode.addDocument(docId)
+            childNode.addDocumentToPostings(postings, docId)
             return
           }
           continue
         }
 
-        // Split the edgeLabel at the common prefix
         const commonPrefix = edgeLabel.slice(0, j)
         const newEdgeLabel = edgeLabel.slice(j)
         const newWordLabel = word.slice(i + j)
 
-        // Create an intermediate node for the common prefix
         const inbetweenNode = new RadixNode(commonPrefix[0], commonPrefix, false)
         node.c.set(commonPrefix[0], inbetweenNode)
         inbetweenNode.updateParent(node)
 
-        // Update the existing childNode
         childNode.s = newEdgeLabel
         childNode.k = newEdgeLabel[0]
         inbetweenNode.c.set(newEdgeLabel[0], childNode)
         childNode.updateParent(inbetweenNode)
 
         if (newWordLabel) {
-          // Create a new node for the remaining part of the word
           const newNode = new RadixNode(newWordLabel[0], newWordLabel, true)
-          newNode.addDocument(docId)
           inbetweenNode.c.set(newWordLabel[0], newNode)
           newNode.updateParent(inbetweenNode)
+          newNode.addDocumentToPostings(postings, docId)
         } else {
-          // The word ends at the inbetweenNode
           inbetweenNode.e = true
-          inbetweenNode.addDocument(docId)
+          inbetweenNode.updateParent(node)
+          inbetweenNode.addDocumentToPostings(postings, docId)
         }
         return
       } else {
-        // No matching child; create a new node
         const newNode = new RadixNode(currentCharacter, word.slice(i), true)
-        newNode.addDocument(docId)
         node.c.set(currentCharacter, newNode)
         newNode.updateParent(node)
+        newNode.addDocumentToPostings(postings, docId)
         return
       }
     }
 
-    // If we reach here, the word already exists in the tree
     if (!node.e) {
       node.e = true
     }
-    node.addDocument(docId)
+    node.addDocumentToPostings(postings, docId)
   }
 
   private _findLevenshtein(
@@ -163,7 +190,8 @@ export class RadixNode {
     index: number,
     tolerance: number,
     originalTolerance: number,
-    output: FindResult
+    output: FindResult,
+    postings: PostingsMap
   ) {
     const stack: Array<{ node: RadixNode; index: number; tolerance: number }> = [{ node: this, index, tolerance }]
 
@@ -171,7 +199,7 @@ export class RadixNode {
       const { node, index, tolerance } = stack.pop()!
 
       if (node.w.startsWith(term)) {
-        node.findAllWords(output, term, false, 0)
+        node.findAllWords(output, term, postings, false, 0)
         continue
       }
 
@@ -180,9 +208,10 @@ export class RadixNode {
       }
 
       if (node.e) {
-        const { w, d: docIDs } = node
+        const { w } = node
         if (w && syncBoundedLevenshtein(term, w, originalTolerance).isBounded) {
-          if (docIDs.size > 0) {
+          const docIDs = node.getDocumentsFromPostings(postings)
+          if (docIDs.length > 0) {
             if (Object.hasOwn(output, w)) {
               const existing = output[w]
               for (const docID of docIDs) {
@@ -191,7 +220,7 @@ export class RadixNode {
                 }
               }
             } else {
-              output[w] = Array.from(docIDs)
+              output[w] = [...docIDs]
             }
           } else {
             output[w] = []
@@ -206,21 +235,16 @@ export class RadixNode {
       const currentChar = term[index]
       const children = node.c
 
-      // 1. If node has child matching term[index], push { node: childNode, index +1, tolerance }
       const matchingChild = children.get(currentChar)
       if (matchingChild) {
         stack.push({ node: matchingChild, index: index + 1, tolerance })
       }
 
-      // 2. Push { node, index +1, tolerance -1 } (Delete operation)
       stack.push({ node: node, index: index + 1, tolerance: tolerance - 1 })
 
-      // 3. For each child:
       for (const [character, childNode] of children) {
-        // a) Insert operation
         stack.push({ node: childNode, index: index, tolerance: tolerance - 1 })
 
-        // b) Substitute operation
         if (character !== currentChar) {
           stack.push({ node: childNode, index: index + 1, tolerance: tolerance - 1 })
         }
@@ -228,69 +252,55 @@ export class RadixNode {
     }
   }
 
-  public find(params: FindParams): FindResult {
+  public findWithPostings(params: FindParams, postings: PostingsMap): FindResult {
     const { term, exact, tolerance } = params
     if (tolerance && !exact) {
       const output: FindResult = {}
-      this._findLevenshtein(term, 0, tolerance, tolerance, output)
-      return output
-    } else {
-      let node: RadixNode = this
-      let i = 0
-      const termLength = term.length
-
-      while (i < termLength) {
-        const character = term[i]
-        const childNode = node.c.get(character)
-
-        if (childNode) {
-          const edgeLabel = childNode.s
-          const edgeLabelLength = edgeLabel.length
-          let j = 0
-
-          // Compare edge label with the term starting from position i
-          while (j < edgeLabelLength && i + j < termLength && edgeLabel.charCodeAt(j) === term.charCodeAt(i + j)) {
-            j++
-          }
-
-          if (j === edgeLabelLength) {
-            // Full match of edge label; proceed to the child node
-            node = childNode
-            i += j
-          } else if (i + j === termLength) {
-            // The term ends in the middle of the edge label - FIX: this handles prefix matches like 'p' matching 'phone'
-            // Check if the term matches from the beginning of the edge label
-            if (j === termLength - i) {
-              // Term is a prefix of the edge label
-              if (exact) {
-                // Exact match required but term doesn't end at a node
-                return {}
-              } else {
-                // Partial match; collect words starting from this node
-                const output: FindResult = {}
-                // Just call findAllWords on the child node to collect all words in this subtree
-                childNode.findAllWords(output, term, exact, tolerance)
-                return output
-              }
-            } else {
-              // Mismatch found
-              return {}
-            }
-          } else {
-            // Mismatch found
-            return {}
-          }
-        } else {
-          // No matching child node
-          return {}
-        }
-      }
-
-      // Term fully matched; collect words starting from this node
-      const output: FindResult = {}
-      node.findAllWords(output, term, exact, tolerance)
+      this._findLevenshtein(term, 0, tolerance, tolerance, output, postings)
       return output
     }
+
+    let node: RadixNode = this
+    let i = 0
+    const termLength = term.length
+
+    while (i < termLength) {
+      const character = term[i]
+      const childNode = node.c.get(character)
+
+      if (childNode) {
+        const edgeLabel = childNode.s
+        const edgeLabelLength = edgeLabel.length
+        let j = 0
+
+        while (j < edgeLabelLength && i + j < termLength && edgeLabel.charCodeAt(j) === term.charCodeAt(i + j)) {
+          j++
+        }
+
+        if (j === edgeLabelLength) {
+          node = childNode
+          i += j
+        } else if (i + j === termLength) {
+          if (j === termLength - i) {
+            if (exact) {
+              return {}
+            }
+            const output: FindResult = {}
+            childNode.findAllWords(output, term, postings, exact, tolerance)
+            return output
+          }
+          return {}
+        } else {
+          return {}
+        }
+      } else {
+        return {}
+      }
+    }
+
+    const output: FindResult = {}
+    node.findAllWords(output, term, postings, exact, tolerance)
+    return output
   }
 
   public contains(term: string): boolean {
@@ -324,7 +334,7 @@ export class RadixNode {
     return true
   }
 
-  public removeWord(term: string): boolean {
+  public removeWordWithPostings(term: string, postings: PostingsMap): boolean {
     if (!term) {
       return false
     }
@@ -344,12 +354,10 @@ export class RadixNode {
       }
     }
 
-    // Remove documents from the node
-    node.d.clear()
+    clearPostings(postings, node.w)
     node.e = false
 
-    // Clean up any nodes that no longer lead to a word
-    while (stack.length > 0 && node.c.size === 0 && !node.e && node.d.size === 0) {
+    while (stack.length > 0 && node.c.size === 0 && !node.e && !node.hasDocumentsInPostings(postings)) {
       const { parent, character } = stack.pop()!
       parent.c.delete(character)
       node = parent
@@ -358,7 +366,12 @@ export class RadixNode {
     return true
   }
 
-  public removeDocumentByWord(term: string, docID: InternalDocumentID, exact = true): boolean {
+  public removeDocumentByWordWithPostings(
+    term: string,
+    docID: InternalDocumentID,
+    postings: PostingsMap,
+    exact = true
+  ): boolean {
     if (!term) {
       return true
     }
@@ -375,7 +388,7 @@ export class RadixNode {
         if (exact && node.w !== term) {
           // Do nothing if the exact condition is not met.
         } else {
-          node.removeDocument(docID)
+          node.removeDocumentFromPostings(postings, docID)
         }
       } else {
         return false
@@ -384,43 +397,72 @@ export class RadixNode {
     return true
   }
 
-  public toJSON(): object {
+  protected toNodeJSON(): RadixNodeJSON {
     return {
       w: this.w,
       s: this.s,
       e: this.e,
       k: this.k,
-      d: Array.from(this.d),
-      c: Array.from(this.c?.entries())?.map(([key, node]) => [key, node.toJSON()])
+      c: Array.from(this.c.entries()).map(([key, node]) => [key, node.toNodeJSON()])
     }
   }
 
-  public static fromJSON(json: any): RadixNode {
+  public static fromNodeJSON(json: RadixNodeJSON): RadixNode {
     const node = new RadixNode(json.k, json.s, json.e)
     node.w = json.w
-    node.d = new Set(json.d)
-    node.c = new Map(json?.c?.map(([key, nodeJson]: [string, any]) => [key, RadixNode.fromJSON(nodeJson)]) || [])
+    node.c = new Map(json.c?.map(([key, nodeJson]) => [key, RadixNode.fromNodeJSON(nodeJson)]) || [])
     return node
   }
 }
 
 export class RadixTree extends RadixNode {
+  public postings: PostingsMap = createPostingsMap()
+
   constructor() {
     super('', '', false)
   }
 
-  public static fromJSON(json: any): RadixTree {
+  public insert(word: string, docId: InternalDocumentID): void {
+    this.insertWithPostings(word, docId, this.postings)
+  }
+
+  public find(params: FindParams): FindResult {
+    return this.findWithPostings(params, this.postings)
+  }
+
+  public removeWord(term: string): boolean {
+    return this.removeWordWithPostings(term, this.postings)
+  }
+
+  public removeDocumentByWord(term: string, docID: InternalDocumentID, exact = true): boolean {
+    return this.removeDocumentByWordWithPostings(term, docID, this.postings, exact)
+  }
+
+  public getDocumentFrequency(term: string): number {
+    return getDocumentFrequency(this.postings, term)
+  }
+
+  public toJSON(): RadixNodeJSON {
+    return {
+      ...this.toNodeJSON(),
+      postings: serializePostingsMap(this.postings)
+    }
+  }
+
+  public static fromJSON(json: RadixNodeJSON): RadixTree {
     const tree = new RadixTree()
     tree.w = json.w
     tree.s = json.s
     tree.e = json.e
     tree.k = json.k
-    tree.d = new Set(json.d)
-    tree.c = new Map(json?.c?.map(([key, nodeJson]: [string, any]) => [key, RadixNode.fromJSON(nodeJson)]) || [])
-    return tree
-  }
+    tree.c = new Map(json.c?.map(([key, nodeJson]) => [key, RadixNode.fromNodeJSON(nodeJson)]) || [])
 
-  public toJSON(): object {
-    return super.toJSON()
+    if (json.postings) {
+      tree.postings = deserializePostingsMap(json.postings)
+    } else {
+      collectLegacyNodePostings(json, tree.postings)
+    }
+
+    return tree
   }
 }

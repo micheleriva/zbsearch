@@ -3,7 +3,7 @@ title: ZBSearch vs Orama
 description: Head-to-head performance benchmarks comparing ZBSearch and Orama on the same workloads.
 ---
 
-ZBSearch is a fork of Orama maintained by the original engineering team. The API is compatible, but the internals have been optimized — including an explicit **postings list** inverted index that lowers memory use and serialized bundle size while keeping search fast. This page summarizes benchmark results from the [`benchmarks/`](https://github.com/micheleriva/zbsearch/tree/main/benchmarks) suite in this repository.
+ZBSearch is a fork of Orama maintained by the original engineering team. The API is compatible, but the internals have been optimized - including an explicit **postings list** inverted index that lowers memory use and serialized bundle size while keeping search fast. This page summarizes benchmark results from the [`benchmarks/`](https://github.com/micheleriva/zbsearch/tree/main/benchmarks) suite in this repository.
 
 <Callout title="Test environment">
 Results below were collected on **July 10, 2026** using **Orama 3.1.18** and **ZBSearch 3.3.0**, run via [Benny](https://github.com/caderek/benny) for throughput and isolated Node.js processes (`--expose-gc`) for memory. Higher **ops/s** is better. Percentages show how much slower the loser is relative to the winner in each suite.
@@ -102,11 +102,11 @@ Starting in **3.3.0**, ZBSearch stores full-text doc IDs in explicit **posting l
 
 This removes duplication that existed between inline radix `Set`s, `tokenOccurrences`, and scattered serialization of doc ID arrays. On save, posting lists are **delta-encoded** (sorted doc IDs stored as gaps), which shrinks the bundle without changing search semantics.
 
-At runtime, document frequency for BM25 is derived directly from posting list length — no separate counter map is maintained.
+At runtime, document frequency for BM25 is derived directly from posting list length - no separate counter map is maintained.
 
 ## Memory footprint
 
-Measured in isolated Node.js processes with `--expose-gc`, after indexing all **1,512** records and running **100** warmup searches. **Heap delta** is the increase over a GC'd baseline after the index is built — the most apples-to-apples comparison.
+Measured in isolated Node.js processes with `--expose-gc`, after indexing all **1,512** records and running **100** warmup searches. **Heap delta** is the increase over a GC'd baseline after the index is built - the most apples-to-apples comparison.
 
 | Metric | Orama 3.1.18 | ZBSearch 3.3.0 | Difference |
 | --- | ---: | ---: | --- |

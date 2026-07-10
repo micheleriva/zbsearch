@@ -1,0 +1,170 @@
+---
+title: Local development
+description: Run and test ZBSearch Edge locally with Wrangler dev, the rebuild CLI, and the monorepo test suite.
+---
+
+You can develop against ZBSearch Edge without deploying to Cloudflare on every change. Local development uses Wrangler's dev server with emulated R2 bindings and optional remote R2 for integration testing.
+
+## Start the local Worker
+
+From the monorepo root:
+
+```bash
+pnpm dev:edge
+```
+
+This runs:
+
+```bash
+wrangler dev --config deploy/cloudflare/wrangler.toml
+```
+
+Wrangler serves the Worker at `http://127.0.0.1:8787` by default. Local R2 data persists under `.wrangler/state/` in the project.
+
+### First-time setup
+
+Install dependencies and build edge packages:
+
+```bash
+pnpm install
+pnpm --filter @zbsearch/edge-core build
+```
+
+You do not need a remote R2 bucket for basic local dev - Wrangler simulates R2 locally.
+
+## Exercise the API locally
+
+```bash
+export WORKER_URL=http://127.0.0.1:8787
+
+curl -X POST "$WORKER_URL/v1/indexes" \
+  -H 'content-type: application/json' \
+  -d '{"name":"local","schema":{"title":"string"}}'
+
+curl -X PUT "$WORKER_URL/v1/indexes/local/documents/1" \
+  -H 'content-type: application/json' \
+  -d '{"title":"Local Dev Test"}'
+
+curl -X POST "$WORKER_URL/v1/indexes/local/rebuild"
+
+curl -X POST "$WORKER_URL/v1/indexes/local/search" \
+  -H 'content-type: application/json' \
+  -d '{"term":"local"}'
+```
+
+## Local rebuild CLI against remote R2
+
+To test the rebuild CLI against a real R2 bucket while developing:
+
+1. Create a dev bucket: `wrangler r2 bucket create zbsearch-edge-dev`
+2. Fill in `deploy/cloudflare/.env` with R2 API credentials
+3. Run:
+
+```bash
+source deploy/cloudflare/.env  # or export vars manually
+pnpm --filter @zbsearch/edge-index-builder rebuild --all
+```
+
+The CLI uses `@zbsearch/storage-s3` to read/write the same R2 paths as the Worker.
+
+## Project layout
+
+```
+deploy/cloudflare/
+  wrangler.toml       ← Worker config, R2 binding, cron, vars
+  .env.example        ← R2 credentials template for CLI/CI
+  README.md           ← Quick reference
+
+packages/
+  edge-core/          ← REST API, buffer, rebuild, search logic
+  runtime-cloudflare/ ← Worker entrypoint
+  storage-s3/         ← S3-compatible storage driver
+  edge-index-builder/ ← Rebuild CLI
+```
+
+## Running tests
+
+The edge stack has automated tests that run in CI without Cloudflare credentials:
+
+```bash
+# All edge tests
+pnpm --filter @zbsearch/edge-core test          # 75 tests - router, buffer, rebuild
+pnpm --filter @zbsearch/storage-s3 test         # S3 driver + mock integration
+pnpm --filter @zbsearch/edge-index-builder test # Rebuild orchestration + CLI
+pnpm --filter @zbsearch/runtime-cloudflare test # Worker HTTP + cron + R2 adapter
+
+# Full monorepo
+pnpm test
+```
+
+### Test layers
+
+| Layer | Package | What it validates |
+| --- | --- | --- |
+| Unit | `edge-core` | Codec, paths, buffer ops, registry |
+| Service | `edge-core` | Create, buffer, rebuild, search, cache |
+| HTTP | `edge-core` | Every REST route and auth |
+| Worker e2e | `runtime-cloudflare` | `worker.fetch()` with mock R2 and Cache |
+| S3 integration | `storage-s3` | Mock S3 client + full rebuild flow |
+
+Worker tests mock R2 and `caches.default` in Node - no `wrangler dev` process required in CI.
+
+## Dry-run deploy
+
+Verify the Worker bundle builds without deploying:
+
+```bash
+pnpm --filter @zbsearch/runtime-cloudflare build
+```
+
+This runs `wrangler deploy --dry-run` and outputs the bundle to `packages/runtime-cloudflare/dist`.
+
+## Docs site
+
+Preview this documentation locally:
+
+```bash
+pnpm docs:dev
+```
+
+Open the docs app and navigate to **Deploy to Cloudflare** in the sidebar.
+
+## Tips
+
+### Hot reload
+
+Wrangler dev reloads the Worker when source files change. Changes to `@zbsearch/edge-core` require rebuilding that package:
+
+```bash
+pnpm --filter @zbsearch/edge-core build
+```
+
+Consider running a watch command in a second terminal during active core development.
+
+### Testing with API_KEY locally
+
+Set a secret for local dev:
+
+```bash
+wrangler secret put API_KEY --config deploy/cloudflare/wrangler.toml
+```
+
+Or temporarily remove auth by not setting the secret - local dev defaults to open access.
+
+### Remote dev with real R2
+
+To bind local Wrangler to remote R2 (shared state with a deployed environment), use Wrangler's remote mode flags per the [Cloudflare dev docs](https://developers.cloudflare.com/workers/development-testing/). Useful for debugging production data issues - use a non-production bucket.
+
+### Clearing local state
+
+Delete `.wrangler/state/` to reset local R2 emulation:
+
+```bash
+rm -rf .wrangler/state
+```
+
+## Next steps
+
+- [Setup](/docs/cloudflare/setup) - deploy to Cloudflare
+- [API reference](/docs/cloudflare/api-reference) - endpoint details
+- [Production](/docs/cloudflare/production) - CI and hardening

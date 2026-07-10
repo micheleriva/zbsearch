@@ -1,0 +1,213 @@
+---
+title: Production
+description: Harden ZBSearch Edge for production - authentication, external rebuilds, GitHub Actions, and operational guidance.
+---
+
+Running ZBSearch Edge in production means protecting your API, offloading rebuilds from the Worker, and monitoring index health. This page covers the recommended production setup.
+
+## Authentication
+
+Always set an API key before exposing the Worker publicly:
+
+```bash
+wrangler secret put API_KEY --config deploy/cloudflare/wrangler.toml
+```
+
+Clients must send:
+
+```
+Authorization: Bearer YOUR_SECRET_KEY
+```
+
+Public endpoints (no key required):
+
+- `GET /health`
+- `GET /v1/info`
+- `OPTIONS *`
+
+<Callout type="warn">
+  Rotate keys by setting a new secret and updating clients. There is no built-in multi-key or scoped token support in v1 - use Cloudflare Access or an API gateway in front of the Worker if you need finer control.
+</Callout>
+
+## External rebuilds (recommended)
+
+In-Worker rebuilds work for small indexes but share the Worker's CPU and memory limits. For production:
+
+1. Set `BUILDER_WEBHOOK_URL` on the Worker
+2. Run rebuilds via GitHub Actions, a cron job, or any CI that can call the rebuild CLI
+
+When the webhook is configured, the Worker's cron **does not** rebuild inline - it only notifies your external runner.
+
+```bash
+wrangler secret put BUILDER_WEBHOOK_URL --config deploy/cloudflare/wrangler.toml
+```
+
+The Worker sends:
+
+```http
+POST /your-webhook-url
+Content-Type: application/json
+
+{"indexId":"products","source":"scheduler"}
+```
+
+Your runner then executes:
+
+```bash
+pnpm --filter @zbsearch/edge-index-builder rebuild products
+# or
+pnpm --filter @zbsearch/edge-index-builder rebuild --all
+```
+
+## GitHub Actions setup
+
+The monorepo includes a reference workflow at [`deploy/github-actions/zbsearch-rebuild.yml`](https://github.com/micheleriva/zbsearch/blob/main/deploy/github-actions/zbsearch-rebuild.yml).
+
+### 1. Copy the workflow
+
+Copy it to `.github/workflows/zbsearch-rebuild.yml` in your fork or deployment repo.
+
+### 2. Add repository secrets
+
+In GitHub → **Settings → Secrets and variables → Actions**, add:
+
+| Secret | Value |
+| --- | --- |
+| `R2_BUCKET` | Your R2 bucket name |
+| `R2_ACCESS_KEY_ID` | R2 API token access key |
+| `R2_SECRET_ACCESS_KEY` | R2 API token secret |
+| `R2_ENDPOINT` | `https://<account_id>.r2.cloudflarestorage.com` |
+
+### 3. Trigger options
+
+The reference workflow supports three triggers:
+
+| Trigger | When it runs |
+| --- | --- |
+| `schedule: '*/15 * * * *'` | Every 15 minutes |
+| `workflow_dispatch` | Manual run from GitHub UI |
+| `repository_dispatch` type `zbsearch-rebuild` | Webhook from Worker |
+
+To connect the Worker webhook to GitHub dispatch, point `BUILDER_WEBHOOK_URL` at the GitHub API:
+
+```
+https://api.github.com/repos/OWNER/REPO/dispatches
+```
+
+With headers configured in your webhook proxy, or use a small relay (e.g. Cloudflare Worker, AWS Lambda) that translates the Worker's POST into a GitHub `repository_dispatch` with a personal access token.
+
+<Callout type="info">
+  GitHub's dispatch API requires a `Authorization: token GITHUB_PAT` header and a body `{ "event_type": "zbsearch-rebuild" }`. The Worker's built-in webhook sends a simple JSON payload - a thin relay is often the simplest production pattern.
+</Callout>
+
+### 4. Verify CI rebuild
+
+After a workflow run, check index status:
+
+```bash
+curl "$WORKER_URL/v1/indexes/products/status" \
+  -H "authorization: Bearer $API_KEY"
+```
+
+Confirm `pendingOps` is `0` and `lastRebuildAt` is recent.
+
+## Environment reference
+
+### Worker secrets (via `wrangler secret put`)
+
+| Secret | Required | Description |
+| --- | --- | --- |
+| `API_KEY` | Recommended | Bearer token for API auth |
+| `BUILDER_WEBHOOK_URL` | Production | URL called when rebuild threshold is hit |
+
+### Worker vars (`wrangler.toml`)
+
+| Var | Default | Description |
+| --- | --- | --- |
+| `REBUILD_THRESHOLD_OPS` | `500` | Pending ops before cron triggers rebuild/webhook |
+
+### Rebuild CLI env
+
+| Variable | Aliases | Description |
+| --- | --- | --- |
+| `R2_BUCKET` | `S3_BUCKET` | Bucket name |
+| `R2_ACCESS_KEY_ID` | `S3_ACCESS_KEY_ID` | Access key |
+| `R2_SECRET_ACCESS_KEY` | `S3_SECRET_ACCESS_KEY` | Secret key |
+| `R2_ENDPOINT` | `S3_ENDPOINT` | S3-compatible endpoint |
+| `R2_REGION` | `AWS_REGION` | Region (default `auto`) |
+
+## Monitoring
+
+### Health checks
+
+Point uptime monitoring at `GET /health`. No auth required.
+
+### Index health
+
+Poll `GET /v1/indexes/:id/status` for:
+
+- `pendingOps` - growing unbounded means rebuilds are failing or too infrequent
+- `status` - stuck on `building` indicates a failed rebuild
+- `lastRebuildAt` - stale timestamp means writes are not being merged
+
+### Cloudflare observability
+
+`wrangler.toml` enables observability by default:
+
+```toml
+[observability]
+enabled = true
+```
+
+Use the Cloudflare dashboard for Worker invocations, errors, and CPU time. Watch for CPU limit errors during in-Worker rebuilds - migrate to external rebuild if you see them.
+
+## Security checklist
+
+- [ ] `API_KEY` set and enforced on all `/v1/*` routes
+- [ ] R2 API tokens scoped to the minimum bucket permissions
+- [ ] R2 credentials stored as GitHub secrets, not in the repo
+- [ ] Custom domain with Cloudflare SSL if exposing publicly
+- [ ] Consider Cloudflare Access or WAF rules for additional protection
+- [ ] External rebuild runner in a trusted environment (CI, not public HTTP)
+
+## Scaling guidance
+
+| Index size | Rebuild location | Search |
+| --- | --- | --- |
+| &lt; 10k docs, &lt; 10 MB snapshot | In-Worker cron OK | Workers Cache helps hot reads |
+| 10k–500k docs | External CLI / CI | Monitor R2 egress; cache TTL 1h |
+| 500k+ docs | External CLI; plan for sharding (future) | Consider dedicated read replicas |
+
+v1 stores **full msgpack snapshots**. Very large indexes will hit Worker memory limits during in-Worker rebuild. Use the external builder and watch `indexSizeBytes` in `/status`.
+
+## Cost considerations
+
+You pay Cloudflare for:
+
+- **Workers** - requests and CPU time (rebuilds in-Worker consume CPU ms)
+- **R2** - storage and Class A/B operations (writes to buffer, snapshot reads)
+
+Search-heavy workloads benefit from Workers Cache reducing R2 reads. Write-heavy workloads generate buffer segments and periodic full snapshot rewrites.
+
+## Disaster recovery
+
+R2 objects are the source of truth:
+
+- `indexes/*/meta.json` - index registry state
+- `indexes/*/*/snapshot.msgpack` - searchable data
+- `buffer/*` - unmerged writes
+
+To recover: redeploy the Worker pointing at the same bucket. Unmerged buffer ops will be included in the next rebuild. Keep R2 versioning or lifecycle rules if you need point-in-time recovery.
+
+## Upgrading
+
+When updating from a new zbsearch release:
+
+```bash
+git pull
+pnpm install
+pnpm --filter @zbsearch/edge-core build
+pnpm deploy:edge
+```
+
+Rebuild indexes after engine upgrades if the snapshot format changes (check release notes). No automatic migration runs in v1.

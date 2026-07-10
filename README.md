@@ -17,7 +17,6 @@ After [Michele's departure](https://www.micheleriva.dev/writings/my-last-day-at-
 - [Full-Text search](https://zbsearch.dev/docs/ZBSearch-js/search)
 - [Vector Search](https://zbsearch.dev/docs/ZBSearch-js/search/vector-search)
 - [Hybrid Search](https://zbsearch.dev/docs/ZBSearch-js/search/hybrid-search)
-- [GenAI Chat Sessions](https://zbsearch.dev/docs/ZBSearch-js/answer-engine)
 - [Search Filters](https://zbsearch.dev/docs/ZBSearch-js/search/filters)
 - [Geosearch](https://zbsearch.dev/docs/ZBSearch-js/search/geosearch)
 - [Pinning Rules (Merchandising)](https://zbsearch.dev/docs/ZBSearch-js/results-pinning)

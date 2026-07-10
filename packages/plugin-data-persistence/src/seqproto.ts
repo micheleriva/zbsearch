@@ -38,35 +38,71 @@ function deserializeNumberArray(des: Des): number[] {
   return arr
 }
 
+function serializeRadixStructure(ser: Ser, node: any): void {
+  ser.serializeString(node.w || '')
+  ser.serializeString(node.s || '')
+  ser.serializeBoolean(node.e || false)
+  ser.serializeString(node.k || '')
+
+  const children = node.c || []
+  ser.serializeUInt32(children.length)
+  for (let i = 0; i < children.length; i++) {
+    const [key, child] = children[i]
+    ser.serializeString(key)
+    serializeRadixStructure(ser, child)
+  }
+}
+
+function serializeRadixPostings(ser: Ser, postings: Record<string, number[]> | undefined): void {
+  const terms = Object.keys(postings ?? {})
+  ser.serializeUInt32(terms.length)
+  for (let i = 0; i < terms.length; i++) {
+    const term = terms[i]
+    ser.serializeString(term)
+    const encoded = postings![term]!
+    ser.serializeUInt32(encoded.length)
+    for (let j = 0; j < encoded.length; j++) {
+      ser.serializeNumber(encoded[j])
+    }
+  }
+}
+
+function deserializeRadixStructure(des: Des): any {
+  const w = des.deserializeString()
+  const s = des.deserializeString()
+  const e = des.deserializeBoolean()
+  const k = des.deserializeString()
+
+  const childrenLen = des.deserializeUInt32()
+  const c = new Array(childrenLen)
+  for (let i = 0; i < childrenLen; i++) {
+    const key = des.deserializeString()
+    const child = deserializeRadixStructure(des)
+    c[i] = [key, child]
+  }
+
+  return { w: w || '', s: s || '', e, k: k || '', c }
+}
+
+function deserializeRadixPostings(des: Des): Record<string, number[]> {
+  const termCount = des.deserializeUInt32()
+  const postings: Record<string, number[]> = {}
+  for (let i = 0; i < termCount; i++) {
+    const term = des.deserializeString()
+    const encodedLen = des.deserializeUInt32()
+    const encoded = new Array<number>(encodedLen)
+    for (let j = 0; j < encodedLen; j++) {
+      encoded[j] = des.deserializeNumber()
+    }
+    postings[term] = encoded
+  }
+  return postings
+}
+
 function serializeIndexNode(ser: Ser, type: string, node: any): void {
   if (type === 'Radix') {
-    ser.serializeUInt32(1) // Radix marker
-    ser.serializeString(node.w || '')
-    ser.serializeString(node.s || '')
-    ser.serializeBoolean(node.e || false)
-    ser.serializeString(node.k || '')
-
-    // Serialize array d
-    if (Array.isArray(node.d)) {
-      ser.serializeUInt32(node.d.length)
-      for (let i = 0; i < node.d.length; i++) {
-        ser.serializeNumber(node.d[i])
-      }
-    } else {
-      ser.serializeUInt32(0)
-    }
-
-    // Serialize children c
-    if (Array.isArray(node.c)) {
-      ser.serializeUInt32(node.c.length)
-      for (let i = 0; i < node.c.length; i++) {
-        const [key, child] = node.c[i]
-        ser.serializeString(key)
-        serializeIndexNode(ser, 'Radix', child)
-      }
-    } else {
-      ser.serializeUInt32(0)
-    }
+    ser.serializeUInt32(3) // Radix structure without inline postings
+    serializeRadixStructure(ser, node)
   } else if (type === 'Flat') {
     ser.serializeUInt32(2) // Flat marker
     // Serialize Flat tree structure
@@ -93,7 +129,7 @@ function deserializeIndexNode(des: Des): any {
   const nodeType = des.deserializeUInt32()
 
   if (nodeType === 1) {
-    // Radix node
+    // Legacy radix node with inline doc IDs
     const w = des.deserializeString()
     const s = des.deserializeString()
     const e = des.deserializeBoolean()
@@ -109,7 +145,13 @@ function deserializeIndexNode(des: Des): any {
     }
 
     return { w: w || '', s: s || '', e, k: k || '', d, c }
-  } else if (nodeType === 2) {
+  }
+
+  if (nodeType === 3) {
+    return deserializeRadixStructure(des)
+  }
+
+  if (nodeType === 2) {
     // Flat node
     const numberToDocumentIdLen = des.deserializeUInt32()
     const numberToDocumentId = []
@@ -340,25 +382,9 @@ export function serializeZBSearchInstance<T extends AnyZBSearch>(db: T): ArrayBu
       // Inline index node serialization
       const node = index.node || {}
       if (index.type === 'Radix') {
-        ser.serializeUInt32(1)
-        ser.serializeString(node.w || '')
-        ser.serializeString(node.s || '')
-        ser.serializeBoolean(node.e || false)
-        ser.serializeString(node.k || '')
-
-        const d = node.d || []
-        ser.serializeUInt32(d.length)
-        for (let j = 0; j < d.length; j++) {
-          ser.serializeNumber(d[j])
-        }
-
-        const c = node.c || []
-        ser.serializeUInt32(c.length)
-        for (let j = 0; j < c.length; j++) {
-          const [cKey, child] = c[j]
-          ser.serializeString(cKey)
-          serializeIndexNode(ser, 'Radix', child) // Keep recursion for children
-        }
+        ser.serializeUInt32(3)
+        serializeRadixStructure(ser, node)
+        serializeRadixPostings(ser, node.postings)
       } else if (index.type === 'Flat') {
         ser.serializeUInt32(2)
         const ntdi = node.numberToDocumentId || []
@@ -515,7 +541,7 @@ export function deserializeZBSearchInstance(buffer: ArrayBuffer): RawData {
     let node: any
 
     if (nodeType === 1) {
-      // Radix node
+      // Legacy radix node with inline doc IDs
       const w = des.deserializeString()
       const s = des.deserializeString()
       const e = des.deserializeBoolean()
@@ -531,11 +557,14 @@ export function deserializeZBSearchInstance(buffer: ArrayBuffer): RawData {
       const c = new Array(cLen)
       for (let j = 0; j < cLen; j++) {
         const cKey = des.deserializeString()
-        const child = deserializeIndexNode(des) // Keep recursion for children
+        const child = deserializeIndexNode(des)
         c[j] = [cKey, child]
       }
 
       node = { w, s, e, k, d, c }
+    } else if (nodeType === 3) {
+      node = deserializeRadixStructure(des)
+      node.postings = deserializeRadixPostings(des)
     } else if (nodeType === 2) {
       // Flat node
       const ntdiLen = des.deserializeUInt32()

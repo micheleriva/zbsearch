@@ -22,7 +22,7 @@ type InternalDocumentID = internalDocumentIDStore.InternalDocumentID
 type InternalDocumentIDStore = internalDocumentIDStore.InternalDocumentIDStore
 type DocumentID = internalDocumentIDStore.DocumentID
 
-const unusedRadix = new radix.RadixNode('', '', false)
+const unusedRadix = new radix.RadixTree()
 const unusedStats = {
   tokenQuantums: {},
   tokensLength: new Map()
@@ -60,7 +60,7 @@ function search<T extends AnyZBSearch>(
     const prop = propertiesToSearch[i]
     const stats = index.stats[prop]
     const boostPerProp = boost[prop] ?? 1
-    args.radixNode = index.indexes[prop].node as radix.RadixNode
+    args.radixNode = index.indexes[prop].node as radix.RadixTree
     args.stats = stats
     args.boostPerProp = boostPerProp
     searchString(args)
@@ -140,7 +140,7 @@ function qpsComponents(schema: AnySchema): Partial<ObjectComponents<any, any, an
         }
 
         const stats = indexDatastorage.stats[prop]
-        const radixTree = indexDatastorage.indexes[prop].node as radix.RadixNode
+        const radixTree = indexDatastorage.indexes[prop].node as radix.RadixTree
 
         stats.tokenQuantums[internalId] = {}
 
@@ -180,7 +180,7 @@ function qpsComponents(schema: AnySchema): Partial<ObjectComponents<any, any, an
         }
 
         const stats = indexDatastorage.stats[prop]
-        const radixTree = indexDatastorage.indexes[prop].node as radix.RadixNode
+        const radixTree = indexDatastorage.indexes[prop].node as radix.RadixTree
 
         if (Array.isArray(value)) {
           for (const item of value) {
@@ -234,7 +234,7 @@ function qpsComponents(schema: AnySchema): Partial<ObjectComponents<any, any, an
             tokens = tokenizer.tokenize(filter as string, language)
           }
 
-          const radixTree = index.indexes[propName].node as radix.RadixNode
+          const radixTree = index.indexes[propName].node as radix.RadixTree
           const propIds = new Set<InternalDocumentID>()
           for (const token of tokens) {
             const ret = radixTree.find({
@@ -301,7 +301,7 @@ function qpsComponents(schema: AnySchema): Partial<ObjectComponents<any, any, an
             dump2.radixTrees.map(([prop, isArray, type, node]) => [
               prop,
               {
-                node: radix.RadixNode.fromJSON(node),
+                node: radix.RadixTree.fromJSON(node as radix.RadixNodeJSON),
                 isArray,
                 type
               } as Index.Tree

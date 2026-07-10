@@ -133,7 +133,7 @@ export function insertString(
 
 export function searchString(prop: {
   tokens: string[]
-  radixNode: radix.RadixNode
+  radixNode: radix.RadixTree
   exact: boolean
   tolerance: number
   stats: {

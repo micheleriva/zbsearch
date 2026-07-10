@@ -20,11 +20,10 @@ import type {
 import type { InsertOptions } from '../methods/insert.js'
 import type { Point as BKDGeoPoint } from '../trees/bkd.js'
 import type { Point } from '../trees/bkd.js'
-import { FindResult, RadixNode } from '../trees/radix.js'
+import { FindResult, RadixNodeJSON, RadixTree } from '../trees/radix.js'
 import { createError } from '../errors.js'
 import { AVLTree } from '../trees/avl.js'
 import { FlatTree } from '../trees/flat.js'
-import { RadixTree } from '../trees/radix.js'
 import { BKDTree } from '../trees/bkd.js'
 import { BoolNode } from '../trees/bool.js'
 
@@ -59,7 +58,7 @@ export type TTree<T = TreeType, N = unknown> = {
 }
 
 export type Tree =
-  | TTree<'Radix', RadixNode>
+  | TTree<'Radix', RadixTree>
   | TTree<'AVL', AVLTree<number, InternalDocumentID>>
   | TTree<'Bool', BoolNode<InternalDocumentID>>
   | TTree<'Flat', FlatTree>
@@ -110,13 +109,6 @@ export function insertTokenScoreParameters(
   const tf = tokenFrequency / tokens.length
 
   index.frequencies[prop][internalId]![token] = tf
-
-  if (!(token in index.tokenOccurrences[prop])) {
-    index.tokenOccurrences[prop][token] = 0
-  }
-
-  // increase a token counter that may not yet exist
-  index.tokenOccurrences[prop][token] = (index.tokenOccurrences[prop][token] ?? 0) + 1
 }
 
 export function removeDocumentScoreParameters(index: Index, prop: string, id: DocumentID, docsCount: number): void {
@@ -132,8 +124,8 @@ export function removeDocumentScoreParameters(index: Index, prop: string, id: Do
   index.frequencies[prop][internalId] = undefined
 }
 
-export function removeTokenScoreParameters(index: Index, prop: string, token: string): void {
-  index.tokenOccurrences[prop][token]--
+export function removeTokenScoreParameters(_index: Index, _prop: string, _token: string): void {
+  // Document frequency is derived from radix postings at search time.
 }
 
 export function create<T extends AnyZBSearch, TSchema extends T['schema']>(
@@ -423,11 +415,8 @@ export function calculateResultScores(
 
   const avgFieldLength = index.avgFieldLength[prop]
   const fieldLengths = index.fieldLengths[prop]
-  const zbsearchOccurrences = index.tokenOccurrences[prop]
   const zbsearchFrequencies = index.frequencies[prop]
-
-  // zbsearchOccurrences[term] can be undefined, 0, string, or { [k: string]: number }
-  const termOccurrences = typeof zbsearchOccurrences[term] === 'number' ? (zbsearchOccurrences[term] ?? 0) : 0
+  const termOccurrences = getTermDocumentFrequency(index, prop, term)
 
   // Calculate TF-IDF value for each term, in each document, for each index.
   const documentIDsLength = documentIDs.length
@@ -806,7 +795,7 @@ export function load<R = unknown>(
       case 'Radix':
         indexes[prop] = {
           type: 'Radix',
-          node: RadixTree.fromJSON(node),
+          node: RadixTree.fromJSON(node as unknown as RadixNodeJSON),
           isArray
         }
         break
@@ -903,10 +892,20 @@ export function save<R = unknown>(index: Index): R {
     searchableProperties,
     searchablePropertiesWithTypes,
     frequencies,
-    tokenOccurrences,
+    tokenOccurrences: {},
     avgFieldLength,
     fieldLengths
   } as R
+}
+
+function getTermDocumentFrequency(index: Index, prop: string, term: string): number {
+  const treeIndex = index.indexes[prop]
+  if (treeIndex?.type === 'Radix') {
+    return (treeIndex.node as RadixTree).getDocumentFrequency(term)
+  }
+
+  const stored = index.tokenOccurrences[prop]?.[term]
+  return typeof stored === 'number' ? stored : 0
 }
 
 export function createIndex(): IIndex<Index> {

@@ -1,0 +1,239 @@
+---
+title: Results Pinning (Merchandising)
+description: Pin specific documents to a chosen position in the search results.
+---
+
+Starting with ZBSearch v3.1.16, you can pin specific documents to a chosen position in the search results. This feature is particularly useful for merchandising purposes, allowing you to highlight certain items or promotions.
+
+## Creating a Pinning Rule
+
+To get started with results pinning, you need to create a pinning rule. A pinning rule consists of the following components:
+
+- `id`: A unique identifier for the pinning rule.
+- `conditions`: One or more conditions that determine when the rule applies.
+- `consequence`: The action to take when the conditions are met, such as pinning specific documents to certain positions.
+
+The API is pretty simple, here is an example of how to create a pinning rule:
+
+```ts
+import { create, insertMultiple, search, insertPin } from 'zbsearch'
+
+const db = create({
+  schema: {
+    title: 'string',
+    description: 'string'
+  } as const
+})
+
+insertMultiple(db, [
+  { id: '1', title: 'Red Shirt', description: 'A red shirt' },
+  { id: '2', title: 'Blue Jeans', description: 'Blue denim jeans' },
+  { id: '3', title: 'Green Hat', description: 'A green hat' }
+])
+
+insertPin(db, { // [!code highlight]
+  id: 'pin_blue_jeans', // [!code highlight]
+  conditions: [{ anchoring: 'contains', pattern: 'shirt' }], // [!code highlight]
+  consequence: { // [!code highlight]
+    promote: [{ doc_id: '3', position: 0 }] // [!code highlight]
+  } // [!code highlight]
+}) // [!code highlight]
+
+const results = search(db, { term: 'shirt' })
+```
+
+In the example above, we're inserting three documents:
+
+1. Red Shirt
+2. Blue Jeans
+3. Green Hat
+
+And without a pinning rule, searching for "shirt" would return one single result:
+
+```json
+{
+  "hits": [
+    { "id": "1", "title": "Red Shirt", "description": "A red shirt" }
+  ],
+  "count": 1
+}
+```
+
+But since we added a pinning rule that promotes the "Green Hat" to the first position whenever the search term contains "shirt", the search results will now look like this:
+
+```json
+{
+  "hits": [
+    { "id": "3", "title": "Green Hat", "description": "A green hat" },
+    { "id": "1", "title": "Red Shirt", "description": "A red shirt" }
+  ],
+  "count": 2
+}
+```
+
+As you can see, the pinned document will not replace the original results: they will just slide down to make room for the pinned document, so take that into account when choosing multiple pinning positions.
+
+## Using Multiple Conditions
+
+When defining multiple conditions in a pinning rule, all conditions must be met for the rule to apply. For example:
+
+```ts
+insertPin(db, {
+  id: 'winter_jacket_rule',
+  conditions: [
+    { anchoring: 'contains', pattern: 'winter' },
+    { anchoring: 'contains', pattern: 'jacket' }
+  ],
+  consequence: { promote: [{ doc_id: 'featured-jacket', position: 0 }] }
+})
+```
+
+- ✅ Matches: "winter jacket" (contains both `"winter"` AND `"jacket"`)
+- ✅ Matches: "buy winter jacket now" (contains both)
+- ✅ Matches: "jacket for winter" (contains both, order doesn't matter)
+- ❌ Does NOT match: "winter coat" (missing `"jacket"`)
+- ❌ Does NOT match: "leather jacket" (missing `"winter"`)
+
+At the moment, all the conditions are implicitly `AND`ed together. Future versions may introduce support for `OR` conditions, if you have a use case for that, please let us know on [GitHub](https://github.com/micheleriva/zbsearch/issues).
+
+## Condition Anchoring Options
+
+When defining conditions for pinning rules, you can specify how the search term should match the pattern using different anchoring options. Here are the available options:
+
+### `is` - Exact Match.
+
+```js
+{ anchoring: 'is', pattern: 'blue jeans' }
+```
+
+- ✅ Matches: "blue jeans" (exact, case-insensitive)
+- ✅ Matches: "Blue Jeans" (case-insensitive)
+- ❌ Does NOT match: "blue jeans jacket"
+- ❌ Does NOT match: "blue"
+
+### `starts_with` - Prefix Match
+
+```js
+{ anchoring: 'starts_with', pattern: 'blue' }
+```
+
+- ✅ Matches: "blue" (exact)
+- ✅ Matches: "blue jeans" (starts with `"blue"`)
+- ✅ Matches: "blueberry pie" (starts with `"blue"`)
+- ❌ Does NOT match: "navy blue" (doesn't start with `"blue"`)
+
+### `contains`: Substring Match
+
+```js
+{ anchoring: 'contains', pattern: 'blue' }
+```
+
+- ✅ Matches: "blue" (exact)
+- ✅ Matches: "blue jeans" (contains `"blue"`)
+- ✅ Matches: "navy blue" (contains `"blue"`)
+- ✅ Matches: "blueberry" (contains `"blue"`)
+- ❌ Does NOT match: "red shirt" (doesn't contain `"blue"`)
+
+### Combining Conditions
+
+You can always combine multiple conditions and they will operate as an `AND`:
+
+```js
+insertPin(db, {
+  id: 'specific_search',
+  conditions: [
+    { anchoring: 'starts_with', pattern: 'buy' },          // Must start with "buy"
+    { anchoring: 'contains',    pattern: 'winter' },       // Must contain "winter"
+    { anchoring: 'contains',    pattern: 'jacket' }        // Must contain "jacket"
+  ],
+  consequence: { promote: [{ doc_id: 'featured', position: 0 }] }
+})
+```
+
+This would match:
+- ✅ "buy winter jacket"
+- ✅ "buy a warm winter jacket"
+- ✅ "buy jacket for winter"
+- ❌ "winter jacket to buy" (doesn't start with `"buy"`)
+
+## Consequence Options
+
+Currently, the only available consequence is `promote`, which allows you to pin specific documents to chosen positions in the search results. The `promote` array consists of objects with the following properties:
+
+- `doc_id`: The ID of the document to pin.
+- `position`: The zero-based position in the search results where the document should be pinned.
+
+You can pin multiple documents in a single rule, just make sure to assign different positions to each document:
+
+```ts
+insertPin(db, {
+  id: 'holiday_specials',
+  conditions: [{ anchoring: 'contains', pattern: 'holiday' }],
+  consequence: {
+    promote: [
+      { doc_id: 'special-offer-1', position: 0 },
+      { doc_id: 'special-offer-2', position: 1 },
+      { doc_id: 'special-offer-3', position: 2 }
+    ]
+  }
+})
+```
+
+## Updating a Pinning Rule
+
+To update an existing pinning rule, you can use the `updatePin` function. This function allows you to modify the conditions or consequences of a rule by specifying its `id`.
+
+```ts
+import { updatePin } from 'zbsearch'
+
+updatePin(db, {
+  id: 'pin_blue_jeans',
+  conditions: [{ anchoring: 'contains', pattern: 'jeans' }], // Updated condition
+  consequence: {
+    promote: [{ doc_id: '2', position: 0 }] // Updated consequence
+  }
+})
+```
+
+When updating a pinning rule, make sure to provide the complete rule definition, as the existing rule will be replaced with the new one.
+
+## Deleting a Pinning Rule
+
+To delete a pinning rule, you can use the `deletePin` function by specifying the `id` of the rule you want to remove.
+
+```ts
+import { deletePin } from 'zbsearch'
+
+deletePin(db, 'pin_blue_jeans')
+```
+
+## Listing All Pinning Rules
+
+You can retrieve a list of all existing pinning rules using the `listPins` function. This function returns an array of pinning rules currently defined in the database.
+
+```ts
+import { getAllRules } from 'zbsearch'
+
+const rules = getAllRules(db)
+```
+
+This will return an array of all pinning rules, allowing you to review or manage them as needed.
+
+## Get One Specific Pinning Rule
+
+To retrieve a specific pinning rule by its `id`, you can use the `getPin` function. This function returns the details of the specified pinning rule.
+
+```ts
+import { getPin } from 'zbsearch'
+
+const rule = getPin(db, 'pin_blue_jeans')
+```
+
+This will return the pinning rule with the ID `pin_blue_jeans`, allowing you to view its conditions and consequences.
+
+## Errors
+
+When working with pinning rules, you might encounter the following errors:
+
+- `PINNING_RULE_ALREADY_EXISTS`: This error occurs when you try to create a pinning rule with an `id` that already exists in the database. Each pinning rule must have a unique `id`. To update an existing rule, use the `updatePin` function instead.
+- `PINNING_RULE_NOT_FOUND`: This error occurs when you try to update or delete a pinning rule that does not exist in the database. Make sure to provide a valid `id` of an existing rule.

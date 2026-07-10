@@ -43,6 +43,10 @@
     },
     "@zbsearch/tokenizers#build": {
       "dependsOn": ["zbsearch#build"]
+    },
+    "@zbsearch/docs#build": {
+      "dependsOn": ["zbsearch#build"],
+      "outputs": [".next/**", "!.next/cache/**"]
     }
   }
 }

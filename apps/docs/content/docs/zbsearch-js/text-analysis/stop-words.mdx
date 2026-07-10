@@ -1,0 +1,118 @@
+---
+title: Stop-words
+description: Learn how to use stop-words with ZBSearch.
+---
+
+<Callout title='What are stopwords?'>
+The words which are generally filtered out before processing a natural language are called **stop words**. These are
+actually the most common words in any language (like articles, prepositions, pronouns, conjunctions, etc) and does not
+add much information to the text. Examples of a few stop words in English are “the”, “a”, “an”, “so”, “what”.
+</Callout>
+
+ZBSearch provides support for stop-words removal via the `@zbsearch/stopwords` package.
+
+```bash
+npm install @zbsearch/stopwords
+```
+
+## Enabling stop-words removal
+
+By default, ZBSearch does not remove any stop-word, as this is intended to be an explicit action from the user. To enable stop-words removal, you can use the `stopWords` property when creating a new ZBSearch instance:
+
+```javascript copy
+import { create } from "zbsearch";
+
+const db = create({
+  schema: {
+    author: "string",
+    quote: "string",
+  },
+  components: {
+    tokenizer: {
+      stopWords: ["foo", "bar"], // Enable custom stop-words
+    },
+  },
+});
+```
+
+## Using the default stop-words list
+
+By installing the `@zbsearch/stopwords` package, you can use the default stop-words list for a given language:
+
+```javascript copy
+import { create } from "zbsearch";
+import { stopwords as englishStopwords } from "@zbsearch/stopwords/english";
+
+const db = create({
+  schema: {
+    author: "string",
+    quote: "string",
+  },
+  components: {
+    tokenizer: {
+      stopWords: englishStopwords,
+    },
+  },
+});
+```
+
+Using the default stop-words list is the recommended way to enable stop-words removal, as it is the most efficient way to do so.
+
+## Extending the default stop-words list
+
+You can always extend the default stop-words list by adding or removing words:
+
+```javascript copy
+import { create } from "zbsearch";
+import { stopwords as italianStopwords } from "@zbsearch/stopwords/italian";
+
+const db = create({
+  schema: {
+    author: "string",
+    quote: "string",
+  },
+  components: {
+    tokenizer: {
+      stopWords: [...italianStopwords, "ciao", "buongiorno"],
+    },
+  },
+});
+```
+
+## Supported languages
+
+As for now, ZBSearch supports 33 languages when it comes to stop-words removal:
+
+- Arabic
+- Armenian
+- Bulgarian
+- Chinese (Mandarin)
+- Czech
+- Danish
+- Dutch
+- English
+- Finnish
+- French
+- German
+- Greek
+- Hindi
+- Hungarian
+- Indonesian
+- Irish
+- Italian
+- Japanese
+- Lithuanian
+- Nepali
+- Norwegian
+- Portuguese
+- Romanian
+- Russian
+- Sanskrit
+- Serbian
+- Slovenian
+- Spanish
+- Swedish
+- Tamil
+- Turkish
+- Ukrainian
+- Vietnamese

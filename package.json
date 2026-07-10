@@ -4,10 +4,13 @@
   "description": "A complete search engine and RAG pipeline in your browser, server, or edge network with support for full-text, vector, and hybrid search in less than 2kb.",
   "workspaces": [
     "packages/*",
-    "sandboxes/*"
+    "sandboxes/*",
+    "apps/*"
   ],
   "scripts": {
     "build": "turbo build",
+    "docs:dev": "pnpm --filter @zbsearch/docs dev",
+    "docs:build": "pnpm --filter @zbsearch/docs build",
     "format": "biome format --write ./packages",
     "format:hook": "biome format --write --no-errors-on-unmatched ./packages",
     "lint": "turbo lint",

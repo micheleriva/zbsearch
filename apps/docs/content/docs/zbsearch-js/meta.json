@@ -1,0 +1,20 @@
+{
+	"root": true,
+	"title": "ZBSearch JS",
+	"description": "ZBSearch for your browser",
+	"icon": "Hexagon",
+	"pages": [
+		"---Getting Started---",
+		"index",
+		"vs-orama",
+		"usage",
+		"search",
+		"results-pinning",
+		"---Supported Languages---",
+		"...supported-languages",
+		"---Advanced ZBSearch---",
+		"internals",
+		"plugins",
+		"text-analysis"
+	]
+}

@@ -1,0 +1,30 @@
+---
+title: Utility functions for ZBSearch
+description: Learn how to use utility functions in ZBSearch.
+---
+
+ZBSearch exposes a few utility functions that can be useful when working with the search results.
+
+## `getByID`
+
+`getByID` is a function that allows you to retrieve a document from a ZBSearch database by its ID.
+
+```javascript copy
+import { getByID } from "zbsearch";
+
+const thePrestige = await getByID(movieDB, "tt0482571");
+
+// Returns the original, full document
+```
+
+## `count`
+
+`count` is a function that allows you to retrieve the number of documents in a ZBSearch database.
+
+```javascript copy
+import { count } from "zbsearch";
+
+const docNumber = await count(movieDB);
+
+// Returns the number of documents in the database
+```

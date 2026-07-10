@@ -1,0 +1,28 @@
+{
+  "name": "@zbsearch/runtime-cloudflare",
+  "version": "0.1.0",
+  "description": "Cloudflare Workers runtime for ZBSearch Edge",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/worker.ts",
+  "exports": {
+    ".": {
+      "types": "./src/worker.ts",
+      "import": "./src/worker.ts"
+    }
+  },
+  "scripts": {
+    "build": "wrangler deploy --config ../../deploy/cloudflare/wrangler.toml --dry-run --outdir=dist",
+    "dev": "wrangler dev --config ../../deploy/cloudflare/wrangler.toml",
+    "deploy": "wrangler deploy --config ../../deploy/cloudflare/wrangler.toml"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@zbsearch/edge-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250224.0",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "wrangler": "^4.0.0"
+  }
+}

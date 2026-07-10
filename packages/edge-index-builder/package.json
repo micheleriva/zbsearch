@@ -1,0 +1,33 @@
+{
+  "name": "@zbsearch/edge-index-builder",
+  "version": "0.1.0",
+  "description": "Rebuild CLI for ZBSearch Edge indexes",
+  "type": "module",
+  "bin": {
+    "zbsearch-edge-builder": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "swc --delete-dir-on-start --extensions .ts -d dist src && tsc -p . --emitDeclarationOnly",
+    "rebuild": "node dist/cli.js rebuild"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@zbsearch/edge-core": "workspace:*",
+    "@zbsearch/storage-s3": "workspace:*"
+  },
+  "devDependencies": {
+    "@swc/cli": "^0.1.59",
+    "@swc/core": "^1.3.27",
+    "@types/node": "^20.19.43",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
+  }
+}

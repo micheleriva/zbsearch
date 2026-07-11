@@ -13,7 +13,7 @@ import {
   runSearch
 } from '../src/service.js'
 import { getIndexMeta, saveIndexMeta } from '../src/registry.js'
-import { bufferHeadKey } from '../src/paths.js'
+import { snapshotKey } from '../src/paths.js'
 import type { ObjectStorage } from '../src/storage.js'
 import { NoopShardCache } from '../src/storage.js'
 import { MemoryObjectStorage } from './helpers/memory-storage.js'
@@ -335,7 +335,7 @@ describe('service', () => {
       get: (key) => storage.get(key),
       put: async (key, body, opts) => {
         const result = await storage.put(key, body, opts)
-        if (injectDuringFreeze && key === bufferHeadKey('concurrent')) {
+        if (injectDuringFreeze && key.endsWith('/snapshot.msgpack')) {
           injectDuringFreeze = false
           await bufferUpsert(storage, 'concurrent', '3', { title: 'During Flush' })
         }

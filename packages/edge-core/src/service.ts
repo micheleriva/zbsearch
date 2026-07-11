@@ -4,6 +4,8 @@ import { encode, decode } from '@msgpack/msgpack'
 import {
   applyBufferOps,
   appendBufferOp,
+  appendWalBatch,
+  clearBuffer,
   finalizeBufferAfterRebuild,
   freezeBufferForRebuild,
   readBufferOps
@@ -109,6 +111,84 @@ export async function bufferUpsert(
     ts,
     doc
   })
+
+  meta.pendingOps = head.pendingOps
+  meta.status = meta.liveVersion ? meta.status : 'empty'
+  await saveIndexMeta(storage, meta)
+
+  return {
+    status: 'buffered',
+    changeId,
+    bufferedAt,
+    indexStatus: meta.status
+  }
+}
+
+export interface ImportDocument {
+  id: string
+  doc: Record<string, unknown>
+}
+
+export async function importDocuments(
+  storage: ObjectStorage,
+  indexId: string,
+  documents: ImportDocument[],
+  options?: { create?: CreateIndexInput }
+): Promise<IndexMeta> {
+  let meta: IndexMeta
+  try {
+    meta = await getIndexMeta(storage, indexId)
+  } catch (err) {
+    if (!options?.create) {
+      throw err
+    }
+    meta = await createIndex(storage, { ...options.create, name: options.create.name || indexId })
+  }
+
+  const version = newVersionId()
+  const db = create({ schema: meta.schema, language: meta.settings.language as any })
+  const rows = documents.map(({ id, doc }) => ({ id, ...doc }))
+  if (rows.length > 0) {
+    insertMultiple(db, rows as any)
+  }
+
+  const snapshotBytes = encode(await save(db))
+  await storage.put(snapshotKey(indexId, version), snapshotBytes, {
+    contentType: 'application/msgpack'
+  })
+
+  await clearBuffer(storage, indexId)
+
+  meta.liveVersion = version
+  meta.buildingVersion = null
+  meta.status = documents.length > 0 ? 'ready' : 'empty'
+  meta.documents = documents.length
+  meta.indexSizeBytes = snapshotBytes.byteLength
+  meta.pendingOps = 0
+  meta.lastRebuildAt = new Date().toISOString()
+  meta.lastAppliedOffset = null
+  await saveIndexMeta(storage, meta)
+
+  return meta
+}
+
+export async function bufferBatch(
+  storage: ObjectStorage,
+  indexId: string,
+  operations: Array<
+    | { op: 'upsert'; id: string; doc: Record<string, unknown> }
+    | { op: 'delete'; id: string }
+  >
+): Promise<BufferedWriteResponse> {
+  const meta = await getIndexMeta(storage, indexId)
+  const ts = new Date().toISOString()
+  const ops: BufferOp[] = operations.map((operation) =>
+    operation.op === 'upsert'
+      ? { op: 'upsert', id: operation.id, ts, doc: operation.doc }
+      : { op: 'delete', id: operation.id, ts }
+  )
+
+  const { changeId, bufferedAt, head } = await appendWalBatch(storage, indexId, ops)
 
   meta.pendingOps = head.pendingOps
   meta.status = meta.liveVersion ? meta.status : 'empty'

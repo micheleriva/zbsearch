@@ -29,11 +29,12 @@ export interface IndexMeta {
 }
 
 export interface BufferHead {
-  segment: string
-  offset: number
   opCount: number
   pendingOps: number
   oldestOpAt: string | null
+  /** @deprecated Legacy in-place segment buffer. */
+  segment?: string
+  offset?: number
 }
 
 export type BufferOp = BufferUpsertOp | BufferDeleteOp

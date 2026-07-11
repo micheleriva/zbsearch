@@ -3,6 +3,7 @@ import { EdgeApiError as EdgeApiErrorClass } from './errors.js'
 import type { ObjectStorage, ShardCache } from './storage.js'
 import {
   bufferDelete,
+  bufferBatch,
   bufferUpsert,
   createIndex,
   getIndexManifest,
@@ -197,16 +198,9 @@ export async function handleRequest(ctx: RouterContext, req: HttpRequest): Promi
         >
       }>()
       const indexId = batchMatch.indexId!
-      let last: Awaited<ReturnType<typeof bufferUpsert>> | null = null
-      for (const operation of body.operations) {
-        if (operation.op === 'upsert') {
-          last = await bufferUpsert(ctx.storage, indexId, operation.id, operation.doc)
-        } else {
-          last = await bufferDelete(ctx.storage, indexId, operation.id)
-        }
-      }
+      const result = await bufferBatch(ctx.storage, indexId, body.operations)
       await afterBufferedWrite(ctx, indexId)
-      return json(202, last)
+      return json(202, result)
     }
 
     return json(404, { error: { code: 'NOT_FOUND', message: 'Route not found' } })

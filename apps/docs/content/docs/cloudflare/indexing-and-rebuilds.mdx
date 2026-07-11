@@ -5,29 +5,32 @@ description: How ZBSearch Edge buffers writes, builds immutable snapshots in R2,
 
 ZBSearch Edge separates **writes** from **reads** on purpose. Search queries never merge a live write buffer at query time - they always load one immutable snapshot. This keeps latency predictable at the edge.
 
-## Write path: the buffer
+## Write path: the WAL
 
-When you upsert or delete a document, the Worker appends an operation to an **NDJSON segment** in R2:
+When you upsert or delete a document, the Worker appends an operation to an **append-only WAL entry** in R2:
 
 ```
-buffer/{indexId}/head.json          ← cursor (segment, offsets, pending count)
-buffer/{indexId}/segments/000001.ndjson
-buffer/{indexId}/segments/000002.ndjson
+wal/{indexId}/head.json                    ← pending count, oldest op timestamp
+wal/{indexId}/entries/{ts}_{changeId}.ndjson
 ...
 ```
 
-Each line is one operation:
+Legacy deployments may still have in-place buffer segments under `buffer/{indexId}/segments/`; the Worker reads both during migration.
+
+Each WAL file contains one or more NDJSON lines (one operation per line):
 
 ```json
 {"op":"upsert","id":"sku-1","ts":"2026-07-10T12:00:00.000Z","doc":{"title":"Headphones","price":99}}
 {"op":"delete","id":"sku-2","ts":"2026-07-10T12:01:00.000Z"}
 ```
 
-The API responds immediately with `202` and a `changeId`. The index's `pendingOps` counter increments. **Documents in the buffer are not searchable yet.**
+The API responds immediately with `202` and a `changeId`. The index's `pendingOps` counter increments. **Documents in the WAL are not searchable until the next rebuild** (unless you use bulk import below).
 
-### Segment rotation
+Batch writes (`POST /documents/batch`) append all operations to a **single WAL file**, reducing R2 PUT count.
 
-Segments grow until they reach 64 MB, then a new segment file is started (`000002.ndjson`, etc.). Rebuild reads all segments in sorted order and applies operations sequentially.
+### Legacy segment rotation
+
+Older versions grew in-place segment files (`buffer/.../segments/000001.ndjson`) until 64 MB, then rotated. New writes use immutable WAL entries instead — no read-modify-write on segments.
 
 ## Read path: snapshots
 
@@ -123,10 +126,13 @@ Run the rebuild CLI against R2 using S3-compatible credentials:
 
 ```bash
 # Rebuild one index
-pnpm --filter @zbsearch/edge-index-builder rebuild products
+node packages/edge-index-builder/dist/cli.js rebuild products
 
 # Rebuild all indexes that need it
-pnpm --filter @zbsearch/edge-index-builder rebuild --all
+node packages/edge-index-builder/dist/cli.js rebuild --all
+
+# Bulk import (build snapshot locally, upload to R2)
+node packages/edge-index-builder/dist/cli.js import products ./data.json --create --schema-file ./schema.json
 ```
 
 The `--all` flag skips indexes that are `ready` with `pendingOps === 0` and an existing `liveVersion`.
@@ -170,8 +176,31 @@ See [Production](/docs/cloudflare/production) for the full GitHub Actions setup.
 
 ### Bulk import
 
+For large catalogs (hundreds or thousands of documents), avoid per-document API writes. Build the snapshot locally and upload directly to R2:
+
 ```bash
-# 1. Batch upsert documents
+# Load R2 credentials from deploy/cloudflare/.env
+source deploy/cloudflare/.env
+
+# Import JSON { "data": [...] } or JSONL
+node packages/edge-index-builder/dist/cli.js import products ./catalog.json \
+  --create \
+  --name products \
+  --schema-file ./products.schema.json \
+  --language english
+```
+
+The `import` command:
+
+1. Parses documents and assigns stable IDs (slugified `company_name` or explicit `id`)
+2. Builds a ZBSearch snapshot in memory
+3. Uploads `snapshot.msgpack` to R2
+4. Clears any pending WAL entries and sets `liveVersion` — **documents are searchable immediately**
+
+For smaller batches via the API:
+
+```bash
+# 1. Batch upsert documents (single WAL file)
 curl -X POST "$WORKER_URL/v1/indexes/products/documents/batch" \
   -H 'content-type: application/json' \
   -d '{"operations":[...]}'
@@ -194,8 +223,10 @@ Lower `REBUILD_THRESHOLD_OPS` (e.g. `10`) or rebuild after each write batch from
 registry.json
 indexes/{indexId}/meta.json
 indexes/{indexId}/{version}/snapshot.msgpack
-buffer/{indexId}/head.json
-buffer/{indexId}/segments/*.ndjson
+wal/{indexId}/head.json
+wal/{indexId}/entries/*.ndjson
+buffer/{indexId}/head.json          ← legacy, read-only during migration
+buffer/{indexId}/segments/*.ndjson  ← legacy
 ```
 
 ## v1 limitations

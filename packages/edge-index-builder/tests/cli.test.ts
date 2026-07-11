@@ -21,7 +21,7 @@ describe('cli', () => {
       env: validEnv
     })
     assert.equal(result.status, 1)
-    assert.match(result.stdout, /zbsearch-edge-builder rebuild/)
+    assert.match(result.stdout, /zbsearch-edge-builder (rebuild|import)/)
   })
 
   it('exits with error when env vars are missing', () => {

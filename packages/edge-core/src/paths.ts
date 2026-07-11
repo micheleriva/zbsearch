@@ -10,12 +10,35 @@ export function snapshotKey(indexId: string, version: string): string {
   return `indexes/${indexId}/${version}/snapshot.msgpack`
 }
 
+/** Append-only WAL head (replaces in-place buffer segments). */
+export function walHeadKey(indexId: string): string {
+  return `wal/${indexId}/head.json`
+}
+
+export function walEntriesPrefix(indexId: string): string {
+  return `wal/${indexId}/entries/`
+}
+
+export function walEntryKey(indexId: string, entryFile: string): string {
+  return `${walEntriesPrefix(indexId)}${entryFile}`
+}
+
+/** @deprecated Legacy buffer paths — still read during migration. */
 export function bufferHeadKey(indexId: string): string {
   return `buffer/${indexId}/head.json`
 }
 
+/** @deprecated Legacy in-place segment files. */
 export function bufferSegmentKey(indexId: string, segment: string): string {
   return `buffer/${indexId}/segments/${segment}`
+}
+
+export function legacyBufferSegmentsPrefix(indexId: string): string {
+  return `buffer/${indexId}/segments/`
+}
+
+export function walEntryFileName(seq: number, ts: string, changeId: string): string {
+  return `${String(seq).padStart(10, '0')}_${ts.replace(/[:.]/g, '-')}_${changeId}.ndjson`
 }
 
 export function nextSegmentName(current: string | null): string {

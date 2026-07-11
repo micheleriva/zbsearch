@@ -1,76 +1,44 @@
 import { concatBytes, decodeJson, encodeJson, encodeNdjsonLine, parseNdjson } from './codec.js'
-import { bufferHeadKey, bufferSegmentKey, newChangeId, nextSegmentName } from './paths.js'
+import {
+  bufferHeadKey,
+  legacyBufferSegmentsPrefix,
+  newChangeId,
+  walEntriesPrefix,
+  walEntryFileName,
+  walEntryKey,
+  walHeadKey
+} from './paths.js'
 import type { ObjectStorage } from './storage.js'
 import type { BufferDeleteOp, BufferHead, BufferOp, BufferUpsertOp } from './types.js'
 
-const MAX_SEGMENT_BYTES = 64 * 1024 * 1024
-
 const defaultHead = (): BufferHead => ({
-  segment: '000001.ndjson',
-  offset: 0,
   opCount: 0,
   pendingOps: 0,
   oldestOpAt: null
 })
 
 export async function getBufferHead(storage: ObjectStorage, indexId: string): Promise<BufferHead> {
-  const obj = await storage.get(bufferHeadKey(indexId))
-  if (!obj) {
-    return defaultHead()
+  const wal = await storage.get(walHeadKey(indexId))
+  if (wal) {
+    return decodeJson<BufferHead>(wal.body)
   }
-  return decodeJson<BufferHead>(obj.body)
+  const legacy = await storage.get(bufferHeadKey(indexId))
+  if (legacy) {
+    return decodeJson<BufferHead>(legacy.body)
+  }
+  return defaultHead()
 }
 
 async function saveBufferHead(storage: ObjectStorage, indexId: string, head: BufferHead): Promise<void> {
-  await storage.put(bufferHeadKey(indexId), encodeJson(head), { contentType: 'application/json' })
+  await storage.put(walHeadKey(indexId), encodeJson(head), { contentType: 'application/json' })
 }
 
-export async function appendBufferOp(
-  storage: ObjectStorage,
-  indexId: string,
-  op: BufferUpsertOp | BufferDeleteOp
-): Promise<{ changeId: string; bufferedAt: string; head: BufferHead }> {
-  const head = await getBufferHead(storage, indexId)
-  const line = encodeNdjsonLine(op)
-  const segmentKey = bufferSegmentKey(indexId, head.segment)
-
-  let segmentBody: Uint8Array
-  const existing = await storage.get(segmentKey)
-  if (existing) {
-    segmentBody = concatBytes([existing.body, line])
-  } else {
-    segmentBody = line
-  }
-
-  if (segmentBody.byteLength > MAX_SEGMENT_BYTES) {
-    head.segment = nextSegmentName(head.segment)
-    head.offset = 0
-    await storage.put(bufferSegmentKey(indexId, head.segment), line, { contentType: 'application/x-ndjson' })
-    head.offset = line.byteLength
-  } else {
-    await storage.put(segmentKey, segmentBody, { contentType: 'application/x-ndjson' })
-    head.offset = segmentBody.byteLength
-  }
-
-  head.opCount += 1
-  head.pendingOps += 1
-  if (!head.oldestOpAt) {
-    head.oldestOpAt = op.ts
-  }
-
-  await saveBufferHead(storage, indexId, head)
-
-  return {
-    changeId: newChangeId(),
-    bufferedAt: op.ts,
-    head
-  }
-}
-
-async function listBufferSegmentKeys(storage: ObjectStorage, indexId: string): Promise<string[]> {
-  const prefix = `buffer/${indexId}/segments/`
+async function listWalEntryKeys(storage: ObjectStorage, indexId: string): Promise<string[]> {
   const keys: string[] = []
-  for await (const entry of storage.list(prefix)) {
+  for await (const entry of storage.list(walEntriesPrefix(indexId))) {
+    keys.push(entry.key)
+  }
+  for await (const entry of storage.list(legacyBufferSegmentsPrefix(indexId))) {
     keys.push(entry.key)
   }
   keys.sort()
@@ -92,31 +60,78 @@ async function readBufferOpsFromKeys(storage: ObjectStorage, keys: string[]): Pr
   return ops
 }
 
+export async function appendBufferOp(
+  storage: ObjectStorage,
+  indexId: string,
+  op: BufferUpsertOp | BufferDeleteOp
+): Promise<{ changeId: string; bufferedAt: string; head: BufferHead }> {
+  const head = await getBufferHead(storage, indexId)
+  const seq = head.opCount + 1
+  const changeId = newChangeId()
+  const line = encodeNdjsonLine(op)
+  await storage.put(walEntryKey(indexId, walEntryFileName(seq, op.ts, changeId)), line, {
+    contentType: 'application/x-ndjson'
+  })
+
+  head.opCount = seq
+  head.pendingOps += 1
+  if (!head.oldestOpAt) {
+    head.oldestOpAt = op.ts
+  }
+
+  await saveBufferHead(storage, indexId, head)
+
+  return {
+    changeId,
+    bufferedAt: op.ts,
+    head
+  }
+}
+
+export async function appendWalBatch(
+  storage: ObjectStorage,
+  indexId: string,
+  ops: BufferOp[]
+): Promise<{ changeId: string; bufferedAt: string; head: BufferHead }> {
+  if (ops.length === 0) {
+    const head = await getBufferHead(storage, indexId)
+    return { changeId: newChangeId(), bufferedAt: new Date().toISOString(), head }
+  }
+
+  const head = await getBufferHead(storage, indexId)
+  const seq = head.opCount + 1
+  const changeId = newChangeId()
+  const bufferedAt = ops[ops.length - 1]!.ts
+  const body = concatBytes(ops.map((op) => encodeNdjsonLine(op)))
+  await storage.put(walEntryKey(indexId, walEntryFileName(seq, bufferedAt, changeId)), body, {
+    contentType: 'application/x-ndjson'
+  })
+
+  head.opCount = seq
+  head.pendingOps += ops.length
+  if (!head.oldestOpAt) {
+    head.oldestOpAt = ops[0]!.ts
+  }
+
+  await saveBufferHead(storage, indexId, head)
+
+  return {
+    changeId,
+    bufferedAt,
+    head
+  }
+}
+
 export async function readBufferOps(storage: ObjectStorage, indexId: string): Promise<BufferOp[]> {
-  return readBufferOpsFromKeys(storage, await listBufferSegmentKeys(storage, indexId))
+  return readBufferOpsFromKeys(storage, await listWalEntryKeys(storage, indexId))
 }
 
 export async function freezeBufferForRebuild(
   storage: ObjectStorage,
   indexId: string
 ): Promise<{ ops: BufferOp[]; frozenSegmentKeys: string[] }> {
-  const frozenSegmentKeys = await listBufferSegmentKeys(storage, indexId)
+  const frozenSegmentKeys = await listWalEntryKeys(storage, indexId)
   const ops = await readBufferOpsFromKeys(storage, frozenSegmentKeys)
-
-  if (frozenSegmentKeys.length === 0) {
-    return { ops, frozenSegmentKeys }
-  }
-
-  const head = await getBufferHead(storage, indexId)
-  const newHead: BufferHead = {
-    segment: nextSegmentName(head.segment),
-    offset: 0,
-    opCount: head.opCount,
-    pendingOps: head.pendingOps,
-    oldestOpAt: head.oldestOpAt
-  }
-  await saveBufferHead(storage, indexId, newHead)
-
   return { ops, frozenSegmentKeys }
 }
 
@@ -129,8 +144,9 @@ export async function finalizeBufferAfterRebuild(
     await storage.delete(key)
   }
 
-  const remainingKeys = await listBufferSegmentKeys(storage, indexId)
+  const remainingKeys = await listWalEntryKeys(storage, indexId)
   if (remainingKeys.length === 0) {
+    await storage.delete(walHeadKey(indexId))
     await storage.delete(bufferHeadKey(indexId))
     return defaultHead()
   }
@@ -144,10 +160,13 @@ export async function finalizeBufferAfterRebuild(
 }
 
 export async function clearBuffer(storage: ObjectStorage, indexId: string): Promise<void> {
-  const prefix = `buffer/${indexId}/segments/`
-  for await (const entry of storage.list(prefix)) {
+  for await (const entry of storage.list(walEntriesPrefix(indexId))) {
     await storage.delete(entry.key)
   }
+  for await (const entry of storage.list(legacyBufferSegmentsPrefix(indexId))) {
+    await storage.delete(entry.key)
+  }
+  await storage.delete(walHeadKey(indexId))
   await storage.delete(bufferHeadKey(indexId))
 }
 

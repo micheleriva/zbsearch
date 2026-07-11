@@ -9,7 +9,10 @@ import {
   newVersionId,
   nextSegmentName,
   registryKey,
-  snapshotKey
+  snapshotKey,
+  walEntryFileName,
+  walEntryKey,
+  walHeadKey
 } from '../src/paths.js'
 
 describe('paths', () => {
@@ -28,6 +31,12 @@ describe('paths', () => {
   it('builds buffer keys', () => {
     assert.equal(bufferHeadKey('products'), 'buffer/products/head.json')
     assert.equal(bufferSegmentKey('products', '000001.ndjson'), 'buffer/products/segments/000001.ndjson')
+  })
+
+  it('builds WAL keys', () => {
+    assert.equal(walHeadKey('products'), 'wal/products/head.json')
+    assert.equal(walEntryKey('products', 'entry.ndjson'), 'wal/products/entries/entry.ndjson')
+    assert.equal(walEntryFileName(42, '2020-01-01T00:00:00.000Z', 'chg_abc'), '0000000042_2020-01-01T00-00-00-000Z_chg_abc.ndjson')
   })
 
   it('increments segment names with padding', () => {

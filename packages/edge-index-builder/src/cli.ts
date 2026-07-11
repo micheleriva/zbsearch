@@ -1,12 +1,101 @@
 #!/usr/bin/env node
-import { rebuildIndex, listIndexMetas } from '@zbsearch/edge-core'
+import { readFile } from 'node:fs/promises'
+
+import { importDocuments, rebuildIndex, listIndexMetas } from '@zbsearch/edge-core'
+import type { CreateIndexInput } from '@zbsearch/edge-core'
 import { createS3StorageFromEnv } from '@zbsearch/storage-s3'
 
-async function main(): Promise<void> {
-  const [command, indexId] = process.argv.slice(2)
-  const storage = createS3StorageFromEnv()
+import { loadImportDocuments } from './import-documents.js'
 
-  if (command === 'rebuild') {
+function parseArgs(argv: string[]): {
+  command: string
+  indexId?: string
+  filePath?: string
+  create: boolean
+  name?: string
+  schema?: CreateIndexInput['schema']
+  schemaFile?: string
+  language?: string
+} {
+  const [command, indexId, filePath, ...rest] = argv
+  let create = false
+  let name: string | undefined
+  let schema: CreateIndexInput['schema'] | undefined
+  let schemaFile: string | undefined
+  let language: string | undefined
+
+  for (let i = 0; i < rest.length; i++) {
+    const arg = rest[i]!
+    if (arg === '--create') {
+      create = true
+      continue
+    }
+    if (arg === '--name') {
+      name = rest[++i]
+      continue
+    }
+    if (arg === '--language') {
+      language = rest[++i]
+      continue
+    }
+    if (arg === '--schema') {
+      const value = rest[++i]
+      if (!value) {
+        throw new Error('--schema requires inline JSON')
+      }
+      schema = JSON.parse(value) as CreateIndexInput['schema']
+      continue
+    }
+    if (arg === '--schema-file') {
+      schemaFile = rest[++i]
+    }
+  }
+
+  return { command: command ?? '', indexId, filePath, create, name, schema, schemaFile, language }
+}
+
+async function runImport(
+  indexId: string,
+  filePath: string,
+  options: { create: boolean; name?: string; schema?: CreateIndexInput['schema']; schemaFile?: string; language?: string }
+): Promise<void> {
+  const storage = createS3StorageFromEnv()
+  const documents = await loadImportDocuments(filePath)
+
+  let schema = options.schema
+  if (!schema && options.schemaFile) {
+    schema = JSON.parse(await readFile(options.schemaFile, 'utf8')) as CreateIndexInput['schema']
+  }
+
+  const meta = await importDocuments(storage, indexId, documents, {
+    create:
+      options.create && schema
+        ? {
+            name: options.name ?? indexId,
+            schema,
+            settings: options.language ? { language: options.language } : undefined
+          }
+        : undefined
+  })
+
+  console.log(
+    JSON.stringify({
+      indexId: meta.id,
+      liveVersion: meta.liveVersion,
+      documents: meta.documents,
+      indexSizeBytes: meta.indexSizeBytes,
+      status: meta.status
+    })
+  )
+}
+
+async function main(): Promise<void> {
+  const args = parseArgs(process.argv.slice(2))
+
+  if (args.command === 'rebuild') {
+    const storage = createS3StorageFromEnv()
+    const indexId = args.indexId
+
     if (indexId && indexId !== '--all') {
       const meta = await rebuildIndex(storage, indexId)
       console.log(JSON.stringify({ indexId: meta.id, liveVersion: meta.liveVersion, documents: meta.documents }))
@@ -24,9 +113,24 @@ async function main(): Promise<void> {
     return
   }
 
+  if (args.command === 'import') {
+    if (!args.indexId || !args.filePath) {
+      throw new Error('import requires indexId and file path')
+    }
+    await runImport(args.indexId, args.filePath, {
+      create: args.create,
+      name: args.name,
+      schema: args.schema,
+      schemaFile: args.schemaFile,
+      language: args.language
+    })
+    return
+  }
+
   console.log(`Usage:
   zbsearch-edge-builder rebuild [indexId]
-  zbsearch-edge-builder rebuild --all`)
+  zbsearch-edge-builder rebuild --all
+  zbsearch-edge-builder import <indexId> <file> [--create] [--name <name>] [--schema '<json>'] [--schema-file <path>] [--language <lang>]`)
   process.exit(1)
 }
 

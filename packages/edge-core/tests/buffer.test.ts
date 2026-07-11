@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import {
   appendBufferOp,
+  appendWalBatch,
   applyBufferOps,
   clearBuffer,
   finalizeBufferAfterRebuild,
@@ -19,8 +20,6 @@ describe('buffer', () => {
     const storage = new MemoryObjectStorage()
     const head = await getBufferHead(storage, 'new')
     assert.deepEqual(head, {
-      segment: '000001.ndjson',
-      offset: 0,
       opCount: 0,
       pendingOps: 0,
       oldestOpAt: null
@@ -55,7 +54,7 @@ describe('buffer', () => {
     assert.deepEqual(ops[0], { op: 'delete', id: '1', ts: 't1' })
   })
 
-  it('reads ops from multiple segments in order', async () => {
+  it('reads legacy segment files in sorted order', async () => {
     const storage = new MemoryObjectStorage()
     const seg1 = bufferSegmentKey('idx', '000001.ndjson')
     const seg2 = bufferSegmentKey('idx', '000002.ndjson')
@@ -70,7 +69,7 @@ describe('buffer', () => {
     assert.equal((ops[1] as { id: string }).id, '2')
   })
 
-  it('clears buffer segments and head', async () => {
+  it('clears WAL entries and head', async () => {
     const storage = new MemoryObjectStorage()
     await appendBufferOp(storage, 'idx', {
       op: 'upsert',
@@ -105,7 +104,7 @@ describe('buffer', () => {
     assert.equal(docs.size, 1)
   })
 
-  it('concatenates ops into same segment', async () => {
+  it('creates separate WAL entries per append', async () => {
     const storage = new MemoryObjectStorage()
     await appendBufferOp(storage, 'idx', { op: 'upsert', id: '1', ts: 't1', doc: { a: 1 } })
     await appendBufferOp(storage, 'idx', { op: 'upsert', id: '2', ts: 't2', doc: { a: 2 } })
@@ -116,7 +115,19 @@ describe('buffer', () => {
     assert.equal(head.opCount, 2)
   })
 
-  it('freezeBufferForRebuild isolates new writes from compacted segments', async () => {
+  it('appendWalBatch writes multiple ops to one entry', async () => {
+    const storage = new MemoryObjectStorage()
+    await appendWalBatch(storage, 'idx', [
+      { op: 'upsert', id: '1', ts: 't1', doc: { a: 1 } },
+      { op: 'upsert', id: '2', ts: 't2', doc: { a: 2 } }
+    ])
+    const ops = await readBufferOps(storage, 'idx')
+    assert.equal(ops.length, 2)
+    const head = await getBufferHead(storage, 'idx')
+    assert.equal(head.pendingOps, 2)
+  })
+
+  it('freezeBufferForRebuild isolates new writes from frozen entries', async () => {
     const storage = new MemoryObjectStorage()
     await appendBufferOp(storage, 'idx', { op: 'upsert', id: '1', ts: 't1', doc: { a: 1 } })
 
@@ -133,7 +144,7 @@ describe('buffer', () => {
     assert.equal(head.pendingOps, 1)
   })
 
-  it('finalizeBufferAfterRebuild clears head when all segments are compacted', async () => {
+  it('finalizeBufferAfterRebuild clears head when all entries are compacted', async () => {
     const storage = new MemoryObjectStorage()
     await appendBufferOp(storage, 'idx', { op: 'upsert', id: '1', ts: 't1', doc: { a: 1 } })
 
@@ -142,15 +153,13 @@ describe('buffer', () => {
 
     assert.equal((await readBufferOps(storage, 'idx')).length, 0)
     assert.deepEqual(head, {
-      segment: '000001.ndjson',
-      offset: 0,
       opCount: 0,
       pendingOps: 0,
       oldestOpAt: null
     })
   })
 
-  it('freezeBufferForRebuild returns empty when buffer has no segments', async () => {
+  it('freezeBufferForRebuild returns empty when buffer has no entries', async () => {
     const storage = new MemoryObjectStorage()
     const frozen = await freezeBufferForRebuild(storage, 'idx')
     assert.equal(frozen.ops.length, 0)

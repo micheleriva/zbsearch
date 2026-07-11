@@ -1,7 +1,7 @@
 {
   "name": "@zbsearch/edge-index-builder",
   "version": "0.1.0",
-  "description": "Rebuild CLI for ZBSearch Edge indexes",
+  "description": "Rebuild and bulk-import CLI for ZBSearch Edge indexes",
   "type": "module",
   "bin": {
     "zbsearch-edge-builder": "./dist/cli.js"

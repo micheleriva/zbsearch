@@ -16,6 +16,7 @@ export type {
 } from './types.js'
 export {
   appendBufferOp,
+  appendWalBatch,
   applyBufferOps,
   clearBuffer,
   finalizeBufferAfterRebuild,
@@ -29,11 +30,16 @@ export {
   bufferHeadKey,
   bufferSegmentKey,
   indexMetaKey,
+  legacyBufferSegmentsPrefix,
   newChangeId,
   newVersionId,
   nextSegmentName,
   registryKey,
-  snapshotKey
+  snapshotKey,
+  walEntriesPrefix,
+  walEntryFileName,
+  walEntryKey,
+  walHeadKey
 } from './paths.js'
 export {
   deleteIndexMeta,
@@ -43,13 +49,15 @@ export {
   registerIndex,
   saveIndexMeta
 } from './registry.js'
-export type { CreateIndexInput, ScheduleRebuildOptions, SearchInput } from './service.js'
+export type { CreateIndexInput, ImportDocument, ScheduleRebuildOptions, SearchInput } from './service.js'
 export {
+  bufferBatch,
   bufferDelete,
   bufferUpsert,
   createIndex,
   getIndexManifest,
   getStatus,
+  importDocuments,
   maybeScheduleRebuild,
   rebuildIndex,
   runSearch

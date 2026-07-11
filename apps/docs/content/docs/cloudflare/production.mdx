@@ -58,10 +58,14 @@ Content-Type: application/json
 Your runner then executes:
 
 ```bash
-pnpm --filter @zbsearch/edge-index-builder rebuild products
+source deploy/cloudflare/.env
+pnpm --filter @zbsearch/edge-index-builder build
+node packages/edge-index-builder/dist/cli.js rebuild products
 # or
-pnpm --filter @zbsearch/edge-index-builder rebuild --all
+node packages/edge-index-builder/dist/cli.js rebuild --all
 ```
+
+For initial or full catalog reloads, use `import` instead of per-document API writes — see [Indexing & rebuilds](/docs/cloudflare/indexing-and-rebuilds#bulk-import).
 
 ## GitHub Actions setup
 
@@ -140,6 +144,12 @@ Confirm `pendingOps` is `0` and `lastRebuildAt` is recent.
 | `R2_ENDPOINT` | `S3_ENDPOINT` | S3-compatible endpoint |
 | `R2_REGION` | `AWS_REGION` | Region (default `auto`) |
 
+Build the CLI before first use (or after upgrading):
+
+```bash
+pnpm --filter @zbsearch/edge-index-builder build
+```
+
 ## Monitoring
 
 ### Health checks
@@ -189,9 +199,9 @@ v1 stores **full msgpack snapshots**. Very large indexes will hit Worker memory 
 You pay Cloudflare for:
 
 - **Workers** - requests and CPU time (rebuilds in-Worker consume CPU ms)
-- **R2** - storage and Class A/B operations (writes to buffer, snapshot reads)
+- **R2** - storage and Class A/B operations (WAL appends, snapshot reads)
 
-Search-heavy workloads benefit from Workers Cache reducing R2 reads. Write-heavy workloads generate buffer segments and periodic full snapshot rewrites.
+Search-heavy workloads benefit from Workers Cache reducing R2 reads. Write-heavy workloads append WAL entries and trigger periodic full snapshot rewrites.
 
 ## Disaster recovery
 
@@ -199,9 +209,10 @@ R2 objects are the source of truth:
 
 - `indexes/*/meta.json` - index registry state
 - `indexes/*/*/snapshot.msgpack` - searchable data
-- `buffer/*` - unmerged writes
+- `wal/*` - unmerged writes (append-only)
+- `buffer/*` - legacy unmerged writes (read during migration)
 
-To recover: redeploy the Worker pointing at the same bucket. Unmerged buffer ops will be included in the next rebuild. Keep R2 versioning or lifecycle rules if you need point-in-time recovery.
+To recover: redeploy the Worker pointing at the same bucket. Unmerged WAL entries will be included in the next rebuild. Keep R2 versioning or lifecycle rules if you need point-in-time recovery.
 
 ## Upgrading
 

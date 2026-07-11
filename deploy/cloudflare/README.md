@@ -38,3 +38,18 @@ Generated files in this directory (gitignored):
 pnpm --filter @zbsearch/edge-core build
 wrangler deploy --config deploy/cloudflare/wrangler.toml
 ```
+
+## Bulk import (example)
+
+```bash
+pnpm --filter @zbsearch/edge-index-builder build
+source deploy/cloudflare/.env
+bash deploy/cloudflare/ingest-unicorns.sh
+```
+
+Or run the CLI directly:
+
+```bash
+node packages/edge-index-builder/dist/cli.js import unicorns ./data.json \
+  --create --name unicorns --schema-file ./schema.json
+```

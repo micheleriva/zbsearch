@@ -130,9 +130,9 @@ bucket_name = "your-bucket-name"
 preview_bucket_name = "your-bucket-name-preview"
 ```
 
-## 3. Configure the rebuild CLI (optional but recommended)
+## 3. Configure the builder CLI (optional but recommended)
 
-The Worker handles search and buffered writes. **Rebuilds** that merge the buffer into a new snapshot can run inside the Worker (small indexes) or via an external CLI (production). The CLI uses R2's S3-compatible API.
+The Worker handles search and WAL writes. **Rebuilds** that merge the WAL into a new snapshot can run inside the Worker (small indexes) or via an external CLI (production). The same CLI also supports **bulk import** — building a snapshot locally and uploading it to R2 without per-document API calls.
 
 Copy the example env file:
 
@@ -156,8 +156,25 @@ R2_ENDPOINT=https://YOUR_ACCOUNT_ID.r2.cloudflarestorage.com
 ```
 
 <Callout type="info">
-  The Worker binds to R2 natively via Wrangler - it does **not** need these S3 credentials. They are only for the rebuild CLI and CI runners.
+  The Worker binds to R2 natively via Wrangler - it does **not** need these S3 credentials. They are only for the builder CLI and CI runners.
 </Callout>
+
+Build the CLI after installing dependencies:
+
+```bash
+pnpm --filter @zbsearch/edge-index-builder build
+```
+
+Rebuild or import against R2:
+
+```bash
+source deploy/cloudflare/.env
+node packages/edge-index-builder/dist/cli.js rebuild --all
+node packages/edge-index-builder/dist/cli.js import products ./catalog.json \
+  --create --name products --schema-file ./schema.json
+```
+
+See [Indexing & rebuilds](/docs/cloudflare/indexing-and-rebuilds#bulk-import) for import file formats (`{ "data": [...] }`, JSON array, or JSONL).
 
 ## 4. Optional: protect the API with a key
 
@@ -218,7 +235,7 @@ curl -X POST "$WORKER_URL/v1/indexes" \
 
 The index ID is derived from the name (`products` from `"products"`, `my-products` from `"My Products"`).
 
-Insert a document (buffered - not searchable yet):
+Insert a document (appended to WAL — searchable after rebuild, or sooner via WAL overlay):
 
 ```bash
 curl -X PUT "$WORKER_URL/v1/indexes/products/documents/sku-1" \
@@ -298,7 +315,8 @@ The script reads `zbsearch.edge.config.json` when present, otherwise `wrangler.t
 | `401 Unauthorized` | Missing or wrong `Authorization` header | Set `API_KEY` secret and send `Bearer` token |
 | R2 bucket not found on deploy | Bucket name mismatch | Match `bucket_name` in `wrangler.toml` to an existing R2 bucket |
 | Rebuild CLI fails | Missing S3 credentials | Fill `deploy/cloudflare/.env` with R2 API token values |
-| Worker CPU timeout on rebuild | Index too large for in-Worker rebuild | Use external builder via `BUILDER_WEBHOOK_URL` |
+| `import` command not found | CLI not built | Run `pnpm --filter @zbsearch/edge-index-builder build` |
+| Worker CPU timeout on rebuild | Index too large for in-Worker rebuild | Use external builder via `BUILDER_WEBHOOK_URL`, or bulk `import` |
 
 ## What's next
 

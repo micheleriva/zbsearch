@@ -1,0 +1,22 @@
+name = "zbsearch-edge"
+main = "../src/worker.ts"
+compatibility_date = "2025-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "zbsearch-edge"
+preview_bucket_name = "zbsearch-edge-preview"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+REBUILD_THRESHOLD_OPS = "500"
+
+# Optional paid-plan CPU limit (Workers Paid plan only):
+# [limits]
+# cpu_ms = 300000

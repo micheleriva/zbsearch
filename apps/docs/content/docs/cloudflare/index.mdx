@@ -4,10 +4,10 @@ description: Run ZBSearch as a distributed search API on Cloudflare Workers and 
 ---
 
 <Callout type="info" title="Beta">
-  **Deploy to Cloudflare** (ZBSearch Edge) is in **beta**. The Worker runtime, setup CLI, buffer/rebuild pipeline, and docs may change before a stable release. Expect rough edges - report issues on [GitHub](https://github.com/micheleriva/zbsearch/issues).
+  **Deploy to Cloudflare** (ZBSearch Edge) is in **beta**. The Worker runtime, setup CLI, WAL/rebuild pipeline, and docs may change before a stable release. Expect rough edges - report issues on [GitHub](https://github.com/micheleriva/zbsearch/issues).
 </Callout>
 
-ZBSearch Edge is a **self-hosted** search API that runs on **Cloudflare Workers** with **R2** as durable storage. It uses the same ZBSearch engine you already know from the browser and Node.js, but exposes it over HTTP with a write buffer and background rebuild pipeline optimized for edge deployments.
+ZBSearch Edge is a **self-hosted** search API that runs on **Cloudflare Workers** with **R2** as durable storage. It uses the same ZBSearch engine you already know from the browser and Node.js, but exposes it over HTTP with an append-only WAL and background rebuild pipeline optimized for edge deployments.
 
 This is **not** a managed SaaS product. You deploy the Worker and R2 bucket to your own Cloudflare account. There is no control plane, billing integration, or vendor lock-in beyond standard Cloudflare infrastructure.
 
@@ -18,27 +18,26 @@ This is **not** a managed SaaS product. You deploy the Worker and R2 bucket to y
 | **Search modes** | Full-text, vector, and hybrid search (same engine as `zbsearch`) |
 | **REST API** | Create indexes, upsert/delete documents, search, rebuild, status |
 | **Edge latency** | Queries served from Workers close to your users |
-| **Durable storage** | Immutable snapshots and a write-ahead buffer in R2 |
-| **Background rebuilds** | In-Worker cron for small indexes, or external builder for production |
+| **Durable storage** | Immutable snapshots and an append-only WAL in R2 |
+| **Background rebuilds** | In-Worker cron for small indexes, external builder for production, bulk `import` for large catalogs |
 | **OSS & free to deploy** | Apache 2.0 - you only pay Cloudflare usage |
 
 ## Architecture
 
-Writes and reads follow different paths by design. Search always reads a **single immutable snapshot**; writes append to a **buffer** and are merged on rebuild.
+Writes and reads follow different paths by design. Search loads the **live snapshot** from R2 (cached at the edge). Pending WAL operations can be overlaid at query time until the next rebuild merges them.
 
 ```
 Client                    Cloudflare Worker                 R2
   │                              │                          │
-  │  PUT /documents/:id          │                          │
-  │ ───────────────────────────► │  append NDJSON segment   │
-  │                              │ ────────────────────────► │
+  │  PUT /documents/:id          │  append WAL entry        │
+  │ ───────────────────────────► │ ────────────────────────► │
   │  ◄── 202 buffered            │                          │
   │                              │                          │
-  │  POST /rebuild (or cron)     │  read snapshot + buffer  │
+  │  POST /rebuild (or cron)     │  read snapshot + WAL     │
   │ ───────────────────────────► │ ◄──────────────────────► │
   │                              │  write new snapshot      │
   │                              │ ────────────────────────► │
-  │  POST /search                │  load snapshot (cached)  │
+  │  POST /search                │  load snapshot (+ WAL)   │
   │ ───────────────────────────► │ ◄──────────────────────► │
   │  ◄── 200 hits                │                          │
 ```
@@ -47,10 +46,10 @@ Client                    Cloudflare Worker                 R2
 
 | Package | Role |
 | --- | --- |
-| `@zbsearch/edge-core` | REST router, buffer, rebuild logic, search orchestration |
+| `@zbsearch/edge-core` | REST router, WAL, rebuild logic, search orchestration |
 | `@zbsearch/runtime-cloudflare` | Workers entrypoint, setup/teardown CLIs |
-| `@zbsearch/storage-s3` | S3-compatible driver for R2 (rebuild CLI) |
-| `@zbsearch/edge-index-builder` | CLI to rebuild indexes from outside the Worker |
+| `@zbsearch/storage-s3` | S3-compatible driver for R2 (builder CLI) |
+| `@zbsearch/edge-index-builder` | CLI to rebuild indexes and bulk-import snapshots |
 
 Setup and teardown CLIs ship with `@zbsearch/runtime-cloudflare` (`zbsearch-edge-setup`, `zbsearch-edge-teardown`). Config templates are included in the package under `deploy/templates/`.
 
@@ -59,11 +58,12 @@ Setup and teardown CLIs ship with `@zbsearch/runtime-cloudflare` (`zbsearch-edge
 ZBSearch Edge fits when you want:
 
 - A **globally distributed** search API without running your own servers
-- **Predictable read performance** (single snapshot per query, no query-time merge)
+- **Predictable read performance** (snapshot loaded from R2, cached at the edge)
 - **Infrequent or batched writes** with acceptable eventual consistency (seconds to minutes, depending on rebuild schedule)
+- **Bulk catalog loads** via the `import` CLI (hundreds or thousands of documents in seconds)
 - **Full-text, vector, or hybrid** search with the same schema model as standalone ZBSearch
 
-For purely local or single-process use cases, use the [`zbsearch`](/docs/zbsearch) library directly. Edge adds HTTP, persistence, and the buffer/rebuild pipeline on top.
+For purely local or single-process use cases, use the [`zbsearch`](/docs/zbsearch) library directly. Edge adds HTTP, persistence, and the WAL/rebuild pipeline on top.
 
 ## Quick start
 

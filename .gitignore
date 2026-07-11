@@ -17,13 +17,16 @@ playwright-report
 .nyc_output
 benchmark
 deploy/cloudflare/.env
+deploy/cloudflare/.wrangler/
 deploy/cloudflare/zbsearch.edge.config.json
 deploy/cloudflare/zbsearch.edge.config.yaml
 deploy/cloudflare/zbsearch.edge.config.yml
 deploy/cloudflare/config.json
 deploy/cloudflare/config.yaml
 deploy/cloudflare/config.yml
+deploy/cloudflare/unicorns.schema.json
 zbsearch.edge.config.json
 zbsearch.edge.config.yaml
 zbsearch.edge.config.yml
-deploy
+packages/runtime-cloudflare/deploy/.wrangler/
+packages/runtime-cloudflare/deploy/dist/

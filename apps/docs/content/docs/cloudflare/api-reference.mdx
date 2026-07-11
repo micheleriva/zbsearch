@@ -160,14 +160,16 @@ Remove index metadata from the registry. **Response `202`:**
 ```
 
 <Callout type="warn">
-  v1 does not automatically purge R2 objects (snapshots, buffer segments) on delete. Plan a cleanup job if you delete indexes frequently.
+  v1 does not automatically purge R2 objects (snapshots, WAL entries) on delete. Plan a cleanup job if you delete indexes frequently.
 </Callout>
 
 ---
 
 ## Documents
 
-All write operations are **buffered** - they return `202` immediately and are not visible in search until the next rebuild.
+API writes append operations to the **WAL** in R2. They return `202` immediately. Documents are searchable after the next rebuild, or sooner if the Worker overlays pending WAL ops at query time (`includesBuffer: true` in search responses).
+
+For large catalogs, prefer the [bulk `import` CLI](/docs/cloudflare/indexing-and-rebuilds#bulk-import) — it uploads a snapshot directly and skips per-document API writes.
 
 ### `PUT /v1/indexes/:indexId/documents/:docId`
 
@@ -214,7 +216,7 @@ Buffer a delete operation. **Response `202`:** buffered response object.
 
 ### `POST /v1/indexes/:indexId/documents/batch`
 
-Apply multiple operations in one request.
+Apply multiple operations in one request. All operations are written to a **single WAL file** (one R2 PUT).
 
 **Body:**
 
@@ -228,7 +230,7 @@ Apply multiple operations in one request.
 }
 ```
 
-**Response `202`:** Result of the last operation.
+**Response `202`:** Buffered write response for the batch (`changeId`, `bufferedAt`, updated `indexStatus`).
 
 ---
 
@@ -236,7 +238,7 @@ Apply multiple operations in one request.
 
 ### `POST /v1/indexes/:indexId/search`
 
-Query the **live snapshot**. Requires at least one successful rebuild.
+Query the live snapshot, overlaying pending WAL operations when present.
 
 **Body:**
 
@@ -280,17 +282,20 @@ curl -X POST "$WORKER_URL/v1/indexes/products/search" \
   }'
 ```
 
-**Response `200`:** Standard ZBSearch search result plus `indexVersion`:
+**Response `200`:** Standard ZBSearch search result plus edge metadata:
 
 ```json
 {
   "count": 3,
   "hits": [...],
-  "indexVersion": "2026-07-10T12-00-00-000Z"
+  "indexVersion": "2026-07-10T12-00-00-000Z",
+  "includesBuffer": false
 }
 ```
 
-**Response `404`:** No searchable snapshot yet - trigger a rebuild.
+`includesBuffer: true` means results include documents from pending WAL operations not yet merged into the snapshot.
+
+**Response `404`:** No searchable documents yet — create the index, import data, or trigger a rebuild.
 
 ---
 
@@ -298,7 +303,7 @@ curl -X POST "$WORKER_URL/v1/indexes/products/search" \
 
 ### `POST /v1/indexes/:indexId/rebuild`
 
-Merge the write buffer into a new immutable snapshot and promote it to `liveVersion`.
+Merge pending WAL operations into a new immutable snapshot and promote it to `liveVersion`.
 
 **Response `202`:**
 

@@ -18,8 +18,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @zbsearch/edge-core build && pnpm --filter @zbsearch/storage-s3 build && pnpm --filter @zbsearch/edge-index-builder build
-      - run: pnpm --filter @zbsearch/edge-index-builder rebuild --all
+      - run: pnpm --filter @zbsearch/edge-index-builder build
+      - run: node packages/edge-index-builder/dist/cli.js rebuild --all
         env:
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}

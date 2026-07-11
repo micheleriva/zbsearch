@@ -1,9 +1,9 @@
 ---
 title: Indexing & rebuilds
-description: How ZBSearch Edge buffers writes, builds immutable snapshots in R2, and makes documents searchable. Cloudflare deploy is in beta.
+description: How ZBSearch Edge appends WAL writes, builds immutable snapshots in R2, and makes documents searchable. Cloudflare deploy is in beta.
 ---
 
-ZBSearch Edge separates **writes** from **reads** on purpose. Search queries never merge a live write buffer at query time - they always load one immutable snapshot. This keeps latency predictable at the edge.
+ZBSearch Edge separates **writes** from **snapshot promotion** on purpose. Search loads the live snapshot and, when `pendingOps > 0`, overlays pending WAL operations in memory so recent writes can appear before the next rebuild completes.
 
 ## Write path: the WAL
 
@@ -11,7 +11,7 @@ When you upsert or delete a document, the Worker appends an operation to an **ap
 
 ```
 wal/{indexId}/head.json                    ← pending count, oldest op timestamp
-wal/{indexId}/entries/{ts}_{changeId}.ndjson
+wal/{indexId}/entries/{seq}_{ts}_{changeId}.ndjson
 ...
 ```
 
@@ -50,20 +50,20 @@ A rebuild performs these steps:
 
 1. Set index status to `building`
 2. Load documents from the current live snapshot (if any)
-3. Read and apply all buffered operations (upserts overwrite, deletes remove)
+3. Read and apply all pending WAL operations (upserts overwrite, deletes remove)
 4. Build a new ZBSearch database in memory
 5. Serialize to msgpack and upload to R2
-6. Clear the buffer
-7. Set `liveVersion`, `documents`, `indexSizeBytes`, status `ready`, `pendingOps: 0`
+6. Clear compacted WAL entries
+7. Set `liveVersion`, `documents`, `indexSizeBytes`, status `ready`, update `pendingOps`
 
 ```
 Before rebuild:
   liveVersion: v1  (search reads this)
-  buffer: [upsert doc-A, delete doc-B, upsert doc-C]
+  WAL: [upsert doc-A, delete doc-B, upsert doc-C]
 
 After rebuild:
   liveVersion: v2  (new snapshot with merged state)
-  buffer: (empty)
+  WAL: (compacted — entries merged into snapshot are removed)
 ```
 
 You can trigger rebuild manually:
@@ -211,7 +211,7 @@ curl -X POST "$WORKER_URL/v1/indexes/products/rebuild"
 
 ### Streaming updates
 
-Let writes accumulate in the buffer. Rely on cron or CI to rebuild periodically. Monitor `pendingOps` via `/status`.
+Let writes accumulate in the WAL. Rely on cron or CI to rebuild periodically. Monitor `pendingOps` via `/status`.
 
 ### Near real-time search
 

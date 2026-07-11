@@ -10,7 +10,7 @@
  * short stems are left intact.
  *
  * The ending inventory follows standard Slovene inflectional morphology
- * (noun declensions — sklanjatve — across the three genders and the
+ * (noun declensions - sklanjatve - across the three genders and the
  * singular/dual/plural numbers, adjective agreement, and the productive verb
  * classes; cf. J. Toporišič, *Slovenska slovnica*) and was cross-checked
  * against the suffix set of the unpublished Slovene Snowball stemmer drafted
@@ -121,7 +121,7 @@ export function stemmer(word) {
 
   // Step 2: trim residual theme/case vowels (mesta → mest, hiši → hiš),
   // plus a final 'j' glide when it follows a consonant (vprašanje →
-  // vprašanj → vprašan, bratje → brat) or an 'i' — where -ij- is always an
+  // vprašanj → vprašan, bratje → brat) or an 'i' - where -ij- is always an
   // inflectional/thematic tail, so the whole -ija class collapses (operacija,
   // operacije, operacijo, operacij → operac; ladja/ladij → lad). After
   // a/e/o/u the 'j' is part of the stem (muzej, kraj, razvoj) and is kept.

@@ -1,0 +1,238 @@
+---
+title: Indexing & rebuilds
+description: How ZBSearch Edge appends WAL writes, builds immutable snapshots in R2, and makes documents searchable. Cloudflare deploy is in beta.
+---
+
+ZBSearch Edge separates **writes** from **snapshot promotion** on purpose. Search loads the live snapshot and, when `pendingOps > 0`, overlays pending WAL operations in memory so recent writes can appear before the next rebuild completes.
+
+## Write path: the WAL
+
+When you upsert or delete a document, the Worker appends an operation to an **append-only WAL entry** in R2:
+
+```
+wal/{indexId}/head.json                    ← pending count, oldest op timestamp
+wal/{indexId}/entries/{seq}_{ts}_{changeId}.ndjson
+...
+```
+
+Legacy deployments may still have in-place buffer segments under `buffer/{indexId}/segments/`; the Worker reads both during migration.
+
+Each WAL file contains one or more NDJSON lines (one operation per line):
+
+```json
+{"op":"upsert","id":"sku-1","ts":"2026-07-10T12:00:00.000Z","doc":{"title":"Headphones","price":99}}
+{"op":"delete","id":"sku-2","ts":"2026-07-10T12:01:00.000Z"}
+```
+
+The API responds immediately with `202` and a `changeId`. The index's `pendingOps` counter increments. **Documents in the WAL are not searchable until the next rebuild** (unless you use bulk import below).
+
+Batch writes (`POST /documents/batch`) append all operations to a **single WAL file**, reducing R2 PUT count.
+
+### Legacy segment rotation
+
+Older versions grew in-place segment files (`buffer/.../segments/000001.ndjson`) until 64 MB, then rotated. New writes use immutable WAL entries instead — no read-modify-write on segments.
+
+## Read path: snapshots
+
+Search loads a **msgpack snapshot** from R2:
+
+```
+indexes/{indexId}/{version}/snapshot.msgpack
+```
+
+The `liveVersion` field in index metadata points to the current searchable version. Snapshots are **immutable** - rebuild always writes a new version and atomically updates `liveVersion` in metadata.
+
+The Worker caches snapshot bytes in **Workers Cache** (`caches.default`) to avoid repeated R2 reads on hot indexes.
+
+## Rebuild pipeline
+
+A rebuild performs these steps:
+
+1. Set index status to `building`
+2. Load documents from the current live snapshot (if any)
+3. Read and apply all pending WAL operations (upserts overwrite, deletes remove)
+4. Build a new ZBSearch database in memory
+5. Serialize to msgpack and upload to R2
+6. Clear compacted WAL entries
+7. Set `liveVersion`, `documents`, `indexSizeBytes`, status `ready`, update `pendingOps`
+
+```
+Before rebuild:
+  liveVersion: v1  (search reads this)
+  WAL: [upsert doc-A, delete doc-B, upsert doc-C]
+
+After rebuild:
+  liveVersion: v2  (new snapshot with merged state)
+  WAL: (compacted — entries merged into snapshot are removed)
+```
+
+You can trigger rebuild manually:
+
+```bash
+curl -X POST "$WORKER_URL/v1/indexes/products/rebuild" \
+  -H "authorization: Bearer $API_KEY"
+```
+
+Or let automation handle it (see below).
+
+## Consistency model
+
+| Operation | Visibility |
+| --- | --- |
+| Write (upsert/delete) | Acknowledged immediately (`202`); not in search results until rebuild |
+| Rebuild | Atomic promotion of new `liveVersion` |
+| Search | Always reflects the last completed rebuild |
+
+Typical lag depends on your rebuild strategy:
+
+| Strategy | Expected search lag |
+| --- | --- |
+| Manual rebuild after writes | Immediate after `POST /rebuild` completes |
+| Worker cron (default: every 5 min) | Up to 5 minutes + rebuild duration |
+| Threshold trigger (`REBUILD_THRESHOLD_OPS`) | When pending ops reach threshold |
+| External CI (every 15 min) | Up to schedule interval + rebuild duration |
+
+Plan for **eventual consistency**. If you need read-your-writes, either call rebuild after each batch of writes or poll `/status` until `pendingOps` is `0`.
+
+## Rebuild strategies
+
+### 1. In-Worker cron (dev / small indexes)
+
+Configured in `deploy/cloudflare/wrangler.toml`:
+
+```toml
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+REBUILD_THRESHOLD_OPS = "500"
+```
+
+Every cron tick, the Worker lists indexes and rebuilds any where `pendingOps >= REBUILD_THRESHOLD_OPS` - **unless** `BUILDER_WEBHOOK_URL` is set.
+
+Best for: demos, small catalogs, development.
+
+Limitations: Worker CPU and memory limits; not suitable for multi-GB indexes.
+
+### 2. Manual rebuild via API
+
+Call `POST /v1/indexes/:id/rebuild` from your application or a script after bulk imports.
+
+Best for: controlled batch imports, one-off reindexing.
+
+### 3. External builder CLI
+
+Run the rebuild CLI against R2 using S3-compatible credentials:
+
+```bash
+# Rebuild one index
+node packages/edge-index-builder/dist/cli.js rebuild products
+
+# Rebuild all indexes that need it
+node packages/edge-index-builder/dist/cli.js rebuild --all
+
+# Bulk import (build snapshot locally, upload to R2)
+node packages/edge-index-builder/dist/cli.js import products ./data.json --create --schema-file ./schema.json
+```
+
+The `--all` flag skips indexes that are `ready` with `pendingOps === 0` and an existing `liveVersion`.
+
+Environment variables (from `deploy/cloudflare/.env`):
+
+| Variable | Description |
+| --- | --- |
+| `R2_BUCKET` | Bucket name |
+| `R2_ACCESS_KEY_ID` | R2 API token access key |
+| `R2_SECRET_ACCESS_KEY` | R2 API token secret |
+| `R2_ENDPOINT` | `https://<account_id>.r2.cloudflarestorage.com` |
+
+Best for: production, large indexes, CI pipelines.
+
+### 4. Webhook + GitHub Actions
+
+Set a Worker secret so cron triggers an external runner instead of rebuilding inline:
+
+```bash
+wrangler secret put BUILDER_WEBHOOK_URL --config deploy/cloudflare/wrangler.toml
+# e.g. https://api.github.com/repos/OWNER/REPO/dispatches
+```
+
+When `pendingOps >= REBUILD_THRESHOLD_OPS`, the Worker POSTs:
+
+```json
+{ "indexId": "products", "source": "scheduler" }
+```
+
+Copy the workflow from [`deploy/github-actions/zbsearch-rebuild.yml`](https://github.com/micheleriva/zbsearch/blob/main/deploy/github-actions/zbsearch-rebuild.yml) into your repository and add secrets:
+
+- `R2_BUCKET`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_ENDPOINT`
+
+See [Production](/docs/cloudflare/production) for the full GitHub Actions setup.
+
+## Recommended patterns
+
+### Bulk import
+
+For large catalogs (hundreds or thousands of documents), avoid per-document API writes. Build the snapshot locally and upload directly to R2:
+
+```bash
+# Load R2 credentials from deploy/cloudflare/.env
+source deploy/cloudflare/.env
+
+# Import JSON { "data": [...] } or JSONL
+node packages/edge-index-builder/dist/cli.js import products ./catalog.json \
+  --create \
+  --name products \
+  --schema-file ./products.schema.json \
+  --language english
+```
+
+The `import` command:
+
+1. Parses documents and assigns stable IDs (slugified `company_name` or explicit `id`)
+2. Builds a ZBSearch snapshot in memory
+3. Uploads `snapshot.msgpack` to R2
+4. Clears any pending WAL entries and sets `liveVersion` — **documents are searchable immediately**
+
+For smaller batches via the API:
+
+```bash
+# 1. Batch upsert documents (single WAL file)
+curl -X POST "$WORKER_URL/v1/indexes/products/documents/batch" \
+  -H 'content-type: application/json' \
+  -d '{"operations":[...]}'
+
+# 2. Trigger rebuild once
+curl -X POST "$WORKER_URL/v1/indexes/products/rebuild"
+```
+
+### Streaming updates
+
+Let writes accumulate in the WAL. Rely on cron or CI to rebuild periodically. Monitor `pendingOps` via `/status`.
+
+### Near real-time search
+
+Lower `REBUILD_THRESHOLD_OPS` (e.g. `10`) or rebuild after each write batch from your application. Balance rebuild cost against freshness requirements.
+
+## Storage layout reference
+
+```
+registry.json
+indexes/{indexId}/meta.json
+indexes/{indexId}/{version}/snapshot.msgpack
+wal/{indexId}/head.json
+wal/{indexId}/entries/*.ndjson
+buffer/{indexId}/head.json          ← legacy, read-only during migration
+buffer/{indexId}/segments/*.ndjson  ← legacy
+```
+
+## v1 limitations
+
+- **Full snapshots only** - no field-level sharding yet (planned for larger indexes)
+- **Index delete** removes metadata but does not purge R2 objects automatically
+- **Single region R2** - snapshot locality follows your R2 bucket; Workers run globally
+
+Future versions will add sharded `.spb`/`.ivf` formats and additional runtime targets (Docker, AWS).

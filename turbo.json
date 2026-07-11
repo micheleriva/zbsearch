@@ -47,6 +47,34 @@
     "@zbsearch/docs#build": {
       "dependsOn": ["zbsearch#build"],
       "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "@zbsearch/edge-core#build": {
+      "dependsOn": ["zbsearch#build"],
+      "outputs": ["dist/**"]
+    },
+    "@zbsearch/storage-s3#build": {
+      "dependsOn": ["@zbsearch/edge-core#build"],
+      "outputs": ["dist/**"]
+    },
+    "@zbsearch/edge-index-builder#build": {
+      "dependsOn": ["@zbsearch/storage-s3#build", "@zbsearch/edge-core#build"],
+      "outputs": ["dist/**"]
+    },
+    "@zbsearch/runtime-cloudflare#build": {
+      "dependsOn": ["@zbsearch/edge-core#build"],
+      "outputs": ["dist/**"]
+    },
+    "@zbsearch/edge-core#test": {
+      "dependsOn": ["@zbsearch/edge-core#build"]
+    },
+    "@zbsearch/storage-s3#test": {
+      "dependsOn": ["@zbsearch/storage-s3#build"]
+    },
+    "@zbsearch/edge-index-builder#test": {
+      "dependsOn": ["@zbsearch/edge-index-builder#build"]
+    },
+    "@zbsearch/runtime-cloudflare#test": {
+      "dependsOn": ["@zbsearch/runtime-cloudflare#build"]
     }
   }
 }

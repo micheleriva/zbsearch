@@ -1,0 +1,12 @@
+{
+  "data": [
+    {
+      "company_name": "OpenAI",
+      "industry": "Artificial intelligence"
+    },
+    {
+      "company_name": "Stripe",
+      "industry": "Fintech"
+    }
+  ]
+}

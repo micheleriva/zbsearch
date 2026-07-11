@@ -154,6 +154,7 @@
     "@playwright/test": "^1.29.2",
     "@swc/cli": "^0.1.59",
     "@swc/core": "^1.3.27",
+    "@tapjs/core": "^1.5.4",
     "@types/node": "^20.9.0",
     "@types/tap": "^15.0.7",
     "@zbsearch/stemmers": "workspace:*",

@@ -1,0 +1,381 @@
+---
+title: API reference
+description: Complete REST API for ZBSearch Edge - indexes, documents, search, rebuild, and status endpoints. Cloudflare deploy is in beta.
+---
+
+<Callout type="info" title="Beta">
+  This API ships with the beta Cloudflare deploy. Endpoints and response fields may change before a stable release.
+</Callout>
+
+All endpoints are served from your Worker URL unless noted. JSON request and response bodies use `Content-Type: application/json`.
+
+## Authentication
+
+If `API_KEY` is configured on the Worker, protected routes require:
+
+```
+Authorization: Bearer YOUR_API_KEY
+```
+
+These routes are **always public** (no auth):
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/health` | Liveness probe |
+| `GET` | `/v1/info` | Service name and version |
+| `OPTIONS` | `*` | CORS preflight |
+
+All `/v1/*` routes below require auth when `API_KEY` is set.
+
+## Error format
+
+```json
+{
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Index products not found"
+  }
+}
+```
+
+| HTTP status | Code | Typical cause |
+| --- | --- | --- |
+| `400` | `BAD_REQUEST` | Invalid input, duplicate index |
+| `401` | `UNAUTHORIZED` | Missing or invalid API key |
+| `404` | `NOT_FOUND` | Index or route not found, no snapshot yet |
+| `409` | `CONFLICT` | Reserved for future use |
+
+---
+
+## Service
+
+### `GET /health`
+
+Returns `{ "ok": true }`. Use for uptime checks.
+
+### `GET /v1/info`
+
+Returns service metadata:
+
+```json
+{
+  "name": "zbsearch-edge",
+  "version": "0.1.0"
+}
+```
+
+---
+
+## Indexes
+
+### `GET /v1/indexes`
+
+List all indexes.
+
+**Response `200`:**
+
+```json
+{
+  "indexes": [
+    {
+      "id": "products",
+      "name": "products",
+      "schema": { "title": "string", "price": "number" },
+      "settings": {
+        "rebuildIntervalSec": 300,
+        "rebuildThresholdOps": 500,
+        "mode": "edge"
+      },
+      "liveVersion": "2026-07-10T12-00-00-000Z",
+      "status": "ready",
+      "documents": 42,
+      "pendingOps": 0
+    }
+  ]
+}
+```
+
+### `POST /v1/indexes`
+
+Create a new index.
+
+**Body:**
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `name` | `string` | Yes | Display name; slugified to `id` (e.g. `"My Products"` → `my-products`) |
+| `schema` | `object` | Yes | Same [schema types](/docs/zbsearch/usage/create) as standalone ZBSearch |
+| `settings` | `object` | No | See [index settings](#index-settings) |
+
+**Example:**
+
+```bash
+curl -X POST "$WORKER_URL/v1/indexes" \
+  -H 'content-type: application/json' \
+  -d '{
+    "name": "articles",
+    "schema": {
+      "title": "string",
+      "body": "string",
+      "tags": "string[]"
+    },
+    "settings": {
+      "language": "english"
+    }
+  }'
+```
+
+**Response `201`:** Full index metadata object.
+
+### `GET /v1/indexes/:indexId`
+
+Get metadata for one index. **Response `200`:** index object.
+
+### `PATCH /v1/indexes/:indexId`
+
+Update index settings (partial merge).
+
+**Body:**
+
+```json
+{
+  "settings": {
+    "rebuildThresholdOps": 100,
+    "language": "english"
+  }
+}
+```
+
+**Response `200`:** Updated index metadata.
+
+### `DELETE /v1/indexes/:indexId`
+
+Remove index metadata from the registry. **Response `202`:**
+
+```json
+{
+  "status": "deleting",
+  "indexId": "products"
+}
+```
+
+<Callout type="warn">
+  v1 does not automatically purge R2 objects (snapshots, WAL entries) on delete. Plan a cleanup job if you delete indexes frequently.
+</Callout>
+
+---
+
+## Documents
+
+API writes append operations to the **WAL** in R2. They return `202` immediately. Documents are searchable after the next rebuild, or sooner if the Worker overlays pending WAL ops at query time (`includesBuffer: true` in search responses).
+
+For large catalogs, prefer the [bulk `import` CLI](/docs/cloudflare/indexing-and-rebuilds#bulk-import) — it uploads a snapshot directly and skips per-document API writes.
+
+### `PUT /v1/indexes/:indexId/documents/:docId`
+
+Upsert a document by ID. The request body is the document fields (matching your schema).
+
+```bash
+curl -X PUT "$WORKER_URL/v1/indexes/products/documents/sku-42" \
+  -H 'content-type: application/json' \
+  -d '{"title":"Mechanical Keyboard","price":149}'
+```
+
+**Response `202`:**
+
+```json
+{
+  "status": "buffered",
+  "changeId": "chg_a1b2c3d4e5f67890",
+  "bufferedAt": "2026-07-10T12:00:00.000Z",
+  "indexStatus": "empty"
+}
+```
+
+### `POST /v1/indexes/:indexId/documents`
+
+Upsert with ID in the body.
+
+**Body:**
+
+```json
+{
+  "id": "sku-42",
+  "document": {
+    "title": "Mechanical Keyboard",
+    "price": 149
+  }
+}
+```
+
+**Response `202`:** Same as PUT.
+
+### `DELETE /v1/indexes/:indexId/documents/:docId`
+
+Buffer a delete operation. **Response `202`:** buffered response object.
+
+### `POST /v1/indexes/:indexId/documents/batch`
+
+Apply multiple operations in one request. All operations are written to a **single WAL file** (one R2 PUT).
+
+**Body:**
+
+```json
+{
+  "operations": [
+    { "op": "upsert", "id": "1", "doc": { "title": "First" } },
+    { "op": "upsert", "id": "2", "doc": { "title": "Second" } },
+    { "op": "delete", "id": "3" }
+  ]
+}
+```
+
+**Response `202`:** Buffered write response for the batch (`changeId`, `bufferedAt`, updated `indexStatus`).
+
+---
+
+## Search
+
+### `POST /v1/indexes/:indexId/search`
+
+Query the live snapshot, overlaying pending WAL operations when present.
+
+**Body:**
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `term` | `string` | `""` | Full-text query |
+| `mode` | `"fulltext"` \| `"vector"` \| `"hybrid"` | `"fulltext"` | Search mode |
+| `where` | `object` | - | Filters (same as [ZBSearch filters](/docs/zbsearch/search/filters)) |
+| `limit` | `number` | `20` | Max results |
+| `offset` | `number` | `0` | Pagination offset |
+| `properties` | `string` \| `string[]` | - | Properties to search |
+| `boost` | `object` | - | [Field boosting](/docs/zbsearch/search/fields-boosting) |
+| `similarity` | `number` | - | Vector similarity threshold |
+| `vector` | `{ value: number[], property: string }` | - | [Vector search](/docs/zbsearch/search/vector-search) query |
+| `hybridWeights` | `{ text: number, vector: number }` | - | [Hybrid search](/docs/zbsearch/search/hybrid-search) weights |
+
+**Example - full-text:**
+
+```bash
+curl -X POST "$WORKER_URL/v1/indexes/products/search" \
+  -H 'content-type: application/json' \
+  -d '{
+    "term": "wireless headphones",
+    "limit": 10,
+    "where": { "price": { "lte": 200 } }
+  }'
+```
+
+**Example - vector:**
+
+```bash
+curl -X POST "$WORKER_URL/v1/indexes/products/search" \
+  -H 'content-type: application/json' \
+  -d '{
+    "mode": "vector",
+    "vector": {
+      "property": "embedding",
+      "value": [0.1, 0.2, 0.3]
+    },
+    "similarity": 0.8
+  }'
+```
+
+**Response `200`:** Standard ZBSearch search result plus edge metadata:
+
+```json
+{
+  "count": 3,
+  "hits": [...],
+  "indexVersion": "2026-07-10T12-00-00-000Z",
+  "includesBuffer": false
+}
+```
+
+`includesBuffer: true` means results include documents from pending WAL operations not yet merged into the snapshot.
+
+**Response `404`:** No searchable documents yet — create the index, import data, or trigger a rebuild.
+
+---
+
+## Rebuild & status
+
+### `POST /v1/indexes/:indexId/rebuild`
+
+Merge pending WAL operations into a new immutable snapshot and promote it to `liveVersion`.
+
+**Response `202`:**
+
+```json
+{
+  "status": "rebuilt",
+  "indexId": "products",
+  "liveVersion": "2026-07-10T12-05-00-000Z"
+}
+```
+
+Rebuild runs synchronously in the Worker request. For large indexes, use an [external builder](/docs/cloudflare/production).
+
+### `GET /v1/indexes/:indexId/status`
+
+**Response `200`:**
+
+```json
+{
+  "indexId": "products",
+  "liveVersion": "2026-07-10T12-00-00-000Z",
+  "status": "ready",
+  "documents": 42,
+  "indexSizeBytes": 1048576,
+  "pendingOps": 5,
+  "lastRebuildAt": "2026-07-10T12:00:00.000Z",
+  "lastAppliedOffset": null
+}
+```
+
+| `status` | Meaning |
+| --- | --- |
+| `empty` | Index exists but no live snapshot |
+| `building` | Rebuild in progress |
+| `ready` | Searchable snapshot available |
+
+### `GET /v1/indexes/:indexId/manifest`
+
+Returns index configuration and stats for clients that need schema or version info:
+
+```json
+{
+  "indexId": "products",
+  "name": "products",
+  "liveVersion": "2026-07-10T12-00-00-000Z",
+  "status": "ready",
+  "schema": { "title": "string" },
+  "settings": { "mode": "edge" },
+  "stats": {
+    "documents": 42,
+    "totalBytes": 1048576
+  }
+}
+```
+
+---
+
+## Index settings
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `language` | `string` | - | Tokenizer language (e.g. `"english"`) |
+| `rebuildIntervalSec` | `number` | `300` | Hint for external schedulers |
+| `rebuildThresholdOps` | `number` | `500` | Auto-rebuild threshold (Worker cron) |
+| `mode` | `"edge"` \| `"hybrid"` \| `"client"` | `"edge"` | Index mode marker |
+
+---
+
+## CORS
+
+The Worker sets `Access-Control-Allow-Origin: *` on all responses and handles `OPTIONS` preflight for browser clients. Tighten this in a fork if you need origin restrictions.
+
+## Rate limits
+
+Cloudflare Workers and R2 have platform-level limits. On the **Workers Paid** plan you can set `limits.cpuMs` in `zbsearch.edge.config.json` (e.g. `300000` for 5 minutes) to accommodate in-Worker rebuilds on small indexes. The Free plan does not support custom CPU limits. Large rebuilds should run outside the Worker via `@zbsearch/edge-index-builder`.

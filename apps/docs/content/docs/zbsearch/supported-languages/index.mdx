@@ -1,0 +1,95 @@
+---
+title: Officially Supported Languages
+description: ZBSearch supports 33 languages out of the box in 8 different alphabets. For every language, ZBSearch provides a default tokenizer, stop-words, and stemmer.
+---
+
+Right now, ZBSearch supports 33 languages out of the box in 8 different alphabets. \
+For every language, ZBSearch provides a default tokenizer, stop-words, and stemmer.
+
+<Callout title='🇨🇳🇯🇵 A note on Chinese and Japanese'>
+At the time of writing, Chinese (Mandarin) and Japanese are the only exception, since ZBSearch provides everything by default but the stemmer.
+
+Since Chinese and Japanese logograms follow different rules than other alphabets, you will need to import a dedicated tokenizer for it.
+
+Read more here about Chinese [here](/docs/zbsearch/supported-languages/using-chinese-with-zbsearch) and about Japanese [here](/docs/zbsearch/supported-languages/using-japanese-with-zbsearch).
+</Callout>
+
+
+### Latin Alphabet
+
+| Language       | Tokenizer | Stop-words | Stemmer |
+| -------------- | --------- | ---------- | ------- |
+| Czech          | ✅        | ✅         | ✅      |
+| Danish         | ✅        | ✅         | ✅      |
+| Dutch          | ✅        | ✅         | ✅      |
+| English        | ✅        | ✅         | ✅      |
+| Finnish        | ✅        | ✅         | ✅      |
+| French         | ✅        | ✅         | ✅      |
+| German         | ✅        | ✅         | ✅      |
+| Hungarian      | ✅        | ✅         | ✅      |
+| Indonesian     | ✅        | ✅         | ✅      |
+| Irish          | ✅        | ✅         | ✅      |
+| Italian        | ✅        | ✅         | ✅      |
+| Lithuanian     | ✅        | ✅         | ✅      |
+| Norwegian      | ✅        | ✅         | ✅      |
+| Portuguese     | ✅        | ✅         | ✅      |
+| Romanian (\*)  | ✅        | ✅         | ✅      |
+| Serbian (\*\*) | ✅        | ✅         | ✅      |
+| Slovenian      | ✅        | ✅         | ✅      |
+| Spanish        | ✅        | ✅         | ✅      |
+| Swedish        | ✅        | ✅         | ✅      |
+| Turkish        | ✅        | ✅         | ✅      |
+| Vietnamese     | ✅        | ✅         | ✅      |
+
+(\*) = also uses a few additional diacritic marks \
+(\*\*) = uses both Cyrillic and Latin scripts
+
+### Cyrillic Alphabet
+
+| Language     | Tokenizer | Stop-words | Stemmer |
+| ------------ | --------- | ---------- | ------- |
+| Bulgarian    | ✅        | ✅         | ✅      |
+| Russian      | ✅        | ✅         | ✅      |
+| Serbian (\*) | ✅        | ✅         | ✅      |
+| Ukrainian    | ✅        | ✅         | ✅      |
+
+(\*) = uses both Cyrillic and Latin scripts
+
+### Greek Alphabet
+
+| Language | Tokenizer | Stop-words | Stemmer |
+| -------- | --------- | ---------- | ------- |
+| Greek    | ✅        | ✅         | ✅      |
+
+### Devanagari Script
+
+| Language | Tokenizer | Stop-words | Stemmer |
+| -------- | --------- | ---------- | ------- |
+| Hindi    | ✅        | ✅         | ✅      |
+| Nepali   | ✅        | ✅         | ✅      |
+| Sanskrit | ✅        | ✅         | ✅      |
+
+### Arabic Script
+
+| Language | Tokenizer | Stop-words | Stemmer |
+| -------- | --------- | ---------- | ------- |
+| Arabic   | ✅        | ✅         | ✅      |
+
+### Armenian Alphabet
+
+| Language | Tokenizer | Stop-words | Stemmer |
+| -------- | --------- | ---------- | ------- |
+| Armenian | ✅        | ✅         | ✅      |
+
+### Tamil Script
+
+| Language | Tokenizer | Stop-words | Stemmer |
+| -------- | --------- | ---------- | ------- |
+| Tamil    | ✅        | ✅         | ✅      |
+
+### Chinese Characters (Logographic Script)
+
+| Language           | Tokenizer | Stop-words | Stemmer |
+| ------------------ | --------- | ---------- | ------- |
+| Chinese (Mandarin) | ✅        | ✅         | ❌      |
+| Japanese           | ✅        | ✅         | ❌      |

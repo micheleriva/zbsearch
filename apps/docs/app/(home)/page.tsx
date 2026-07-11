@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { ServerCodeBlock } from 'fumadocs-ui/components/codeblock.rsc';
+import { CloudflareIcon } from '@/components/icons/cloudflare';
 import {
   ArrowRight,
   BarChart3,
   Filter,
-  Github,
   Globe2,
   Layers,
   MapPin,
@@ -30,73 +30,73 @@ const features: { title: string; description: string; icon: LucideIcon; href: st
     title: 'Full-Text Search',
     description: 'Typo-tolerant BM25 with stemming in 30+ languages.',
     icon: Search,
-    href: '/docs/zbsearch-js/search',
+    href: '/docs/zbsearch/search',
   },
   {
     title: 'Vector Search',
     description: 'Fast similarity search with optional IVF indexing.',
     icon: Sparkles,
-    href: '/docs/zbsearch-js/search/vector-search',
+    href: '/docs/zbsearch/search/vector-search',
   },
   {
     title: 'Hybrid Search',
     description: 'Combine keyword and semantic relevance in one query.',
     icon: Zap,
-    href: '/docs/zbsearch-js/search/hybrid-search',
+    href: '/docs/zbsearch/search/hybrid-search',
   },
   {
     title: 'Search Filters',
     description: 'Filter by numbers, enums, booleans, and nested fields.',
     icon: Filter,
-    href: '/docs/zbsearch-js/search/filters',
+    href: '/docs/zbsearch/search/filters',
   },
   {
     title: 'Geosearch',
     description: 'Radius, polygon, and sorted geo queries on BKD trees.',
     icon: MapPin,
-    href: '/docs/zbsearch-js/search/geosearch',
+    href: '/docs/zbsearch/search/geosearch',
   },
   {
     title: 'Results Pinning',
     description: 'Merchandising rules to boost or pin specific results.',
     icon: Pin,
-    href: '/docs/zbsearch-js/results-pinning',
+    href: '/docs/zbsearch/results-pinning',
   },
   {
     title: 'Facets',
     description: 'Aggregate counts across categories at search time.',
     icon: Layers,
-    href: '/docs/zbsearch-js/search/facets',
+    href: '/docs/zbsearch/search/facets',
   },
   {
     title: 'Fields Boosting',
     description: 'Weight schema properties to shape ranking.',
     icon: TrendingUp,
-    href: '/docs/zbsearch-js/search/fields-boosting',
+    href: '/docs/zbsearch/search/fields-boosting',
   },
   {
     title: 'Typo Tolerance',
     description: 'Forgiving matching powered by Levenshtein distance.',
     icon: Wand2,
-    href: '/docs/zbsearch-js/search#typo-tolerance',
+    href: '/docs/zbsearch/search#typo-tolerance',
   },
   {
     title: 'BM25',
     description: 'Industry-standard ranking out of the box.',
     icon: BarChart3,
-    href: '/docs/zbsearch-js/search/bm25',
+    href: '/docs/zbsearch/search/bm25',
   },
   {
     title: '30+ Languages',
     description: 'Tokenization and stemming for global text search.',
     icon: Globe2,
-    href: '/docs/zbsearch-js/supported-languages',
+    href: '/docs/zbsearch/supported-languages',
   },
   {
     title: 'Plugin System',
     description: 'Extend indexing, search, and persistence with hooks.',
     icon: Puzzle,
-    href: '/docs/zbsearch-js/plugins',
+    href: '/docs/zbsearch/plugins',
   },
 ];
 
@@ -147,27 +147,19 @@ export default async function HomePage() {
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           <Link
-            href="/docs/zbsearch-js"
+            href="/docs/zbsearch"
             className="inline-flex items-center gap-2 rounded-full bg-fd-primary px-6 py-3 text-sm font-semibold text-fd-primary-foreground shadow-lg shadow-fd-primary/20 transition-transform hover:scale-[1.02]"
           >
             Get Started
             <ArrowRight className="size-4" />
           </Link>
           <Link
-            href="/docs/zbsearch-js/vs-orama"
-            className="inline-flex items-center gap-2 rounded-full border bg-fd-card/50 px-6 py-3 text-sm font-semibold backdrop-blur-sm transition-colors hover:bg-fd-accent"
+            href="/docs/cloudflare"
+            className="inline-flex items-center gap-2 rounded-full border border-[#F6821F] bg-fd-card/50 px-6 py-3 text-sm font-semibold backdrop-blur-sm transition-colors hover:border-[#e86f0f] hover:bg-[#F6821F]/10"
           >
-            ZBSearch vs Orama
+            <CloudflareIcon className="size-4" />
+            Deploy to Cloudflare
           </Link>
-          <a
-            href="https://github.com/micheleriva/zbsearch"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-full border bg-fd-card/50 px-6 py-3 text-sm font-semibold text-fd-muted-foreground backdrop-blur-sm transition-colors hover:bg-fd-accent hover:text-fd-foreground"
-          >
-            <Github className="size-4" />
-            GitHub
-          </a>
         </div>
       </section>
 

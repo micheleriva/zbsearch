@@ -1,0 +1,43 @@
+{
+  "name": "@zbsearch/runtime-cloudflare",
+  "version": "0.1.0",
+  "description": "Cloudflare Workers runtime for ZBSearch Edge",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/worker.ts",
+  "exports": {
+    ".": {
+      "types": "./src/worker.ts",
+      "import": "./src/worker.ts"
+    }
+  },
+  "bin": {
+    "zbsearch-edge-setup": "./deploy/setup.mjs",
+    "zbsearch-edge-teardown": "./deploy/teardown.mjs"
+  },
+  "files": [
+    "src",
+    "dist",
+    "deploy"
+  ],
+  "scripts": {
+    "build": "wrangler deploy --config deploy/wrangler.monorepo.toml --dry-run --outdir=dist",
+    "dev": "wrangler dev --config deploy/wrangler.monorepo.toml",
+    "deploy": "wrangler deploy --config deploy/wrangler.monorepo.toml",
+    "test": "node --import tsx --test tests/**/*.test.ts"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.750.0",
+    "@zbsearch/edge-core": "workspace:*"
+  },
+  "peerDependencies": {
+    "wrangler": "^4.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250224.0",
+    "tsx": "^4.20.6",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "wrangler": "^4.0.0"
+  }
+}

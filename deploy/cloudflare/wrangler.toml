@@ -1,0 +1,25 @@
+name = "zbsearch-edge"
+main = "../../packages/runtime-cloudflare/src/worker.ts"
+compatibility_date = "2025-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "zbsearch-edge"
+preview_bucket_name = "zbsearch-edge-preview"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+REBUILD_THRESHOLD_OPS = "500"
+
+# Set via zbsearch-edge-setup or `wrangler secret put API_KEY`
+# Set via zbsearch-edge-setup or `wrangler secret put BUILDER_WEBHOOK_URL`
+
+# Optional paid-plan CPU limit (uncomment and set limits.cpuMs in config):
+# [limits]
+# cpu_ms = 300000

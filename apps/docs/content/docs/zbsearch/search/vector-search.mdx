@@ -4,14 +4,14 @@ description: Learn how to perform vector search using ZBSearch.
 ---
 Being a vector database, ZBSearch allows you to perform vector search natively.
 
-To perform search through vectors, you need to correctly configure your ZBSearch schema, as described in the [create page](/docs/zbsearch-js/usage/create).
+To perform search through vectors, you need to correctly configure your ZBSearch schema, as described in the [create page](/docs/zbsearch/usage/create).
 
 <Callout title="Generating Embeddings">
 In this page, we will assume that you already have the embeddings for your documents.
 
-If you don't, you can use the [Plugin Embeddings](/docs/zbsearch-js/plugins/plugin-embeddings) to generate them directly offline and on-device at insert and search time.
+If you don't, you can use the [Plugin Embeddings](/docs/zbsearch/plugins/plugin-embeddings) to generate them directly offline and on-device at insert and search time.
 
-If you're running ZBSearch in a memory-constrained environment, you can also use the [Plugin Secure Proxy](/docs/zbsearch-js/plugins/plugin-secure-proxy) to generate embeddings on the fly using the OpenAI API directly from the client-side.
+If you're running ZBSearch in a memory-constrained environment, you can also use the [Plugin Secure Proxy](/docs/zbsearch/plugins/plugin-secure-proxy) to generate embeddings on the fly using the OpenAI API directly from the client-side.
 </Callout>
 
 ## Performing Vector Search
@@ -69,7 +69,7 @@ const results = search(db, {
 ```
 
 <Callout title="Simplify it!">
-When running vector search using the [secure proxy](/docs/zbsearch-js/plugins/plugin-embeddings) or [embeddings](/docs/zbsearch-js/plugins/plugin-secure-proxy) plugins, you won't need to explicitly pass the `vector` configuration. Just run a simple search query!
+When running vector search using the [secure proxy](/docs/zbsearch/plugins/plugin-embeddings) or [embeddings](/docs/zbsearch/plugins/plugin-secure-proxy) plugins, you won't need to explicitly pass the `vector` configuration. Just run a simple search query!
 
 ```js
 const results = search(db, {

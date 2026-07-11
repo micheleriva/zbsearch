@@ -12,7 +12,9 @@ import {
   rebuildIndex,
   runSearch
 } from '../src/service.js'
-import { getIndexMeta } from '../src/registry.js'
+import { getIndexMeta, saveIndexMeta } from '../src/registry.js'
+import { bufferHeadKey } from '../src/paths.js'
+import type { ObjectStorage } from '../src/storage.js'
 import { NoopShardCache } from '../src/storage.js'
 import { MemoryObjectStorage } from './helpers/memory-storage.js'
 import { MemoryShardCache } from './helpers/memory-cache.js'
@@ -268,5 +270,97 @@ describe('service', () => {
       }
     })
     assert.equal(scheduled.length, 0)
+  })
+
+  it('maybeScheduleRebuild posts to builder webhook instead of rebuilding inline', async () => {
+    const calls: Array<{ url: string; body: unknown }> = []
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async (input, init) => {
+      calls.push({
+        url: String(input),
+        body: init?.body ? JSON.parse(String(init.body)) : null
+      })
+      return new Response('ok')
+    }) as typeof fetch
+
+    try {
+      const storage = new MemoryObjectStorage()
+      await createIndex(storage, {
+        name: 'webhook',
+        schema: { title: 'string' },
+        settings: { rebuildThresholdOps: 1 }
+      })
+      await bufferUpsert(storage, 'webhook', '1', { title: 'One' })
+
+      const scheduled: Promise<unknown>[] = []
+      await maybeScheduleRebuild(storage, 'webhook', {
+        threshold: 1,
+        builderWebhookUrl: 'https://builder.example/hook',
+        source: 'threshold',
+        schedule: (task) => {
+          scheduled.push(task)
+        }
+      })
+
+      assert.equal(scheduled.length, 1)
+      await scheduled[0]
+      assert.equal(calls.length, 1)
+      assert.equal(calls[0]!.url, 'https://builder.example/hook')
+      assert.deepEqual(calls[0]!.body, { indexId: 'webhook', source: 'threshold' })
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('rebuildIndex returns without duplicating work when already building', async () => {
+    const storage = new MemoryObjectStorage()
+    await createIndex(storage, { name: 'idempotent', schema: { title: 'string' } })
+    await bufferUpsert(storage, 'idempotent', '1', { title: 'One' })
+
+    const meta = await getIndexMeta(storage, 'idempotent')
+    meta.status = 'building'
+    await saveIndexMeta(storage, meta)
+
+    const result = await rebuildIndex(storage, 'idempotent')
+    assert.equal(result.status, 'building')
+    assert.equal((await getStatus(storage, 'idempotent')).pendingOps, 1)
+  })
+
+  it('rebuildIndex keeps buffer writes that land after freeze', async () => {
+    const storage = new MemoryObjectStorage()
+    const cache = new NoopShardCache()
+    let injectDuringFreeze = false
+
+    const wrappedStorage: ObjectStorage = {
+      get: (key) => storage.get(key),
+      put: async (key, body, opts) => {
+        const result = await storage.put(key, body, opts)
+        if (injectDuringFreeze && key === bufferHeadKey('concurrent')) {
+          injectDuringFreeze = false
+          await bufferUpsert(storage, 'concurrent', '3', { title: 'During Flush' })
+        }
+        return result
+      },
+      delete: (key) => storage.delete(key),
+      list: (prefix) => storage.list(prefix)
+    }
+
+    await createIndex(storage, { name: 'concurrent', schema: { title: 'string' } })
+    await bufferUpsert(storage, 'concurrent', '1', { title: 'Snapshot Doc' })
+    await rebuildIndex(storage, 'concurrent')
+    await bufferUpsert(storage, 'concurrent', '2', { title: 'Buffered Doc' })
+
+    injectDuringFreeze = true
+    await rebuildIndex(wrappedStorage, 'concurrent')
+
+    const status = await getStatus(storage, 'concurrent')
+    assert.equal(status.pendingOps, 1)
+
+    const bufferedHit = await runSearch(storage, cache, 'concurrent', { term: 'buffered' })
+    assert.ok((bufferedHit as { count: number }).count >= 1)
+
+    const bufferHit = await runSearch(storage, cache, 'concurrent', { term: 'during' })
+    assert.equal((bufferHit as { includesBuffer: boolean }).includesBuffer, true)
+    assert.ok((bufferHit as { count: number }).count >= 1)
   })
 })

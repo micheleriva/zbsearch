@@ -216,6 +216,67 @@ describe('router', () => {
     assert.equal((search.body as { includesBuffer: boolean }).includesBuffer, false)
   })
 
+  it('returns 202 before background rebuild completes', async () => {
+    const storage = new MemoryObjectStorage()
+    await createIndex(storage, {
+      name: 'async-flush',
+      schema: { title: 'string' },
+      settings: { rebuildThresholdOps: 1 }
+    })
+
+    let rebuildFinished = false
+    const routerCtx = {
+      ...ctx(storage),
+      scheduleBackground: (task: Promise<unknown>) => {
+        void task.then(() => {
+          rebuildFinished = true
+        })
+      },
+      rebuildThresholdOps: 1
+    }
+
+    const res = await handleRequest(
+      routerCtx,
+      makeRequest('PUT', '/v1/indexes/async-flush/documents/1', { body: { title: 'One' } })
+    )
+    assert.equal(res.status, 202)
+    assert.equal(rebuildFinished, false)
+  })
+
+  it('batch write schedules a single background rebuild', async () => {
+    const storage = new MemoryObjectStorage()
+    await createIndex(storage, {
+      name: 'batch-flush',
+      schema: { title: 'string' },
+      settings: { rebuildThresholdOps: 2 }
+    })
+
+    const scheduled: Promise<unknown>[] = []
+    const routerCtx = {
+      ...ctx(storage),
+      scheduleBackground: (task: Promise<unknown>) => {
+        scheduled.push(task)
+      },
+      rebuildThresholdOps: 2
+    }
+
+    await handleRequest(
+      routerCtx,
+      makeRequest('POST', '/v1/indexes/batch-flush/documents/batch', {
+        body: {
+          operations: [
+            { op: 'upsert', id: '1', doc: { title: 'One' } },
+            { op: 'upsert', id: '2', doc: { title: 'Two' } },
+            { op: 'upsert', id: '3', doc: { title: 'Three' } }
+          ]
+        }
+      })
+    )
+
+    assert.equal(scheduled.length, 1)
+    await scheduled[0]
+  })
+
   it('toResponse serializes JSON body', async () => {
     const response = toResponse({ status: 200, headers: { 'content-type': 'application/json' }, body: { ok: true } })
     assert.equal(response.status, 200)

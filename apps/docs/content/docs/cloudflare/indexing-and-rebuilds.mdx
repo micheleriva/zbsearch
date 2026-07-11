@@ -1,6 +1,6 @@
 ---
 title: Indexing & rebuilds
-description: How ZBSearch Edge buffers writes, builds immutable snapshots in R2, and makes documents searchable.
+description: How ZBSearch Edge buffers writes, builds immutable snapshots in R2, and makes documents searchable. Cloudflare deploy is in beta.
 ---
 
 ZBSearch Edge separates **writes** from **reads** on purpose. Search queries never merge a live write buffer at query time - they always load one immutable snapshot. This keeps latency predictable at the edge.

@@ -1,7 +1,11 @@
 ---
 title: API reference
-description: Complete REST API for ZBSearch Edge - indexes, documents, search, rebuild, and status endpoints.
+description: Complete REST API for ZBSearch Edge - indexes, documents, search, rebuild, and status endpoints. Cloudflare deploy is in beta.
 ---
+
+<Callout type="info" title="Beta">
+  This API ships with the beta Cloudflare deploy. Endpoints and response fields may change before a stable release.
+</Callout>
 
 All endpoints are served from your Worker URL unless noted. JSON request and response bodies use `Content-Type: application/json`.
 
@@ -100,7 +104,7 @@ Create a new index.
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `name` | `string` | Yes | Display name; slugified to `id` (e.g. `"My Products"` → `my-products`) |
-| `schema` | `object` | Yes | Same [schema types](/docs/zbsearch-js/usage/create) as standalone ZBSearch |
+| `schema` | `object` | Yes | Same [schema types](/docs/zbsearch/usage/create) as standalone ZBSearch |
 | `settings` | `object` | No | See [index settings](#index-settings) |
 
 **Example:**
@@ -240,14 +244,14 @@ Query the **live snapshot**. Requires at least one successful rebuild.
 | --- | --- | --- | --- |
 | `term` | `string` | `""` | Full-text query |
 | `mode` | `"fulltext"` \| `"vector"` \| `"hybrid"` | `"fulltext"` | Search mode |
-| `where` | `object` | - | Filters (same as [ZBSearch filters](/docs/zbsearch-js/search/filters)) |
+| `where` | `object` | - | Filters (same as [ZBSearch filters](/docs/zbsearch/search/filters)) |
 | `limit` | `number` | `20` | Max results |
 | `offset` | `number` | `0` | Pagination offset |
 | `properties` | `string` \| `string[]` | - | Properties to search |
-| `boost` | `object` | - | [Field boosting](/docs/zbsearch-js/search/fields-boosting) |
+| `boost` | `object` | - | [Field boosting](/docs/zbsearch/search/fields-boosting) |
 | `similarity` | `number` | - | Vector similarity threshold |
-| `vector` | `{ value: number[], property: string }` | - | [Vector search](/docs/zbsearch-js/search/vector-search) query |
-| `hybridWeights` | `{ text: number, vector: number }` | - | [Hybrid search](/docs/zbsearch-js/search/hybrid-search) weights |
+| `vector` | `{ value: number[], property: string }` | - | [Vector search](/docs/zbsearch/search/vector-search) query |
+| `hybridWeights` | `{ text: number, vector: number }` | - | [Hybrid search](/docs/zbsearch/search/hybrid-search) weights |
 
 **Example - full-text:**
 

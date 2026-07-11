@@ -30,4 +30,4 @@ Site search is powered by **ZBSearch** via Fumadocs' built-in search API. The mo
 
 ## Content
 
-Documentation lives in `content/docs/zbsearch-js/` and is adapted from the official Orama JS docs.
+Documentation lives in `content/docs/zbsearch/` and is adapted from the official Orama JS docs.

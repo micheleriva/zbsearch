@@ -132,4 +132,28 @@ describe('buffer', () => {
     assert.equal((remaining[0] as { id: string }).id, '2')
     assert.equal(head.pendingOps, 1)
   })
+
+  it('finalizeBufferAfterRebuild clears head when all segments are compacted', async () => {
+    const storage = new MemoryObjectStorage()
+    await appendBufferOp(storage, 'idx', { op: 'upsert', id: '1', ts: 't1', doc: { a: 1 } })
+
+    const frozen = await freezeBufferForRebuild(storage, 'idx')
+    const head = await finalizeBufferAfterRebuild(storage, 'idx', frozen.frozenSegmentKeys)
+
+    assert.equal((await readBufferOps(storage, 'idx')).length, 0)
+    assert.deepEqual(head, {
+      segment: '000001.ndjson',
+      offset: 0,
+      opCount: 0,
+      pendingOps: 0,
+      oldestOpAt: null
+    })
+  })
+
+  it('freezeBufferForRebuild returns empty when buffer has no segments', async () => {
+    const storage = new MemoryObjectStorage()
+    const frozen = await freezeBufferForRebuild(storage, 'idx')
+    assert.equal(frozen.ops.length, 0)
+    assert.equal(frozen.frozenSegmentKeys.length, 0)
+  })
 })

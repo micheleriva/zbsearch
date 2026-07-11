@@ -1,7 +1,7 @@
 {
 	"root": true,
 	"title": "Deploy to Cloudflare",
-	"description": "Run ZBSearch as a distributed search API on Cloudflare Workers and R2",
+	"description": "Run ZBSearch as a distributed search API on Cloudflare Workers and R2 (beta)",
 	"icon": "Cloudflare",
 	"pages": [
 		"index",

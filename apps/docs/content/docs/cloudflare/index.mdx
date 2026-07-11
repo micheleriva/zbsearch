@@ -1,7 +1,11 @@
 ---
 title: Overview
-description: Run ZBSearch as a distributed search API on Cloudflare Workers and R2 - full-text, vector, and hybrid search at the edge.
+description: Run ZBSearch as a distributed search API on Cloudflare Workers and R2 - full-text, vector, and hybrid search at the edge. Currently in beta.
 ---
+
+<Callout type="info" title="Beta">
+  **Deploy to Cloudflare** (ZBSearch Edge) is in **beta**. The Worker runtime, setup CLI, buffer/rebuild pipeline, and docs may change before a stable release. Expect rough edges - report issues on [GitHub](https://github.com/micheleriva/zbsearch/issues).
+</Callout>
 
 ZBSearch Edge is a **self-hosted** search API that runs on **Cloudflare Workers** with **R2** as durable storage. It uses the same ZBSearch engine you already know from the browser and Node.js, but exposes it over HTTP with a write buffer and background rebuild pipeline optimized for edge deployments.
 
@@ -59,7 +63,7 @@ ZBSearch Edge fits when you want:
 - **Infrequent or batched writes** with acceptable eventual consistency (seconds to minutes, depending on rebuild schedule)
 - **Full-text, vector, or hybrid** search with the same schema model as standalone ZBSearch
 
-For purely local or single-process use cases, use the [`zbsearch`](/docs/zbsearch-js) library directly. Edge adds HTTP, persistence, and the buffer/rebuild pipeline on top.
+For purely local or single-process use cases, use the [`zbsearch`](/docs/zbsearch) library directly. Edge adds HTTP, persistence, and the buffer/rebuild pipeline on top.
 
 ## Quick start
 

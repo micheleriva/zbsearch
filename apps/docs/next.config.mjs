@@ -8,8 +8,18 @@ const config = {
   redirects: async () => [
     {
       source: '/docs',
-      destination: '/docs/zbsearch-js',
+      destination: '/docs/zbsearch',
       permanent: false,
+    },
+    {
+      source: '/docs/zbsearch-js',
+      destination: '/docs/zbsearch',
+      permanent: true,
+    },
+    {
+      source: '/docs/zbsearch-js/:path*',
+      destination: '/docs/zbsearch/:path*',
+      permanent: true,
     },
   ],
 };

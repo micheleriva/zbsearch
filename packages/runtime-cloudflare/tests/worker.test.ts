@@ -186,6 +186,49 @@ describe('worker fetch', () => {
     assert.equal(search.status, 200)
     assert.equal(((await search.json()) as { includesBuffer: boolean }).includesBuffer, false)
   })
+
+  it('triggers builder webhook on write when threshold is reached', async () => {
+    const calls: Array<{ url: string; body: unknown }> = []
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async (input, init) => {
+      calls.push({
+        url: String(input),
+        body: init?.body ? JSON.parse(String(init.body)) : null
+      })
+      return new Response('ok')
+    }) as typeof fetch
+
+    try {
+      const env = makeEnv({
+        REBUILD_THRESHOLD_OPS: '2',
+        BUILDER_WEBHOOK_URL: 'https://builder.example/hook'
+      })
+
+      await fetchWorker('/v1/indexes', env, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'write-webhook', schema: { title: 'string' } })
+      })
+
+      await fetchWorker('/v1/indexes/write-webhook/documents/1', env, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ title: 'First' })
+      })
+
+      await fetchWorker('/v1/indexes/write-webhook/documents/2', env, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ title: 'Second' })
+      })
+
+      assert.equal(calls.length, 1)
+      assert.equal(calls[0]!.url, 'https://builder.example/hook')
+      assert.deepEqual(calls[0]!.body, { indexId: 'write-webhook', source: 'threshold' })
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
 })
 
 describe('worker scheduled', () => {

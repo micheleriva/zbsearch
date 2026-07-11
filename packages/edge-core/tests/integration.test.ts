@@ -132,6 +132,54 @@ describe('integration', () => {
     assert.equal(res.status, 404)
     assert.ok((res.body as { error: unknown }).error)
   })
+
+  it('auto-flushes buffer end-to-end over HTTP without blocking search', async () => {
+    const storage = new MemoryObjectStorage()
+    const scheduled: Promise<unknown>[] = []
+    const routerCtx = {
+      storage,
+      cache: new NoopShardCache(),
+      scheduleBackground: (task: Promise<unknown>) => {
+        scheduled.push(task)
+      },
+      rebuildThresholdOps: 2
+    }
+
+    await handleRequest(
+      routerCtx,
+      makeRequest('POST', '/v1/indexes', {
+        body: { name: 'auto', schema: { title: 'string' } }
+      })
+    )
+
+    await handleRequest(
+      routerCtx,
+      makeRequest('PUT', '/v1/indexes/auto/documents/1', { body: { title: 'Alpha' } })
+    )
+
+    const write = await handleRequest(
+      routerCtx,
+      makeRequest('PUT', '/v1/indexes/auto/documents/2', { body: { title: 'Beta' } })
+    )
+    assert.equal(write.status, 202)
+    assert.equal(scheduled.length, 1)
+
+    const bufferedSearch = await handleRequest(
+      routerCtx,
+      makeRequest('POST', '/v1/indexes/auto/search', { body: { term: 'beta' } })
+    )
+    assert.equal(bufferedSearch.status, 200)
+    assert.equal((bufferedSearch.body as { includesBuffer: boolean }).includesBuffer, true)
+
+    await scheduled[0]
+
+    const flushedSearch = await handleRequest(
+      routerCtx,
+      makeRequest('POST', '/v1/indexes/auto/search', { body: { term: 'beta' } })
+    )
+    assert.equal(flushedSearch.status, 200)
+    assert.equal((flushedSearch.body as { includesBuffer: boolean }).includesBuffer, false)
+  })
 })
 
 describe('registry errors', () => {

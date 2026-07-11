@@ -1,7 +1,11 @@
 ---
 title: Production
-description: Harden ZBSearch Edge for production - authentication, external rebuilds, GitHub Actions, and operational guidance.
+description: Harden ZBSearch Edge for production - authentication, external rebuilds, GitHub Actions, and operational guidance. Cloudflare deploy is in beta.
 ---
+
+<Callout type="info" title="Beta">
+  Cloudflare deploy is in **beta**. Treat production rollouts as early adopters - monitor closely, pin versions, and keep a rollback path.
+</Callout>
 
 Running ZBSearch Edge in production means protecting your API, offloading rebuilds from the Worker, and monitoring index health. This page covers the recommended production setup.
 

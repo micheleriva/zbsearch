@@ -1,9 +1,13 @@
 ---
 title: Setup
-description: Deploy ZBSearch Edge to Cloudflare Workers and R2 - step by step from zero to a live search API.
+description: Deploy ZBSearch Edge to Cloudflare Workers and R2 - step by step from zero to a live search API. Cloudflare deploy is currently in beta.
 ---
 
-This guide deploys ZBSearch Edge to your Cloudflare account. **You do not need to clone the repository** — install the published npm packages and run the setup CLI.
+<Callout type="info" title="Beta">
+  Cloudflare deploy is in **beta**. APIs, defaults, and CLI behavior may change. Pin package versions in production and review release notes before upgrading.
+</Callout>
+
+This guide deploys ZBSearch Edge to your Cloudflare account. **You do not need to clone the repository** - install the published npm packages and run the setup CLI.
 
 ## Quick start (npm)
 
@@ -23,7 +27,7 @@ The wizard asks for Worker name, R2 bucket names, account ID, optional R2 API cr
 
 ```bash
 cp node_modules/@zbsearch/runtime-cloudflare/deploy/templates/config.example.json zbsearch.edge.config.json
-# edit zbsearch.edge.config.json — set r2.accountId and R2 API credentials
+# edit zbsearch.edge.config.json - set r2.accountId and R2 API credentials
 npx zbsearch-edge-setup
 ```
 

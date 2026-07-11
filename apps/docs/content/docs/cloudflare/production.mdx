@@ -211,7 +211,7 @@ When updating from a new zbsearch release:
 git pull
 pnpm install
 pnpm --filter @zbsearch/edge-core build
-pnpm deploy:edge
+wrangler deploy --config deploy/cloudflare/wrangler.toml
 ```
 
 Rebuild indexes after engine upgrades if the snapshot format changes (check release notes). No automatic migration runs in v1.

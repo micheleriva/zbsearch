@@ -61,14 +61,14 @@ npx zbsearch-edge-setup --config zbsearch.edge.config.yaml
 
 ## Monorepo development
 
-If you are developing ZBSearch itself, clone the repository and use the same CLIs via pnpm:
+If you are developing ZBSearch itself, clone the repository and run the setup CLI directly (no root `package.json` scripts required):
 
 ```bash
 git clone https://github.com/micheleriva/zbsearch.git
 cd zbsearch
 pnpm install
 wrangler login
-pnpm setup:edge -- --init
+node packages/runtime-cloudflare/deploy/setup.mjs --deploy-dir deploy/cloudflare --init
 ```
 
 Config and generated files live under `deploy/cloudflare/`. Templates are at `packages/runtime-cloudflare/deploy/templates/`.
@@ -180,12 +180,6 @@ Authorization: Bearer YOUR_API_KEY
 From the monorepo root:
 
 ```bash
-pnpm deploy:edge
-```
-
-This runs:
-
-```bash
 wrangler deploy --config deploy/cloudflare/wrangler.toml
 ```
 
@@ -282,7 +276,7 @@ routes = [
 ]
 ```
 
-Then redeploy with `pnpm deploy:edge`.
+Then redeploy with `wrangler deploy --config deploy/cloudflare/wrangler.toml`.
 
 ## Teardown (unpublish / reset)
 
@@ -292,7 +286,7 @@ npx zbsearch-edge-teardown --yes
 npx zbsearch-edge-teardown --keep-buckets --yes
 ```
 
-Monorepo equivalent: `pnpm teardown:edge -- --yes`
+Monorepo equivalent: `node packages/runtime-cloudflare/deploy/teardown.mjs --deploy-dir deploy/cloudflare --yes`
 
 The script reads `zbsearch.edge.config.json` when present, otherwise `wrangler.toml` and `.env`. To deploy again: `npx zbsearch-edge-setup`.
 

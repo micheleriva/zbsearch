@@ -363,4 +363,18 @@ describe('service', () => {
     assert.equal((bufferHit as { includesBuffer: boolean }).includesBuffer, true)
     assert.ok((bufferHit as { count: number }).count >= 1)
   })
+
+  it('repairs stale pendingOps count from actual buffer segments', async () => {
+    const storage = new MemoryObjectStorage()
+    await createIndex(storage, { name: 'stale-meta', schema: { title: 'string' } })
+    await bufferUpsert(storage, 'stale-meta', '1', { title: 'One' })
+
+    const meta = await getIndexMeta(storage, 'stale-meta')
+    meta.pendingOps = 99
+    await saveIndexMeta(storage, meta)
+
+    const results = await runSearch(storage, new NoopShardCache(), 'stale-meta', { term: 'one' })
+    assert.ok((results as { count: number }).count >= 1)
+    assert.equal((await getStatus(storage, 'stale-meta')).pendingOps, 1)
+  })
 })

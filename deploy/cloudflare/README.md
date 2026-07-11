@@ -18,8 +18,8 @@ From the repository root:
 ```bash
 wrangler login
 pnpm install
-pnpm setup:edge -- --init
-pnpm teardown:edge -- --dry-run
+node packages/runtime-cloudflare/deploy/setup.mjs --deploy-dir deploy/cloudflare --init
+node packages/runtime-cloudflare/deploy/teardown.mjs --deploy-dir deploy/cloudflare --dry-run
 ```
 
 Config templates ship with the package:
@@ -35,5 +35,6 @@ Generated files in this directory (gitignored):
 ## Manual deploy
 
 ```bash
-pnpm deploy:edge
+pnpm --filter @zbsearch/edge-core build
+wrangler deploy --config deploy/cloudflare/wrangler.toml
 ```

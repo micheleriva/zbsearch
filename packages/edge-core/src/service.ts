@@ -15,6 +15,7 @@ import type { ObjectStorage, ShardCache } from './storage.js'
 import type {
   BufferedWriteResponse,
   BufferDeleteOp,
+  BufferOp,
   BufferUpsertOp,
   IndexMeta,
   IndexSettings,
@@ -206,12 +207,28 @@ async function loadDocumentsFromSnapshot(
   return docs
 }
 
+async function readPendingBufferOps(
+  storage: ObjectStorage,
+  meta: IndexMeta
+): Promise<BufferOp[]> {
+  if (meta.pendingOps === 0) {
+    return []
+  }
+
+  const ops = await readBufferOps(storage, meta.id)
+  if (ops.length !== meta.pendingOps) {
+    meta.pendingOps = ops.length
+    await saveIndexMeta(storage, meta)
+  }
+  return ops
+}
+
 async function loadSearchableDb(
   storage: ObjectStorage,
   meta: IndexMeta,
   cache: ShardCache
 ): Promise<{ db: AnyZBSearch; includesBuffer: boolean } | null> {
-  const bufferOps = meta.pendingOps > 0 ? await readBufferOps(storage, meta.id) : []
+  const bufferOps = await readPendingBufferOps(storage, meta)
 
   if (!meta.liveVersion && bufferOps.length === 0) {
     return null

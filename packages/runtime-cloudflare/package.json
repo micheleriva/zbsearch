@@ -11,15 +11,28 @@
       "import": "./src/worker.ts"
     }
   },
+  "bin": {
+    "zbsearch-edge-setup": "./deploy/setup.mjs",
+    "zbsearch-edge-teardown": "./deploy/teardown.mjs"
+  },
+  "files": [
+    "src",
+    "dist",
+    "deploy"
+  ],
   "scripts": {
-    "build": "wrangler deploy --config ../../deploy/cloudflare/wrangler.toml --dry-run --outdir=dist",
-    "dev": "wrangler dev --config ../../deploy/cloudflare/wrangler.toml",
-    "deploy": "wrangler deploy --config ../../deploy/cloudflare/wrangler.toml",
+    "build": "wrangler deploy --config deploy/wrangler.monorepo.toml --dry-run --outdir=dist",
+    "dev": "wrangler dev --config deploy/wrangler.monorepo.toml",
+    "deploy": "wrangler deploy --config deploy/wrangler.monorepo.toml",
     "test": "node --import tsx --test tests/**/*.test.ts"
   },
   "license": "Apache-2.0",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.750.0",
     "@zbsearch/edge-core": "workspace:*"
+  },
+  "peerDependencies": {
+    "wrangler": "^4.0.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250224.0",

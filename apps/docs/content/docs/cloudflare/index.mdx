@@ -39,16 +39,16 @@ Client                    Cloudflare Worker                 R2
   │  ◄── 200 hits                │                          │
 ```
 
-### Packages in the monorepo
+### Published npm packages
 
 | Package | Role |
 | --- | --- |
 | `@zbsearch/edge-core` | REST router, buffer, rebuild logic, search orchestration |
-| `@zbsearch/runtime-cloudflare` | Workers entrypoint, R2 adapter, Workers Cache |
-| `@zbsearch/storage-s3` | S3-compatible driver for R2 (used by the rebuild CLI) |
+| `@zbsearch/runtime-cloudflare` | Workers entrypoint, setup/teardown CLIs |
+| `@zbsearch/storage-s3` | S3-compatible driver for R2 (rebuild CLI) |
 | `@zbsearch/edge-index-builder` | CLI to rebuild indexes from outside the Worker |
 
-Deploy templates live under [`deploy/cloudflare/`](https://github.com/micheleriva/zbsearch/tree/main/deploy/cloudflare) in the repository.
+Setup and teardown CLIs ship with `@zbsearch/runtime-cloudflare` (`zbsearch-edge-setup`, `zbsearch-edge-teardown`). Config templates are included in the package under `deploy/templates/`.
 
 ## When to use this
 
@@ -63,15 +63,13 @@ For purely local or single-process use cases, use the [`zbsearch`](/docs/zbsearc
 
 ## Quick start
 
-If you already have a Cloudflare account and Wrangler installed:
-
 ```bash
-# From the zbsearch monorepo root
-wrangler r2 bucket create zbsearch-edge
-pnpm deploy:edge
+npm install @zbsearch/runtime-cloudflare wrangler
+npx wrangler login
+npx zbsearch-edge-setup --init
 ```
 
-After deploy, Wrangler prints your Worker URL. See [Setup](/docs/cloudflare/setup) for the full walkthrough including R2 API tokens, optional auth, and rebuild configuration.
+After deploy, Wrangler prints your Worker URL. See [Setup](/docs/cloudflare/setup) for config files, R2 API tokens, optional auth, and rebuild configuration.
 
 ## Next steps
 

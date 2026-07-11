@@ -16,3 +16,14 @@ playwright-report
 .tap
 .nyc_output
 benchmark
+deploy/cloudflare/.env
+deploy/cloudflare/zbsearch.edge.config.json
+deploy/cloudflare/zbsearch.edge.config.yaml
+deploy/cloudflare/zbsearch.edge.config.yml
+deploy/cloudflare/config.json
+deploy/cloudflare/config.yaml
+deploy/cloudflare/config.yml
+zbsearch.edge.config.json
+zbsearch.edge.config.yaml
+zbsearch.edge.config.yml
+deploy

@@ -18,6 +18,8 @@ export {
   appendBufferOp,
   applyBufferOps,
   clearBuffer,
+  finalizeBufferAfterRebuild,
+  freezeBufferForRebuild,
   getBufferHead,
   readBufferOps
 } from './buffer.js'
@@ -41,13 +43,14 @@ export {
   registerIndex,
   saveIndexMeta
 } from './registry.js'
-export type { CreateIndexInput, SearchInput } from './service.js'
+export type { CreateIndexInput, ScheduleRebuildOptions, SearchInput } from './service.js'
 export {
   bufferDelete,
   bufferUpsert,
   createIndex,
   getIndexManifest,
   getStatus,
+  maybeScheduleRebuild,
   rebuildIndex,
   runSearch
 } from './service.js'

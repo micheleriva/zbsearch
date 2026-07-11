@@ -178,6 +178,44 @@ describe('router', () => {
     assert.equal(res.status, 404)
   })
 
+  it('schedules background rebuild when buffer threshold is reached on write', async () => {
+    const storage = new MemoryObjectStorage()
+    await createIndex(storage, {
+      name: 'auto-flush',
+      schema: { title: 'string' },
+      settings: { rebuildThresholdOps: 2 }
+    })
+
+    const scheduled: Promise<unknown>[] = []
+    const routerCtx = {
+      ...ctx(storage),
+      scheduleBackground: (task: Promise<unknown>) => {
+        scheduled.push(task)
+      },
+      rebuildThresholdOps: 2
+    }
+
+    await handleRequest(
+      routerCtx,
+      makeRequest('PUT', '/v1/indexes/auto-flush/documents/1', { body: { title: 'One' } })
+    )
+    assert.equal(scheduled.length, 0)
+
+    await handleRequest(
+      routerCtx,
+      makeRequest('PUT', '/v1/indexes/auto-flush/documents/2', { body: { title: 'Two' } })
+    )
+    assert.equal(scheduled.length, 1)
+
+    await scheduled[0]
+    const search = await handleRequest(
+      routerCtx,
+      makeRequest('POST', '/v1/indexes/auto-flush/search', { body: { term: 'two' } })
+    )
+    assert.equal(search.status, 200)
+    assert.equal((search.body as { includesBuffer: boolean }).includesBuffer, false)
+  })
+
   it('toResponse serializes JSON body', async () => {
     const response = toResponse({ status: 200, headers: { 'content-type': 'application/json' }, body: { ok: true } })
     assert.equal(response.status, 200)

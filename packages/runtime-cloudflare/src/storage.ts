@@ -41,8 +41,12 @@ export class R2ObjectStorage implements ObjectStorage {
 export class WorkersShardCache {
   constructor(private readonly cache: Cache) {}
 
+  private cacheUrl(key: string): string {
+    return `https://zbsearch-edge-cache.invalid/${encodeURIComponent(key)}`
+  }
+
   async get(key: string): Promise<Uint8Array | null> {
-    const res = await this.cache.match(key)
+    const res = await this.cache.match(this.cacheUrl(key))
     if (!res) {
       return null
     }
@@ -51,7 +55,7 @@ export class WorkersShardCache {
 
   async set(key: string, body: Uint8Array, ttlSec: number): Promise<void> {
     await this.cache.put(
-      key,
+      this.cacheUrl(key),
       new Response(body, {
         headers: {
           'cache-control': `public, max-age=${ttlSec}`
@@ -61,6 +65,6 @@ export class WorkersShardCache {
   }
 
   async delete(key: string): Promise<void> {
-    await this.cache.delete(key)
+    await this.cache.delete(this.cacheUrl(key))
   }
 }

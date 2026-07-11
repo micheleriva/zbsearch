@@ -7,9 +7,11 @@ import {
   createIndex,
   getIndexManifest,
   getStatus,
+  maybeScheduleRebuild,
   rebuildIndex,
   runSearch,
   type CreateIndexInput,
+  type ScheduleRebuildOptions,
   type SearchInput
 } from './service.js'
 import { deleteIndexMeta, getIndexMeta, listIndexMetas, saveIndexMeta } from './registry.js'
@@ -19,6 +21,22 @@ export interface RouterContext {
   storage: ObjectStorage
   cache: ShardCache
   apiKey?: string
+  scheduleBackground?: ScheduleRebuildOptions['schedule']
+  rebuildThresholdOps?: number
+  builderWebhookUrl?: string
+}
+
+function scheduleOptions(ctx: RouterContext): ScheduleRebuildOptions {
+  return {
+    schedule: ctx.scheduleBackground,
+    threshold: ctx.rebuildThresholdOps,
+    builderWebhookUrl: ctx.builderWebhookUrl,
+    source: 'threshold'
+  }
+}
+
+async function afterBufferedWrite(ctx: RouterContext, indexId: string): Promise<void> {
+  await maybeScheduleRebuild(ctx.storage, indexId, scheduleOptions(ctx))
 }
 
 export interface HttpRequest {
@@ -147,6 +165,7 @@ export async function handleRequest(ctx: RouterContext, req: HttpRequest): Promi
     if (docCollectionMatch && req.method === 'POST') {
       const body = await req.json<{ id: string; document: Record<string, unknown> }>()
       const result = await bufferUpsert(ctx.storage, docCollectionMatch.indexId!, body.id, body.document)
+      await afterBufferedWrite(ctx, docCollectionMatch.indexId!)
       return json(202, result)
     }
 
@@ -158,11 +177,13 @@ export async function handleRequest(ctx: RouterContext, req: HttpRequest): Promi
       if (req.method === 'PUT') {
         const body = await req.json<Record<string, unknown>>()
         const result = await bufferUpsert(ctx.storage, indexId, docId, body)
+        await afterBufferedWrite(ctx, indexId)
         return json(202, result)
       }
 
       if (req.method === 'DELETE') {
         const result = await bufferDelete(ctx.storage, indexId, docId)
+        await afterBufferedWrite(ctx, indexId)
         return json(202, result)
       }
     }
@@ -184,6 +205,7 @@ export async function handleRequest(ctx: RouterContext, req: HttpRequest): Promi
           last = await bufferDelete(ctx.storage, indexId, operation.id)
         }
       }
+      await afterBufferedWrite(ctx, indexId)
       return json(202, last)
     }
 

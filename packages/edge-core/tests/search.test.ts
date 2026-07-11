@@ -13,16 +13,18 @@ function ctx(storage: MemoryObjectStorage, apiKey?: string) {
 }
 
 describe('router edge cases', () => {
-  it('returns 404 when searching before rebuild', async () => {
+  it('returns searchable buffered documents before rebuild', async () => {
     const storage = new MemoryObjectStorage()
     await createIndex(storage, { name: 'empty', schema: { title: 'string' } })
-    await bufferUpsert(storage, 'empty', '1', { title: 'Not Searchable Yet' })
+    await bufferUpsert(storage, 'empty', '1', { title: 'Searchable From Buffer' })
 
     const res = await handleRequest(
       ctx(storage),
-      makeRequest('POST', '/v1/indexes/empty/search', { body: { term: 'not' } })
+      makeRequest('POST', '/v1/indexes/empty/search', { body: { term: 'buffer' } })
     )
-    assert.equal(res.status, 404)
+    assert.equal(res.status, 200)
+    assert.ok((res.body as { count: number }).count >= 1)
+    assert.equal((res.body as { includesBuffer: boolean }).includesBuffer, true)
   })
 
   it('patches index settings', async () => {

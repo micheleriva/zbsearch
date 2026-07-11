@@ -5,6 +5,8 @@ import {
   appendBufferOp,
   applyBufferOps,
   clearBuffer,
+  finalizeBufferAfterRebuild,
+  freezeBufferForRebuild,
   getBufferHead,
   readBufferOps
 } from '../src/buffer.js'
@@ -112,5 +114,22 @@ describe('buffer', () => {
     const head = await getBufferHead(storage, 'idx')
     assert.equal(head.pendingOps, 2)
     assert.equal(head.opCount, 2)
+  })
+
+  it('freezeBufferForRebuild isolates new writes from compacted segments', async () => {
+    const storage = new MemoryObjectStorage()
+    await appendBufferOp(storage, 'idx', { op: 'upsert', id: '1', ts: 't1', doc: { a: 1 } })
+
+    const frozen = await freezeBufferForRebuild(storage, 'idx')
+    assert.equal(frozen.ops.length, 1)
+    assert.equal(frozen.frozenSegmentKeys.length, 1)
+
+    await appendBufferOp(storage, 'idx', { op: 'upsert', id: '2', ts: 't2', doc: { a: 2 } })
+
+    const head = await finalizeBufferAfterRebuild(storage, 'idx', frozen.frozenSegmentKeys)
+    const remaining = await readBufferOps(storage, 'idx')
+    assert.equal(remaining.length, 1)
+    assert.equal((remaining[0] as { id: string }).id, '2')
+    assert.equal(head.pendingOps, 1)
   })
 })

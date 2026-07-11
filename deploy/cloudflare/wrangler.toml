@@ -17,8 +17,9 @@ crons = ["*/5 * * * *"]
 [vars]
 REBUILD_THRESHOLD_OPS = "500"
 
-# Set via `wrangler secret put API_KEY`
-# Set via `wrangler secret put BUILDER_WEBHOOK_URL` for external rebuild runner
+# Set via zbsearch-edge-setup or `wrangler secret put API_KEY`
+# Set via zbsearch-edge-setup or `wrangler secret put BUILDER_WEBHOOK_URL`
 
-[limits]
-cpu_ms = 300000
+# Optional paid-plan CPU limit (uncomment and set limits.cpuMs in config):
+# [limits]
+# cpu_ms = 300000

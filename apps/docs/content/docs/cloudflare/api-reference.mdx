@@ -369,4 +369,4 @@ The Worker sets `Access-Control-Allow-Origin: *` on all responses and handles `O
 
 ## Rate limits
 
-Cloudflare Workers and R2 have platform-level limits. The Worker `cpu_ms` limit in `wrangler.toml` is set to 300000 (5 minutes) to accommodate in-Worker rebuilds on small indexes. Large rebuilds should run outside the Worker.
+Cloudflare Workers and R2 have platform-level limits. On the **Workers Paid** plan you can set `limits.cpuMs` in `zbsearch.edge.config.json` (e.g. `300000` for 5 minutes) to accommodate in-Worker rebuilds on small indexes. The Free plan does not support custom CPU limits. Large rebuilds should run outside the Worker via `@zbsearch/edge-index-builder`.

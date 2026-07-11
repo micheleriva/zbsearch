@@ -1,7 +1,13 @@
 import { create, insertMultiple, load, save, search, type AnySchema, type AnyZBSearch } from 'zbsearch'
 import { encode, decode } from '@msgpack/msgpack'
 
-import { applyBufferOps, appendBufferOp, readBufferOps, clearBuffer } from './buffer.js'
+import {
+  applyBufferOps,
+  appendBufferOp,
+  finalizeBufferAfterRebuild,
+  freezeBufferForRebuild,
+  readBufferOps
+} from './buffer.js'
 import { badRequest, notFound } from './errors.js'
 import { getIndexMeta, registerIndex, saveIndexMeta } from './registry.js'
 import { indexMetaKey, newVersionId, snapshotKey } from './paths.js'
@@ -183,14 +189,11 @@ async function loadSnapshotDb(
 
 async function loadDocumentsFromSnapshot(
   storage: ObjectStorage,
-  meta: IndexMeta
+  meta: IndexMeta,
+  cache: ShardCache
 ): Promise<Map<string, Record<string, unknown>>> {
   const docs = new Map<string, Record<string, unknown>>()
-  const db = await loadSnapshotDb(storage, meta, {
-    get: async () => null,
-    set: async () => {},
-    delete: async () => {}
-  })
+  const db = await loadSnapshotDb(storage, meta, cache)
   if (!db) {
     return docs
   }
@@ -203,16 +206,97 @@ async function loadDocumentsFromSnapshot(
   return docs
 }
 
+async function loadSearchableDb(
+  storage: ObjectStorage,
+  meta: IndexMeta,
+  cache: ShardCache
+): Promise<{ db: AnyZBSearch; includesBuffer: boolean } | null> {
+  const bufferOps = meta.pendingOps > 0 ? await readBufferOps(storage, meta.id) : []
+
+  if (!meta.liveVersion && bufferOps.length === 0) {
+    return null
+  }
+
+  if (bufferOps.length === 0) {
+    const db = await loadSnapshotDb(storage, meta, cache)
+    if (!db) {
+      return null
+    }
+    return { db, includesBuffer: false }
+  }
+
+  const baseDocs = await loadDocumentsFromSnapshot(storage, meta, cache)
+  const merged = applyBufferOps(baseDocs, bufferOps)
+  if (merged.size === 0) {
+    return null
+  }
+
+  const db = create({ schema: meta.schema, language: meta.settings.language as any })
+  const documents = [...merged.entries()].map(([id, doc]) => ({ id, ...doc }))
+  if (documents.length > 0) {
+    insertMultiple(db, documents as any)
+  }
+  return { db, includesBuffer: true }
+}
+
+export interface ScheduleRebuildOptions {
+  threshold?: number
+  builderWebhookUrl?: string
+  schedule?: (task: Promise<unknown>) => void
+  source?: 'threshold' | 'scheduler'
+}
+
+export async function maybeScheduleRebuild(
+  storage: ObjectStorage,
+  indexId: string,
+  options: ScheduleRebuildOptions = {}
+): Promise<void> {
+  if (!options.schedule) {
+    return
+  }
+
+  const meta = await getIndexMeta(storage, indexId)
+  if (meta.status === 'building') {
+    return
+  }
+
+  const threshold = options.threshold ?? meta.settings.rebuildThresholdOps ?? 500
+  if (meta.pendingOps < threshold) {
+    return
+  }
+
+  if (options.builderWebhookUrl) {
+    options.schedule(
+      fetch(options.builderWebhookUrl, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ indexId, source: options.source ?? 'threshold' })
+      })
+    )
+    return
+  }
+
+  options.schedule(rebuildIndex(storage, indexId))
+}
+
 export async function rebuildIndex(storage: ObjectStorage, indexId: string): Promise<IndexMeta> {
   const meta = await getIndexMeta(storage, indexId)
+  if (meta.status === 'building') {
+    return meta
+  }
+
   const version = newVersionId()
 
   meta.buildingVersion = version
   meta.status = 'building'
   await saveIndexMeta(storage, meta)
 
-  const baseDocs = await loadDocumentsFromSnapshot(storage, meta)
-  const bufferOps = await readBufferOps(storage, indexId)
+  const baseDocs = await loadDocumentsFromSnapshot(storage, meta, {
+    get: async () => null,
+    set: async () => {},
+    delete: async () => {}
+  })
+  const { ops: bufferOps, frozenSegmentKeys } = await freezeBufferForRebuild(storage, indexId)
   const merged = applyBufferOps(baseDocs, bufferOps)
 
   const db = create({ schema: meta.schema, language: meta.settings.language as any })
@@ -227,14 +311,14 @@ export async function rebuildIndex(storage: ObjectStorage, indexId: string): Pro
     contentType: 'application/msgpack'
   })
 
-  await clearBuffer(storage, indexId)
+  const head = await finalizeBufferAfterRebuild(storage, indexId, frozenSegmentKeys)
 
   meta.liveVersion = version
   meta.buildingVersion = null
-  meta.status = 'ready'
+  meta.status = documents.length > 0 || head.pendingOps > 0 ? 'ready' : 'empty'
   meta.documents = documents.length
   meta.indexSizeBytes = snapshotBytes.byteLength
-  meta.pendingOps = 0
+  meta.pendingOps = head.pendingOps
   meta.lastRebuildAt = new Date().toISOString()
   meta.lastAppliedOffset = null
   await saveIndexMeta(storage, meta)
@@ -249,13 +333,13 @@ export async function runSearch(
   params: SearchInput
 ): Promise<Record<string, unknown>> {
   const meta = await getIndexMeta(storage, indexId)
-  const db = await loadSnapshotDb(storage, meta, cache)
+  const loaded = await loadSearchableDb(storage, meta, cache)
 
-  if (!db) {
-    throw notFound(`Index ${indexId} has no searchable snapshot yet. Trigger a rebuild or wait for the scheduler.`)
+  if (!loaded) {
+    throw notFound(`Index ${indexId} has no searchable documents yet.`)
   }
 
-  const results = search(db, {
+  const results = search(loaded.db, {
     term: params.term ?? '',
     mode: params.mode ?? 'fulltext',
     where: params.where as any,
@@ -270,7 +354,8 @@ export async function runSearch(
 
   return {
     ...results,
-    indexVersion: meta.liveVersion
+    indexVersion: meta.liveVersion,
+    includesBuffer: loaded.includesBuffer
   } as Record<string, unknown>
 }
 

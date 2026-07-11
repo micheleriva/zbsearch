@@ -19,9 +19,24 @@ function makeEnv(overrides?: Partial<Env>): Env {
   }
 }
 
-async function fetchWorker(path: string, env: Env, init?: RequestInit): Promise<Response> {
+async function fetchWorker(
+  path: string,
+  env: Env,
+  init?: RequestInit,
+  execCtx?: ExecutionContext
+): Promise<Response> {
   const request = new Request(`http://localhost${path}`, init)
-  return worker.fetch(request, env, {} as ExecutionContext)
+  const waitUntilTasks: Promise<unknown>[] = []
+  const context =
+    execCtx ??
+    ({
+      waitUntil: (promise: Promise<unknown>) => {
+        waitUntilTasks.push(promise)
+      }
+    } as ExecutionContext)
+  const response = await worker.fetch(request, env, context)
+  await Promise.all(waitUntilTasks)
+  return response
 }
 
 describe('worker fetch', () => {
@@ -138,8 +153,38 @@ describe('worker fetch', () => {
           { op: 'upsert', id: '2', doc: { title: 'Two' } }
         ]
       })
-    }, env)
+    })
     assert.equal(res.status, 202)
+  })
+  it('flushes buffer in background when write reaches threshold', async () => {
+    const env = makeEnv({ REBUILD_THRESHOLD_OPS: '2' })
+
+    await fetchWorker('/v1/indexes', env, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'write-flush', schema: { title: 'string' } })
+    })
+
+    await fetchWorker('/v1/indexes/write-flush/documents/1', env, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'First' })
+    })
+
+    const put = await fetchWorker('/v1/indexes/write-flush/documents/2', env, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'Second' })
+    })
+    assert.equal(put.status, 202)
+
+    const search = await fetchWorker('/v1/indexes/write-flush/search', env, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ term: 'second' })
+    })
+    assert.equal(search.status, 200)
+    assert.equal(((await search.json()) as { includesBuffer: boolean }).includesBuffer, false)
   })
 })
 
@@ -205,6 +250,8 @@ describe('worker scheduled', () => {
         body: JSON.stringify({ title: 'Webhook Test' })
       })
 
+      calls.length = 0
+
       await worker.scheduled({} as ScheduledEvent, env, {
         waitUntil: (promise: Promise<unknown>) => promise
       } as ExecutionContext)
@@ -241,6 +288,7 @@ describe('worker scheduled', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ term: 'not' })
     })
-    assert.equal(search.status, 404)
+    assert.equal(search.status, 200)
+    assert.equal(((await search.json()) as { includesBuffer: boolean }).includesBuffer, true)
   })
 })

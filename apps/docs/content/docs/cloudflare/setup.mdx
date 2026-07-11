@@ -3,7 +3,77 @@ title: Setup
 description: Deploy ZBSearch Edge to Cloudflare Workers and R2 - step by step from zero to a live search API.
 ---
 
-This guide walks through deploying ZBSearch Edge from the [zbsearch monorepo](https://github.com/micheleriva/zbsearch). You need a Cloudflare account, Wrangler CLI, and a few minutes to create an R2 bucket.
+This guide deploys ZBSearch Edge to your Cloudflare account. **You do not need to clone the repository** — install the published npm packages and run the setup CLI.
+
+## Quick start (npm)
+
+Install the Worker runtime and Wrangler, then run the setup wizard:
+
+```bash
+mkdir my-search-api && cd my-search-api
+npm init -y
+npm install @zbsearch/runtime-cloudflare wrangler
+npx wrangler login
+npx zbsearch-edge-setup --init
+```
+
+The wizard asks for Worker name, R2 bucket names, account ID, optional R2 API credentials, optional API key, and rebuild settings. It saves `zbsearch.edge.config.json` in your project directory (gitignore this file), generates `wrangler.toml` and `.env`, then provisions and deploys.
+
+### Config file instead of wizard
+
+```bash
+cp node_modules/@zbsearch/runtime-cloudflare/deploy/templates/config.example.json zbsearch.edge.config.json
+# edit zbsearch.edge.config.json — set r2.accountId and R2 API credentials
+npx zbsearch-edge-setup
+```
+
+YAML is also supported:
+
+```bash
+cp node_modules/@zbsearch/runtime-cloudflare/deploy/templates/config.example.yaml zbsearch.edge.config.yaml
+npx zbsearch-edge-setup --config zbsearch.edge.config.yaml
+```
+
+| Flag | Purpose |
+| --- | --- |
+| `--dry-run` | Preview actions without changes |
+| `--write-only` | Only write `wrangler.toml` and `.env` |
+| `--skip-deploy` | Provision buckets/secrets, skip deploy |
+| `--yes` | Skip confirmation prompt |
+
+<Callout type="info">
+  `zbsearch.edge.config.json` may contain secrets. Add it to `.gitignore` and never commit real credentials.
+</Callout>
+
+### npm packages
+
+| Package | Role |
+| --- | --- |
+| `@zbsearch/runtime-cloudflare` | Worker runtime + `zbsearch-edge-setup` / `zbsearch-edge-teardown` CLIs |
+| `@zbsearch/edge-index-builder` | Rebuild CLI (`zbsearch-edge-builder`) for production indexes |
+| `@zbsearch/edge-core` | Installed automatically as a dependency |
+
+---
+
+## Monorepo development
+
+If you are developing ZBSearch itself, clone the repository and use the same CLIs via pnpm:
+
+```bash
+git clone https://github.com/micheleriva/zbsearch.git
+cd zbsearch
+pnpm install
+wrangler login
+pnpm setup:edge -- --init
+```
+
+Config and generated files live under `deploy/cloudflare/`. Templates are at `packages/runtime-cloudflare/deploy/templates/`.
+
+---
+
+## Manual setup
+
+Follow the steps below if you prefer to configure each piece yourself.
 
 ## Prerequisites
 
@@ -209,6 +279,18 @@ routes = [
 ```
 
 Then redeploy with `pnpm deploy:edge`.
+
+## Teardown (unpublish / reset)
+
+```bash
+npx zbsearch-edge-teardown --dry-run
+npx zbsearch-edge-teardown --yes
+npx zbsearch-edge-teardown --keep-buckets --yes
+```
+
+Monorepo equivalent: `pnpm teardown:edge -- --yes`
+
+The script reads `zbsearch.edge.config.json` when present, otherwise `wrangler.toml` and `.env`. To deploy again: `npx zbsearch-edge-setup`.
 
 ## Troubleshooting
 

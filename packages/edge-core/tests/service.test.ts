@@ -8,6 +8,7 @@ import {
   createIndex,
   getIndexManifest,
   getStatus,
+  maybeScheduleRebuild,
   rebuildIndex,
   runSearch
 } from '../src/service.js'
@@ -81,11 +82,36 @@ describe('service', () => {
     assert.ok(meta.lastRebuildAt)
   })
 
-  it('search fails before first rebuild', async () => {
+  it('search fails when index has no documents', async () => {
     const storage = new MemoryObjectStorage()
     const cache = new NoopShardCache()
     await createIndex(storage, { name: 'empty', schema: { title: 'string' } })
     await assert.rejects(() => runSearch(storage, cache, 'empty', { term: 'x' }))
+  })
+
+  it('search includes buffered documents before rebuild', async () => {
+    const storage = new MemoryObjectStorage()
+    const cache = new NoopShardCache()
+    await createIndex(storage, { name: 'buffered', schema: { title: 'string' } })
+    await bufferUpsert(storage, 'buffered', 'b1', { title: 'Buffered Doc' })
+
+    const results = await runSearch(storage, cache, 'buffered', { term: 'buffered' })
+    assert.ok((results.count as number) >= 1)
+    assert.equal(results.includesBuffer, true)
+    assert.equal(results.indexVersion, null)
+  })
+
+  it('search reflects buffered updates before rebuild', async () => {
+    const storage = new MemoryObjectStorage()
+    const cache = new NoopShardCache()
+    await createIndex(storage, { name: 'merge-search', schema: { title: 'string' } })
+    await bufferUpsert(storage, 'merge-search', '1', { title: 'Original Title' })
+    await rebuildIndex(storage, 'merge-search')
+    await bufferUpsert(storage, 'merge-search', '1', { title: 'Buffered Update' })
+
+    const results = await runSearch(storage, cache, 'merge-search', { term: 'buffered update' })
+    assert.ok((results.count as number) >= 1)
+    assert.equal(results.includesBuffer, true)
   })
 
   it('search returns results after rebuild', async () => {
@@ -189,5 +215,58 @@ describe('service', () => {
 
     await runSearch(storage, cache, 'cached', { term: 'cached' })
     assert.ok(cache.has(cacheKey))
+  })
+
+  it('maybeScheduleRebuild schedules when pending ops reach threshold', async () => {
+    const storage = new MemoryObjectStorage()
+    await createIndex(storage, {
+      name: 'flush',
+      schema: { title: 'string' },
+      settings: { rebuildThresholdOps: 2 }
+    })
+    await bufferUpsert(storage, 'flush', '1', { title: 'One' })
+
+    const scheduled: Promise<unknown>[] = []
+    await maybeScheduleRebuild(storage, 'flush', {
+      threshold: 2,
+      schedule: (task) => {
+        scheduled.push(task)
+      }
+    })
+    assert.equal(scheduled.length, 0)
+
+    await bufferUpsert(storage, 'flush', '2', { title: 'Two' })
+    await maybeScheduleRebuild(storage, 'flush', {
+      threshold: 2,
+      schedule: (task) => {
+        scheduled.push(task)
+      }
+    })
+    assert.equal(scheduled.length, 1)
+    await scheduled[0]
+    assert.equal((await getStatus(storage, 'flush')).pendingOps, 0)
+  })
+
+  it('maybeScheduleRebuild skips when index is already building', async () => {
+    const storage = new MemoryObjectStorage()
+    await createIndex(storage, {
+      name: 'building',
+      schema: { title: 'string' },
+      settings: { rebuildThresholdOps: 1 }
+    })
+    await bufferUpsert(storage, 'building', '1', { title: 'One' })
+
+    const meta = await getIndexMeta(storage, 'building')
+    meta.status = 'building'
+    await import('../src/registry.js').then((m) => m.saveIndexMeta(storage, meta))
+
+    const scheduled: Promise<unknown>[] = []
+    await maybeScheduleRebuild(storage, 'building', {
+      threshold: 1,
+      schedule: (task) => {
+        scheduled.push(task)
+      }
+    })
+    assert.equal(scheduled.length, 0)
   })
 })

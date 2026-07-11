@@ -67,14 +67,17 @@ export async function appendBufferOp(
   }
 }
 
-export async function readBufferOps(storage: ObjectStorage, indexId: string): Promise<BufferOp[]> {
+async function listBufferSegmentKeys(storage: ObjectStorage, indexId: string): Promise<string[]> {
   const prefix = `buffer/${indexId}/segments/`
   const keys: string[] = []
   for await (const entry of storage.list(prefix)) {
     keys.push(entry.key)
   }
   keys.sort()
+  return keys
+}
 
+async function readBufferOpsFromKeys(storage: ObjectStorage, keys: string[]): Promise<BufferOp[]> {
   const ops: BufferOp[] = []
   for (const key of keys) {
     const obj = await storage.get(key)
@@ -87,6 +90,57 @@ export async function readBufferOps(storage: ObjectStorage, indexId: string): Pr
     }
   }
   return ops
+}
+
+export async function readBufferOps(storage: ObjectStorage, indexId: string): Promise<BufferOp[]> {
+  return readBufferOpsFromKeys(storage, await listBufferSegmentKeys(storage, indexId))
+}
+
+export async function freezeBufferForRebuild(
+  storage: ObjectStorage,
+  indexId: string
+): Promise<{ ops: BufferOp[]; frozenSegmentKeys: string[] }> {
+  const frozenSegmentKeys = await listBufferSegmentKeys(storage, indexId)
+  const ops = await readBufferOpsFromKeys(storage, frozenSegmentKeys)
+
+  if (frozenSegmentKeys.length === 0) {
+    return { ops, frozenSegmentKeys }
+  }
+
+  const head = await getBufferHead(storage, indexId)
+  const newHead: BufferHead = {
+    segment: nextSegmentName(head.segment),
+    offset: 0,
+    opCount: head.opCount,
+    pendingOps: head.pendingOps,
+    oldestOpAt: head.oldestOpAt
+  }
+  await saveBufferHead(storage, indexId, newHead)
+
+  return { ops, frozenSegmentKeys }
+}
+
+export async function finalizeBufferAfterRebuild(
+  storage: ObjectStorage,
+  indexId: string,
+  frozenSegmentKeys: string[]
+): Promise<BufferHead> {
+  for (const key of frozenSegmentKeys) {
+    await storage.delete(key)
+  }
+
+  const remainingKeys = await listBufferSegmentKeys(storage, indexId)
+  if (remainingKeys.length === 0) {
+    await storage.delete(bufferHeadKey(indexId))
+    return defaultHead()
+  }
+
+  const remainingOps = await readBufferOpsFromKeys(storage, remainingKeys)
+  const head = await getBufferHead(storage, indexId)
+  head.pendingOps = remainingOps.length
+  head.oldestOpAt = remainingOps[0]?.ts ?? null
+  await saveBufferHead(storage, indexId, head)
+  return head
 }
 
 export async function clearBuffer(storage: ObjectStorage, indexId: string): Promise<void> {

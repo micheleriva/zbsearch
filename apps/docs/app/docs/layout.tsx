@@ -9,6 +9,16 @@ export default function Layout({ children }: LayoutProps<'/docs'>) {
       tabs={{
         transform: (option) => ({ ...option, description: undefined }),
       }}
+      containerProps={{
+        style: {
+          gridTemplate: `"sidebar header toc"
+"sidebar toc-popover toc"
+"sidebar main toc" 1fr / var(--fd-sidebar-col) minmax(0, 1fr) var(--fd-toc-width)`,
+        },
+      }}
+      sidebar={{
+        className: '!items-stretch',
+      }}
       {...baseOptions()}
     >
       {children}

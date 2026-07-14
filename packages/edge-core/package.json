@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/edge-core",
-  "version": "0.1.0",
+  "version": "3.3.1",
   "description": "Cloud-agnostic edge search index core - manifest, buffer, REST handlers",
   "type": "module",
   "sideEffects": false,

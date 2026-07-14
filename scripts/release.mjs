@@ -5,10 +5,12 @@ const rootDir = process.cwd()
 
 const packages = [
   'zbsearch',
+  'edge-core',
+  'edge-index-builder',
+  'runtime-cloudflare',
+  'storage-s3',
   'plugin-data-persistence',
   'plugin-parsedoc',
-  'plugin-analytics',
-  'plugin-secure-proxy',
   'plugin-embeddings',
   'plugin-match-highlight',
   'plugin-qps',

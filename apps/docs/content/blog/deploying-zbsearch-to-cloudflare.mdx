@@ -48,7 +48,7 @@ flowchart TB
 
   subgraph external [External Production]
     CI[GitHub Actions / CI]
-    Builder["edge-index-builder CLI"]
+    Builder["@zbsearch/edge-index-builder"]
     CI --> Builder
     Builder -->|S3 API| R2
   end
@@ -62,7 +62,7 @@ flowchart TB
 
 ## Package split: keep the core portable
 
-We split the implementation into four published packages so the Cloudflare adapter stays thin:
+We split the implementation into four published npm packages (currently **v3.3.1**) so the Cloudflare adapter stays thin:
 
 | Package | Responsibility |
 | --- | --- |
@@ -74,7 +74,7 @@ We split the implementation into four published packages so the Cloudflare adapt
 ```mermaid
 flowchart LR
   subgraph runtime [Cloudflare Runtime]
-    W["runtime-cloudflare<br/>~85 lines"]
+    W["@zbsearch/runtime-cloudflare<br/>~85 lines"]
     R2A[R2ObjectStorage]
     CA[WorkersShardCache]
     W --> R2A
@@ -82,14 +82,14 @@ flowchart LR
   end
 
   subgraph core [Portable Core]
-    EC["edge-core"]
+    EC["@zbsearch/edge-core"]
     EC --> ZB[zbsearch]
     EC --> MP[msgpack]
   end
 
   subgraph builder [External Builder]
-    CLI[edge-index-builder]
-    S3[storage-s3]
+    CLI["@zbsearch/edge-index-builder"]
+    S3["@zbsearch/storage-s3"]
     CLI --> S3
     CLI --> EC
   end
@@ -283,28 +283,45 @@ Rebuilds can be triggered four ways:
 | **In-Worker cron** | `scheduled()` lists indexes, rebuilds when `pendingOps >= threshold` | Demos, small catalogs |
 | **Threshold after write** | Each buffered write calls `maybeScheduleRebuild()` | Near-real-time small indexes |
 | **Manual API** | `POST /v1/indexes/:id/rebuild` | Controlled batch imports |
-| **External CLI / CI** | `edge-index-builder rebuild` against R2 via S3 API | Production, large indexes |
+| **External CLI / CI** | `npx zbsearch-edge-builder rebuild` against R2 via S3 API | Production, large indexes |
 
 For production, we recommend **external rebuilds**. In-Worker rebuilds share the Worker's CPU and memory budget. A multi-hundred-megabyte snapshot can exceed isolate limits. The Worker cron can instead POST to `BUILDER_WEBHOOK_URL`, which triggers GitHub Actions (or any CI) to run:
 
 ```bash
-node packages/edge-index-builder/dist/cli.js rebuild --all
+npm install @zbsearch/edge-index-builder@3.3.1
+npx zbsearch-edge-builder rebuild --all
 ```
 
-The reference workflow in `deploy/github-actions/zbsearch-rebuild.yml` runs every 15 minutes, on manual dispatch, or via `repository_dispatch` from a webhook relay.
+A typical CI job only needs Node.js, your R2 credentials as secrets, and the published builder package. No monorepo clone or local build step:
+
+```yaml
+- uses: actions/setup-node@v4
+  with:
+    node-version: 22
+- run: npm install @zbsearch/edge-index-builder@3.3.1
+- run: npx zbsearch-edge-builder rebuild --all
+  env:
+    R2_BUCKET: ${{ secrets.R2_BUCKET }}
+    R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+    R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+    R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+```
+
+Schedule it every 15 minutes, trigger it manually, or invoke it from a webhook relay via `repository_dispatch`.
 
 ## Bulk import: skip the WAL entirely
 
-For large catalogs, per-document API writes are the wrong tool. The `import` CLI builds a snapshot locally and uploads it directly to R2:
+For large catalogs, per-document API writes are the wrong tool. Install `@zbsearch/edge-index-builder` and use the `import` command to build a snapshot locally and upload it directly to R2:
 
 ```bash
-node packages/edge-index-builder/dist/cli.js import products ./catalog.json \
+npm install @zbsearch/edge-index-builder@3.3.1
+npx zbsearch-edge-builder import products ./catalog.json \
   --create --name products --schema-file ./schema.json
 ```
 
 ```mermaid
 flowchart LR
-  JSON[catalog.json] --> CLI[edge-index-builder import]
+  JSON[catalog.json] --> CLI["zbsearch-edge-builder import"]
   CLI --> Build[Build ZBSearch db in memory]
   Build --> Upload[Upload snapshot.msgpack to R2]
   Upload --> Meta[Set liveVersion + clear WAL]
@@ -367,10 +384,12 @@ Public routes (`GET /health`, `GET /v1/info`, `OPTIONS`) skip authentication.
 
 ## Deploy tooling: from npm install to live Worker
 
-We ship setup and teardown as CLIs inside `@zbsearch/runtime-cloudflare` so users never need to clone the monorepo:
+Everything ships on npm. Setup and teardown CLIs live inside `@zbsearch/runtime-cloudflare`; production rebuilds use `@zbsearch/edge-index-builder`. Install from any empty project directory:
 
 ```bash
-npm install @zbsearch/runtime-cloudflare wrangler
+mkdir my-search-api && cd my-search-api
+npm init -y
+npm install @zbsearch/runtime-cloudflare@3.3.1 wrangler
 npx wrangler login
 npx zbsearch-edge-setup --init
 ```
@@ -380,10 +399,7 @@ flowchart TD
   Start[zbsearch-edge-setup --init] --> Config[Write wrangler.toml + .env]
   Config --> Buckets[Create R2 buckets]
   Buckets --> Secrets[Set Worker secrets]
-  Secrets --> Build{buildBeforeDeploy?}
-  Build -->|Yes| Compile[Build edge-core + runtime]
-  Build -->|No| Deploy
-  Compile --> Deploy[wrangler deploy]
+  Secrets --> Deploy[wrangler deploy]
   Deploy --> Live[Worker URL ready]
 ```
 
@@ -392,9 +408,9 @@ flowchart TD
 1. Writes `wrangler.toml` and `.env` (R2 S3 credentials for the builder CLI).
 2. Creates R2 buckets (production + preview).
 3. Sets Worker secrets (`API_KEY`, `BUILDER_WEBHOOK_URL`).
-4. Optionally builds packages and runs `wrangler deploy`.
+4. Runs `wrangler deploy`.
 
-In the monorepo, the same CLI targets `deploy/cloudflare/` as the generated deploy directory. The setup script detects monorepo layout via `pnpm-workspace.yaml` and points `wrangler.toml` at `packages/runtime-cloudflare/src/worker.ts` with a relative path.
+The generated `wrangler.toml` points at the Worker entrypoint inside `node_modules/@zbsearch/runtime-cloudflare`. You never compile packages locally.
 
 Generated `wrangler.toml` includes:
 
@@ -448,8 +464,11 @@ Building search on Workers is viable if you respect the platform boundaries: **s
 If you want to try it:
 
 ```bash
-npm install @zbsearch/runtime-cloudflare wrangler
+npm install @zbsearch/runtime-cloudflare@3.3.1 wrangler
+npx wrangler login
 npx zbsearch-edge-setup --init
 ```
+
+For production rebuilds, add `@zbsearch/edge-index-builder@3.3.1` and run `npx zbsearch-edge-builder rebuild --all` from CI or your laptop.
 
 For operational details, endpoint reference, and production hardening, see the [Cloudflare docs](/docs/cloudflare). For the indexing and rebuild semantics in depth, see [Indexing & rebuilds](/docs/cloudflare/indexing-and-rebuilds).

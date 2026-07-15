@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ServerCodeBlock } from 'fumadocs-ui/components/codeblock.rsc';
+import { BenchmarkCharts } from '@/components/benchmarks/benchmark-charts';
 import { CloudflareIcon } from '@/components/icons/cloudflare';
 import {
   ArrowRight,
@@ -17,13 +18,6 @@ import {
   Zap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-
-const stats = [
-  { label: 'Faster full-text search', value: '61%', detail: 'on complex queries' },
-  { label: 'Faster geosearch', value: '8,700%', detail: 'at 500m radius' },
-  { label: 'Faster vector search', value: '508%', detail: 'using the new IVF index' },
-  { label: 'Bundle size', value: '<2kb', detail: 'full, tree-shakeable engine in the browser' },
-];
 
 const features: { title: string; description: string; icon: LucideIcon; href: string }[] = [
   {
@@ -163,38 +157,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-3 px-6 pb-14 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-2xl border bg-fd-card/40 p-5 text-center backdrop-blur-sm transition-colors hover:border-fd-primary/30 hover:bg-fd-card/70"
-          >
-            <p className="text-3xl font-bold tracking-tight text-fd-primary sm:text-4xl">
-              {stat.value}
-            </p>
-            <p className="mt-1 text-sm font-medium">{stat.label}</p>
-            <p className="mt-1 text-xs text-fd-muted-foreground">{stat.detail}</p>
-          </div>
-        ))}
-      </section>
-
-      <section className="mx-auto w-full max-w-6xl px-6 pb-10">
-        <div className="overflow-hidden rounded-2xl border bg-fd-card/50 shadow-sm backdrop-blur-sm">
-          <div className="flex items-center gap-2 border-b bg-fd-muted/30 px-4 py-3">
-            <span className="size-2.5 rounded-full bg-red-500/80" />
-            <span className="size-2.5 rounded-full bg-yellow-500/80" />
-            <span className="size-2.5 rounded-full bg-green-500/80" />
-            <span className="ml-2 text-xs text-fd-muted-foreground">app.ts</span>
-          </div>
-          <div className="[&_figure]:m-0 [&_figure]:rounded-none [&_figure]:border-0 [&_pre]:my-0 [&_pre]:rounded-none [&_pre]:border-0 [&_pre]:bg-transparent">
-            <ServerCodeBlock
-              lang="ts"
-              code={exampleCode}
-              codeblock={{ className: 'bg-transparent shadow-none' }}
-            />
-          </div>
-        </div>
-      </section>
+      <BenchmarkCharts />
 
       <section className="mx-auto w-full max-w-6xl px-6 pb-20">
         <div className="mb-8 text-center">
@@ -222,6 +185,32 @@ export default async function HomePage() {
               </p>
             </Link>
           ))}
+        </div>
+      </section>
+
+      <section className="mx-auto w-full max-w-6xl px-6 pb-10">
+        <div className="mb-8 text-center">
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            As simple as it gets
+          </h2>
+          <p className="mt-2 text-fd-muted-foreground">
+            Just create an instance, insert your data, and start searching. No server, no database, no hassle.
+          </p>
+        </div>
+        <div className="overflow-hidden rounded-2xl border bg-fd-card/50 shadow-sm backdrop-blur-sm">
+          <div className="flex items-center gap-2 border-b bg-fd-muted/30 px-4 py-3">
+            <span className="size-2.5 rounded-full bg-red-500/80" />
+            <span className="size-2.5 rounded-full bg-yellow-500/80" />
+            <span className="size-2.5 rounded-full bg-green-500/80" />
+            <span className="ml-2 text-xs text-fd-muted-foreground">app.ts</span>
+          </div>
+          <div className="[&_figure]:m-0 [&_figure]:rounded-none [&_figure]:border-0 [&_pre]:my-0 [&_pre]:rounded-none [&_pre]:border-0 [&_pre]:bg-transparent">
+            <ServerCodeBlock
+              lang="ts"
+              code={exampleCode}
+              codeblock={{ className: 'bg-transparent shadow-none' }}
+            />
+          </div>
         </div>
       </section>
     </div>

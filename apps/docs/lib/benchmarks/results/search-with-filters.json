@@ -1,0 +1,45 @@
+{
+  "name": "search with filters",
+  "date": "2026-07-15T18:54:27.260Z",
+  "version": "1.0.0",
+  "results": [
+    {
+      "name": "search with filters in Orama 3.1.18",
+      "ops": 24952,
+      "margin": 0.31,
+      "percentSlower": 13.08
+    },
+    {
+      "name": "search with filters in ZBSearch 3.3.1",
+      "ops": 28707,
+      "margin": 0.24,
+      "percentSlower": 0
+    },
+    {
+      "name": "search with filters in Fuse.js 7.5.0",
+      "ops": 54,
+      "margin": 0.26,
+      "percentSlower": 99.81
+    },
+    {
+      "name": "search with filters in Lunr 2.3.9",
+      "ops": 8128,
+      "margin": 2.31,
+      "percentSlower": 71.69
+    },
+    {
+      "name": "search with filters in MiniSearch 7.2.0",
+      "ops": 17796,
+      "margin": 0.55,
+      "percentSlower": 38.01
+    }
+  ],
+  "fastest": {
+    "name": "search with filters in ZBSearch 3.3.1",
+    "index": 1
+  },
+  "slowest": {
+    "name": "search with filters in Fuse.js 7.5.0",
+    "index": 2
+  }
+}

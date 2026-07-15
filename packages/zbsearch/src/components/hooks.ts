@@ -30,6 +30,10 @@ export function runSingleHook<T extends AnyZBSearch, ResultDocument extends Type
   id: string,
   doc?: ResultDocument
 ): Promise<void> | void {
+  if (!hooks.length) {
+    return
+  }
+
   const needAsync = hooks.some(isAsyncFunction)
 
   if (needAsync) {
@@ -50,6 +54,10 @@ export function runMultipleHook<T extends AnyZBSearch, ResultDocument extends Ty
   zbsearch: T,
   docsOrIds: ResultDocument[] | string[]
 ): Promise<void> | void {
+  if (!hooks.length) {
+    return
+  }
+
   const needAsync = hooks.some(isAsyncFunction)
 
   if (needAsync) {

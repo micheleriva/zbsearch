@@ -1,0 +1,45 @@
+{
+  "name": "plain search (all terms)",
+  "date": "2026-07-15T18:54:00.276Z",
+  "version": "1.0.0",
+  "results": [
+    {
+      "name": "plain search (all terms) in Orama 3.1.18",
+      "ops": 33236,
+      "margin": 0.27,
+      "percentSlower": 57.9
+    },
+    {
+      "name": "plain search (all terms) in ZBSearch 3.3.1",
+      "ops": 78943,
+      "margin": 0.22,
+      "percentSlower": 0
+    },
+    {
+      "name": "plain search (all terms) in Fuse.js 7.5.0",
+      "ops": 38,
+      "margin": 0.3,
+      "percentSlower": 99.95
+    },
+    {
+      "name": "plain search (all terms) in Lunr 2.3.9",
+      "ops": 11310,
+      "margin": 0.25,
+      "percentSlower": 85.67
+    },
+    {
+      "name": "plain search (all terms) in MiniSearch 7.2.0",
+      "ops": 44846,
+      "margin": 0.2,
+      "percentSlower": 43.19
+    }
+  ],
+  "fastest": {
+    "name": "plain search (all terms) in ZBSearch 3.3.1",
+    "index": 1
+  },
+  "slowest": {
+    "name": "plain search (all terms) in Fuse.js 7.5.0",
+    "index": 2
+  }
+}

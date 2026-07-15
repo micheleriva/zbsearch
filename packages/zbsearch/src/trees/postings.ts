@@ -21,6 +21,16 @@ export function addPosting(postings: PostingsMap, word: string, docId: InternalD
   }
 }
 
+export function appendPosting(postings: PostingsMap, word: string, docId: InternalDocumentID): void {
+  let list = postings.get(word)
+  if (!list) {
+    list = [docId]
+    postings.set(word, list)
+    return
+  }
+  list.push(docId)
+}
+
 export function removePosting(postings: PostingsMap, word: string, docId: InternalDocumentID): boolean {
   const list = postings.get(word)
   if (!list) {

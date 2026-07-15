@@ -2,7 +2,7 @@
 import { syncBoundedLevenshtein } from '../components/levenshtein.js'
 import { InternalDocumentID } from '../components/internal-document-id-store.js'
 import {
-  addPosting,
+  appendPosting,
   clearPostings,
   collectLegacyNodePostings,
   createPostingsMap,
@@ -56,7 +56,7 @@ export class RadixNode {
   }
 
   protected addDocumentToPostings(postings: PostingsMap, docID: InternalDocumentID): void {
-    addPosting(postings, this.w, docID)
+    appendPosting(postings, this.w, docID)
   }
 
   protected removeDocumentFromPostings(postings: PostingsMap, docID: InternalDocumentID): boolean {

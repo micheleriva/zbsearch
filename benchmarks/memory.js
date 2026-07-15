@@ -1,14 +1,33 @@
-import { createRequire } from 'node:module'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 import { formatBytes, formatDelta, measureEngineMemory } from './src/measure-memory.mjs'
 
-const require = createRequire(import.meta.url)
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+function pkgVersion(name) {
+  return JSON.parse(readFileSync(join(__dirname, 'node_modules', name, 'package.json'), 'utf8')).version
+}
 
 const versions = {
-  orama: require('@orama/orama/package.json').version,
-  zbsearch: require('zbsearch/package.json').version
+  orama: pkgVersion('@orama/orama'),
+  zbsearch: pkgVersion('zbsearch'),
+  flexsearch: pkgVersion('flexsearch'),
+  fusejs: pkgVersion('fuse.js'),
+  lunr: pkgVersion('lunr'),
+  minisearch: pkgVersion('minisearch')
 }
 
 const SEARCH_WARMUP = 100
+
+const engines = [
+  { key: 'orama', label: `Orama ${versions.orama}` },
+  { key: 'zbsearch', label: `ZBSearch ${versions.zbsearch}` },
+  { key: 'flexsearch', label: `FlexSearch ${versions.flexsearch}` },
+  { key: 'fusejs', label: `Fuse.js ${versions.fusejs}` },
+  { key: 'lunr', label: `Lunr ${versions.lunr}` },
+  { key: 'minisearch', label: `MiniSearch ${versions.minisearch}` }
+]
 
 function printEngineReport(label, data) {
   console.log(`${label}`)
@@ -23,19 +42,29 @@ function printEngineReport(label, data) {
   console.log(`  Serialized JSON:    ${formatBytes(data.serializedBytes)}`)
 }
 
-const orama = measureEngineMemory('orama', { searches: SEARCH_WARMUP })
-const zbsearch = measureEngineMemory('zbsearch', { searches: SEARCH_WARMUP })
+const results = Object.fromEntries(
+  engines.map(({ key }) => [key, measureEngineMemory(key, { searches: SEARCH_WARMUP })])
+)
 
-console.log(`Memory footprint benchmark (${orama.records} records, ${SEARCH_WARMUP} search warmup)`)
+console.log(`Memory footprint benchmark (${results.orama.records} records, ${SEARCH_WARMUP} search warmup)`)
 console.log('')
 
-printEngineReport(`Orama ${versions.orama}`, orama)
-console.log('')
-printEngineReport(`ZBSearch ${versions.zbsearch}`, zbsearch)
-console.log('')
+for (const { key, label } of engines) {
+  printEngineReport(label, results[key])
+  console.log('')
+}
+
 console.log('Comparison (indexed heap delta)')
-console.log(`  ${formatDelta('ZBSearch', zbsearch.indexedDelta.heapUsed, orama.indexedDelta.heapUsed)}`)
+for (const { key, label } of engines.slice(1)) {
+  console.log(`  ${formatDelta(label, results[key].indexedDelta.heapUsed, results.orama.indexedDelta.heapUsed)}`)
+}
+
 console.log('Comparison (indexed RSS delta)')
-console.log(`  ${formatDelta('ZBSearch', zbsearch.indexedDelta.rss, orama.indexedDelta.rss)}`)
+for (const { key, label } of engines.slice(1)) {
+  console.log(`  ${formatDelta(label, results[key].indexedDelta.rss, results.orama.indexedDelta.rss)}`)
+}
+
 console.log('Comparison (serialized JSON)')
-console.log(`  ${formatDelta('ZBSearch', zbsearch.serializedBytes, orama.serializedBytes)}`)
+for (const { key, label } of engines.slice(1)) {
+  console.log(`  ${formatDelta(label, results[key].serializedBytes, results.orama.serializedBytes)}`)
+}

@@ -66,27 +66,29 @@ export function applyPinningRules<T extends AnyZBSearch>(
     return uniqueDocsArray
   }
 
-  // Remove pinned documents from the original results
-  const unpinnedResults = uniqueDocsArray.filter(([id]) => !pinnedInternalIds.has(id))
+  const originalScoresByInternalId = new Map<InternalDocumentID, number>()
+  for (const [id, score] of uniqueDocsArray) {
+    originalScoresByInternalId.set(id, score)
+  }
 
-  // Create pinned results with their scores
-  // We assign a very high base score and subtract the position to maintain order
+  const unpinnedResults: TokenScore[] = []
+  for (const entry of uniqueDocsArray) {
+    if (!pinnedInternalIds.has(entry[0])) {
+      unpinnedResults.push(entry)
+    }
+  }
+
   const BASE_PIN_SCORE = 1000000
   const pinnedResults: TokenScore[] = []
 
-  for (const [internalId, position] of promotionsMap.entries()) {
-    // Check if the document exists in the original results
-    const existingResult = uniqueDocsArray.find(([id]) => id === internalId)
+  for (const [internalId, position] of promotionsMap) {
+    const existingScore = originalScoresByInternalId.get(internalId)
 
-    if (existingResult) {
-      // Document was in original results, use its score but mark it as pinned
+    if (existingScore !== undefined) {
       pinnedResults.push([internalId, BASE_PIN_SCORE - position])
     } else {
-      // Document was NOT in original results (promoted from outside the result set)
-      // Verify the document actually exists in the database before promoting it
       const doc = zbsearch.documentsStore.get(zbsearch.data.docs, internalId)
       if (doc) {
-        // Assign a score of 0 (as per PR #251 behavior)
         pinnedResults.push([internalId, 0])
       }
     }

@@ -160,7 +160,7 @@ export class IVFVectorIndex implements VectorIndexLike {
   }
 
   add(internalDocumentId: InternalDocumentID, value: VectorTypeLike) {
-    const stored = value instanceof Float32Array ? new Float32Array(value) : new Float32Array(value)
+    const stored = new Float32Array(value)
     normalizeVector(stored, this.size)
 
     const previousCluster = this.idToCluster.get(internalDocumentId)
@@ -197,7 +197,7 @@ export class IVFVectorIndex implements VectorIndexLike {
     similarity: number,
     whereFiltersIDs: Set<InternalDocumentID> | undefined
   ): SimilarVector[] {
-    const queryVector = vector instanceof Float32Array ? new Float32Array(vector) : new Float32Array(vector)
+    const queryVector = new Float32Array(vector)
     if (normalizeVector(queryVector, this.size) === 0) {
       return []
     }

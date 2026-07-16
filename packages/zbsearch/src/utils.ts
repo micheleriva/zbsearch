@@ -328,24 +328,24 @@ export function convertDistanceToMeters(distance: number, unit: GeosearchDistanc
 }
 
 export function removeVectorsFromHits(searchResult: Results<AnyDocument>, vectorProperties: string[]): void {
-  searchResult.hits = searchResult.hits.map((result) => ({
-    ...result,
-    document: {
-      ...result.document,
-      // Remove embeddings from the result
-      ...vectorProperties.reduce((acc, prop) => {
-        const path = prop.split('.')
-        const lastKey = path.pop()!
-        let obj = acc
-        for (const key of path) {
-          obj[key] = obj[key] ?? {}
-          obj = obj[key] as any
+  for (const result of searchResult.hits) {
+    const document = result.document
+    for (const prop of vectorProperties) {
+      const path = prop.split('.')
+      const lastKey = path.pop()!
+      let obj: any = document
+      for (const key of path) {
+        if (obj == null) {
+          break
         }
-        obj[lastKey] = null
-        return acc
-      }, result.document)
+        obj[key] = obj[key] ?? {}
+        obj = obj[key]
+      }
+      if (obj != null) {
+        obj[lastKey!] = null
+      }
     }
-  }))
+  }
 }
 
 export function isPromise(obj: any): obj is Promise<unknown> {

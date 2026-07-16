@@ -91,20 +91,15 @@ export function innerFullTextSearch<T extends AnyZBSearch>(
     // this is a reasonable compromise.
     if (params.exact && term) {
       const searchTerms = term.trim().split(/\s+/)
+      const exactRegexes = searchTerms.map((searchTerm) => new RegExp(`\\b${escapeRegex(searchTerm)}\\b`))
       uniqueDocsIDs = uniqueDocsIDs.filter(([docId]) => {
         const doc = zbsearch.documentsStore.get(zbsearch.data.docs, docId)
         if (!doc) return false
 
-        // Check if any of the specified properties contain the exact search term
         for (const prop of propertiesToSearch) {
           const propValue = getPropValue(doc, prop)
           if (typeof propValue === 'string') {
-            // Check if all search terms appear as complete words in the property value
-            const hasAllTerms = searchTerms.every((searchTerm) => {
-              // Create a regex that matches the term as a complete word (case-sensitive)
-              const regex = new RegExp(`\\b${escapeRegex(searchTerm)}\\b`)
-              return regex.test(propValue)
-            })
+            const hasAllTerms = exactRegexes.every((regex) => regex.test(propValue))
             if (hasAllTerms) {
               return true
             }

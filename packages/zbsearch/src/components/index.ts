@@ -132,9 +132,13 @@ export function insertRadixTokens(
   const invLength = tokenLength > 0 ? 1 / tokenLength : 0
 
   for (let i = 0; i < tokenLength; i++) {
-    const token = tokens[i]
-    frequencies[token] = (frequencies[token] ?? 0) + invLength
-    node.insert(token, internalId)
+    const token = tokens[i]!
+    if (Object.hasOwn(frequencies, token)) {
+      frequencies[token] += invLength
+    } else {
+      frequencies[token] = invLength
+      node.insert(token, internalId)
+    }
   }
 }
 
@@ -232,42 +236,41 @@ export function create<T extends AnyZBSearch, TSchema extends T['schema']>(
   return index
 }
 
-function insertScalarBuilder(
-  implementation: IIndex<Index>,
+function insertScalarValue(
+  _implementation: IIndex<Index>,
   index: Index,
   prop: string,
   id: DocumentID,
   internalId: InternalDocumentID,
+  value: SearchableValue,
   language: string | undefined,
   tokenizer: Tokenizer,
   docsCount: number,
   options?: InsertOptions
-) {
-  return (value: SearchableValue) => {
-    const { type, node } = index.indexes[prop]
-    switch (type) {
-      case 'Bool': {
-        node[value ? 'true' : 'false'].add(internalId)
-        break
-      }
-      case 'AVL': {
-        const avlRebalanceThreshold = options?.avlRebalanceThreshold ?? 1
-        node.insert(value as number, internalId, avlRebalanceThreshold)
-        break
-      }
-      case 'Radix': {
-        const tokens = tokenizer.tokenize(value as string, language, prop, false)
-        insertRadixTokens(index, prop, node as RadixTree, id, internalId, tokens, docsCount)
-        break
-      }
-      case 'Flat': {
-        node.insert(value as ScalarSearchableType, internalId)
-        break
-      }
-      case 'BKD': {
-        node.insert(value as unknown as BKDGeoPoint, [internalId])
-        break
-      }
+): void {
+  const { type, node } = index.indexes[prop]
+  switch (type) {
+    case 'Bool': {
+      node[value ? 'true' : 'false'].add(internalId)
+      break
+    }
+    case 'AVL': {
+      const avlRebalanceThreshold = options?.avlRebalanceThreshold ?? 1
+      node.insert(value as number, internalId, avlRebalanceThreshold)
+      break
+    }
+    case 'Radix': {
+      const tokens = tokenizer.tokenize(value as string, language, prop, false)
+      insertRadixTokens(index, prop, node as RadixTree, id, internalId, tokens, docsCount)
+      break
+    }
+    case 'Flat': {
+      node.insert(value as ScalarSearchableType, internalId)
+      break
+    }
+    case 'BKD': {
+      node.insert(value as unknown as BKDGeoPoint, [internalId])
+      break
     }
   }
 }
@@ -289,26 +292,36 @@ export function insert(
     return insertVector(index, prop, value as number[] | Float32Array, id, internalId)
   }
 
-  const insertScalar = insertScalarBuilder(
-    implementation,
-    index,
-    prop,
-    id,
-    internalId,
-    language,
-    tokenizer,
-    docsCount,
-    options
-  )
-
   if (!isArrayType(schemaType)) {
-    return insertScalar(value)
+    return insertScalarValue(
+      implementation,
+      index,
+      prop,
+      id,
+      internalId,
+      value,
+      language,
+      tokenizer,
+      docsCount,
+      options
+    )
   }
 
   const elements = value as Array<string | number | boolean>
   const elementsLength = elements.length
   for (let i = 0; i < elementsLength; i++) {
-    insertScalar(elements[i])
+    insertScalarValue(
+      implementation,
+      index,
+      prop,
+      id,
+      internalId,
+      elements[i]!,
+      language,
+      tokenizer,
+      docsCount,
+      options
+    )
   }
 }
 

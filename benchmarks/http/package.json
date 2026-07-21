@@ -1,0 +1,16 @@
+{
+  "name": "@zbsearch/benchmark-http",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "HTTP-level load-testing harness for the ZBSearch Cloudflare Worker API",
+  "scripts": {
+    "generate": "node generate-corpus.mjs",
+    "ingest": "node ingest.mjs",
+    "run:search": "k6 run k6/search.js",
+    "run:write": "k6 run k6/write.js",
+    "run:mixed": "k6 run k6/mixed.js",
+    "run:coldstart": "k6 run k6/coldstart.js"
+  },
+  "license": "Apache-2.0"
+}

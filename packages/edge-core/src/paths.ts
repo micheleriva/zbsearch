@@ -41,6 +41,27 @@ export function walEntryFileName(seq: number, ts: string, changeId: string): str
   return `${String(seq).padStart(10, '0')}_${ts.replace(/[:.]/g, '-')}_${changeId}.ndjson`
 }
 
+export function walSegmentsPrefix(indexId: string): string {
+  return `wal/${indexId}/segments/`
+}
+
+export function walSegmentFileName(firstSeq: number, lastSeq: number, changeId: string): string {
+  return `${String(firstSeq).padStart(10, '0')}-${String(lastSeq).padStart(10, '0')}_${changeId}.ndjson`
+}
+
+export function walSegmentKey(
+  indexId: string,
+  firstSeq: number,
+  lastSeq: number,
+  changeId: string
+): string {
+  return `${walSegmentsPrefix(indexId)}${walSegmentFileName(firstSeq, lastSeq, changeId)}`
+}
+
+export function walOpenSegmentKey(indexId: string): string {
+  return `${walSegmentsPrefix(indexId)}open.ndjson`
+}
+
 export function nextSegmentName(current: string | null): string {
   if (!current) {
     return '000001.ndjson'
@@ -50,7 +71,8 @@ export function nextSegmentName(current: string | null): string {
 }
 
 export function newVersionId(): string {
-  return new Date().toISOString().replace(/[:.]/g, '-')
+  const suffix = crypto.randomUUID().replace(/-/g, '').slice(0, 8)
+  return `${new Date().toISOString().replace(/[:.]/g, '-')}-${suffix}`
 }
 
 export function newChangeId(): string {

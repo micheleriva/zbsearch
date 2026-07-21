@@ -1,5 +1,6 @@
 import type { EdgeApiError } from './errors.js'
 import { EdgeApiError as EdgeApiErrorClass } from './errors.js'
+import type { WalCoordinator } from './coordinator.js'
 import type { ObjectStorage, ShardCache } from './storage.js'
 import {
   bufferDelete,
@@ -13,7 +14,8 @@ import {
   runSearch,
   type CreateIndexInput,
   type ScheduleRebuildOptions,
-  type SearchInput
+  type SearchInput,
+  type SnapshotDbCacheOptions
 } from './service.js'
 import { deleteIndexMeta, getIndexMeta, listIndexMetas, saveIndexMeta } from './registry.js'
 import type { IndexSettings } from './types.js'
@@ -25,6 +27,8 @@ export interface RouterContext {
   scheduleBackground?: ScheduleRebuildOptions['schedule']
   rebuildThresholdOps?: number
   builderWebhookUrl?: string
+  snapshotCache?: SnapshotDbCacheOptions
+  walCoordinator?: WalCoordinator
 }
 
 function scheduleOptions(ctx: RouterContext): ScheduleRebuildOptions {
@@ -32,6 +36,7 @@ function scheduleOptions(ctx: RouterContext): ScheduleRebuildOptions {
     schedule: ctx.scheduleBackground,
     threshold: ctx.rebuildThresholdOps,
     builderWebhookUrl: ctx.builderWebhookUrl,
+    walCoordinator: ctx.walCoordinator,
     source: 'threshold'
   }
 }
@@ -151,21 +156,27 @@ export async function handleRequest(ctx: RouterContext, req: HttpRequest): Promi
 
     const rebuildMatch = matchPath(req.pathname, '/v1/indexes/:indexId/rebuild')
     if (rebuildMatch && req.method === 'POST') {
-      const meta = await rebuildIndex(ctx.storage, rebuildMatch.indexId!)
+      const meta = await rebuildIndex(ctx.storage, rebuildMatch.indexId!, {
+        walCoordinator: ctx.walCoordinator
+      })
       return json(202, { status: 'rebuilt', indexId: meta.id, liveVersion: meta.liveVersion })
     }
 
     const searchMatch = matchPath(req.pathname, '/v1/indexes/:indexId/search')
     if (searchMatch && req.method === 'POST') {
       const body = await req.json<SearchInput>()
-      const results = await runSearch(ctx.storage, ctx.cache, searchMatch.indexId!, body)
+      const results = await runSearch(ctx.storage, ctx.cache, searchMatch.indexId!, body, {
+        snapshotCache: ctx.snapshotCache
+      })
       return json(200, results)
     }
 
     const docCollectionMatch = matchPath(req.pathname, '/v1/indexes/:indexId/documents')
     if (docCollectionMatch && req.method === 'POST') {
       const body = await req.json<{ id: string; document: Record<string, unknown> }>()
-      const result = await bufferUpsert(ctx.storage, docCollectionMatch.indexId!, body.id, body.document)
+      const result = await bufferUpsert(ctx.storage, docCollectionMatch.indexId!, body.id, body.document, {
+        walCoordinator: ctx.walCoordinator
+      })
       await afterBufferedWrite(ctx, docCollectionMatch.indexId!)
       return json(202, result)
     }
@@ -177,13 +188,17 @@ export async function handleRequest(ctx: RouterContext, req: HttpRequest): Promi
 
       if (req.method === 'PUT') {
         const body = await req.json<Record<string, unknown>>()
-        const result = await bufferUpsert(ctx.storage, indexId, docId, body)
+        const result = await bufferUpsert(ctx.storage, indexId, docId, body, {
+          walCoordinator: ctx.walCoordinator
+        })
         await afterBufferedWrite(ctx, indexId)
         return json(202, result)
       }
 
       if (req.method === 'DELETE') {
-        const result = await bufferDelete(ctx.storage, indexId, docId)
+        const result = await bufferDelete(ctx.storage, indexId, docId, {
+          walCoordinator: ctx.walCoordinator
+        })
         await afterBufferedWrite(ctx, indexId)
         return json(202, result)
       }
@@ -198,7 +213,9 @@ export async function handleRequest(ctx: RouterContext, req: HttpRequest): Promi
         >
       }>()
       const indexId = batchMatch.indexId!
-      const result = await bufferBatch(ctx.storage, indexId, body.operations)
+      const result = await bufferBatch(ctx.storage, indexId, body.operations, {
+        walCoordinator: ctx.walCoordinator
+      })
       await afterBufferedWrite(ctx, indexId)
       return json(202, result)
     }

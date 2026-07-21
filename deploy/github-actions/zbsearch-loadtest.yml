@@ -1,0 +1,37 @@
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: 'k6 scenario to run'
+        required: true
+        default: 'search'
+        type: choice
+        options:
+          - search
+          - write
+          - mixed
+          - coldstart
+      index_id:
+        description: 'Index to target (must already exist and be ingested)'
+        required: true
+        default: 'loadtest'
+
+jobs:
+  loadtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: grafana/setup-k6-action@v1
+      - name: Run k6 ${{ inputs.scenario }} scenario
+        run: |
+          k6 run --summary-export "results/${{ inputs.scenario }}-$(date +%Y%m%dT%H%M%SZ).json" \
+            "benchmarks/http/k6/${{ inputs.scenario }}.js"
+        env:
+          BASE_URL: ${{ secrets.LOADTEST_BASE_URL }}
+          API_KEY: ${{ secrets.LOADTEST_API_KEY }}
+          INDEX_ID: ${{ inputs.index_id }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: loadtest-${{ inputs.scenario }}-${{ github.run_id }}
+          path: results/
+          retention-days: 30

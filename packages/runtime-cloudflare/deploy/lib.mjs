@@ -264,15 +264,11 @@ export function renderWranglerToml(config, paths = getPaths()) {
       : ''
 
   const workerMain = workerMainRelative(paths.deployDir, paths.projectRoot)
-  const cpuLimit =
-    config.limits?.cpuMs != null
-      ? `\n[limits]\ncpu_ms = ${config.limits.cpuMs}\n`
-      : '\n# Optional paid-plan CPU limit (uncomment and set limits.cpuMs in config):\n# [limits]\n# cpu_ms = 300000\n'
+  const cpuLimit = `\n[limits]\ncpu_ms = ${config.limits?.cpuMs ?? 300000}\n`
 
   return `name = "${config.workerName}"
 main = "${workerMain}"
 compatibility_date = "2025-03-01"
-compatibility_flags = ["nodejs_compat"]
 
 [observability]
 enabled = true
@@ -281,6 +277,14 @@ enabled = true
 binding = "BUCKET"
 bucket_name = "${config.r2.bucket}"
 preview_bucket_name = "${config.r2.previewBucket}"
+
+[[durable_objects.bindings]]
+name = "INDEX_COORDINATOR"
+class_name = "IndexCoordinator"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["IndexCoordinator"]
 
 [triggers]
 crons = ["${config.rebuild.cron}"]

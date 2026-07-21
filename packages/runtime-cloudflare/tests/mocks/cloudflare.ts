@@ -1,3 +1,6 @@
+import { IndexCoordinator } from '../../src/coordinator.js'
+import type { Env } from '../../src/worker.js'
+
 type StoredObject = {
   body: Uint8Array
   httpEtag: string
@@ -81,5 +84,44 @@ export class MockCache {
 
   has(key: string): boolean {
     return this.entries.has(key)
+  }
+}
+
+export class MockDurableObjectState {
+  private readonly data = new Map<string, unknown>()
+
+  readonly storage = {
+    get: async <T>(key: string): Promise<T | undefined> => this.data.get(key) as T | undefined,
+    put: async (key: string, value: unknown): Promise<void> => {
+      this.data.set(key, value)
+    },
+    delete: async (key: string): Promise<boolean> => this.data.delete(key)
+  }
+}
+
+export class MockDurableObjectNamespace {
+  private readonly instances = new Map<string, IndexCoordinator>()
+
+  constructor(private readonly env: Env) {}
+
+  idFromName(name: string): DurableObjectId {
+    return name as unknown as DurableObjectId
+  }
+
+  get(id: DurableObjectId): DurableObjectStub {
+    const key = String(id)
+    let instance = this.instances.get(key)
+    if (!instance) {
+      instance = new IndexCoordinator(
+        new MockDurableObjectState() as unknown as DurableObjectState,
+        this.env
+      )
+      this.instances.set(key, instance)
+    }
+    const coordinator = instance
+    return {
+      fetch: (input: Request | string, init?: RequestInit) =>
+        coordinator.fetch(new Request(input, init))
+    } as unknown as DurableObjectStub
   }
 }

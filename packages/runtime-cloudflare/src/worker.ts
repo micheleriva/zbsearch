@@ -6,24 +6,41 @@ import {
   type HttpRequest
 } from '@zbsearch/edge-core'
 
+import { createWalCoordinator, IndexCoordinator } from './coordinator.js'
 import { R2ObjectStorage, WorkersShardCache } from './storage.js'
+
+export { IndexCoordinator }
 
 export interface Env {
   BUCKET: R2Bucket
+  INDEX_COORDINATOR?: DurableObjectNamespace
   API_KEY?: string
   REBUILD_THRESHOLD_OPS?: string
   BUILDER_WEBHOOK_URL?: string
+  SNAPSHOT_CACHE_MAX_ENTRIES?: string
+  SNAPSHOT_CACHE_MAX_BYTES?: string
+}
+
+function parseOptionalInt(value: string | undefined): number | undefined {
+  return value ? Number.parseInt(value, 10) : undefined
 }
 
 function rebuildOptions(env: Env) {
-  const threshold = env.REBUILD_THRESHOLD_OPS
-    ? Number.parseInt(env.REBUILD_THRESHOLD_OPS, 10)
-    : undefined
   return {
-    threshold,
+    threshold: parseOptionalInt(env.REBUILD_THRESHOLD_OPS),
     builderWebhookUrl: env.BUILDER_WEBHOOK_URL,
+    walCoordinator: createWalCoordinator(env.INDEX_COORDINATOR),
     schedule: undefined as ((task: Promise<unknown>) => void) | undefined
   }
+}
+
+function snapshotCacheOptions(env: Env) {
+  const maxEntries = parseOptionalInt(env.SNAPSHOT_CACHE_MAX_ENTRIES)
+  const maxBytes = parseOptionalInt(env.SNAPSHOT_CACHE_MAX_BYTES)
+  if (maxEntries === undefined && maxBytes === undefined) {
+    return undefined
+  }
+  return { maxEntries, maxBytes }
 }
 
 export default {
@@ -62,7 +79,9 @@ export default {
           apiKey: env.API_KEY,
           scheduleBackground: options.schedule,
           rebuildThresholdOps: options.threshold,
-          builderWebhookUrl: options.builderWebhookUrl
+          builderWebhookUrl: options.builderWebhookUrl,
+          walCoordinator: options.walCoordinator,
+          snapshotCache: snapshotCacheOptions(env)
         },
         req
       )

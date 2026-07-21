@@ -14,15 +14,25 @@ export type {
   IndexStatusResponse,
   Registry
 } from './types.js'
+export type {
+  WalAppendResult,
+  WalCoordinator,
+  WalFreezeResult,
+  WalRebuildResult
+} from './coordinator.js'
 export {
   appendBufferOp,
   appendWalBatch,
   applyBufferOps,
   clearBuffer,
+  encodeWalSegmentOps,
   finalizeBufferAfterRebuild,
   freezeBufferForRebuild,
   getBufferHead,
-  readBufferOps
+  readBufferOps,
+  saveBufferHead,
+  WAL_SEGMENT_MAX_BYTES,
+  WAL_SEGMENT_MAX_OPS
 } from './buffer.js'
 export { decodeJson, encodeJson, encodeNdjsonLine, parseNdjson } from './codec.js'
 export { EdgeApiError, badRequest, conflict, notFound, unauthorized } from './errors.js'
@@ -39,7 +49,11 @@ export {
   walEntriesPrefix,
   walEntryFileName,
   walEntryKey,
-  walHeadKey
+  walHeadKey,
+  walOpenSegmentKey,
+  walSegmentFileName,
+  walSegmentKey,
+  walSegmentsPrefix
 } from './paths.js'
 export {
   deleteIndexMeta,
@@ -49,11 +63,22 @@ export {
   registerIndex,
   saveIndexMeta
 } from './registry.js'
-export type { CreateIndexInput, ImportDocument, ScheduleRebuildOptions, SearchInput } from './service.js'
+export type {
+  BufferedWriteOptions,
+  CreateIndexInput,
+  ImportDocument,
+  RebuildOptions,
+  ScheduleRebuildOptions,
+  SearchInput,
+  SearchOptions,
+  SnapshotDbCacheOptions
+} from './service.js'
 export {
   bufferBatch,
   bufferDelete,
   bufferUpsert,
+  clearSnapshotDbCache,
+  configureSnapshotDbCache,
   createIndex,
   getIndexManifest,
   getStatus,

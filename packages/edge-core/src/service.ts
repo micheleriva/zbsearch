@@ -11,6 +11,7 @@ import {
   readBufferOps
 } from './buffer.js'
 import { badRequest, notFound } from './errors.js'
+import type { WalCoordinator } from './coordinator.js'
 import { getIndexMeta, registerIndex, saveIndexMeta } from './registry.js'
 import { indexMetaKey, newVersionId, snapshotKey } from './paths.js'
 import type { ObjectStorage, ShardCache } from './storage.js'
@@ -28,6 +29,86 @@ export interface CreateIndexInput {
   name: string
   schema: AnySchema
   settings?: IndexSettings
+}
+
+export interface SnapshotDbCacheOptions {
+  maxEntries?: number
+  maxBytes?: number
+}
+
+const DEFAULT_SNAPSHOT_DB_CACHE_MAX_ENTRIES = 4
+const DEFAULT_SNAPSHOT_DB_CACHE_MAX_BYTES = 64 * 1024 * 1024
+
+interface SnapshotDbCacheEntry {
+  db: AnyZBSearch
+  bytes: number
+}
+
+const snapshotDbCache = new Map<string, SnapshotDbCacheEntry>()
+let snapshotDbCacheBytes = 0
+let snapshotDbCacheMaxEntries = DEFAULT_SNAPSHOT_DB_CACHE_MAX_ENTRIES
+let snapshotDbCacheMaxBytes = DEFAULT_SNAPSHOT_DB_CACHE_MAX_BYTES
+
+function evictSnapshotDbCache(): void {
+  while (
+    snapshotDbCache.size > snapshotDbCacheMaxEntries ||
+    snapshotDbCacheBytes > snapshotDbCacheMaxBytes
+  ) {
+    const oldest = snapshotDbCache.keys().next()
+    if (oldest.done) {
+      break
+    }
+    const entry = snapshotDbCache.get(oldest.value)!
+    snapshotDbCache.delete(oldest.value)
+    snapshotDbCacheBytes -= entry.bytes
+  }
+}
+
+export function configureSnapshotDbCache(options: SnapshotDbCacheOptions = {}): void {
+  if (options.maxEntries !== undefined) {
+    snapshotDbCacheMaxEntries = Math.max(0, options.maxEntries)
+  }
+  if (options.maxBytes !== undefined) {
+    snapshotDbCacheMaxBytes = Math.max(0, options.maxBytes)
+  }
+  evictSnapshotDbCache()
+}
+
+export function clearSnapshotDbCache(): void {
+  snapshotDbCache.clear()
+  snapshotDbCacheBytes = 0
+  snapshotDbCacheMaxEntries = DEFAULT_SNAPSHOT_DB_CACHE_MAX_ENTRIES
+  snapshotDbCacheMaxBytes = DEFAULT_SNAPSHOT_DB_CACHE_MAX_BYTES
+}
+
+function getCachedSnapshotDb(key: string): AnyZBSearch | null {
+  const entry = snapshotDbCache.get(key)
+
+  if (!entry) {
+    return null
+  }
+
+  snapshotDbCache.delete(key)
+  snapshotDbCache.set(key, entry)
+
+  return entry.db
+}
+
+function setCachedSnapshotDb(key: string, db: AnyZBSearch, bytes: number): void {
+  if (snapshotDbCacheMaxEntries === 0 || bytes > snapshotDbCacheMaxBytes) {
+    return
+  }
+
+  const existing = snapshotDbCache.get(key)
+
+  if (existing) {
+    snapshotDbCacheBytes -= existing.bytes
+  }
+
+  snapshotDbCache.set(key, { db, bytes })
+  snapshotDbCacheBytes += bytes
+
+  evictSnapshotDbCache()
 }
 
 export interface SearchInput {
@@ -97,20 +178,30 @@ export async function createIndex(
   return meta
 }
 
-export async function bufferUpsert(
+export interface BufferedWriteOptions {
+  walCoordinator?: WalCoordinator
+}
+
+async function appendWriteOps(
   storage: ObjectStorage,
-  indexId: string,
-  docId: string,
-  doc: Record<string, unknown>
+  meta: IndexMeta,
+  ops: BufferOp[],
+  options: BufferedWriteOptions
 ): Promise<BufferedWriteResponse> {
-  const meta = await getIndexMeta(storage, indexId)
-  const ts = new Date().toISOString()
-  const { changeId, bufferedAt, head } = await appendBufferOp(storage, indexId, {
-    op: 'upsert',
-    id: docId,
-    ts,
-    doc
-  })
+  if (options.walCoordinator) {
+    const { changeId, bufferedAt } = await options.walCoordinator.appendOps(meta.id, ops)
+    return {
+      status: 'buffered',
+      changeId,
+      bufferedAt,
+      indexStatus: meta.liveVersion ? meta.status : 'empty'
+    }
+  }
+
+  const { changeId, bufferedAt, head } =
+    ops.length === 1
+      ? await appendBufferOp(storage, meta.id, ops[0]!)
+      : await appendWalBatch(storage, meta.id, ops)
 
   meta.pendingOps = head.pendingOps
   meta.status = meta.liveVersion ? meta.status : 'empty'
@@ -124,6 +215,18 @@ export async function bufferUpsert(
   }
 }
 
+export async function bufferUpsert(
+  storage: ObjectStorage,
+  indexId: string,
+  docId: string,
+  doc: Record<string, unknown>,
+  options: BufferedWriteOptions = {}
+): Promise<BufferedWriteResponse> {
+  const meta = await getIndexMeta(storage, indexId)
+  const ts = new Date().toISOString()
+  return appendWriteOps(storage, meta, [{ op: 'upsert', id: docId, ts, doc }], options)
+}
+
 export interface ImportDocument {
   id: string
   doc: Record<string, unknown>
@@ -133,7 +236,7 @@ export async function importDocuments(
   storage: ObjectStorage,
   indexId: string,
   documents: ImportDocument[],
-  options?: { create?: CreateIndexInput }
+  options?: { create?: CreateIndexInput; walCoordinator?: WalCoordinator }
 ): Promise<IndexMeta> {
   let meta: IndexMeta
   try {
@@ -157,7 +260,11 @@ export async function importDocuments(
     contentType: 'application/msgpack'
   })
 
-  await clearBuffer(storage, indexId)
+  if (options?.walCoordinator) {
+    await options.walCoordinator.clearBuffer(indexId)
+  } else {
+    await clearBuffer(storage, indexId)
+  }
 
   meta.liveVersion = version
   meta.buildingVersion = null
@@ -178,7 +285,8 @@ export async function bufferBatch(
   operations: Array<
     | { op: 'upsert'; id: string; doc: Record<string, unknown> }
     | { op: 'delete'; id: string }
-  >
+  >,
+  options: BufferedWriteOptions = {}
 ): Promise<BufferedWriteResponse> {
   const meta = await getIndexMeta(storage, indexId)
   const ts = new Date().toISOString()
@@ -188,42 +296,18 @@ export async function bufferBatch(
       : { op: 'delete', id: operation.id, ts }
   )
 
-  const { changeId, bufferedAt, head } = await appendWalBatch(storage, indexId, ops)
-
-  meta.pendingOps = head.pendingOps
-  meta.status = meta.liveVersion ? meta.status : 'empty'
-  await saveIndexMeta(storage, meta)
-
-  return {
-    status: 'buffered',
-    changeId,
-    bufferedAt,
-    indexStatus: meta.status
-  }
+  return appendWriteOps(storage, meta, ops, options)
 }
 
 export async function bufferDelete(
   storage: ObjectStorage,
   indexId: string,
-  docId: string
+  docId: string,
+  options: BufferedWriteOptions = {}
 ): Promise<BufferedWriteResponse> {
   const meta = await getIndexMeta(storage, indexId)
   const ts = new Date().toISOString()
-  const { changeId, bufferedAt, head } = await appendBufferOp(storage, indexId, {
-    op: 'delete',
-    id: docId,
-    ts
-  })
-
-  meta.pendingOps = head.pendingOps
-  await saveIndexMeta(storage, meta)
-
-  return {
-    status: 'buffered',
-    changeId,
-    bufferedAt,
-    indexStatus: meta.status
-  }
+  return appendWriteOps(storage, meta, [{ op: 'delete', id: docId, ts }], options)
 }
 
 export async function getStatus(storage: ObjectStorage, indexId: string): Promise<IndexStatusResponse> {
@@ -250,6 +334,12 @@ async function loadSnapshotDb(
   }
 
   const key = snapshotKey(meta.id, meta.liveVersion)
+
+  const cachedDb = getCachedSnapshotDb(key)
+  if (cachedDb) {
+    return cachedDb
+  }
+
   const cacheKey = `snapshot:${key}`
 
   let bytes = await cache.get(cacheKey)
@@ -265,6 +355,7 @@ async function loadSnapshotDb(
   const raw = decode(bytes)
   const db = create({ schema: meta.schema, language: meta.settings.language as any })
   load(db, raw as any)
+  setCachedSnapshotDb(key, db, bytes.byteLength)
   return db
 }
 
@@ -281,9 +372,10 @@ async function loadDocumentsFromSnapshot(
 
   for (const doc of Object.values(db.data.docs.docs)) {
     if (doc && typeof doc === 'object' && 'id' in doc && doc.id != null) {
-      docs.set(String(doc.id), doc as Record<string, unknown>)
+      docs.set(String(doc.id), { ...(doc as Record<string, unknown>) })
     }
   }
+
   return docs
 }
 
@@ -341,6 +433,7 @@ export interface ScheduleRebuildOptions {
   builderWebhookUrl?: string
   schedule?: (task: Promise<unknown>) => void
   source?: 'threshold' | 'scheduler'
+  walCoordinator?: WalCoordinator
 }
 
 export async function maybeScheduleRebuild(
@@ -373,12 +466,43 @@ export async function maybeScheduleRebuild(
     return
   }
 
-  options.schedule(rebuildIndex(storage, indexId))
+  options.schedule(rebuildIndex(storage, indexId, { walCoordinator: options.walCoordinator }))
 }
 
-export async function rebuildIndex(storage: ObjectStorage, indexId: string): Promise<IndexMeta> {
+export interface RebuildOptions {
+  walCoordinator?: WalCoordinator
+}
+
+export async function rebuildIndex(
+  storage: ObjectStorage,
+  indexId: string,
+  options: RebuildOptions = {}
+): Promise<IndexMeta> {
+  const coordinator = options.walCoordinator
+
+  if (coordinator) {
+    const acquired = await coordinator.acquireRebuildLock(indexId)
+
+    if (!acquired) {
+      return getIndexMeta(storage, indexId)
+    }
+    try {
+      return await runRebuild(storage, indexId, coordinator)
+    } finally {
+      await coordinator.releaseRebuildLock(indexId)
+    }
+  }
+
+  return runRebuild(storage, indexId, undefined)
+}
+
+async function runRebuild(
+  storage: ObjectStorage,
+  indexId: string,
+  coordinator: WalCoordinator | undefined
+): Promise<IndexMeta> {
   const meta = await getIndexMeta(storage, indexId)
-  if (meta.status === 'building') {
+  if (!coordinator && meta.status === 'building') {
     return meta
   }
 
@@ -393,7 +517,9 @@ export async function rebuildIndex(storage: ObjectStorage, indexId: string): Pro
     set: async () => {},
     delete: async () => {}
   })
-  const { ops: bufferOps, frozenSegmentKeys } = await freezeBufferForRebuild(storage, indexId)
+  const { ops: bufferOps, frozenSegmentKeys } = coordinator
+    ? await coordinator.freezeForRebuild(indexId)
+    : await freezeBufferForRebuild(storage, indexId)
   const merged = applyBufferOps(baseDocs, bufferOps)
 
   const db = create({ schema: meta.schema, language: meta.settings.language as any })
@@ -408,6 +534,17 @@ export async function rebuildIndex(storage: ObjectStorage, indexId: string): Pro
     contentType: 'application/msgpack'
   })
 
+  const lastRebuildAt = new Date().toISOString()
+
+  if (coordinator) {
+    return coordinator.finalizeAfterRebuild(indexId, frozenSegmentKeys, {
+      version,
+      documents: documents.length,
+      indexSizeBytes: snapshotBytes.byteLength,
+      lastRebuildAt
+    })
+  }
+
   const head = await finalizeBufferAfterRebuild(storage, indexId, frozenSegmentKeys)
 
   meta.liveVersion = version
@@ -416,19 +553,28 @@ export async function rebuildIndex(storage: ObjectStorage, indexId: string): Pro
   meta.documents = documents.length
   meta.indexSizeBytes = snapshotBytes.byteLength
   meta.pendingOps = head.pendingOps
-  meta.lastRebuildAt = new Date().toISOString()
+  meta.lastRebuildAt = lastRebuildAt
   meta.lastAppliedOffset = null
   await saveIndexMeta(storage, meta)
 
   return meta
 }
 
+export interface SearchOptions {
+  snapshotCache?: SnapshotDbCacheOptions
+}
+
 export async function runSearch(
   storage: ObjectStorage,
   cache: ShardCache,
   indexId: string,
-  params: SearchInput
+  params: SearchInput,
+  options: SearchOptions = {}
 ): Promise<Record<string, unknown>> {
+  if (options.snapshotCache) {
+    configureSnapshotDbCache(options.snapshotCache)
+  }
+
   const meta = await getIndexMeta(storage, indexId)
   const loaded = await loadSearchableDb(storage, meta, cache)
 

@@ -2,6 +2,7 @@ import { describe, it, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 
 import worker, { type Env } from '../src/worker.js'
+import { clearSnapshotDbCache } from '@zbsearch/edge-core'
 import { MockCache, MockR2Bucket } from './mocks/cloudflare.js'
 
 const mockCache = new MockCache()
@@ -105,6 +106,37 @@ describe('worker fetch', () => {
   it('returns 404 for unknown routes', async () => {
     const res = await fetchWorker('/v1/does-not-exist', makeEnv())
     assert.equal(res.status, 404)
+  })
+
+  it('accepts snapshot cache limits via env vars', async () => {
+    const env = makeEnv({
+      SNAPSHOT_CACHE_MAX_ENTRIES: '2',
+      SNAPSHOT_CACHE_MAX_BYTES: String(16 * 1024 * 1024)
+    })
+
+    await fetchWorker('/v1/indexes', env, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'cache-opts', schema: { title: 'string' } })
+    })
+    await fetchWorker('/v1/indexes/cache-opts/documents/doc-1', env, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'Cache Options Doc' })
+    })
+    await fetchWorker('/v1/indexes/cache-opts/rebuild', env, { method: 'POST' })
+
+    for (let i = 0; i < 2; i++) {
+      const res = await fetchWorker('/v1/indexes/cache-opts/search', env, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ term: 'cache options' })
+      })
+      assert.equal(res.status, 200)
+      assert.ok(((await res.json()) as { count: number }).count >= 1)
+    }
+
+    clearSnapshotDbCache()
   })
 
   it('lists indexes after creation', async () => {

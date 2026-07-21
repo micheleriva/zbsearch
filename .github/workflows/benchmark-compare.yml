@@ -1,0 +1,91 @@
+name: Orama vs ZBSearch Benchmarks
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Benchmark sampling mode
+        required: true
+        default: full
+        type: choice
+        options:
+          - full
+          - quick
+      format:
+        description: Table format printed in the job log
+        required: true
+        default: both
+        type: choice
+        options:
+          - both
+          - markdown
+          - ascii
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    name: Orama vs ZBSearch
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install monorepo dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build packages used by benchmarks
+        run: |
+          pnpm --filter zbsearch build
+          pnpm --filter @zbsearch/stopwords build
+
+      - name: Install benchmark dependencies
+        working-directory: benchmarks
+        run: |
+          npm install
+          # Always compare against the latest published Orama release
+          npm install @orama/orama@latest
+
+      - name: Print versions under test
+        working-directory: benchmarks
+        run: |
+          node -e "
+            import { createRequire } from 'node:module'
+            const require = createRequire(import.meta.url)
+            console.log('Orama   ', require('@orama/orama/package.json').version)
+            console.log('ZBSearch', require('zbsearch/package.json').version)
+            console.log('Node    ', process.version)
+          "
+
+      - name: Run comparison benchmarks
+        working-directory: benchmarks
+        env:
+          BENCHMARK_MODE: ${{ inputs.mode }}
+        run: |
+          EXTRA_ARGS=()
+          if [ "${{ inputs.mode }}" = "quick" ]; then
+            EXTRA_ARGS+=(--quick)
+          fi
+          EXTRA_ARGS+=(--format=${{ inputs.format }})
+          EXTRA_ARGS+=(--json)
+          EXTRA_ARGS+=(--out=benchmark/orama-vs-zbsearch.json)
+          node compare.js "${EXTRA_ARGS[@]}"
+
+      - name: Upload JSON results
+        uses: actions/upload-artifact@v4
+        with:
+          name: orama-vs-zbsearch-benchmarks
+          path: |
+            benchmarks/benchmark/orama-vs-zbsearch.json
+          if-no-files-found: warn

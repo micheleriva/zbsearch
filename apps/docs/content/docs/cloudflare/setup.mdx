@@ -130,6 +130,25 @@ bucket_name = "your-bucket-name"
 preview_bucket_name = "your-bucket-name-preview"
 ```
 
+The default `wrangler.toml` (and the setup-CLI template) also includes the Durable Object binding for the write coordinator and an extended CPU limit:
+
+```toml
+[[durable_objects.bindings]]
+name = "INDEX_COORDINATOR"
+class_name = "IndexCoordinator"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["IndexCoordinator"]
+
+[limits]
+cpu_ms = 300000
+```
+
+<Callout type="warn">
+  Durable Objects and custom `cpu_ms` limits both require the **Workers Paid plan**. On the Free plan, remove these blocks — edge-core falls back to per-op WAL entries with the default CPU budget. See [Production](/docs/cloudflare/production#cloudflare-plan-requirements).
+</Callout>
+
 ## 3. Configure the builder CLI (optional but recommended)
 
 The Worker handles search and WAL writes. **Rebuilds** that merge the WAL into a new snapshot can run inside the Worker (small indexes) or via an external CLI (production). The same CLI also supports **bulk import** — building a snapshot locally and uploading it to R2 without per-document API calls.
@@ -270,12 +289,18 @@ crons = ["*/5 * * * *"]
 
 [vars]
 REBUILD_THRESHOLD_OPS = "500"
+
+[limits]
+cpu_ms = 300000
 ```
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | `crons` | Every 5 minutes | Worker checks indexes for pending writes |
 | `REBUILD_THRESHOLD_OPS` | `500` | Auto-rebuild in-Worker when pending ops reach this count |
+| `cpu_ms` | `300000` (5 min) | Per-request CPU limit (Workers Paid plan); headroom for in-Worker rebuilds |
+| `SNAPSHOT_CACHE_MAX_ENTRIES` | `4` | Deserialized snapshots cached per isolate |
+| `SNAPSHOT_CACHE_MAX_BYTES` | `67108864` | Byte budget for the per-isolate snapshot cache |
 
 For **development and small indexes**, the cron + threshold is enough. For **production**, use an [external rebuild runner](/docs/cloudflare/production) and set `BUILDER_WEBHOOK_URL` so the Worker triggers GitHub Actions instead of rebuilding inline.
 

@@ -9,6 +9,7 @@
 		"api-reference",
 		"indexing-and-rebuilds",
 		"production",
+		"benchmarks",
 		"local-development"
 	]
 }

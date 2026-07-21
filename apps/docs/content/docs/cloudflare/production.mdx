@@ -9,6 +9,14 @@ description: Harden ZBSearch Edge for production - authentication, external rebu
 
 Running ZBSearch Edge in production means protecting your API, offloading rebuilds from the Worker, and monitoring index health. This page covers the recommended production setup.
 
+## Cloudflare plan requirements
+
+<Callout type="warn" title="Workers Paid plan required">
+  The default configuration requires the **Workers Paid plan**. Two features depend on it: the `IndexCoordinator` **Durable Objects** binding (WAL batching and rebuild locking) and `[limits] cpu_ms = 300000` (extended CPU time for in-Worker rebuilds). Durable Objects and custom CPU limits are not available on the Free plan.
+</Callout>
+
+If you must stay on the Free plan, remove the `[[durable_objects.bindings]]`, `[[migrations]]`, and `[limits]` blocks from `wrangler.toml` — edge-core falls back to per-op WAL entries and a metadata-flag rebuild lock, with the Free plan's default CPU budget. Use an external builder for rebuilds in that case.
+
 ## Authentication
 
 Always set an API key before exposing the Worker publicly:
@@ -133,6 +141,27 @@ Confirm `pendingOps` is `0` and `lastRebuildAt` is recent.
 | Var | Default | Description |
 | --- | --- | --- |
 | `REBUILD_THRESHOLD_OPS` | `500` | Pending ops before cron triggers rebuild/webhook |
+| `SNAPSHOT_CACHE_MAX_ENTRIES` | `4` | Max deserialized snapshots kept in the per-isolate LRU cache |
+| `SNAPSHOT_CACHE_MAX_BYTES` | `67108864` (~64 MB) | Max total bytes held by the per-isolate snapshot cache |
+
+### Worker bindings (`wrangler.toml`)
+
+| Binding | Type | Description |
+| --- | --- | --- |
+| `BUCKET` | R2 bucket | Snapshots, WAL, and index metadata |
+| `INDEX_COORDINATOR` | Durable Object (`IndexCoordinator`) | One DO per index: serializes WAL appends, batches ops into segments, holds the rebuild lock. Requires Workers Paid and a `[[migrations]]` entry. |
+
+### Caching behavior
+
+Search latency is dominated by which cache layer serves the snapshot:
+
+| Layer | Scope | What it stores |
+| --- | --- | --- |
+| Per-isolate LRU | Single Worker isolate | Fully deserialized ZBSearch database, keyed by version |
+| Workers Cache API | Colo | Raw snapshot bytes (`caches.default`) |
+| R2 | Global | Source of truth |
+
+Hot indexes on warm isolates skip both deserialization and network I/O entirely. Cold isolates in a warm colo pay one Cache API read plus deserialization; a new colo pays one R2 read. Expect the isolate cache to absorb the large majority of search traffic on any index queried more than occasionally, and the Cache API to cover most of the rest — R2 reads should be rare outside of fresh colos and just-rebuilt versions. Rebuilds change the version key, so post-rebuild traffic re-warms once per colo rather than serving stale data.
 
 ### Rebuild CLI env
 
@@ -161,7 +190,7 @@ Point uptime monitoring at `GET /health`. No auth required.
 Poll `GET /v1/indexes/:id/status` for:
 
 - `pendingOps` - growing unbounded means rebuilds are failing or too infrequent
-- `status` - stuck on `building` indicates a failed rebuild
+- `status` - `building` longer than your rebuild duration indicates a failed rebuild. With the coordinator binding, the abandoned lock becomes stealable after 15 minutes, so the next rebuild attempt recovers on its own.
 - `lastRebuildAt` - stale timestamp means writes are not being merged
 
 ### Cloudflare observability
@@ -186,13 +215,15 @@ Use the Cloudflare dashboard for Worker invocations, errors, and CPU time. Watch
 
 ## Scaling guidance
 
+{/* <!-- LOADTEST-NUMBERS-PENDING: scaling table will be updated with measured results --> */}
+
 | Index size | Rebuild location | Search |
 | --- | --- | --- |
-| &lt; 10k docs, &lt; 10 MB snapshot | In-Worker cron OK | Workers Cache helps hot reads |
-| 10k–500k docs | External CLI / CI | Monitor R2 egress; cache TTL 1h |
+| &lt; 10k docs, &lt; 10 MB snapshot | In-Worker cron OK | Isolate cache + Workers Cache absorb hot reads |
+| 10k–500k docs | External CLI / CI | Monitor R2 egress; watch isolate cache hit rates |
 | 500k+ docs | External CLI; plan for sharding (future) | Consider dedicated read replicas |
 
-v1 stores **full msgpack snapshots**. Very large indexes will hit Worker memory limits during in-Worker rebuild. Use the external builder and watch `indexSizeBytes` in `/status`.
+v1 stores **full msgpack snapshots**. Very large indexes will hit Worker memory limits during in-Worker rebuild. Use the external builder and watch `indexSizeBytes` in `/status`. See [Benchmarks](/docs/cloudflare/benchmarks) for the load-testing harness used to validate these tiers.
 
 ## Cost considerations
 
@@ -201,7 +232,7 @@ You pay Cloudflare for:
 - **Workers** - requests and CPU time (rebuilds in-Worker consume CPU ms)
 - **R2** - storage and Class A/B operations (WAL appends, snapshot reads)
 
-Search-heavy workloads benefit from Workers Cache reducing R2 reads. Write-heavy workloads append WAL entries and trigger periodic full snapshot rewrites.
+Search-heavy workloads benefit from the per-isolate snapshot cache and Workers Cache reducing R2 reads and deserialization cost. Write-heavy workloads are batched into WAL segments (roughly 100 ops / 256 KB per R2 object when the coordinator is bound) and trigger periodic full snapshot rewrites.
 
 ## Disaster recovery
 

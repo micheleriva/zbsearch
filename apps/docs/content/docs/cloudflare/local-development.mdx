@@ -73,7 +73,7 @@ The CLI uses `@zbsearch/storage-s3` to read/write the same R2 paths as the Worke
 
 ```
 deploy/cloudflare/
-  wrangler.toml         ← Worker config, R2 binding, cron, vars
+  wrangler.toml         ← Worker config, R2 + Durable Object bindings, cron, vars, cpu_ms
   .env.example          ← R2 credentials template for CLI/CI
   ingest-unicorns.sh    ← Example bulk import script
   README.md             ← Quick reference

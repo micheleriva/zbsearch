@@ -86,7 +86,7 @@ List all indexes.
         "rebuildThresholdOps": 500,
         "mode": "edge"
       },
-      "liveVersion": "2026-07-10T12-00-00-000Z",
+      "liveVersion": "2026-07-10T12-00-00-000Z-9f3ab2c1",
       "status": "ready",
       "documents": 42,
       "pendingOps": 0
@@ -216,7 +216,7 @@ Buffer a delete operation. **Response `202`:** buffered response object.
 
 ### `POST /v1/indexes/:indexId/documents/batch`
 
-Apply multiple operations in one request. All operations are written to a **single WAL file** (one R2 PUT).
+Apply multiple operations in one request. All operations are written to a **single WAL segment** (one R2 PUT) when the `IndexCoordinator` Durable Object is bound, or a single WAL entry otherwise.
 
 **Body:**
 
@@ -288,7 +288,7 @@ curl -X POST "$WORKER_URL/v1/indexes/products/search" \
 {
   "count": 3,
   "hits": [...],
-  "indexVersion": "2026-07-10T12-00-00-000Z",
+  "indexVersion": "2026-07-10T12-00-00-000Z-9f3ab2c1",
   "includesBuffer": false
 }
 ```
@@ -311,11 +311,13 @@ Merge pending WAL operations into a new immutable snapshot and promote it to `li
 {
   "status": "rebuilt",
   "indexId": "products",
-  "liveVersion": "2026-07-10T12-05-00-000Z"
+  "liveVersion": "2026-07-10T12-05-00-000Z-71d0e4f8"
 }
 ```
 
 Rebuild runs synchronously in the Worker request. For large indexes, use an [external builder](/docs/cloudflare/production).
+
+Version IDs are timestamp-based with a random 8-character hex suffix (e.g. `2026-07-10T12-05-00-000Z-71d0e4f8`). Uniqueness is load-bearing: the Worker's snapshot caches key on the version, so two rebuilds never share an ID.
 
 ### `GET /v1/indexes/:indexId/status`
 
@@ -324,7 +326,7 @@ Rebuild runs synchronously in the Worker request. For large indexes, use an [ext
 ```json
 {
   "indexId": "products",
-  "liveVersion": "2026-07-10T12-00-00-000Z",
+  "liveVersion": "2026-07-10T12-00-00-000Z-9f3ab2c1",
   "status": "ready",
   "documents": 42,
   "indexSizeBytes": 1048576,
@@ -348,7 +350,7 @@ Returns index configuration and stats for clients that need schema or version in
 {
   "indexId": "products",
   "name": "products",
-  "liveVersion": "2026-07-10T12-00-00-000Z",
+  "liveVersion": "2026-07-10T12-00-00-000Z-9f3ab2c1",
   "status": "ready",
   "schema": { "title": "string" },
   "settings": { "mode": "edge" },
@@ -378,4 +380,4 @@ The Worker sets `Access-Control-Allow-Origin: *` on all responses and handles `O
 
 ## Rate limits
 
-Cloudflare Workers and R2 have platform-level limits. On the **Workers Paid** plan you can set `limits.cpuMs` in `zbsearch.edge.config.json` (e.g. `300000` for 5 minutes) to accommodate in-Worker rebuilds on small indexes. The Free plan does not support custom CPU limits. Large rebuilds should run outside the Worker via `@zbsearch/edge-index-builder`.
+Cloudflare Workers and R2 have platform-level limits. The default `wrangler.toml` and setup-CLI template set `[limits] cpu_ms = 300000` (5 minutes) to accommodate in-Worker rebuilds on small indexes — on the **Workers Paid** plan this can also be tuned via `limits.cpuMs` in `zbsearch.edge.config.json`. Custom CPU limits are not available on the Free plan. Large rebuilds should run outside the Worker via `@zbsearch/edge-index-builder`.

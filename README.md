@@ -1,33 +1,33 @@
-# ZBSearch
+# 😈 ZBSearch
 
 ZBSearch (_zee bee search_) is a zero-bs fork of Orama maintained by **the original Orama team**.
 
-- Michele Riva (ex Co-Founder, CTO)
-- Angela Angelini (ex Co-Founder, CDO)
-- Tommaso Allevi (ex Sr. Engineer)
-- Francesca Giannino (ex Sr. Engineer)
-- Alberto Moretti (ex Sr. Engineer)
-- Aileen Villanueva Lecuona (ex Sr. Engineer)
-- Fausto Quaggia (ex Eng. Manager)
-- Davide Spaziani Testa (ex Sr. Designer)
+- [Michele Riva](https://www.linkedin.com/in/micheleriva95/) (ex Co-Founder, CTO)
+- [Angela Angelini](https://www.linkedin.com/in/angeliningl/) (ex Co-Founder, CDO)
+- [Tommaso Allevi](https://www.linkedin.com/in/tommaso-allevi-a9979045/) (ex Sr. Engineer)
+- [Francesca Giannino](https://www.linkedin.com/in/francesca-giannino-293ba819/) (ex Sr. Engineer)
+- [Alberto Moretti](https://www.linkedin.com/in/alberto-moretti-95b23b1a9/) (ex Sr. Engineer)
+- [Aileen Villanueva Lecuona](https://www.linkedin.com/in/aileen-villanueva-31155666) (ex Sr. Engineer)
+- [Fausto Quaggia](https://www.linkedin.com/in/faustoquaggia/) (ex Eng. Manager)
+- [Davide Spaziani Testa](https://www.linkedin.com/in/davidespazianitesta) (ex Sr. Designer)
 
 After [Michele's departure](https://www.micheleriva.dev/writings/my-last-day-at-orama), the entire engineering team left Orama and reassembled to maintain this popular project with no external influence. No VC, no business incentives, no bs. Just open source software. Help us get 10.5k stars back!
 
 # Highlighted features
 
-- [Full-Text search](https://zbsearch.dev/docs/ZBSearch-js/search)
-- [Vector Search](https://zbsearch.dev/docs/ZBSearch-js/search/vector-search)
-- [Hybrid Search](https://zbsearch.dev/docs/ZBSearch-js/search/hybrid-search)
-- [Search Filters](https://zbsearch.dev/docs/ZBSearch-js/search/filters)
-- [Geosearch](https://zbsearch.dev/docs/ZBSearch-js/search/geosearch)
-- [Pinning Rules (Merchandising)](https://zbsearch.dev/docs/ZBSearch-js/results-pinning)
-- [Facets](https://zbsearch.dev/docs/ZBSearch-js/search/facets)
-- [Fields Boosting](https://zbsearch.dev/docs/ZBSearch-js/search/fields-boosting)
-- [Typo Tolerance](https://zbsearch.dev/docs/ZBSearch-js/search#typo-tolerance)
-- [Exact Match](https://zbsearch.dev/docs/ZBSearch-js/search#exact-match)
-- [BM25](https://zbsearch.dev/docs/ZBSearch-js/search/bm25)
-- [Stemming and tokenization in 30 languages](https://zbsearch.dev/docs/ZBSearch-js/text-analysis/stemming)
-- [Plugin System](https://zbsearch.dev/docs/ZBSearch-js/plugins)
+- [Full-Text search](https://zbsearch.dev/docs/zbsearch/search)
+- [Vector Search](https://zbsearch.dev/docs/zbsearch/search/vector-search)
+- [Hybrid Search](https://zbsearch.dev/docs/zbsearch/search/hybrid-search)
+- [Search Filters](https://zbsearch.dev/docs/zbsearch/search/filters)
+- [Geosearch](https://zbsearch.dev/docs/zbsearch/search/geosearch)
+- [Pinning Rules (Merchandising)](https://zbsearch.dev/docs/zbsearch/results-pinning)
+- [Facets](https://zbsearch.dev/docs/zbsearch/search/facets)
+- [Fields Boosting](https://zbsearch.dev/docs/zbsearch/search/fields-boosting)
+- [Typo Tolerance](https://zbsearch.dev/docs/zbsearch/search#typo-tolerance)
+- [Exact Match](https://zbsearch.dev/docs/zbsearch/search#exact-match)
+- [BM25](https://zbsearch.dev/docs/zbsearch/search/bm25)
+- [Stemming and tokenization in 30 languages](https://zbsearch.dev/docs/zbsearch/text-analysis/stemming)
+- [Plugin System](https://zbsearch.dev/docs/zbsearch/plugins)
 
 # Installation
 
@@ -222,10 +222,10 @@ Read the complete documentation at [https://zbsearch.dev](https://zbsearch.dev).
 
 # Official ZBSearch Plugins
 
-- [Plugin Embeddings](https://zbsearch.dev/docs/ZBSearch-js/plugins/plugin-embeddings)
-- [Plugin Data Persistence](https://zbsearch.dev/docs/ZBSearch-js/plugins/plugin-data-persistence)
-- [Plugin QPS](https://zbsearch.dev/docs/ZBSearch-js/plugins/plugin-qps)
-- [Plugin PT15](https://zbsearch.dev/docs/ZBSearch-js/plugins/plugin-pt15)
+- [Plugin Embeddings](https://zbsearch.dev/docs/zbsearch/plugins/plugin-embeddings)
+- [Plugin Data Persistence](https://zbsearch.dev/docs/zbsearch/plugins/plugin-data-persistence)
+- [Plugin QPS](https://zbsearch.dev/docs/zbsearch/plugins/plugin-qps)
+- [Plugin PT15](https://zbsearch.dev/docs/zbsearch/plugins/plugin-pt15)
 
 Write your own plugin: [https://zbsearch.dev](https://zbsearch.dev)
 

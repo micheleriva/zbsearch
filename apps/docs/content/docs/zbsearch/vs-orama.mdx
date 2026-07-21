@@ -3,17 +3,17 @@ title: ZBSearch vs Orama
 description: Head-to-head performance benchmarks comparing ZBSearch and Orama on the same workloads.
 ---
 
-ZBSearch is a fork of Orama maintained by the original engineering team. The API is compatible, but the internals have been optimized - including an explicit **postings list** inverted index that lowers memory use and serialized bundle size while keeping search fast. This page summarizes benchmark results from the [`benchmarks/`](https://github.com/micheleriva/zbsearch/tree/main/benchmarks) suite in this repository.
+ZBSearch is a fork of Orama maintained by the original engineering team. The API is compatible, but the internals have been optimized - including an explicit **postings list** inverted index that lowers memory use and serialized bundle size while keeping search fast, plus a faster full-text insert path. This page summarizes benchmark results from the [`benchmarks/`](https://github.com/micheleriva/zbsearch/tree/main/benchmarks) suite in this repository.
 
 <Callout title="Test environment">
-Results below were collected on **July 10, 2026** using **Orama 3.1.18** and **ZBSearch 3.3.0**, run via [Benny](https://github.com/caderek/benny) for throughput and isolated Node.js processes (`--expose-gc`) for memory. Higher **ops/s** is better. Percentages show how much slower the loser is relative to the winner in each suite.
+Results below were collected using **Orama 3.1.18** and **ZBSearch 3.3.1**, run via [Benny](https://github.com/caderek/benny) for throughput and isolated Node.js processes (`--expose-gc`) for memory. Search and secondary suites were measured on **July 10, 2026**; full-text indexing was remeasured on **July 20, 2026** after insert-path optimizations. Higher **ops/s** is better. Percentages show how much slower the loser is relative to the winner in each suite.
 </Callout>
 
 ## Summary
 
 | Area | Verdict |
 | --- | --- |
-| Full-text search | ZBSearch is **11–58% faster** on search; indexing is **effectively equal** |
+| Full-text search | ZBSearch is **11–58% faster** on search; indexing is **~42–44% faster** |
 | Facets | ZBSearch is **28–56% faster** across all facet scenarios |
 | Vector search | ZBSearch is **16–52% faster** on flat indexes; **IVF** pushes gains to **~1,200–650%** over Orama |
 | Geosearch (BKD) | ZBSearch is up to **~8,400% faster** on radius queries at 500m |
@@ -25,13 +25,15 @@ Results below were collected on **July 10, 2026** using **Orama 3.1.18** and **Z
 
 Dataset: **1,512** video-game records with `title`, `description`, `rating`, and `genres` fields. Search benchmarks run against a database populated once before timing; insert benchmarks create a fresh database on each iteration.
 
-| Benchmark | Orama 3.1.18 | ZBSearch 3.3.0 | Difference |
+| Benchmark | Orama 3.1.18 | ZBSearch 3.3.1 | Difference |
 | --- | ---: | ---: | --- |
+| Insert | 19 ops/s | 33 ops/s | ZBSearch **42.4%** faster |
+| Insert multiple | 18 ops/s | 32 ops/s | ZBSearch **43.8%** faster |
 | Plain search | 2,252 ops/s | 3,222 ops/s | ZBSearch **30.1%** faster |
 | Search with filters | 24,957 ops/s | 28,049 ops/s | ZBSearch **11.0%** faster |
 | Long text + complex filters | 5,252 ops/s | 12,415 ops/s | ZBSearch **57.7%** faster |
 
-ZBSearch is faster across all search scenarios tested here, with the largest gap on long-text queries with complex filters. Indexing throughput is effectively identical between the two engines.
+ZBSearch is faster across all search scenarios tested here, with the largest gap on long-text queries with complex filters. Indexing is also substantially faster (~**1.7–1.8×** Orama) thanks to node-local postings caches and a tighter tokenize/insert path.
 
 ## Facets
 
@@ -102,7 +104,7 @@ Starting in **3.3.0**, ZBSearch stores full-text doc IDs in explicit **posting l
 
 This removes duplication that existed between inline radix `Set`s, `tokenOccurrences`, and scattered serialization of doc ID arrays. On save, posting lists are **delta-encoded** (sorted doc IDs stored as gaps), which shrinks the bundle without changing search semantics.
 
-At runtime, document frequency for BM25 is derived directly from posting list length - no separate counter map is maintained.
+At runtime, document frequency for BM25 is derived directly from posting list length - no separate counter map is maintained. Leaf nodes also keep a direct reference to their posting array so inserts can append without a map lookup on every token.
 
 ## Memory footprint
 

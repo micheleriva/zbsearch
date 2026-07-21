@@ -2,15 +2,12 @@
 import { syncBoundedLevenshtein } from '../components/levenshtein.js'
 import { InternalDocumentID } from '../components/internal-document-id-store.js'
 import {
-  appendPosting,
   clearPostings,
   collectLegacyNodePostings,
   createPostingsMap,
   deserializePostingsMap,
   getDocumentFrequency,
-  getPostings,
   PostingsMap,
-  removePosting,
   serializePostingsMap,
   SerializedPostings
 } from './postings.js'
@@ -33,6 +30,8 @@ export type RadixNodeJSON = {
   d?: InternalDocumentID[]
 }
 
+const EMPTY_POSTINGS: InternalDocumentID[] = []
+
 export class RadixNode {
   // Node key
   public k: string
@@ -44,6 +43,8 @@ export class RadixNode {
   public e: boolean
   // Node word
   public w = ''
+  // Cached postings list for this word (same array as in the tree PostingsMap)
+  public d?: InternalDocumentID[]
 
   constructor(key: string, subWord: string, end: boolean) {
     this.k = key
@@ -56,19 +57,65 @@ export class RadixNode {
   }
 
   protected addDocumentToPostings(postings: PostingsMap, docID: InternalDocumentID): void {
-    appendPosting(postings, this.w, docID)
+    let list = this.d
+    if (list) {
+      list.push(docID)
+      return
+    }
+
+    list = postings.get(this.w)
+    if (!list) {
+      list = [docID]
+      postings.set(this.w, list)
+      this.d = list
+      return
+    }
+
+    list.push(docID)
+    this.d = list
   }
 
   protected removeDocumentFromPostings(postings: PostingsMap, docID: InternalDocumentID): boolean {
-    return removePosting(postings, this.w, docID)
+    const list = this.d ?? postings.get(this.w)
+    if (!list) {
+      return false
+    }
+
+    const index = list.indexOf(docID)
+    if (index === -1) {
+      return false
+    }
+
+    list.splice(index, 1)
+    if (list.length === 0) {
+      postings.delete(this.w)
+      this.d = undefined
+    } else {
+      this.d = list
+    }
+    return true
   }
 
   protected getDocumentsFromPostings(postings: PostingsMap): InternalDocumentID[] {
-    return getPostings(postings, this.w)
+    if (this.d) {
+      return this.d
+    }
+
+    const list = postings.get(this.w)
+    if (!list) {
+      return EMPTY_POSTINGS
+    }
+
+    this.d = list
+    return list
   }
 
   protected hasDocumentsInPostings(postings: PostingsMap): boolean {
-    return getPostings(postings, this.w).length > 0
+    if (this.d) {
+      return this.d.length > 0
+    }
+    const list = postings.get(this.w)
+    return list !== undefined && list.length > 0
   }
 
   public findAllWords(
@@ -121,7 +168,7 @@ export class RadixNode {
     const wordLength = word.length
 
     while (i < wordLength) {
-      const currentCharacter = word[i]
+      const currentCharacter = word[i]!
       const childNode = node.c.get(currentCharacter)
 
       if (childNode) {
@@ -150,30 +197,30 @@ export class RadixNode {
         const newEdgeLabel = edgeLabel.slice(j)
         const newWordLabel = word.slice(i + j)
 
-        const inbetweenNode = new RadixNode(commonPrefix[0], commonPrefix, false)
-        node.c.set(commonPrefix[0], inbetweenNode)
-        inbetweenNode.updateParent(node)
+        const inbetweenNode = new RadixNode(commonPrefix[0]!, commonPrefix, false)
+        inbetweenNode.w = node.w + commonPrefix
+        node.c.set(commonPrefix[0]!, inbetweenNode)
 
         childNode.s = newEdgeLabel
-        childNode.k = newEdgeLabel[0]
-        inbetweenNode.c.set(newEdgeLabel[0], childNode)
-        childNode.updateParent(inbetweenNode)
+        childNode.k = newEdgeLabel[0]!
+        inbetweenNode.c.set(newEdgeLabel[0]!, childNode)
+        childNode.w = inbetweenNode.w + newEdgeLabel
 
         if (newWordLabel) {
-          const newNode = new RadixNode(newWordLabel[0], newWordLabel, true)
-          inbetweenNode.c.set(newWordLabel[0], newNode)
-          newNode.updateParent(inbetweenNode)
+          const newNode = new RadixNode(newWordLabel[0]!, newWordLabel, true)
+          newNode.w = inbetweenNode.w + newWordLabel
+          inbetweenNode.c.set(newWordLabel[0]!, newNode)
           newNode.addDocumentToPostings(postings, docId)
         } else {
           inbetweenNode.e = true
-          inbetweenNode.updateParent(node)
           inbetweenNode.addDocumentToPostings(postings, docId)
         }
         return
       } else {
-        const newNode = new RadixNode(currentCharacter, word.slice(i), true)
+        const suffix = word.slice(i)
+        const newNode = new RadixNode(currentCharacter, suffix, true)
+        newNode.w = node.w + suffix
         node.c.set(currentCharacter, newNode)
-        newNode.updateParent(node)
         newNode.addDocumentToPostings(postings, docId)
         return
       }
@@ -361,6 +408,7 @@ export class RadixNode {
     }
 
     clearPostings(postings, node.w)
+    node.d = undefined
     node.e = false
 
     while (stack.length > 0 && node.c.size === 0 && !node.e && !node.hasDocumentsInPostings(postings)) {
@@ -469,6 +517,20 @@ export class RadixTree extends RadixNode {
       collectLegacyNodePostings(json, tree.postings)
     }
 
+    hydrateNodePostings(tree, tree.postings)
     return tree
+  }
+}
+
+function hydrateNodePostings(node: RadixNode, postings: PostingsMap): void {
+  if (node.e) {
+    const list = postings.get(node.w)
+    if (list) {
+      node.d = list
+    }
+  }
+
+  for (const child of node.c.values()) {
+    hydrateNodePostings(child, postings)
   }
 }

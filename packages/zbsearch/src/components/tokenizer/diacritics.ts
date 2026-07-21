@@ -204,9 +204,31 @@ function replaceChar(charCode: number): number {
 }
 
 export function replaceDiacritics(str: string): string {
-  const stringCharCode: number[] = []
-  for (let idx = 0; idx < str.length; idx++) {
-    stringCharCode[idx] = replaceChar(str.charCodeAt(idx))
+  const len = str.length
+
+  for (let idx = 0; idx < len; idx++) {
+    const charCode = str.charCodeAt(idx)
+    if (charCode < DIACRITICS_CHARCODE_START || charCode > DIACRITICS_CHARCODE_END) {
+      continue
+    }
+
+    const replaced = CHARCODE_REPLACE_MAPPING[charCode - DIACRITICS_CHARCODE_START]
+    if (!replaced || replaced === charCode) {
+      continue
+    }
+
+    const codes = new Array<number>(len)
+    for (let j = 0; j < idx; j++) {
+      codes[j] = str.charCodeAt(j)
+    }
+    codes[idx] = replaced
+
+    for (let j = idx + 1; j < len; j++) {
+      codes[j] = replaceChar(str.charCodeAt(j))
+    }
+
+    return String.fromCharCode(...codes)
   }
-  return String.fromCharCode(...stringCharCode)
+
+  return str
 }

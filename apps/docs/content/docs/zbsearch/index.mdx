@@ -9,10 +9,11 @@ ZBSearch is an <a href="https://github.com/micheleriva/zbsearch" target="_blank"
 
 ## [Performance vs Orama](/docs/zbsearch/vs-orama)
 
-ZBSearch is a drop-in fork of Orama with the same API and persistence format, but with heavily optimized internals - including explicit **postings lists** for the full-text inverted index. We benchmark both engines head-to-head in the [`benchmarks/`](https://github.com/micheleriva/zbsearch/tree/main/benchmarks) suite (Orama **3.1.18** vs ZBSearch **3.3.0**, July 2026). The headline: **ZBSearch is faster on almost every query path, with lower memory use and a smaller on-disk bundle.** Full results are on the [ZBSearch vs Orama](/docs/zbsearch/vs-orama) page.
+ZBSearch is a drop-in fork of Orama with the same API and persistence format, but with heavily optimized internals - including explicit **postings lists** for the full-text inverted index. We benchmark both engines head-to-head in the [`benchmarks/`](https://github.com/micheleriva/zbsearch/tree/main/benchmarks) suite (Orama **3.1.18** vs ZBSearch **3.3.1**, July 2026). The headline: **ZBSearch is faster on almost every query path, with lower memory use and a smaller on-disk bundle.** Full results are on the [ZBSearch vs Orama](/docs/zbsearch/vs-orama) page.
 
 | Area | ZBSearch vs Orama | Highlight |
 | --- | --- | --- |
+| **Indexing** | **~42–44% faster** | **33 ops/s** full-dataset insert vs 19 |
 | **Full-text search** | **11–58% faster** | Up to **12,415 ops/s** on long-text + complex filters vs 5,252 |
 | **Facets** | **28–56% faster** | Faster across every facet scenario tested |
 | **Vector search (flat)** | **16–52% faster** | **6,889 ops/s** strict similarity vs 4,532 |

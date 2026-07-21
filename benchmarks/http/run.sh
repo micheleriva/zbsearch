@@ -86,14 +86,37 @@ else
     --base-url "$BASE_URL" --api-key "$API_KEY"
 fi
 
+echo "==> waiting for rebuilds to settle (pendingOps -> 0)"
+SETTLE_TIMEOUT="${SETTLE_TIMEOUT:-600}"
+SETTLE_START="$(date +%s)"
+while true; do
+  PENDING="$(curl -sf -H "Authorization: Bearer ${API_KEY}" \
+    "${BASE_URL}/v1/indexes/${INDEX_ID}/status" | node -e \
+    'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);console.log(j.pendingOps??0)})' \
+    2>/dev/null || echo -1)"
+  if [[ "$PENDING" == "0" ]]; then
+    echo "==> settled (pendingOps=0)"
+    break
+  fi
+  if (( $(date +%s) - SETTLE_START > SETTLE_TIMEOUT )); then
+    echo "==> settle timeout after ${SETTLE_TIMEOUT}s (pendingOps=${PENDING}); continuing anyway"
+    break
+  fi
+  echo "    pendingOps=${PENDING} ..."
+  sleep 10
+done
+
 echo "==> warming (short search run)"
-WARMUP=true ABORT_ON_THRESHOLD=false k6 run --quiet k6/search.js
+WARMUP=true ABORT_ON_THRESHOLD=false k6 run --quiet k6/search.js || \
+  echo "==> warmup threshold(s) crossed (ignored)"
 
 echo "==> search scenario"
-k6 run --summary-export "results/search-${TS}.json" --tag runid="$TS" k6/search.js
+k6 run --summary-export "results/search-${TS}.json" --tag runid="$TS" k6/search.js || \
+  echo "==> search scenario threshold(s) crossed"
 
 echo "==> mixed scenario"
-k6 run --summary-export "results/mixed-${TS}.json" --tag runid="$TS" k6/mixed.js
+k6 run --summary-export "results/mixed-${TS}.json" --tag runid="$TS" k6/mixed.js || \
+  echo "==> mixed scenario threshold(s) crossed"
 
 echo "==> done. summaries:"
 ls -1 results/*-"${TS}".json

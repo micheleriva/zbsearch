@@ -70,7 +70,7 @@ Returns service metadata:
 
 ### `GET /v1/indexes`
 
-List all indexes. Physical shard indexes (`<id>--shard-<i>`, see `shards` below) are hidden — only logical indexes appear.
+List all indexes. Physical shard indexes (`<id>--shard-<i>`, see `shards` below) are hidden - only logical indexes appear.
 
 **Response `200`:**
 
@@ -106,7 +106,7 @@ Create a new index.
 | `name` | `string` | Yes | Display name; slugified to `id` (e.g. `"My Products"` → `my-products`) |
 | `schema` | `object` | Yes | Same [schema types](/docs/zbsearch/usage/create) as standalone ZBSearch |
 | `settings` | `object` | No | See [index settings](#index-settings) |
-| `shards` | `number` | No | Create a **sharded index** with N physical shards (2–64). Fixed after creation — re-sharding means re-importing into a new index. |
+| `shards` | `number` | No | Create a **sharded index** with N physical shards (2–64). Fixed after creation - re-sharding means re-importing into a new index. |
 
 **Example:**
 
@@ -130,9 +130,9 @@ curl -X POST "$WORKER_URL/v1/indexes" \
 
 ### Sharded indexes
 
-Passing `"shards": N` (2–64) creates a **logical index** backed by N physical shard indexes named `<id>--shard-<i>` (`i` in `0..N-1`). Shards are ordinary indexes in every respect — own WAL, snapshots, coordinator Durable Object, and rebuild thresholds — but they are hidden from `GET /v1/indexes`; you always address the logical index by its plain id.
+Passing `"shards": N` (2–64) creates a **logical index** backed by N physical shard indexes named `<id>--shard-<i>` (`i` in `0..N-1`). Shards are ordinary indexes in every respect - own WAL, snapshots, coordinator Durable Object, and rebuild thresholds - but they are hidden from `GET /v1/indexes`; you always address the logical index by its plain id.
 
-Routing is deterministic: the document id is hashed (FNV-1a) modulo N, so a document always lands on the same shard. **Document ids must be stable** — changing a doc id moves the document to a different shard.
+Routing is deterministic: the document id is hashed (FNV-1a) modulo N, so a document always lands on the same shard. **Document ids must be stable** - changing a doc id moves the document to a different shard.
 
 The shard count is fixed at creation. To change it, re-import into a new index:
 
@@ -185,7 +185,7 @@ Remove index metadata from the registry. **Response `202`:**
 
 API writes append operations to the **WAL** in R2. They return `202` immediately. Documents are searchable after the next rebuild, or sooner if the Worker overlays pending WAL ops at query time (`includesBuffer: true` in search responses).
 
-For large catalogs, prefer the [bulk `import` CLI](/docs/cloudflare/indexing-and-rebuilds#bulk-import) — it uploads a snapshot directly and skips per-document API writes.
+For large catalogs, prefer the [bulk `import` CLI](/docs/cloudflare/indexing-and-rebuilds#bulk-import) - it uploads a snapshot directly and skips per-document API writes.
 
 ### `PUT /v1/indexes/:indexId/documents/:docId`
 
@@ -248,7 +248,7 @@ Apply multiple operations in one request. All operations are written to a **sing
 
 **Response `202`:** Buffered write response for the batch (`changeId`, `bufferedAt`, updated `indexStatus`).
 
-On a **sharded index**, each operation is routed to its owning shard (per document id). The response keeps the top-level shape — `changeId`/`bufferedAt` are a group-level batch id/timestamp — and adds a `shards[]` array with the per-shard results:
+On a **sharded index**, each operation is routed to its owning shard (per document id). The response keeps the top-level shape - `changeId`/`bufferedAt` are a group-level batch id/timestamp - and adds a `shards[]` array with the per-shard results:
 
 ```json
 {
@@ -343,11 +343,11 @@ curl -X POST "$WORKER_URL/v1/indexes/products/search" \
 **Sharded indexes (scatter-gather):** the search fans out to all shards in parallel, merges hits by score descending (ties broken by document id), then applies `offset`/`limit` to the merged list; `count` is the sum across shards. The response adds a `shards[]` summary with each shard's contribution, `indexVersion` is `null` (versions are per shard), and `includesBuffer` is `true` if any shard has pending ops. Two v1 caveats:
 
 <Callout type="warn">
-  - **Scores are approximate across shards.** BM25 IDF is computed per shard, so scores are only approximately comparable — ranking of near-tied hits may differ slightly from a monolithic index.
-  - **`groupBy` results are dropped** on sharded indexes (the `groups` field is not merged). Facets *are* merged — counts add up exactly because document sets are disjoint.
+  - **Scores are approximate across shards.** BM25 IDF is computed per shard, so scores are only approximately comparable - ranking of near-tied hits may differ slightly from a monolithic index.
+  - **`groupBy` results are dropped** on sharded indexes (the `groups` field is not merged). Facets *are* merged - counts add up exactly because document sets are disjoint.
 </Callout>
 
-**Response `404`:** No searchable documents yet — create the index, import data, or trigger a rebuild.
+**Response `404`:** No searchable documents yet - create the index, import data, or trigger a rebuild.
 
 ---
 
@@ -449,4 +449,4 @@ The Worker sets `Access-Control-Allow-Origin: *` on all responses and handles `O
 
 ## Rate limits
 
-Cloudflare Workers and R2 have platform-level limits. The default `wrangler.toml` and setup-CLI template set `[limits] cpu_ms = 300000` (5 minutes) to accommodate in-Worker rebuilds on small indexes — on the **Workers Paid** plan this can also be tuned via `limits.cpuMs` in `zbsearch.edge.config.json`. Custom CPU limits are not available on the Free plan. Large rebuilds should run outside the Worker via `@zbsearch/edge-index-builder`.
+Cloudflare Workers and R2 have platform-level limits. The default `wrangler.toml` and setup-CLI template set `[limits] cpu_ms = 300000` (5 minutes) to accommodate in-Worker rebuilds on small indexes - on the **Workers Paid** plan this can also be tuned via `limits.cpuMs` in `zbsearch.edge.config.json`. Custom CPU limits require Workers Paid, and the Free plan's 10ms CPU cap makes search workloads fail outright (error 1102). Large rebuilds should run outside the Worker via `@zbsearch/edge-index-builder`.

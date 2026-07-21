@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // Deterministic synthetic corpus generator for HTTP load tests.
-// Emits JSONL: {id, title, description, rating, genres[]} — same field style
+// Emits JSONL: {id, title, description, rating, genres[]} - same field style
 // as benchmarks/src/dataset.json.
 //
 // Usage: node generate-corpus.mjs --docs 100000 --out data/corpus-100k.jsonl [--seed 42]
@@ -142,7 +142,7 @@ async function main() {
     return [...picked]
   }
 
-  // Triangular distribution centered at 3.0, range [1.0, 5.0] — skews to 3-4.
+  // Triangular distribution centered at 3.0, range [1.0, 5.0] - skews to 3-4.
   const sampleRating = () => {
     const t = (rng() + rng() + rng()) / 3
     return Math.round((1 + t * 4) * 10) / 10

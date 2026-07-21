@@ -1,0 +1,17 @@
+workerName: zbsearch-edge
+
+r2:
+  bucket: zbsearch-edge
+  previewBucket: zbsearch-edge-preview
+  createPreviewBucket: true
+  accountId: YOUR_ACCOUNT_ID
+  accessKeyId: ""
+  secretAccessKey: ""
+
+secrets:
+  apiKey: ""
+  builderWebhookUrl: ""
+
+rebuild:
+  thresholdOps: 500
+  cron: "*/5 * * * *"

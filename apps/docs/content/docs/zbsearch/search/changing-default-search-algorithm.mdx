@@ -30,7 +30,7 @@ const db = create({
 | Best for | General-purpose search | Queries where nearby terms matter | Titles, structured text, prefixes |
 | Trade-off | Ignores proximity | More ranking overhead | Fixed 15 position buckets |
 
-**BM25** is the industry-standard default — solid for most workloads.
+**BM25** is the industry-standard default - solid for most workloads.
 
 **QPS** scores documents by how close matching tokens are, which helps with short, focused queries and browser/edge environments.
 

@@ -1,0 +1,30 @@
+---
+title: Cost calculator
+description: Estimate the monthly Cloudflare bill for a ZBSearch Edge deployment - Workers requests and CPU, R2 storage and operations, and Durable Objects, from measured baselines.
+---
+
+ZBSearch Edge runs entirely on Cloudflare Workers, R2, and a Durable Object coordinator, so the monthly bill is a function of three workload dimensions: **documents**, **searches**, and **writes**. Drag the sliders to match your workload:
+
+<CostCalculator />
+
+## How the estimate works
+
+The calculator applies [Cloudflare's published pricing](https://developers.cloudflare.com/workers/platform/pricing/) (verified July 2026) to resource usage measured with the [load-testing harness](/docs/cloudflare/benchmarks):
+
+| Input | Value | Source |
+| --- | --- | --- |
+| Index size | ~1.39 KB/doc | 13.87 MB snapshot per 10k docs, measured on R2 |
+| Warm search CPU | ~0.4ms per 1k docs | ~1.1ms @10k, ~40ms @89k docs measured |
+| Cold-isolate search | +~5µs/doc (snapshot load) | ~0.5s at 100k docs, assumed 2% of searches |
+| Writes | batched 100/request, ~30ms CPU | 75 docs/s via API measured on a deployed Worker |
+| Rebuilds | every 500 ops/shard, ~62µs CPU/doc | 96k docs rebuilt in ~6s CPU, measured |
+| R2 meta reads | shards+1 GETs per search | `meta.json` is re-read per shard per search (uncached) |
+
+Pricing dimensions: Workers Paid $5/mo (includes 10M requests + 30M CPU-ms, then $0.30/M requests and $0.02/M CPU-ms), R2 $0.015/GB-month with Class A at $4.50/M and Class B at $0.36/M (10 GB + 1M A + 10M B included, egress free), Durable Objects $0.15/M requests (1M included; coordinator duration and storage are negligible).
+
+## Rules of thumb
+
+- **Below ~1M searches/month, everything fits in the $5 base plan.** R2 storage and Durable Objects stay rounding errors at any scale on this page.
+- **The Workers Free plan is not viable for search.** It caps CPU at 10ms per invocation - measured 97.8% of searches failing with error 1102 on a 10k-doc index. Writes do fit.
+- **Enable the meta cache in the calculator** to see the single biggest cost lever at high QPS: per-shard `meta.json` reads currently hit R2 on every search, and at 30M searches/month they cost more than compute.
+- **CPU scales with corpus × QPS.** Each isolate searches full shard snapshots, so past ~100k docs the compute line dominates. Beyond that, route queries to relevant shards/tenants instead of scatter-gathering over everything.

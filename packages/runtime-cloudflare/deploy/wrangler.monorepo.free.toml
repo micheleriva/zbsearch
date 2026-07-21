@@ -23,6 +23,3 @@ crons = ["*/5 * * * *"]
 
 [vars]
 REBUILD_THRESHOLD_OPS = "500"
-
-[limits]
-cpu_ms = 300000

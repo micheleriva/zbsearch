@@ -146,7 +146,12 @@ function slugify(name: string): string {
 }
 
 export async function createIndex(storage: ObjectStorage, input: CreateIndexInput): Promise<IndexMeta> {
+  if (!input || typeof input.name !== 'string') {
+    throw badRequest('Missing index name')
+  }
+
   const id = slugify(input.name)
+
   if (!id) {
     throw badRequest('Invalid index name')
   }
@@ -475,6 +480,8 @@ export interface ScheduleRebuildOptions {
   walCoordinator?: WalCoordinator
 }
 
+const REBUILD_STATUS_STALE_MS = 15 * 60 * 1000
+
 export async function maybeScheduleRebuild(
   storage: ObjectStorage,
   indexId: string,
@@ -491,7 +498,10 @@ export async function maybeScheduleRebuild(
     return
   }
 
-  if (meta.status === 'building') {
+  if (
+    meta.status === 'building' &&
+    Date.now() - Date.parse(meta.updatedAt) <= REBUILD_STATUS_STALE_MS
+  ) {
     return
   }
 
@@ -553,7 +563,11 @@ async function runRebuild(
   coordinator: WalCoordinator | undefined
 ): Promise<IndexMeta> {
   const meta = await getIndexMeta(storage, indexId)
-  if (!coordinator && meta.status === 'building') {
+  if (
+    !coordinator &&
+    meta.status === 'building' &&
+    Date.now() - Date.parse(meta.updatedAt) <= REBUILD_STATUS_STALE_MS
+  ) {
     return meta
   }
 
@@ -563,52 +577,60 @@ async function runRebuild(
   meta.status = 'building'
   await saveIndexMeta(storage, meta)
 
-  const baseDocs = await loadDocumentsFromSnapshot(storage, meta, {
-    get: async () => null,
-    set: async () => {},
-    delete: async () => {}
-  })
-  const { ops: bufferOps, frozenSegmentKeys } = coordinator
-    ? await coordinator.freezeForRebuild(indexId)
-    : await freezeBufferForRebuild(storage, indexId)
-  const merged = applyBufferOps(baseDocs, bufferOps)
-
-  const db = create({ schema: meta.schema, language: meta.settings.language as any })
-  const documents = [...merged.entries()].map(([id, doc]) => ({ id, ...doc }))
-  if (documents.length > 0) {
-    insertMultiple(db, documents as any)
-  }
-
-  const raw = await save(db)
-  const snapshotBytes = encode(raw)
-  await storage.put(snapshotKey(indexId, version), snapshotBytes, {
-    contentType: 'application/msgpack'
-  })
-
-  const lastRebuildAt = new Date().toISOString()
-
-  if (coordinator) {
-    return coordinator.finalizeAfterRebuild(indexId, frozenSegmentKeys, {
-      version,
-      documents: documents.length,
-      indexSizeBytes: snapshotBytes.byteLength,
-      lastRebuildAt
+  try {
+    const baseDocs = await loadDocumentsFromSnapshot(storage, meta, {
+      get: async () => null,
+      set: async () => {},
+      delete: async () => {}
     })
+    const { ops: bufferOps, frozenSegmentKeys } = coordinator
+      ? await coordinator.freezeForRebuild(indexId)
+      : await freezeBufferForRebuild(storage, indexId)
+    const merged = applyBufferOps(baseDocs, bufferOps)
+
+    const db = create({ schema: meta.schema, language: meta.settings.language as any })
+    const documents = [...merged.entries()].map(([id, doc]) => ({ id, ...doc }))
+    if (documents.length > 0) {
+      insertMultiple(db, documents as any)
+    }
+
+    const raw = await save(db)
+    const snapshotBytes = encode(raw)
+    await storage.put(snapshotKey(indexId, version), snapshotBytes, {
+      contentType: 'application/msgpack'
+    })
+
+    const lastRebuildAt = new Date().toISOString()
+
+    if (coordinator) {
+      return await coordinator.finalizeAfterRebuild(indexId, frozenSegmentKeys, {
+        version,
+        documents: documents.length,
+        indexSizeBytes: snapshotBytes.byteLength,
+        lastRebuildAt
+      })
+    }
+
+    const head = await finalizeBufferAfterRebuild(storage, indexId, frozenSegmentKeys)
+
+    meta.liveVersion = version
+    meta.buildingVersion = null
+    meta.status = documents.length > 0 || head.pendingOps > 0 ? 'ready' : 'empty'
+    meta.documents = documents.length
+    meta.indexSizeBytes = snapshotBytes.byteLength
+    meta.pendingOps = head.pendingOps
+    meta.lastRebuildAt = lastRebuildAt
+    meta.lastAppliedOffset = null
+    await saveIndexMeta(storage, meta)
+
+    return meta
+  } catch (err) {
+    const failed = await getIndexMeta(storage, indexId).catch(() => meta)
+    failed.buildingVersion = null
+    failed.status = failed.liveVersion ? 'ready' : 'empty'
+    await saveIndexMeta(storage, failed).catch(() => {})
+    throw err
   }
-
-  const head = await finalizeBufferAfterRebuild(storage, indexId, frozenSegmentKeys)
-
-  meta.liveVersion = version
-  meta.buildingVersion = null
-  meta.status = documents.length > 0 || head.pendingOps > 0 ? 'ready' : 'empty'
-  meta.documents = documents.length
-  meta.indexSizeBytes = snapshotBytes.byteLength
-  meta.pendingOps = head.pendingOps
-  meta.lastRebuildAt = lastRebuildAt
-  meta.lastAppliedOffset = null
-  await saveIndexMeta(storage, meta)
-
-  return meta
 }
 
 export interface SearchOptions {

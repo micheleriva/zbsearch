@@ -284,7 +284,7 @@ class_name = "IndexCoordinator"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["IndexCoordinator"]
+new_sqlite_classes = ["IndexCoordinator"]
 
 [triggers]
 crons = ["${config.rebuild.cron}"]

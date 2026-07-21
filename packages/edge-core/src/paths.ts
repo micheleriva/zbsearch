@@ -23,7 +23,7 @@ export function walEntryKey(indexId: string, entryFile: string): string {
   return `${walEntriesPrefix(indexId)}${entryFile}`
 }
 
-/** @deprecated Legacy buffer paths — still read during migration. */
+/** @deprecated Legacy buffer paths - still read during migration. */
 export function bufferHeadKey(indexId: string): string {
   return `buffer/${indexId}/head.json`
 }

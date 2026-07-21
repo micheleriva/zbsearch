@@ -97,19 +97,32 @@ Measured with `wrangler dev` on an Apple Silicon laptop against the generated co
 | Search ramp, clean index, cache budget raised to fit (250 MB) | 89,300 | 110 MB | **0% errors**, ~395 req/s avg; med 40.6 ms, p90 771 ms, p95 795 ms (single-process queuing at the top of the ramp) |
 | Mixed 95% search / 5% writes, index dirty | 89,300 | 110 MB | **Collapse**: with `pendingOps > 0` every search re-indexes all documents → ~8.5 s per search, 99.8% errors, writes time out behind searches |
 | Bulk ingest via API (`documents/batch`, 100/batch, concurrency 4) | 10,000 | - | ~1,590 docs/s, p99 batch latency 764 ms, 0 failed batches |
-| Bulk ingest via API, sustained (auto-rebuilds firing) | 100,000 | - | ~230 docs/s effective; ~11% batch 503s during in-Worker rebuild windows (local artifact — use the external builder for bulk loads) |
-| Bulk ingest via API into a **4-shard** index | 100,000 | 4× ~31 MB | ~615 docs/s (2.7× monolithic — writes parallelize across per-shard coordinators), 3.6% failed batches |
+| Bulk ingest via API, sustained (auto-rebuilds firing) | 100,000 | - | ~230 docs/s effective; ~11% batch 503s during in-Worker rebuild windows (local artifact - use the external builder for bulk loads) |
+| Bulk ingest via API into a **4-shard** index | 100,000 | 4× ~31 MB | ~615 docs/s (2.7× monolithic - writes parallelize across per-shard coordinators), 3.6% failed batches |
 | Group rebuild (all shards in parallel) | 96,400 | 124 MB total | ~6 s |
-| Search ramp 50→1000 req/s, 4-shard, clean | 96,400 | 4× ~31 MB | 99.1% success, ~243 req/s avg; **uncontended warm latency ~20 ms** (cold ~2.7 s = one-time load of 4 shard snapshots). Median under ramp ~1.5 s is single-process queueing: each request fans out to 4 shard searches in one local process — production isolates scale this horizontally |
-| Mixed 95/5, 4-shard, dirty | 96,400 | - | Still collapses (99.8%): any dirty shard forces its full re-index per search (~2.6–3 s vs ~8.5 s monolithic — sharding divides the cost by shard count, but doesn't remove it). Keep `pendingOps` at zero with external rebuilds |
+| Search ramp 50→1000 req/s, 4-shard, clean | 96,400 | 4× ~31 MB | 99.1% success, ~243 req/s avg; **uncontended warm latency ~20 ms** (cold ~2.7 s = one-time load of 4 shard snapshots). Median under ramp ~1.5 s is single-process queueing: each request fans out to 4 shard searches in one local process - production isolates scale this horizontally |
+| Mixed 95/5, 4-shard, dirty | 96,400 | - | Still collapses (99.8%): any dirty shard forces its full re-index per search (~2.6–3 s vs ~8.5 s monolithic - sharding divides the cost by shard count, but doesn't remove it). Keep `pendingOps` at zero with external rebuilds |
 
 Key takeaways:
 
 - A warm isolate cache serves searches in single-digit to tens of ms; the versioned snapshot key means rebuilds invalidate it automatically.
-- **The snapshot must fit the isolate cache budget.** A snapshot larger than `SNAPSHOT_CACHE_MAX_BYTES` is not degraded — it is an outage. Size the budget so your largest index fits with headroom, and remember production isolates are capped at 128 MB total.
-- **Past that ceiling, shard.** [Sharded indexes](/docs/cloudflare/api-reference#sharded-indexes) split a logical index across physical shards whose snapshots each fit the cache budget — this is the supported way to scale beyond a monolithic snapshot, rather than raising `SNAPSHOT_CACHE_MAX_BYTES` toward the isolate limit.
+- **The snapshot must fit the isolate cache budget.** A snapshot larger than `SNAPSHOT_CACHE_MAX_BYTES` is not degraded - it is an outage. Size the budget so your largest index fits with headroom, and remember production isolates are capped at 128 MB total.
+- **Past that ceiling, shard.** [Sharded indexes](/docs/cloudflare/api-reference#sharded-indexes) split a logical index across physical shards whose snapshots each fit the cache budget - this is the supported way to scale beyond a monolithic snapshot, rather than raising `SNAPSHOT_CACHE_MAX_BYTES` toward the isolate limit.
 - **Dirty searches re-index the whole index per request.** Keep `pendingOps` near zero on large indexes: lower `REBUILD_THRESHOLD_OPS`, run the external builder frequently, and prefer bulk import over API writes.
 - Snapshot size is corpus-dependent; measure your own with `GET /v1/indexes/:id/status` (`indexSizeBytes`) before choosing tiers.
+
+## Baseline results (deployed, July 2026)
+
+Measured against a production Worker on the Workers Paid plan (4-shard index, k6 over a residential connection - latencies include internet RTT):
+
+| Scenario | Docs | Result |
+| --- | --- | --- |
+| Search ramp, clean index | 10,000 (4 shards, 13.9 MB total) | 310,190 requests at ~470 req/s, **0.00% errors**; med 168 ms, p90 233 ms, p95 273 ms, max 16 s (cold isolates loading 4 shard snapshots) |
+| Bulk ingest via API (`documents/batch`, 100/batch) | 10,000 | ~75-80 docs/s sustained, 0 failed batches; threshold auto-rebuilds keep up |
+| Mixed 95% search / 5% writes, index dirty | 10,000 | **Collapse** (98.5% errors, med 3.2 s): the dirty-path re-index cost is the same as local - keep `pendingOps` at zero |
+| Same search load on the **Workers Free plan** | 10,000 | 97.8% of searches fail with error 1102 (10ms CPU cap) - [Workers Paid is required](/docs/cloudflare/production#cloudflare-plan-requirements) |
+
+Warm single-request latency is ~180-330 ms end to end; engine time is single-digit ms - the rest is network RTT and per-shard `meta.json` reads from R2 (see the [cost calculator](/docs/cloudflare/cost-calculator) for what those reads cost at scale).
 
 ## CI workflow
 

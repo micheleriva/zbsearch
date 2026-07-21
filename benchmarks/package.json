@@ -1,7 +1,7 @@
 {
   "name": "benchmarks",
   "version": "1.0.0",
-  "description": "Performance benchmarks comparing Orama, ZBSearch, FlexSearch, Fuse.js, Lunr, and MiniSearch",
+  "description": "Performance benchmarks comparing Orama, ZBSearch, FlexSearch, Fuse.js, Lunr, MiniSearch, and ZBSearch search algorithms (BM25, QPS, PT15)",
   "main": "index.js",
   "type": "module",
   "scripts": {

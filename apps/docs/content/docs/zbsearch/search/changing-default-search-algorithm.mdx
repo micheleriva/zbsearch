@@ -42,13 +42,13 @@ Same 1,512-document dataset, **ZBSearch 3.3.1** (`npm run benchmark:algorithms`)
 
 | Benchmark | BM25 | QPS | PT15 |
 | --- | ---: | ---: | ---: |
-| Insert multiple | **22** | 17 | 16 |
+| Insert multiple | **32** | 19 | 16 |
 | Plain search | 83,505 | 59,276 | **87,437** |
 | Search with filters | 33,336 | 36,663 | **47,266** |
 | Long text + complex filters | 18,168 | 18,325 | **24,211** |
 | Single-term prefix | 3,161 | 4,271 | **9,020** |
 
-BM25 indexes fastest. **PT15** wins every search case here (about **2.9×** BM25 on prefixes). **QPS** trades some throughput for proximity-aware ranking.
+BM25 indexes fastest (~**1.7–2×** QPS/PT15). **PT15** wins every search case here (about **2.9×** BM25 on prefixes). **QPS** trades some throughput for proximity-aware ranking.
 
 ## How to choose
 

@@ -215,15 +215,16 @@ Use the Cloudflare dashboard for Worker invocations, errors, and CPU time. Watch
 
 ## Scaling guidance
 
-{/* <!-- LOADTEST-NUMBERS-PENDING: scaling table will be updated with measured results --> */}
+Measured locally with the [load-testing harness](/docs/cloudflare/benchmarks) (~1.3 KB/doc snapshots, single-process `wrangler dev` — re-run against your deployment for authoritative numbers):
 
 | Index size | Rebuild location | Search |
 | --- | --- | --- |
-| &lt; 10k docs, &lt; 10 MB snapshot | In-Worker cron OK | Isolate cache + Workers Cache absorb hot reads |
-| 10k–500k docs | External CLI / CI | Monitor R2 egress; watch isolate cache hit rates |
-| 500k+ docs | External CLI; plan for sharding (future) | Consider dedicated read replicas |
+| &lt; 10k docs, &lt; 15 MB snapshot | In-Worker cron OK | ~470 req/s per isolate in local tests; med 1.1 ms, p95 16.5 ms warm |
+| 10k–100k docs, snapshot fits `SNAPSHOT_CACHE_MAX_BYTES` | External CLI / CI recommended | Warm cache serves med ~40 ms; keep `pendingOps` near zero — dirty searches re-index everything per request |
+| Snapshot &gt; cache budget at any size | External CLI mandatory | **Do not operate here** — every search re-fetches and re-decodes the full snapshot (measured: ~8.5 s avg, ~100% errors) |
+| 100k+ docs / snapshot &gt; ~100 MB | External CLI; shard the index (`--shards N`) | Scatter-gather across shards fans out automatically; size shards so each snapshot stays well under `SNAPSHOT_CACHE_MAX_BYTES` |
 
-v1 stores **full msgpack snapshots**. Very large indexes will hit Worker memory limits during in-Worker rebuild. Use the external builder and watch `indexSizeBytes` in `/status`. See [Benchmarks](/docs/cloudflare/benchmarks) for the load-testing harness used to validate these tiers.
+v1 stores **full msgpack snapshots per shard**. A monolithic snapshot approaches the 128 MB isolate limit well before query volume becomes a problem — that is the ceiling the measured baseline in [Benchmarks](/docs/cloudflare/benchmarks) demonstrates, and [sharded indexes](/docs/cloudflare/api-reference#sharded-indexes) are the supported way past it. As a rule of thumb, at ~1.3 KB/document a shard of **25–50k documents** keeps each snapshot comfortably under the default 64 MB `SNAPSHOT_CACHE_MAX_BYTES`, which also bounds the re-indexing cost of dirty searches (WAL overlay) per shard. Very large indexes will hit Worker memory limits during in-Worker rebuild — use the external builder and watch `indexSizeBytes` in `/status`.
 
 ## Cost considerations
 

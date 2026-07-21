@@ -24,7 +24,7 @@ This is **not** a managed SaaS product. You deploy the Worker and R2 bucket to y
 
 ## Architecture
 
-Writes and reads follow different paths by design. Writes are batched into WAL segments in R2, serialized per index by an `IndexCoordinator` Durable Object. Search loads the **live snapshot** from R2 and keeps it in a per-isolate deserialized cache (backed by the Workers Cache API across a colo), so warm queries skip R2 entirely. Pending WAL operations can be overlaid at query time until the next rebuild merges them.
+Writes and reads follow different paths by design. Writes are batched into WAL segments in R2, serialized per index by an `IndexCoordinator` Durable Object. Search loads the **live snapshot** from R2 and keeps it in a per-isolate deserialized cache (backed by the Workers Cache API across a colo), so warm queries skip R2 entirely. Pending WAL operations can be overlaid at query time until the next rebuild merges them. Indexes that outgrow a single snapshot can be created with N **shards** — writes route per document id and search scatters to all shards and merges the hits ([API reference](/docs/cloudflare/api-reference#sharded-indexes)).
 
 ```
 Client                    Cloudflare Worker                 R2

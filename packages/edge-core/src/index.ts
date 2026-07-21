@@ -12,7 +12,9 @@ export type {
   IndexSettings,
   IndexStatus,
   IndexStatusResponse,
-  Registry
+  Registry,
+  ShardStatusSummary,
+  ShardWriteResult
 } from './types.js'
 export type {
   WalAppendResult,
@@ -89,3 +91,14 @@ export {
 } from './service.js'
 export type { HttpRequest, HttpResponse, RouterContext } from './router.js'
 export { handleRequest, toResponse } from './router.js'
+export {
+  SHARD_ID_SEPARATOR,
+  fnv1a32,
+  isShardGroupMeta,
+  physicalShardIds,
+  shardForDoc,
+  shardIndexId,
+  shardIndexIds
+} from './shards.js'
+export type { ShardSearchContribution, ShardedImportResult } from './shard-group.js'
+export { importShardedDocuments, mergeShardSearchResults } from './shard-group.js'

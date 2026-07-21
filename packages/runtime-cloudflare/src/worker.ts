@@ -1,5 +1,6 @@
 import {
   handleRequest,
+  isShardGroupMeta,
   listIndexMetas,
   maybeScheduleRebuild,
   toResponse,
@@ -98,6 +99,11 @@ export default {
     const indexes = await listIndexMetas(storage)
 
     for (const index of indexes) {
+
+      if (isShardGroupMeta(index)) {
+        continue
+      }
+
       await maybeScheduleRebuild(storage, index.id, { ...options, source: 'scheduler' })
     }
   }

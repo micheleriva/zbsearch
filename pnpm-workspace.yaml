@@ -10,6 +10,7 @@ allowBuilds:
   workerd: false
 
 enablePrePostScripts: true
+verifyDepsBeforeRun: false
 
 minimumReleaseAgeExclude:
   - '@typescript/typescript-aix-ppc64@7.0.2'

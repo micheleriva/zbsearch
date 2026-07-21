@@ -14,12 +14,21 @@ import { badRequest, notFound } from './errors.js'
 import type { WalCoordinator } from './coordinator.js'
 import { getIndexMeta, registerIndex, saveIndexMeta } from './registry.js'
 import { indexMetaKey, newVersionId, snapshotKey } from './paths.js'
+import { isShardGroupMeta, shardIndexId } from './shards.js'
+import {
+  bufferBatchSharded,
+  bufferDeleteSharded,
+  bufferUpsertSharded,
+  getShardedManifest,
+  getShardedStatus,
+  maybeScheduleRebuildSharded,
+  rebuildShardGroup,
+  runShardedSearch
+} from './shard-group.js'
 import type { ObjectStorage, ShardCache } from './storage.js'
 import type {
   BufferedWriteResponse,
-  BufferDeleteOp,
   BufferOp,
-  BufferUpsertOp,
   IndexMeta,
   IndexSettings,
   IndexStatusResponse
@@ -29,6 +38,7 @@ export interface CreateIndexInput {
   name: string
   schema: AnySchema
   settings?: IndexSettings
+  shards?: number
 }
 
 export interface SnapshotDbCacheOptions {
@@ -38,6 +48,7 @@ export interface SnapshotDbCacheOptions {
 
 const DEFAULT_SNAPSHOT_DB_CACHE_MAX_ENTRIES = 4
 const DEFAULT_SNAPSHOT_DB_CACHE_MAX_BYTES = 64 * 1024 * 1024
+const MAX_SHARD_COUNT = 64
 
 interface SnapshotDbCacheEntry {
   db: AnyZBSearch
@@ -50,10 +61,7 @@ let snapshotDbCacheMaxEntries = DEFAULT_SNAPSHOT_DB_CACHE_MAX_ENTRIES
 let snapshotDbCacheMaxBytes = DEFAULT_SNAPSHOT_DB_CACHE_MAX_BYTES
 
 function evictSnapshotDbCache(): void {
-  while (
-    snapshotDbCache.size > snapshotDbCacheMaxEntries ||
-    snapshotDbCacheBytes > snapshotDbCacheMaxBytes
-  ) {
+  while (snapshotDbCache.size > snapshotDbCacheMaxEntries || snapshotDbCacheBytes > snapshotDbCacheMaxBytes) {
     const oldest = snapshotDbCache.keys().next()
     if (oldest.done) {
       break
@@ -137,15 +145,34 @@ function slugify(name: string): string {
     .replace(/^-|-$/g, '')
 }
 
-export async function createIndex(
-  storage: ObjectStorage,
-  input: CreateIndexInput
-): Promise<IndexMeta> {
+export async function createIndex(storage: ObjectStorage, input: CreateIndexInput): Promise<IndexMeta> {
   const id = slugify(input.name)
   if (!id) {
     throw badRequest('Invalid index name')
   }
 
+  if (input.shards !== undefined) {
+    if (!Number.isInteger(input.shards) || input.shards < 2 || input.shards > MAX_SHARD_COUNT) {
+      throw badRequest(`shards must be an integer between 2 and ${MAX_SHARD_COUNT}`)
+    }
+  }
+
+  const meta = await createIndexWithId(storage, id, input)
+
+  if (input.shards !== undefined) {
+    for (let i = 0; i < input.shards; i++) {
+      await createIndexWithId(storage, shardIndexId(id, i), {
+        name: shardIndexId(id, i),
+        schema: input.schema,
+        settings: input.settings
+      })
+    }
+  }
+
+  return meta
+}
+
+async function createIndexWithId(storage: ObjectStorage, id: string, input: CreateIndexInput): Promise<IndexMeta> {
   const existing = await storage.get(indexMetaKey(id))
   if (existing) {
     throw badRequest(`Index ${id} already exists`)
@@ -162,6 +189,7 @@ export async function createIndex(
       mode: 'edge',
       ...input.settings
     },
+    ...(input.shards !== undefined ? { shards: { count: input.shards } } : {}),
     liveVersion: null,
     buildingVersion: null,
     status: 'empty',
@@ -199,9 +227,7 @@ async function appendWriteOps(
   }
 
   const { changeId, bufferedAt, head } =
-    ops.length === 1
-      ? await appendBufferOp(storage, meta.id, ops[0]!)
-      : await appendWalBatch(storage, meta.id, ops)
+    ops.length === 1 ? await appendBufferOp(storage, meta.id, ops[0]!) : await appendWalBatch(storage, meta.id, ops)
 
   meta.pendingOps = head.pendingOps
   meta.status = meta.liveVersion ? meta.status : 'empty'
@@ -223,7 +249,13 @@ export async function bufferUpsert(
   options: BufferedWriteOptions = {}
 ): Promise<BufferedWriteResponse> {
   const meta = await getIndexMeta(storage, indexId)
+
+  if (isShardGroupMeta(meta)) {
+    return bufferUpsertSharded(storage, meta, docId, doc, options)
+  }
+
   const ts = new Date().toISOString()
+
   return appendWriteOps(storage, meta, [{ op: 'upsert', id: docId, ts, doc }], options)
 }
 
@@ -246,6 +278,10 @@ export async function importDocuments(
       throw err
     }
     meta = await createIndex(storage, { ...options.create, name: options.create.name || indexId })
+  }
+
+  if (isShardGroupMeta(meta)) {
+    throw badRequest(`Index ${indexId} is a shard group; import into its shards or use importShardedDocuments`)
   }
 
   const version = newVersionId()
@@ -282,13 +318,13 @@ export async function importDocuments(
 export async function bufferBatch(
   storage: ObjectStorage,
   indexId: string,
-  operations: Array<
-    | { op: 'upsert'; id: string; doc: Record<string, unknown> }
-    | { op: 'delete'; id: string }
-  >,
+  operations: Array<{ op: 'upsert'; id: string; doc: Record<string, unknown> } | { op: 'delete'; id: string }>,
   options: BufferedWriteOptions = {}
 ): Promise<BufferedWriteResponse> {
   const meta = await getIndexMeta(storage, indexId)
+  if (isShardGroupMeta(meta)) {
+    return bufferBatchSharded(storage, meta, operations, options)
+  }
   const ts = new Date().toISOString()
   const ops: BufferOp[] = operations.map((operation) =>
     operation.op === 'upsert'
@@ -306,12 +342,22 @@ export async function bufferDelete(
   options: BufferedWriteOptions = {}
 ): Promise<BufferedWriteResponse> {
   const meta = await getIndexMeta(storage, indexId)
+
+  if (isShardGroupMeta(meta)) {
+    return bufferDeleteSharded(storage, meta, docId, options)
+  }
+
   const ts = new Date().toISOString()
   return appendWriteOps(storage, meta, [{ op: 'delete', id: docId, ts }], options)
 }
 
 export async function getStatus(storage: ObjectStorage, indexId: string): Promise<IndexStatusResponse> {
   const meta = await getIndexMeta(storage, indexId)
+
+  if (isShardGroupMeta(meta)) {
+    return getShardedStatus(storage, meta)
+  }
+
   return {
     indexId: meta.id,
     liveVersion: meta.liveVersion,
@@ -324,11 +370,7 @@ export async function getStatus(storage: ObjectStorage, indexId: string): Promis
   }
 }
 
-async function loadSnapshotDb(
-  storage: ObjectStorage,
-  meta: IndexMeta,
-  cache: ShardCache
-): Promise<AnyZBSearch | null> {
+async function loadSnapshotDb(storage: ObjectStorage, meta: IndexMeta, cache: ShardCache): Promise<AnyZBSearch | null> {
   if (!meta.liveVersion) {
     return null
   }
@@ -379,10 +421,7 @@ async function loadDocumentsFromSnapshot(
   return docs
 }
 
-async function readPendingBufferOps(
-  storage: ObjectStorage,
-  meta: IndexMeta
-): Promise<BufferOp[]> {
+async function readPendingBufferOps(storage: ObjectStorage, meta: IndexMeta): Promise<BufferOp[]> {
   if (meta.pendingOps === 0) {
     return []
   }
@@ -446,6 +485,12 @@ export async function maybeScheduleRebuild(
   }
 
   const meta = await getIndexMeta(storage, indexId)
+
+  if (isShardGroupMeta(meta)) {
+    await maybeScheduleRebuildSharded(storage, meta, options)
+    return
+  }
+
   if (meta.status === 'building') {
     return
   }
@@ -478,6 +523,12 @@ export async function rebuildIndex(
   indexId: string,
   options: RebuildOptions = {}
 ): Promise<IndexMeta> {
+  const groupMeta = await getIndexMeta(storage, indexId)
+
+  if (isShardGroupMeta(groupMeta)) {
+    return rebuildShardGroup(storage, groupMeta, options)
+  }
+
   const coordinator = options.walCoordinator
 
   if (coordinator) {
@@ -576,6 +627,11 @@ export async function runSearch(
   }
 
   const meta = await getIndexMeta(storage, indexId)
+  
+  if (isShardGroupMeta(meta)) {
+    return runShardedSearch(storage, cache, meta, params, options)
+  }
+
   const loaded = await loadSearchableDb(storage, meta, cache)
 
   if (!loaded) {
@@ -604,6 +660,11 @@ export async function runSearch(
 
 export async function getIndexManifest(storage: ObjectStorage, indexId: string) {
   const meta = await getIndexMeta(storage, indexId)
+
+  if (isShardGroupMeta(meta)) {
+    return getShardedManifest(storage, meta)
+  }
+
   return {
     indexId: meta.id,
     name: meta.name,

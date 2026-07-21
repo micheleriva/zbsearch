@@ -3,7 +3,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", "!dist/node_modules/**"]
     },
     "test": {
       "dependsOn": ["build"],
@@ -15,31 +15,31 @@
     },
     "zbsearch#build": {
       "dependsOn": ["@zbsearch/stemmers#build", "^build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", "!dist/node_modules/**"]
     },
     "@zbsearch/plugin-match-highlight#build": {
       "dependsOn": ["zbsearch#build", "^build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", "!dist/node_modules/**"]
     },
     "@zbsearch/plugin-parsedoc#build": {
       "dependsOn": ["zbsearch#build", "^build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", "!dist/node_modules/**"]
     },
     "@zbsearch/plugin-astro#build": {
       "dependsOn": ["zbsearch#build", "^build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", "!dist/node_modules/**"]
     },
     "@zbsearch/plugin-nextra#build": {
       "dependsOn": ["zbsearch#build", "@zbsearch/plugin-match-highlight#build", "^build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", "!dist/node_modules/**"]
     },
     "@zbsearch/plugin-embeddings#build": {
       "dependsOn": ["zbsearch#build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", "!dist/node_modules/**"]
     },
     "@zbsearch/plugin-pt15#build": {
       "dependsOn": ["zbsearch#build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", "!dist/node_modules/**"]
     },
     "@zbsearch/tokenizers#build": {
       "dependsOn": ["zbsearch#build"]
@@ -50,19 +50,19 @@
     },
     "@zbsearch/edge-core#build": {
       "dependsOn": ["zbsearch#build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", "!dist/node_modules/**"]
     },
     "@zbsearch/storage-s3#build": {
       "dependsOn": ["@zbsearch/edge-core#build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", "!dist/node_modules/**"]
     },
     "@zbsearch/edge-index-builder#build": {
       "dependsOn": ["@zbsearch/storage-s3#build", "@zbsearch/edge-core#build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", "!dist/node_modules/**"]
     },
     "@zbsearch/runtime-cloudflare#build": {
       "dependsOn": ["@zbsearch/edge-core#build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", "!dist/node_modules/**"]
     },
     "@zbsearch/edge-core#test": {
       "dependsOn": ["@zbsearch/edge-core#build"]

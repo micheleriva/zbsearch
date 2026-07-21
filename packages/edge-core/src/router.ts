@@ -18,6 +18,7 @@ import {
   type SnapshotDbCacheOptions
 } from './service.js'
 import { deleteIndexMeta, getIndexMeta, listIndexMetas, saveIndexMeta } from './registry.js'
+import { isShardGroupMeta, physicalShardIds, shardIndexIds } from './shards.js'
 import type { IndexSettings } from './types.js'
 
 export interface RouterContext {
@@ -110,7 +111,9 @@ export async function handleRequest(ctx: RouterContext, req: HttpRequest): Promi
 
     if (req.method === 'GET' && req.pathname === '/v1/indexes') {
       const indexes = await listIndexMetas(ctx.storage)
-      return json(200, { indexes })
+      const hidden = physicalShardIds(indexes)
+
+      return json(200, { indexes: indexes.filter((meta) => !hidden.has(meta.id)) })
     }
 
     if (req.method === 'POST' && req.pathname === '/v1/indexes') {
@@ -131,13 +134,41 @@ export async function handleRequest(ctx: RouterContext, req: HttpRequest): Promi
       if (req.method === 'PATCH') {
         const meta = await getIndexMeta(ctx.storage, indexId)
         const patch = await req.json<{ settings?: IndexSettings }>()
+
         meta.settings = { ...meta.settings, ...patch.settings }
+
         await saveIndexMeta(ctx.storage, meta)
+
+        if (isShardGroupMeta(meta)) {
+          for (const shardId of shardIndexIds(meta.id, meta.shards!.count)) {
+            const shardMeta = await getIndexMeta(ctx.storage, shardId)
+            shardMeta.settings = { ...shardMeta.settings, ...patch.settings }
+            await saveIndexMeta(ctx.storage, shardMeta)
+          }
+        }
         return json(200, meta)
       }
 
       if (req.method === 'DELETE') {
+        let groupShardIds: string[] = []
+
+        try {
+          const meta = await getIndexMeta(ctx.storage, indexId)
+          if (isShardGroupMeta(meta)) {
+            groupShardIds = shardIndexIds(meta.id, meta.shards!.count)
+          }
+        } catch (err) {
+          if (!(err instanceof EdgeApiErrorClass && err.status === 404)) {
+            throw err
+          }
+        }
+
         await deleteIndexMeta(ctx.storage, indexId)
+
+        for (const shardId of groupShardIds) {
+          await deleteIndexMeta(ctx.storage, shardId)
+        }
+
         return json(202, { status: 'deleting', indexId })
       }
     }
@@ -207,10 +238,7 @@ export async function handleRequest(ctx: RouterContext, req: HttpRequest): Promi
     const batchMatch = matchPath(req.pathname, '/v1/indexes/:indexId/documents/batch')
     if (batchMatch && req.method === 'POST') {
       const body = await req.json<{
-        operations: Array<
-          | { op: 'upsert'; id: string; doc: Record<string, unknown> }
-          | { op: 'delete'; id: string }
-        >
+        operations: Array<{ op: 'upsert'; id: string; doc: Record<string, unknown> } | { op: 'delete'; id: string }>
       }>()
       const indexId = batchMatch.indexId!
       const result = await bufferBatch(ctx.storage, indexId, body.operations, {

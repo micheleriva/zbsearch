@@ -191,6 +191,18 @@ Copy the workflow from [`deploy/github-actions/zbsearch-rebuild.yml`](https://gi
 
 See [Production](/docs/cloudflare/production) for the full GitHub Actions setup.
 
+## Sharded indexes
+
+For larger catalogs, a logical index can be split into N physical shards at creation time (`"shards": N` on `POST /v1/indexes`, or `--shards N` on the builder CLI import). Each shard `<id>--shard-<i>` is an ordinary index with its own WAL, snapshots, `IndexCoordinator` Durable Object, and rebuild thresholds — everything on this page applies per shard.
+
+Implications for the rebuild pipeline:
+
+- **Group rebuild is parallel**: `POST /v1/indexes/:id/rebuild` on the logical index rebuilds all shards concurrently, each under its own coordinator lock.
+- **Threshold scheduling is per shard**: cron checks each shard's `pendingOps` independently, so hot shards rebuild more often than cold ones.
+- **Shard count is fixed**: re-sharding means re-importing into a new index.
+
+See [API reference](/docs/cloudflare/api-reference#sharded-indexes) for routing, response shapes, and search caveats.
+
 ## Recommended patterns
 
 ### Bulk import
@@ -215,6 +227,8 @@ The `import` command:
 2. Builds a ZBSearch snapshot in memory
 3. Uploads `snapshot.msgpack` to R2
 4. Clears any pending WAL entries and sets `liveVersion` — **documents are searchable immediately**
+
+For very large catalogs, shard at import time by adding `--shards N` (2–64): documents are bucketed deterministically by id and each shard snapshot is uploaded independently. The shard count cannot be changed later without re-importing.
 
 For smaller batches via the API:
 
@@ -252,7 +266,8 @@ buffer/{indexId}/segments/*.ndjson       ← legacy
 
 ## v1 limitations
 
-- **Full snapshots only** - no field-level sharding yet (planned for larger indexes)
+- **Full snapshots per shard** - sharding (2–64 shards) splits a logical index across physical indexes, but each shard snapshot is still monolithic
+- **Approximate cross-shard scoring** - BM25 IDF is per shard, and `groupBy` results are not merged on sharded indexes
 - **Index delete** removes metadata but does not purge R2 objects automatically
 - **Single region R2** - snapshot locality follows your R2 bucket; Workers run globally
 - **Coordinator binding is one-way per deployment** - once WAL segments are active on an index, don't run mixed old/new writers (e.g. a legacy standalone edge-core without the binding) against the same index

@@ -70,7 +70,7 @@ Returns service metadata:
 
 ### `GET /v1/indexes`
 
-List all indexes.
+List all indexes. Physical shard indexes (`<id>--shard-<i>`, see `shards` below) are hidden — only logical indexes appear.
 
 **Response `200`:**
 
@@ -106,6 +106,7 @@ Create a new index.
 | `name` | `string` | Yes | Display name; slugified to `id` (e.g. `"My Products"` → `my-products`) |
 | `schema` | `object` | Yes | Same [schema types](/docs/zbsearch/usage/create) as standalone ZBSearch |
 | `settings` | `object` | No | See [index settings](#index-settings) |
+| `shards` | `number` | No | Create a **sharded index** with N physical shards (2–64). Fixed after creation — re-sharding means re-importing into a new index. |
 
 **Example:**
 
@@ -125,7 +126,22 @@ curl -X POST "$WORKER_URL/v1/indexes" \
   }'
 ```
 
-**Response `201`:** Full index metadata object.
+**Response `201`:** Full index metadata object. For a sharded index, the group meta includes `"shards": { "count": N }`.
+
+### Sharded indexes
+
+Passing `"shards": N` (2–64) creates a **logical index** backed by N physical shard indexes named `<id>--shard-<i>` (`i` in `0..N-1`). Shards are ordinary indexes in every respect — own WAL, snapshots, coordinator Durable Object, and rebuild thresholds — but they are hidden from `GET /v1/indexes`; you always address the logical index by its plain id.
+
+Routing is deterministic: the document id is hashed (FNV-1a) modulo N, so a document always lands on the same shard. **Document ids must be stable** — changing a doc id moves the document to a different shard.
+
+The shard count is fixed at creation. To change it, re-import into a new index:
+
+```bash
+zbsearch-edge-builder import products-v2 ./catalog.json \
+  --create --schema-file ./schema.json --shards 8
+```
+
+Bulk import of a sharded index also goes through the CLI with `--shards N`; importing without `--shards` against an existing shard group fails with `400`. Unsharded indexes behave exactly as before.
 
 ### `GET /v1/indexes/:indexId`
 
@@ -232,6 +248,35 @@ Apply multiple operations in one request. All operations are written to a **sing
 
 **Response `202`:** Buffered write response for the batch (`changeId`, `bufferedAt`, updated `indexStatus`).
 
+On a **sharded index**, each operation is routed to its owning shard (per document id). The response keeps the top-level shape — `changeId`/`bufferedAt` are a group-level batch id/timestamp — and adds a `shards[]` array with the per-shard results:
+
+```json
+{
+  "status": "buffered",
+  "changeId": "chg_a1b2c3d4e5f67890",
+  "bufferedAt": "2026-07-10T12:00:00.000Z",
+  "indexStatus": "ready",
+  "shards": [
+    {
+      "indexId": "products--shard-0",
+      "ops": 2,
+      "changeId": "chg_0f1e2d3c4b5a6978",
+      "bufferedAt": "2026-07-10T12:00:00.000Z",
+      "indexStatus": "ready"
+    },
+    {
+      "indexId": "products--shard-1",
+      "ops": 1,
+      "changeId": "chg_98a7b6c5d4e3f210",
+      "bufferedAt": "2026-07-10T12:00:00.000Z",
+      "indexStatus": "ready"
+    }
+  ]
+}
+```
+
+Single-document writes on a sharded index return the owning shard's response unchanged (no `shards[]` array).
+
 ---
 
 ## Search
@@ -295,6 +340,13 @@ curl -X POST "$WORKER_URL/v1/indexes/products/search" \
 
 `includesBuffer: true` means results include documents from pending WAL operations not yet merged into the snapshot.
 
+**Sharded indexes (scatter-gather):** the search fans out to all shards in parallel, merges hits by score descending (ties broken by document id), then applies `offset`/`limit` to the merged list; `count` is the sum across shards. The response adds a `shards[]` summary with each shard's contribution, `indexVersion` is `null` (versions are per shard), and `includesBuffer` is `true` if any shard has pending ops. Two v1 caveats:
+
+<Callout type="warn">
+  - **Scores are approximate across shards.** BM25 IDF is computed per shard, so scores are only approximately comparable — ranking of near-tied hits may differ slightly from a monolithic index.
+  - **`groupBy` results are dropped** on sharded indexes (the `groups` field is not merged). Facets *are* merged — counts add up exactly because document sets are disjoint.
+</Callout>
+
 **Response `404`:** No searchable documents yet — create the index, import data, or trigger a rebuild.
 
 ---
@@ -303,7 +355,7 @@ curl -X POST "$WORKER_URL/v1/indexes/products/search" \
 
 ### `POST /v1/indexes/:indexId/rebuild`
 
-Merge pending WAL operations into a new immutable snapshot and promote it to `liveVersion`.
+Merge pending WAL operations into a new immutable snapshot and promote it to `liveVersion`. On a sharded index, all shards are rebuilt **in parallel** (each shard has its own WAL and rebuild lock).
 
 **Response `202`:**
 
@@ -341,6 +393,23 @@ Version IDs are timestamp-based with a random 8-character hex suffix (e.g. `2026
 | `empty` | Index exists but no live snapshot |
 | `building` | Rebuild in progress |
 | `ready` | Searchable snapshot available |
+
+On a **sharded index**, status and manifest aggregate across shards: `documents`, `indexSizeBytes`, and `pendingOps` are sums, `status` is the worst of all shards (`building` > `ready` > `empty`), `liveVersion` is `null`, and a `shards[]` array carries the per-shard breakdown:
+
+```json
+{
+  "indexId": "products",
+  "liveVersion": null,
+  "status": "ready",
+  "documents": 100000,
+  "indexSizeBytes": 134217728,
+  "pendingOps": 12,
+  "shards": [
+    { "indexId": "products--shard-0", "status": "ready", "documents": 49876, "pendingOps": 12, "...": "..." },
+    { "indexId": "products--shard-1", "status": "ready", "documents": 50124, "pendingOps": 0, "...": "..." }
+  ]
+}
+```
 
 ### `GET /v1/indexes/:indexId/manifest`
 

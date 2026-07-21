@@ -1,7 +1,3 @@
-/**
- * Render comparison results as Markdown and ASCII tables.
- */
-
 function pad(value, width, align = 'left') {
   const text = String(value)
   if (text.length >= width) return text
@@ -30,9 +26,6 @@ function formatMs(ms) {
   return `${(ms / 1000).toFixed(2)} s`
 }
 
-/**
- * @param {{ name: string, unit: 'ops'|'bytes'|'ms', orama: number, zbsearch: number, higherIsBetter?: boolean }} row
- */
 export function compareRow(row) {
   const { name, unit, orama, zbsearch, higherIsBetter = unit === 'ops' } = row
   const format =
@@ -54,7 +47,6 @@ export function compareRow(row) {
       delta = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`
     } else {
       winner = zbsearch < orama ? 'ZBSearch' : 'Orama'
-      // For lower-is-better, show how much smaller/faster zbsearch is vs orama
       delta = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`
     }
   } else if (orama == null && zbsearch != null) {
@@ -76,10 +68,6 @@ export function compareRow(row) {
   }
 }
 
-/**
- * @param {ReturnType<typeof compareRow>[]} rows
- * @param {{ oramaVersion: string, zbsearchVersion: string, title?: string }} meta
- */
 export function toMarkdownTable(rows, meta) {
   const title = meta.title ?? 'Orama vs ZBSearch'
   const lines = [
@@ -100,10 +88,6 @@ export function toMarkdownTable(rows, meta) {
   return lines.join('\n')
 }
 
-/**
- * @param {ReturnType<typeof compareRow>[]} rows
- * @param {{ oramaVersion: string, zbsearchVersion: string, title?: string }} meta
- */
 export function toAsciiTable(rows, meta) {
   const headers = [
     'Metric',

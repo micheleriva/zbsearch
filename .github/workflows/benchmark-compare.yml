@@ -54,7 +54,6 @@ jobs:
         working-directory: benchmarks
         run: |
           npm install
-          # Always compare against the latest published Orama release
           npm install @orama/orama@latest
 
       - name: Print versions under test

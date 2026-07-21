@@ -1,14 +1,10 @@
 import dataset from '../dataset.json' with { type: 'json' }
 
-// San Francisco Bay Area bounding box (same region as bkd benchmarks)
 const MIN_LON = -122.55
 const MAX_LON = -122.35
 const MIN_LAT = 37.7
 const MAX_LAT = 37.85
 
-/**
- * Deterministic pseudo-random so geo benchmarks are stable across runs.
- */
 function hashIndex(i) {
   let x = (i + 1) * 2654435761
   x ^= x >>> 16
@@ -17,9 +13,6 @@ function hashIndex(i) {
   return (x >>> 0) / 0xffffffff
 }
 
-/**
- * Attach a geopoint to each game record for geosearch benchmarks.
- */
 export function withGeoPoints(records = dataset) {
   return records.map((record, i) => ({
     ...record,

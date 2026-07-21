@@ -56,7 +56,6 @@ function createDb(engine, { geo = false } = {}) {
     components: { tokenizer: stopWordTokenizer }
   }
 
-  // Keep insert benchmarks fair: zbsearch enables sort indexes by default.
   if (engine === 'zbsearch') {
     options.sort = databaseSortConfig
   }
@@ -91,9 +90,6 @@ function installPin(engine, db, docId) {
   return true
 }
 
-/**
- * Run all Orama vs ZBSearch suites and return raw numeric results.
- */
 export function runComparisonSuites(options = {}) {
   const opsDurationMs = options.opsDurationMs ?? 800
   const opsWarmupMs = options.opsWarmupMs ?? 150
@@ -101,7 +97,6 @@ export function runComparisonSuites(options = {}) {
 
   const results = []
 
-  // --- Indexing ---
   const indexInsert = {
     orama: benchTime(
       () => {
@@ -158,7 +153,6 @@ export function runComparisonSuites(options = {}) {
     zbsearch: indexMultiple.zbsearch.medianMs
   })
 
-  // --- Search (shared populated DBs) ---
   const { db: dbOrama } = createPopulated('orama')
   const { db: dbZB } = createPopulated('zbsearch')
 
@@ -242,7 +236,6 @@ export function runComparisonSuites(options = {}) {
     })
   }
 
-  // --- Pinning ---
   const { db: dbOramaPin, ids: oramaPinIds } = createPopulated('orama')
   const { db: dbZBPin, ids: zbPinIds } = createPopulated('zbsearch')
   const oramaHasPin = installPin('orama', dbOramaPin, oramaPinIds[0])
@@ -269,7 +262,6 @@ export function runComparisonSuites(options = {}) {
     })
   }
 
-  // --- Geosearch ---
   const { db: dbOramaGeo } = createPopulated('orama', { geo: true })
   const { db: dbZBGeo } = createPopulated('zbsearch', { geo: true })
 
@@ -327,7 +319,6 @@ export function runComparisonSuites(options = {}) {
     })
   }
 
-  // --- Remove throughput ---
   const removeResult = {
     orama: benchTime(
       () => {
@@ -358,7 +349,6 @@ export function runComparisonSuites(options = {}) {
     zbsearch: removeResult.zbsearch.medianMs
   })
 
-  // --- Memory ---
   const memOrama = measureEngineMemory('orama', { searches: 50 })
   const memZB = measureEngineMemory('zbsearch', { searches: 50 })
 
@@ -389,7 +379,6 @@ export function runComparisonSuites(options = {}) {
     zbsearch: memZB.serializedBytes
   })
 
-  // --- Bundle / package size ---
   const bundles = measurePackageBundles()
   results.push({
     category: 'Bundle',

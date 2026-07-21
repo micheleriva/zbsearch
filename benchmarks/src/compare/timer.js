@@ -1,8 +1,3 @@
-/**
- * Lightweight micro-benchmark helpers for CI-friendly comparisons.
- * Prefer duration-based sampling for fast ops; fixed iterations for slow ones.
- */
-
 export function median(values) {
   const sorted = [...values].sort((a, b) => a - b)
   const mid = Math.floor(sorted.length / 2)
@@ -13,10 +8,6 @@ export function mean(values) {
   return values.reduce((sum, value) => sum + value, 0) / values.length
 }
 
-/**
- * @param {() => void} fn
- * @param {{ durationMs?: number, warmupMs?: number }} [options]
- */
 export function benchOps(fn, options = {}) {
   const { durationMs = 800, warmupMs = 150 } = options
 
@@ -43,10 +34,6 @@ export function benchOps(fn, options = {}) {
   }
 }
 
-/**
- * @param {() => void} fn
- * @param {{ iterations?: number, warmup?: number }} [options]
- */
 export function benchTime(fn, options = {}) {
   const { iterations = 12, warmup = 2 } = options
 

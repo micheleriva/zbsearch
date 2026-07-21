@@ -1,15 +1,4 @@
 #!/usr/bin/env node
-/**
- * Orama vs ZBSearch head-to-head comparison.
- *
- * Usage:
- *   node compare.js
- *   node compare.js --format=markdown
- *   node compare.js --format=ascii
- *   node compare.js --format=both
- *   node compare.js --json
- *   node compare.js --quick   # shorter sampling windows for local smoke runs
- */
 
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -123,7 +112,6 @@ if (args.json || args.out) {
   console.error(`\nWrote JSON report to ${outPath}`)
 }
 
-// Expose markdown for GitHub Actions step summaries via stdout marker
 if (process.env.GITHUB_STEP_SUMMARY) {
   writeFileSync(process.env.GITHUB_STEP_SUMMARY, `${markdown}\n`, { flag: 'a' })
 }

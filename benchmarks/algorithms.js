@@ -1,77 +1,36 @@
 import b from 'benny'
-import { create, insertMultiple, search } from 'zbsearch'
-import { pluginPT15 } from '@zbsearch/plugin-pt15'
-import { pluginQPS } from '@zbsearch/plugin-qps'
-import dataset from './src/dataset.json' with { type: 'json' }
-import {stopwords} from '@zbsearch/stopwords/english'
+import {
+  versions,
+  insertCases,
+  insertMultipleCases,
+  searchPlain,
+  searchWithFilters,
+  searchWithLongTextAndComplexFilters,
+  searchPrefix,
+  searchEntireWords
+} from './src/get-algorithms-engines.js'
 
-const dbBM25 = create({
-    schema: {
-        description: 'string'
-    },
-    components: {
-        tokenizer: {
-            stopWords: stopwords,
-        },
-    }
-})
+const algorithms = [
+  { key: 'bm25', label: `ZBSearch BM25 ${versions.zbsearch}` },
+  { key: 'qps', label: `ZBSearch QPS ${versions.qps}` },
+  { key: 'pt15', label: `ZBSearch PT15 ${versions.pt15}` }
+]
 
-const dbWithPT15 = create({
-    schema: {
-        description: 'string'
-    },
-    plugins: [pluginPT15()],
-    components: {
-        tokenizer: {
-            stopWords: stopwords,
-        },
-    }
-})
-
-const dbWithQPS = create({
-    schema: {
-        description: 'string'
-    },
-    plugins: [pluginQPS()],
-    components: {
-        tokenizer: {
-            stopWords: stopwords,
-        },
-    }
-})
-
-await insertMultiple(dbBM25, dataset)
-await insertMultiple(dbWithPT15, dataset)
-await insertMultiple(dbWithQPS, dataset)
-
-b.suite('search-algorithms - single-term prefix',
-    b.add('search bm25 - single-term prefix', () => {
-        search(dbBM25, { term: 'L' })
-    }),
-    b.add('search pt15 - single-term prefix', () => {
-        search(dbWithPT15, { term: 'L' })
-    }),
-    b.add('search qps - single-term prefix', () => {
-        search(dbWithQPS, { term: 'L' })
-    }),
+function runSuite(name, cases) {
+  return b.suite(
+    name,
+    ...algorithms.map(({ key, label }) => b.add(`${name} in ${label}`, cases[key])),
     b.cycle(),
     b.complete(),
-    b.save({ file: 'insert', version: '1.0.0' }),
-    b.save({ file: 'search-algorithms-single-term-prefix', format: 'chart.html' }),
-)
+    b.save({ file: name, version: '1.0.0' }),
+    b.save({ file: name, format: 'chart.html' })
+  )
+}
 
-b.suite('search-algorithms - entire words',
-    b.add('search bm25 - entire words', () => {
-        search(dbBM25, { term: 'Legend of Zelda' })
-    }),
-    b.add('search pt15 - entire words', () => {
-        search(dbWithPT15, { term: 'Legend of Zelda' })
-    }),
-    b.add('search qps - entire words', () => {
-        search(dbWithQPS, { term: 'Legend of Zelda' })
-    }),
-    b.cycle(),
-    b.complete(),
-    b.save({ file: 'insert', version: '1.0.0' }),
-    b.save({ file: 'search-algorithms-entire-words', format: 'chart.html' }),
-)
+await runSuite('algorithms insert', insertCases)
+await runSuite('algorithms insert multiple', insertMultipleCases)
+await runSuite('algorithms plain search', searchPlain)
+await runSuite('algorithms search with filters', searchWithFilters)
+await runSuite('algorithms search with long text and complex filters', searchWithLongTextAndComplexFilters)
+await runSuite('algorithms single-term prefix', searchPrefix)
+await runSuite('algorithms entire words', searchEntireWords)

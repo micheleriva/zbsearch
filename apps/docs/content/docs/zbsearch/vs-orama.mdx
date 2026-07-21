@@ -137,6 +137,7 @@ cd packages/zbsearch && npm run build
 cd ../../benchmarks && npm install
 
 npm run benchmark              # core insert/search
+npm run benchmark:algorithms   # BM25 vs QPS vs PT15
 npm run benchmark:facets       # facet workloads
 npm run benchmark:vector       # vector search (flat)
 npm run benchmark:vector-ivf   # vector flat vs IVF

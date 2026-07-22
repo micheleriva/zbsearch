@@ -131,7 +131,7 @@ Every cron tick, the Worker lists indexes and rebuilds any where `pendingOps >= 
 
 Best for: demos, small catalogs, development.
 
-Limitations: Worker CPU and memory limits; not suitable for multi-GB indexes.
+Limitations: Worker CPU and memory limits; not suitable for multi-GB indexes. Also, every in-Worker rebuild replays the shard's **entire WAL backlog** in one invocation. Rolling rebuilds at the default 500-op threshold handle 100k+ documents fine, but a large one-shot backlog - bulk API ingest arriving faster than rebuilds drain, roughly 10k+ pending ops per shard - does not complete and wedges the shard at `building`. For bulk loads, use the external builder (`zbsearch-edge-builder import`) instead of the write API.
 
 ### 2. Manual rebuild via API
 
@@ -197,9 +197,10 @@ For larger catalogs, a logical index can be split into N physical shards at crea
 
 Implications for the rebuild pipeline:
 
-- **Group rebuild is parallel**: `POST /v1/indexes/:id/rebuild` on the logical index rebuilds all shards concurrently, each under its own coordinator lock.
+- **Group rebuild is serial**: `POST /v1/indexes/:id/rebuild` on the logical index rebuilds shards one at a time - parallel shard rebuilds in one invocation exceed the 128MB isolate memory limit once shards grow past a few thousand documents (measured in production). Cron rebuilds run inline and serially for the same reason.
 - **Threshold scheduling is per shard**: cron checks each shard's `pendingOps` independently, so hot shards rebuild more often than cold ones.
 - **Shard count is fixed**: re-sharding means re-importing into a new index.
+- **Search fans out to `ShardSearch` DOs**: with the `SEARCH_SHARD` binding, a group search runs each shard's query in that shard's own Durable Object isolate (warm snapshot cache included), so total index size is not capped by a single isolate's 128MB. Without the binding, all shards are searched in-process - fine while `shards × snapshot size` stays well under 128MB.
 
 See [API reference](/docs/cloudflare/api-reference#sharded-indexes) for routing, response shapes, and search caveats.
 

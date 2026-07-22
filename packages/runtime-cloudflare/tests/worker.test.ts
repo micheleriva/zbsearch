@@ -103,6 +103,39 @@ describe('worker fetch', () => {
     assert.equal((await fetchWorker('/v1/info', env)).status, 200)
   })
 
+  it('separates read and write API keys', async () => {
+    const env = makeEnv({ READ_API_KEY: 'read-secret', WRITE_API_KEY: 'write-secret' })
+
+    const anonRead = await fetchWorker('/v1/indexes', env, { method: 'GET' })
+    assert.equal(anonRead.status, 401)
+
+    const read = await fetchWorker('/v1/indexes', env, {
+      method: 'GET',
+      headers: { authorization: 'Bearer read-secret' }
+    })
+    assert.equal(read.status, 200)
+
+    const readKeyWrite = await fetchWorker('/v1/indexes', env, {
+      method: 'POST',
+      headers: { authorization: 'Bearer read-secret', 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Nope', schema: { title: 'string' } })
+    })
+    assert.equal(readKeyWrite.status, 401)
+
+    const writeKeyWrite = await fetchWorker('/v1/indexes', env, {
+      method: 'POST',
+      headers: { authorization: 'Bearer write-secret', 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Allowed', schema: { title: 'string' } })
+    })
+    assert.equal(writeKeyWrite.status, 201)
+
+    const writeKeyRead = await fetchWorker('/v1/indexes', env, {
+      method: 'GET',
+      headers: { authorization: 'Bearer write-secret' }
+    })
+    assert.equal(writeKeyRead.status, 200)
+  })
+
   it('returns 404 for unknown routes', async () => {
     const res = await fetchWorker('/v1/does-not-exist', makeEnv())
     assert.equal(res.status, 404)

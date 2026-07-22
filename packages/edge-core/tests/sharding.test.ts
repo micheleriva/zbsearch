@@ -182,6 +182,28 @@ describe('scatter-gather search', () => {
     assert.equal((result.shards as unknown[]).length, 2)
   })
 
+  it('fans out through executeShardSearch when provided', async () => {
+    const { storage, ids } = await populatedGroup()
+
+    const calls: Array<{ shardId: string; params: Record<string, unknown> }> = []
+    const result = await runSearch(storage, new NoopShardCache(), 'g', { term: 'alpha', limit: 10 }, {
+      executeShardSearch: async (shardId, params) => {
+        calls.push({ shardId, params: params as Record<string, unknown> })
+        // In-process stand-in for a remote shard worker.
+        const { runSearch: searchShard } = await import('../src/service.js')
+        return searchShard(storage, new NoopShardCache(), shardId, params)
+      }
+    })
+
+    assert.deepEqual(new Set(calls.map((c) => c.shardId)), new Set(shardIndexIds('g', 2)))
+    for (const call of calls) {
+      assert.equal(call.params.offset, 0, 'shards must search from offset 0 for correct merging')
+      assert.equal(call.params.limit, 10)
+    }
+    assert.equal(result.count, 3)
+    assert.deepEqual(new Set((result.hits as Array<{ id: string }>).map((h) => h.id)), new Set(ids))
+  })
+
   it('applies offset/limit to the merged list (not per shard)', async () => {
     const { storage } = await populatedGroup()
 

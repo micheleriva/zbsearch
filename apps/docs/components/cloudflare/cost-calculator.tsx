@@ -96,9 +96,7 @@ function compute(inputs: Inputs) {
     shardRebuilds * MODEL.walReadsPerRebuild;
   const classA = batches * 2 + shardRebuilds * 2; // WAL segment + head, snapshot + meta
   const storageGb = (docs * (MODEL.indexBytesPerDoc + MODEL.rawBytesPerDoc)) / 1e9;
-
-  // Durable Objects (coordinator: one call per write batch + rebuild coordination)
-  const doRequests = batches + shardRebuilds * 2;
+  const doRequests = batches + shardRebuilds * 2 + (shards >= 2 ? searches * shards : 0);
 
   // Costs
   const requestsCost =

@@ -1,4 +1,3 @@
-import type { EdgeApiError } from './errors.js'
 import { EdgeApiError as EdgeApiErrorClass } from './errors.js'
 import type { WalCoordinator } from './coordinator.js'
 import type { ObjectStorage, ShardCache } from './storage.js'
@@ -15,6 +14,7 @@ import {
   type CreateIndexInput,
   type ScheduleRebuildOptions,
   type SearchInput,
+  type SearchOptions,
   type SnapshotDbCacheOptions
 } from './service.js'
 import { deleteIndexMeta, getIndexMeta, listIndexMetas, saveIndexMeta } from './registry.js'
@@ -24,12 +24,16 @@ import type { IndexSettings } from './types.js'
 export interface RouterContext {
   storage: ObjectStorage
   cache: ShardCache
+  /** @deprecated Full-access key kept for backwards compatibility. Prefer writeApiKey + readApiKey. */
   apiKey?: string
+  readApiKey?: string
+  writeApiKey?: string
   scheduleBackground?: ScheduleRebuildOptions['schedule']
   rebuildThresholdOps?: number
   builderWebhookUrl?: string
   snapshotCache?: SnapshotDbCacheOptions
   walCoordinator?: WalCoordinator
+  shardSearchExecutor?: SearchOptions['executeShardSearch']
 }
 
 function scheduleOptions(ctx: RouterContext): ScheduleRebuildOptions {
@@ -68,14 +72,55 @@ function json(status: number, body: unknown): HttpResponse {
   }
 }
 
-function ensureAuth(ctx: RouterContext, req: HttpRequest): void {
-  if (!ctx.apiKey) {
+function writeKey(ctx: RouterContext): string | undefined {
+  return ctx.writeApiKey ?? ctx.apiKey
+}
+
+function readKey(ctx: RouterContext): string | undefined {
+  return ctx.readApiKey ?? writeKey(ctx)
+}
+
+function bearerToken(req: HttpRequest): string | null {
+  const auth = req.headers.get('authorization')
+  return auth?.startsWith('Bearer ') ? auth.slice('Bearer '.length) : null
+}
+
+function ensureReadAuth(ctx: RouterContext, req: HttpRequest): void {
+  const key = readKey(ctx)
+  if (!key) {
     return
   }
-  const auth = req.headers.get('authorization')
-  if (auth !== `Bearer ${ctx.apiKey}`) {
-    throw new EdgeApiErrorClass(401, 'UNAUTHORIZED', 'Invalid or missing API key')
+  const token = bearerToken(req)
+  const admin = writeKey(ctx)
+  if (token === key || (admin !== undefined && token === admin)) {
+    return
   }
+  throw new EdgeApiErrorClass(401, 'UNAUTHORIZED', 'Invalid or missing API key')
+}
+
+function ensureWriteAuth(ctx: RouterContext, req: HttpRequest): void {
+  const key = writeKey(ctx)
+
+  if (!key) {
+    if (ctx.readApiKey) {
+      throw new EdgeApiErrorClass(403, 'FORBIDDEN', 'Writes are disabled: no write API key configured')
+    }
+    return
+  }
+
+  if (bearerToken(req) !== key) {
+    throw new EdgeApiErrorClass(401, 'UNAUTHORIZED', 'Invalid or missing write API key')
+  }
+}
+
+const WRITE_METHODS = new Set(['PUT', 'PATCH', 'DELETE'])
+
+function isWriteRoute(req: HttpRequest): boolean {
+  if (WRITE_METHODS.has(req.method)) {
+    return true
+  }
+
+  return req.method === 'POST' && matchPath(req.pathname, '/v1/indexes/:indexId/search') === null
 }
 
 function matchPath(pathname: string, pattern: string): Record<string, string> | null {
@@ -107,7 +152,11 @@ export async function handleRequest(ctx: RouterContext, req: HttpRequest): Promi
       return json(200, { name: 'zbsearch-edge', version: '0.1.0' })
     }
 
-    ensureAuth(ctx, req)
+    if (isWriteRoute(req)) {
+      ensureWriteAuth(ctx, req)
+    } else {
+      ensureReadAuth(ctx, req)
+    }
 
     if (req.method === 'GET' && req.pathname === '/v1/indexes') {
       const indexes = await listIndexMetas(ctx.storage)
@@ -197,7 +246,8 @@ export async function handleRequest(ctx: RouterContext, req: HttpRequest): Promi
     if (searchMatch && req.method === 'POST') {
       const body = await req.json<SearchInput>()
       const results = await runSearch(ctx.storage, ctx.cache, searchMatch.indexId!, body, {
-        snapshotCache: ctx.snapshotCache
+        snapshotCache: ctx.snapshotCache,
+        executeShardSearch: ctx.shardSearchExecutor
       })
       return json(200, results)
     }

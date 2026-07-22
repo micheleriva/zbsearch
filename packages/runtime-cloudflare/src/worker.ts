@@ -1,4 +1,5 @@
 import {
+  EdgeApiError,
   handleRequest,
   isShardGroupMeta,
   listIndexMetas,
@@ -8,14 +9,18 @@ import {
 } from '@zbsearch/edge-core'
 
 import { createWalCoordinator, IndexCoordinator } from './coordinator.js'
+import { ShardSearch } from './search-node.js'
 import { R2ObjectStorage, WorkersShardCache } from './storage.js'
 
-export { IndexCoordinator }
+export { IndexCoordinator, ShardSearch }
 
 export interface Env {
   BUCKET: R2Bucket
   INDEX_COORDINATOR?: DurableObjectNamespace
+  SEARCH_SHARD?: DurableObjectNamespace
   API_KEY?: string
+  READ_API_KEY?: string
+  WRITE_API_KEY?: string
   REBUILD_THRESHOLD_OPS?: string
   BUILDER_WEBHOOK_URL?: string
   SNAPSHOT_CACHE_MAX_ENTRIES?: string
@@ -72,12 +77,34 @@ export default {
     const options = rebuildOptions(env)
     options.schedule = (task) => ctx.waitUntil(task)
 
+    // Fan shard-group searches out to one Durable Object per shard: each shard search runs in its own isolate (and stays warm there), so total
+    // index size is not capped by a single isolate's 128MB memory limit. Without the binding, searches fall back to the in-process fan-out.
+    const shardSearchExecutor = env.SEARCH_SHARD
+      ? async (shardId: string, params: Record<string, unknown>) => {
+          const namespace = env.SEARCH_SHARD!
+          const stub = namespace.get(namespace.idFromName(shardId))
+          const res = await stub.fetch('https://shard-search/search', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ indexId: shardId, params })
+          })
+          if (!res.ok) {
+            const body = (await res.json().catch(() => ({}))) as { error?: { code?: string; message?: string } }
+            throw new EdgeApiError(res.status, body.error?.code ?? 'SHARD_SEARCH_FAILED', body.error?.message ?? `Shard search failed with HTTP ${res.status}`)
+          }
+          return (await res.json()) as Record<string, unknown>
+        }
+      : undefined
+
     const response = toResponse(
       await handleRequest(
         {
           storage,
           cache,
           apiKey: env.API_KEY,
+          readApiKey: env.READ_API_KEY,
+          writeApiKey: env.WRITE_API_KEY,
+          shardSearchExecutor,
           scheduleBackground: options.schedule,
           rebuildThresholdOps: options.threshold,
           builderWebhookUrl: options.builderWebhookUrl,
@@ -104,7 +131,7 @@ export default {
         continue
       }
 
-      await maybeScheduleRebuild(storage, index.id, { ...options, source: 'scheduler' })
+      await maybeScheduleRebuild(storage, index.id, { ...options, source: 'scheduler', runInline: true })
     }
   }
 }

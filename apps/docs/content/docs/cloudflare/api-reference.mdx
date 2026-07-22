@@ -11,11 +11,20 @@ All endpoints are served from your Worker URL unless noted. JSON request and res
 
 ## Authentication
 
-If `API_KEY` is configured on the Worker, protected routes require:
+Two secrets control access:
+
+| Secret | Access |
+| --- | --- |
+| `WRITE_API_KEY` | Full access: every route below, reads and writes |
+| `READ_API_KEY` | Read-only: searches, index lists, status, manifest. `401` on write routes |
+
+Protected routes require:
 
 ```
 Authorization: Bearer YOUR_API_KEY
 ```
+
+The write key also satisfies read routes. If only `READ_API_KEY` is set, write routes are closed to everyone (`403`). The legacy single `API_KEY` secret still works as a full-access key.
 
 These routes are **always public** (no auth):
 
@@ -25,7 +34,7 @@ These routes are **always public** (no auth):
 | `GET` | `/v1/info` | Service name and version |
 | `OPTIONS` | `*` | CORS preflight |
 
-All `/v1/*` routes below require auth when `API_KEY` is set.
+All `/v1/*` routes below require auth when a key is set.
 
 ## Error format
 
@@ -42,6 +51,7 @@ All `/v1/*` routes below require auth when `API_KEY` is set.
 | --- | --- | --- |
 | `400` | `BAD_REQUEST` | Invalid input, duplicate index |
 | `401` | `UNAUTHORIZED` | Missing or invalid API key |
+| `403` | `FORBIDDEN` | Write attempted with only a read key configured |
 | `404` | `NOT_FOUND` | Index or route not found, no snapshot yet |
 | `409` | `CONFLICT` | Reserved for future use |
 

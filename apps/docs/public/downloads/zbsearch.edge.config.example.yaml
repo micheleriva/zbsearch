@@ -9,7 +9,8 @@ r2:
   secretAccessKey: ""
 
 secrets:
-  apiKey: ""
+  readApiKey: ""
+  writeApiKey: ""
   builderWebhookUrl: ""
 
 rebuild:

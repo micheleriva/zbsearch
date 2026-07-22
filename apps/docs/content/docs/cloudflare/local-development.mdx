@@ -144,15 +144,16 @@ pnpm --filter @zbsearch/edge-core build
 
 Consider running a watch command in a second terminal during active core development.
 
-### Testing with API_KEY locally
+### Testing with API keys locally
 
-Set a secret for local dev:
+Set secrets for local dev:
 
 ```bash
-wrangler secret put API_KEY --config deploy/cloudflare/wrangler.toml
+wrangler secret put WRITE_API_KEY --config deploy/cloudflare/wrangler.toml
+wrangler secret put READ_API_KEY --config deploy/cloudflare/wrangler.toml
 ```
 
-Or temporarily remove auth by not setting the secret - local dev defaults to open access.
+Or temporarily remove auth by not setting the secrets - local dev defaults to open access.
 
 ### Remote dev with real R2
 

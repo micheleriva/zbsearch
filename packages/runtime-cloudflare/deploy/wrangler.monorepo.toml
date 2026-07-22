@@ -14,9 +14,19 @@ preview_bucket_name = "zbsearch-edge-preview"
 name = "INDEX_COORDINATOR"
 class_name = "IndexCoordinator"
 
+# One Durable Object per physical shard: shard-group searches fan out here
+# so every shard search runs (and stays warm) in its own isolate.
+[[durable_objects.bindings]]
+name = "SEARCH_SHARD"
+class_name = "ShardSearch"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["IndexCoordinator"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["ShardSearch"]
 
 [triggers]
 crons = ["*/5 * * * *"]

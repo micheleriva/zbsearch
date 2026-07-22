@@ -250,6 +250,25 @@ describe('service', () => {
     assert.equal((await getStatus(storage, 'flush')).pendingOps, 0)
   })
 
+  it('maybeScheduleRebuild runInline rebuilds immediately without a schedule fn', async () => {
+    const storage = new MemoryObjectStorage()
+    await createIndex(storage, {
+      name: 'inline',
+      schema: { title: 'string' },
+      settings: { rebuildThresholdOps: 1 }
+    })
+    await bufferUpsert(storage, 'inline', '1', { title: 'One' })
+
+    await maybeScheduleRebuild(storage, 'inline', { threshold: 1, runInline: true })
+
+    const status = await getStatus(storage, 'inline')
+    assert.equal(status.pendingOps, 0)
+    assert.equal(status.status, 'ready')
+
+    const results = await runSearch(storage, new NoopShardCache(), 'inline', { term: 'one' })
+    assert.ok(results.count >= 1)
+  })
+
   it('maybeScheduleRebuild skips when index is already building', async () => {
     const storage = new MemoryObjectStorage()
     await createIndex(storage, {

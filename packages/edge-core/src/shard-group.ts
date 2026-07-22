@@ -239,13 +239,15 @@ export async function runShardedSearch(
       }
 
       try {
-        const result = await runSearch(
-          storage,
-          cache,
-          shardId,
-          { ...params, limit: offset + limit, offset: 0 },
-          options
-        )
+        const result = options.executeShardSearch
+          ? await options.executeShardSearch(shardId, { ...params, limit: offset + limit, offset: 0 })
+          : await runSearch(
+              storage,
+              cache,
+              shardId,
+              { ...params, limit: offset + limit, offset: 0 },
+              options
+            )
         return { indexId: shardId, result }
       } catch (err) {
 
@@ -271,9 +273,11 @@ export async function rebuildShardGroup(
   group: IndexMeta,
   options: RebuildOptions = {}
 ): Promise<IndexMeta> {
-  await Promise.all(
-    shardIndexIds(group.id, shardCountOf(group)).map((shardId) => rebuildIndex(storage, shardId, options))
-  )
+  // Serial on purpose: parallel shard rebuilds in one invocation exceed the
+  // 128MB Worker memory limit once shards grow past a few thousand docs.
+  for (const shardId of shardIndexIds(group.id, shardCountOf(group))) {
+    await rebuildIndex(storage, shardId, options)
+  }
 
   return group
 }
@@ -283,6 +287,16 @@ export async function maybeScheduleRebuildSharded(
   group: IndexMeta,
   options: ScheduleRebuildOptions = {}
 ): Promise<void> {
+  if (options.runInline) {
+    // Serial on purpose: parallel shard rebuilds in one isolate exceed the
+    // 128MB Worker memory limit once shards grow past a few thousand docs.
+    for (const shardId of shardIndexIds(group.id, shardCountOf(group))) {
+      await maybeScheduleRebuild(storage, shardId, options)
+    }
+
+    return
+  }
+
   await Promise.all(
     shardIndexIds(group.id, shardCountOf(group)).map((shardId) => maybeScheduleRebuild(storage, shardId, options))
   )

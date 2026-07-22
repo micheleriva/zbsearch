@@ -21,7 +21,7 @@ npx wrangler login
 npx zbsearch-edge-setup --init
 ```
 
-The wizard asks for Worker name, R2 bucket names, account ID, optional R2 API credentials, optional API key, and rebuild settings. It saves `zbsearch.edge.config.json` in your project directory (gitignore this file), generates `wrangler.toml` and `.env`, then provisions and deploys.
+The wizard asks for Worker name, R2 bucket names, account ID, optional R2 API credentials, optional read/write API keys, and rebuild settings. It saves `zbsearch.edge.config.json` in your project directory (gitignore this file), generates `wrangler.toml` and `.env`, then provisions and deploys.
 
 ### Config file instead of wizard
 
@@ -134,16 +134,24 @@ bucket_name = "zbsearch-edge"
 preview_bucket_name = "zbsearch-edge-preview"
 ```
 
-The default configuration (and the setup-CLI template) also includes the Durable Object binding for the write coordinator and an extended CPU limit:
+The default configuration (and the setup-CLI template) also includes the Durable Object bindings (write coordinator, plus the per-shard search node used for distributed group searches) and an extended CPU limit:
 
 ```toml
 [[durable_objects.bindings]]
 name = "INDEX_COORDINATOR"
 class_name = "IndexCoordinator"
 
+[[durable_objects.bindings]]
+name = "SEARCH_SHARD"
+class_name = "ShardSearch"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["IndexCoordinator"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["ShardSearch"]
 
 [limits]
 cpu_ms = 300000
@@ -186,21 +194,24 @@ npx zbsearch-edge-builder import products ./catalog.json \
 
 See [Indexing & rebuilds](/docs/cloudflare/indexing-and-rebuilds#bulk-import) for import file formats (`{ "data": [...] }`, JSON array, or JSONL).
 
-## 4. Optional: protect the API with a key
+## 4. Optional: protect the API with keys
 
-By default, the API is open. For anything beyond local testing, set an API key:
+By default, the API is open. For anything beyond local testing, set two keys — a write key with full access, and a read-only key for search traffic (safe to embed in public clients):
 
 ```bash
-npx wrangler secret put API_KEY
+npx wrangler secret put WRITE_API_KEY
+npx wrangler secret put READ_API_KEY
 ```
 
-When prompted, enter a strong random string. All authenticated requests must send:
+When prompted, enter a strong random string for each. Authenticated requests must send:
 
 ```
 Authorization: Bearer YOUR_API_KEY
 ```
 
-`/health` and `/v1/info` remain public so load balancers and uptime checks can probe the Worker without credentials.
+The write key can do everything (index management, document writes, rebuilds, searches). The read key only covers searches and index/metadata reads — it gets `401` on any write route. If you only set `READ_API_KEY`, writes are closed entirely. `/health` and `/v1/info` remain public so load balancers and uptime checks can probe the Worker without credentials.
+
+The legacy single `API_KEY` secret still works as a full-access key, but prefer the split above.
 
 ## 5. Deploy the Worker
 
@@ -328,7 +339,7 @@ The script reads `zbsearch.edge.config.json` when present, otherwise `wrangler.t
 | Problem | Likely cause | Fix |
 | --- | --- | --- |
 | `404` on search after insert | No rebuild yet | Call `POST /v1/indexes/:id/rebuild` or wait for cron |
-| `401 Unauthorized` | Missing or wrong `Authorization` header | Set `API_KEY` secret and send `Bearer` token |
+| `401 Unauthorized` | Missing or wrong `Authorization` header | Set `WRITE_API_KEY`/`READ_API_KEY` secrets and send a `Bearer` token |
 | R2 bucket not found on deploy | Bucket name mismatch | Match `bucket_name` in `wrangler.toml` to an existing R2 bucket |
 | Rebuild CLI fails | Missing S3 credentials | Fill `.env` with R2 API token values |
 | Searches fail with error 1102 | Free plan 10ms CPU cap | Upgrade to Workers Paid |

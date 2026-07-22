@@ -9,7 +9,7 @@ const __dirname = dirname(__filename)
 
 export const PACKAGE_ROOT = resolve(__dirname, '..')
 export const TEMPLATES_DIR = resolve(__dirname, 'templates')
-export const SECRET_NAMES = ['API_KEY', 'BUILDER_WEBHOOK_URL']
+export const SECRET_NAMES = ['READ_API_KEY', 'WRITE_API_KEY', 'API_KEY', 'BUILDER_WEBHOOK_URL']
 export const CONFIG_BASENAME = 'zbsearch.edge.config.json'
 
 const requireFromPackage = createRequire(resolve(PACKAGE_ROOT, 'package.json'))
@@ -80,7 +80,8 @@ export const DEFAULT_CONFIG = {
     secretAccessKey: ''
   },
   secrets: {
-    apiKey: '',
+    readApiKey: '',
+    writeApiKey: '',
     builderWebhookUrl: ''
   },
   rebuild: {
@@ -282,9 +283,19 @@ preview_bucket_name = "${config.r2.previewBucket}"
 name = "INDEX_COORDINATOR"
 class_name = "IndexCoordinator"
 
+# One Durable Object per physical shard: shard-group searches fan out here
+# so every shard search runs (and stays warm) in its own isolate.
+[[durable_objects.bindings]]
+name = "SEARCH_SHARD"
+class_name = "ShardSearch"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["IndexCoordinator"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["ShardSearch"]
 
 [triggers]
 crons = ["${config.rebuild.cron}"]
@@ -292,7 +303,7 @@ crons = ["${config.rebuild.cron}"]
 [vars]
 REBUILD_THRESHOLD_OPS = "${config.rebuild.thresholdOps}"
 
-# Set via zbsearch-edge-setup or \`wrangler secret put API_KEY\`
+# Set via zbsearch-edge-setup or \`wrangler secret put READ_API_KEY\` / \`WRITE_API_KEY\`
 # Set via zbsearch-edge-setup or \`wrangler secret put BUILDER_WEBHOOK_URL\`
 ${cpuLimit}${routes}`
 }
@@ -308,7 +319,8 @@ R2_ACCESS_KEY_ID=${config.r2.accessKeyId}
 R2_SECRET_ACCESS_KEY=${config.r2.secretAccessKey}
 R2_ENDPOINT=${endpoint}
 
-API_KEY=${config.secrets.apiKey}
+READ_API_KEY=${config.secrets.readApiKey}
+WRITE_API_KEY=${config.secrets.writeApiKey}
 REBUILD_THRESHOLD_OPS=${config.rebuild.thresholdOps}
 BUILDER_WEBHOOK_URL=${config.secrets.builderWebhookUrl}
 `

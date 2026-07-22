@@ -478,6 +478,7 @@ export interface ScheduleRebuildOptions {
   schedule?: (task: Promise<unknown>) => void
   source?: 'threshold' | 'scheduler'
   walCoordinator?: WalCoordinator
+  runInline?: boolean
 }
 
 const REBUILD_STATUS_STALE_MS = 15 * 60 * 1000
@@ -487,7 +488,7 @@ export async function maybeScheduleRebuild(
   indexId: string,
   options: ScheduleRebuildOptions = {}
 ): Promise<void> {
-  if (!options.schedule) {
+  if (!options.schedule && !options.runInline) {
     return
   }
 
@@ -511,7 +512,7 @@ export async function maybeScheduleRebuild(
   }
 
   if (options.builderWebhookUrl) {
-    options.schedule(
+    options.schedule?.(
       fetch(options.builderWebhookUrl, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -521,7 +522,12 @@ export async function maybeScheduleRebuild(
     return
   }
 
-  options.schedule(rebuildIndex(storage, indexId, { walCoordinator: options.walCoordinator }))
+  if (options.runInline) {
+    await rebuildIndex(storage, indexId, { walCoordinator: options.walCoordinator })
+    return
+  }
+
+  options.schedule!(rebuildIndex(storage, indexId, { walCoordinator: options.walCoordinator }))
 }
 
 export interface RebuildOptions {
@@ -635,6 +641,14 @@ async function runRebuild(
 
 export interface SearchOptions {
   snapshotCache?: SnapshotDbCacheOptions
+  /**
+   * When set, shard-group searches fan out through this executor (one call
+   * per shard) instead of searching every shard in the current process.
+   * Use it to run each shard search in its own isolate (e.g. a subrequest
+   * per shard) so total index size is not limited by a single isolate's
+   * 128MB memory.
+   */
+  executeShardSearch?: (shardId: string, params: SearchInput) => Promise<Record<string, unknown>>
 }
 
 export async function runSearch(

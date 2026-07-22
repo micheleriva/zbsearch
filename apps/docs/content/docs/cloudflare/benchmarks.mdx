@@ -113,16 +113,21 @@ Key takeaways:
 
 ## Baseline results (deployed, July 2026)
 
-Measured against a production Worker on the Workers Paid plan (4-shard index, k6 over a residential connection - latencies include internet RTT):
+Measured against a production Worker on the Workers Paid plan (k6 over a residential connection - latencies include internet RTT):
 
 | Scenario | Docs | Result |
 | --- | --- | --- |
-| Search ramp, clean index | 10,000 (4 shards, 13.9 MB total) | 310,190 requests at ~470 req/s, **0.00% errors**; med 168 ms, p90 233 ms, p95 273 ms, max 16 s (cold isolates loading 4 shard snapshots) |
-| Bulk ingest via API (`documents/batch`, 100/batch) | 10,000 | ~75-80 docs/s sustained, 0 failed batches; threshold auto-rebuilds keep up |
+| Search ramp, clean index, 4 shards (in-process fan-out) | 10,000 (13.9 MB total) | 310,190 requests at ~470 req/s, **0.00% errors**; med 168 ms, p90 233 ms, p95 273 ms, max 16 s (cold isolates) |
+| Search ramp, clean index, 8 shards (`ShardSearch` DO fan-out), DOs cold | 100,000 (132 MB total) | 17,870 requests, 98.7% success (errors all in the initial cold window); med 292 ms, p90 411 ms, p95 502 ms, max 60 s (cold DO snapshot loads) |
+| Search ramp, same index, DOs warm | 100,000 (8× 16.5 MB) | 18,000 requests at 75 req/s for 4 min, **0.00% errors**; med 333 ms, p90 446 ms, p95 492 ms, max 2.7 s |
+| Single group search, cold → warm | 100,000 (8 shards) | 3.3 s cold → ~330-450 ms warm |
+| Bulk ingest via API (`documents/batch`, 100/batch) | 10,000 | ~75-80 docs/s sustained (concurrency 4), 0 failed batches; ~800 docs/s attempted at concurrency 16; threshold auto-rebuilds keep up |
 | Mixed 95% search / 5% writes, index dirty | 10,000 | **Collapse** (98.5% errors, med 3.2 s): the dirty-path re-index cost is the same as local - keep `pendingOps` at zero |
 | Same search load on the **Workers Free plan** | 10,000 | 97.8% of searches fail with error 1102 (10ms CPU cap) - [Workers Paid is required](/docs/cloudflare/production#cloudflare-plan-requirements) |
 
-Warm single-request latency is ~180-330 ms end to end; engine time is single-digit ms - the rest is network RTT and per-shard `meta.json` reads from R2 (see the [cost calculator](/docs/cloudflare/cost-calculator) for what those reads cost at scale).
+Warm single-request latency is ~180-450 ms end to end depending on shard count; engine time is tens of ms - the rest is network RTT and per-shard `meta.json` reads from R2 (see the [cost calculator](/docs/cloudflare/cost-calculator) for what those reads cost at scale).
+
+Why 100k docs needs the `ShardSearch` Durable Object: a group search that fans out in-process must hold every shard snapshot in one isolate - 8× 16.5 MB = 132 MB > the 128 MB limit, which produced 15-22 s latencies and OOM 503s. Routing each shard search to its own DO gives every shard a private isolate whose snapshot cache stays warm across requests. Two loopback alternatives do **not** work: fetching your own workers.dev hostname is rejected at the edge, and a same-worker service binding runs in the *same* isolate, sharing the memory limit.
 
 ## CI workflow
 

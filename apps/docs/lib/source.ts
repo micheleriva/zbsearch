@@ -1,6 +1,7 @@
-import { docs } from 'collections/server';
+import { blogPosts, docs } from 'collections/server';
 import { loader } from 'fumadocs-core/source';
-import { docsContentRoute, docsImageRoute, docsRoute } from './shared';
+import { toFumadocsSource } from 'fumadocs-mdx/runtime/server';
+import { blogRoute, docsContentRoute, docsImageRoute, docsRoute } from './shared';
 import { docsIconsPlugin } from './icons-plugin';
 
 // See https://fumadocs.dev/docs/headless/source-api for more info
@@ -8,6 +9,11 @@ export const source = loader({
   baseUrl: docsRoute,
   source: docs.toFumadocsSource(),
   plugins: [docsIconsPlugin()],
+});
+
+export const blog = loader({
+  baseUrl: blogRoute,
+  source: toFumadocsSource(blogPosts, []),
 });
 
 export function getPageImage(page: (typeof source)['$inferPage']) {

@@ -79,6 +79,7 @@ jobs:
           BENCHMARK_REGRESSION_THRESHOLD: '5'
         run: |
           set -euo pipefail
+          mkdir -p benchmark
           node compare-pr.js \
             --format=markdown \
             --json \

@@ -18,7 +18,11 @@
   "files": [
     "src",
     "dist",
-    "deploy"
+    "deploy/lib.mjs",
+    "deploy/setup.mjs",
+    "deploy/teardown.mjs",
+    "deploy/templates",
+    "deploy/README.md"
   ],
   "scripts": {
     "build": "wrangler deploy --config deploy/wrangler.monorepo.toml --dry-run --outdir=dist",

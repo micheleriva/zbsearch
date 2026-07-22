@@ -11,11 +11,20 @@ All endpoints are served from your Worker URL unless noted. JSON request and res
 
 ## Authentication
 
-If `API_KEY` is configured on the Worker, protected routes require:
+Two secrets control access:
+
+| Secret | Access |
+| --- | --- |
+| `WRITE_API_KEY` | Full access: every route below, reads and writes |
+| `READ_API_KEY` | Read-only: searches, index lists, status, manifest. `401` on write routes |
+
+Protected routes require:
 
 ```
 Authorization: Bearer YOUR_API_KEY
 ```
+
+The write key also satisfies read routes. If only `READ_API_KEY` is set, write routes are closed to everyone (`403`). The legacy single `API_KEY` secret still works as a full-access key.
 
 These routes are **always public** (no auth):
 
@@ -25,7 +34,7 @@ These routes are **always public** (no auth):
 | `GET` | `/v1/info` | Service name and version |
 | `OPTIONS` | `*` | CORS preflight |
 
-All `/v1/*` routes below require auth when `API_KEY` is set.
+All `/v1/*` routes below require auth when a key is set.
 
 ## Error format
 
@@ -42,6 +51,7 @@ All `/v1/*` routes below require auth when `API_KEY` is set.
 | --- | --- | --- |
 | `400` | `BAD_REQUEST` | Invalid input, duplicate index |
 | `401` | `UNAUTHORIZED` | Missing or invalid API key |
+| `403` | `FORBIDDEN` | Write attempted with only a read key configured |
 | `404` | `NOT_FOUND` | Index or route not found, no snapshot yet |
 | `409` | `CONFLICT` | Reserved for future use |
 
@@ -70,7 +80,7 @@ Returns service metadata:
 
 ### `GET /v1/indexes`
 
-List all indexes.
+List all indexes. Physical shard indexes (`<id>--shard-<i>`, see `shards` below) are hidden - only logical indexes appear.
 
 **Response `200`:**
 
@@ -86,7 +96,7 @@ List all indexes.
         "rebuildThresholdOps": 500,
         "mode": "edge"
       },
-      "liveVersion": "2026-07-10T12-00-00-000Z",
+      "liveVersion": "2026-07-10T12-00-00-000Z-9f3ab2c1",
       "status": "ready",
       "documents": 42,
       "pendingOps": 0
@@ -106,6 +116,7 @@ Create a new index.
 | `name` | `string` | Yes | Display name; slugified to `id` (e.g. `"My Products"` → `my-products`) |
 | `schema` | `object` | Yes | Same [schema types](/docs/zbsearch/usage/create) as standalone ZBSearch |
 | `settings` | `object` | No | See [index settings](#index-settings) |
+| `shards` | `number` | No | Create a **sharded index** with N physical shards (2–64). Fixed after creation - re-sharding means re-importing into a new index. |
 
 **Example:**
 
@@ -125,7 +136,22 @@ curl -X POST "$WORKER_URL/v1/indexes" \
   }'
 ```
 
-**Response `201`:** Full index metadata object.
+**Response `201`:** Full index metadata object. For a sharded index, the group meta includes `"shards": { "count": N }`.
+
+### Sharded indexes
+
+Passing `"shards": N` (2–64) creates a **logical index** backed by N physical shard indexes named `<id>--shard-<i>` (`i` in `0..N-1`). Shards are ordinary indexes in every respect - own WAL, snapshots, coordinator Durable Object, and rebuild thresholds - but they are hidden from `GET /v1/indexes`; you always address the logical index by its plain id.
+
+Routing is deterministic: the document id is hashed (FNV-1a) modulo N, so a document always lands on the same shard. **Document ids must be stable** - changing a doc id moves the document to a different shard.
+
+The shard count is fixed at creation. To change it, re-import into a new index:
+
+```bash
+zbsearch-edge-builder import products-v2 ./catalog.json \
+  --create --schema-file ./schema.json --shards 8
+```
+
+Bulk import of a sharded index also goes through the CLI with `--shards N`; importing without `--shards` against an existing shard group fails with `400`. Unsharded indexes behave exactly as before.
 
 ### `GET /v1/indexes/:indexId`
 
@@ -169,7 +195,7 @@ Remove index metadata from the registry. **Response `202`:**
 
 API writes append operations to the **WAL** in R2. They return `202` immediately. Documents are searchable after the next rebuild, or sooner if the Worker overlays pending WAL ops at query time (`includesBuffer: true` in search responses).
 
-For large catalogs, prefer the [bulk `import` CLI](/docs/cloudflare/indexing-and-rebuilds#bulk-import) — it uploads a snapshot directly and skips per-document API writes.
+For large catalogs, prefer the [bulk `import` CLI](/docs/cloudflare/indexing-and-rebuilds#bulk-import) - it uploads a snapshot directly and skips per-document API writes.
 
 ### `PUT /v1/indexes/:indexId/documents/:docId`
 
@@ -216,7 +242,7 @@ Buffer a delete operation. **Response `202`:** buffered response object.
 
 ### `POST /v1/indexes/:indexId/documents/batch`
 
-Apply multiple operations in one request. All operations are written to a **single WAL file** (one R2 PUT).
+Apply multiple operations in one request. All operations are written to a **single WAL segment** (one R2 PUT) when the `IndexCoordinator` Durable Object is bound, or a single WAL entry otherwise.
 
 **Body:**
 
@@ -231,6 +257,35 @@ Apply multiple operations in one request. All operations are written to a **sing
 ```
 
 **Response `202`:** Buffered write response for the batch (`changeId`, `bufferedAt`, updated `indexStatus`).
+
+On a **sharded index**, each operation is routed to its owning shard (per document id). The response keeps the top-level shape - `changeId`/`bufferedAt` are a group-level batch id/timestamp - and adds a `shards[]` array with the per-shard results:
+
+```json
+{
+  "status": "buffered",
+  "changeId": "chg_a1b2c3d4e5f67890",
+  "bufferedAt": "2026-07-10T12:00:00.000Z",
+  "indexStatus": "ready",
+  "shards": [
+    {
+      "indexId": "products--shard-0",
+      "ops": 2,
+      "changeId": "chg_0f1e2d3c4b5a6978",
+      "bufferedAt": "2026-07-10T12:00:00.000Z",
+      "indexStatus": "ready"
+    },
+    {
+      "indexId": "products--shard-1",
+      "ops": 1,
+      "changeId": "chg_98a7b6c5d4e3f210",
+      "bufferedAt": "2026-07-10T12:00:00.000Z",
+      "indexStatus": "ready"
+    }
+  ]
+}
+```
+
+Single-document writes on a sharded index return the owning shard's response unchanged (no `shards[]` array).
 
 ---
 
@@ -288,14 +343,21 @@ curl -X POST "$WORKER_URL/v1/indexes/products/search" \
 {
   "count": 3,
   "hits": [...],
-  "indexVersion": "2026-07-10T12-00-00-000Z",
+  "indexVersion": "2026-07-10T12-00-00-000Z-9f3ab2c1",
   "includesBuffer": false
 }
 ```
 
 `includesBuffer: true` means results include documents from pending WAL operations not yet merged into the snapshot.
 
-**Response `404`:** No searchable documents yet — create the index, import data, or trigger a rebuild.
+**Sharded indexes (scatter-gather):** the search fans out to all shards in parallel, merges hits by score descending (ties broken by document id), then applies `offset`/`limit` to the merged list; `count` is the sum across shards. The response adds a `shards[]` summary with each shard's contribution, `indexVersion` is `null` (versions are per shard), and `includesBuffer` is `true` if any shard has pending ops. Two v1 caveats:
+
+<Callout type="warn">
+  - **Scores are approximate across shards.** BM25 IDF is computed per shard, so scores are only approximately comparable - ranking of near-tied hits may differ slightly from a monolithic index.
+  - **`groupBy` results are dropped** on sharded indexes (the `groups` field is not merged). Facets *are* merged - counts add up exactly because document sets are disjoint.
+</Callout>
+
+**Response `404`:** No searchable documents yet - create the index, import data, or trigger a rebuild.
 
 ---
 
@@ -303,7 +365,7 @@ curl -X POST "$WORKER_URL/v1/indexes/products/search" \
 
 ### `POST /v1/indexes/:indexId/rebuild`
 
-Merge pending WAL operations into a new immutable snapshot and promote it to `liveVersion`.
+Merge pending WAL operations into a new immutable snapshot and promote it to `liveVersion`. On a sharded index, all shards are rebuilt **in parallel** (each shard has its own WAL and rebuild lock).
 
 **Response `202`:**
 
@@ -311,11 +373,13 @@ Merge pending WAL operations into a new immutable snapshot and promote it to `li
 {
   "status": "rebuilt",
   "indexId": "products",
-  "liveVersion": "2026-07-10T12-05-00-000Z"
+  "liveVersion": "2026-07-10T12-05-00-000Z-71d0e4f8"
 }
 ```
 
 Rebuild runs synchronously in the Worker request. For large indexes, use an [external builder](/docs/cloudflare/production).
+
+Version IDs are timestamp-based with a random 8-character hex suffix (e.g. `2026-07-10T12-05-00-000Z-71d0e4f8`). Uniqueness is load-bearing: the Worker's snapshot caches key on the version, so two rebuilds never share an ID.
 
 ### `GET /v1/indexes/:indexId/status`
 
@@ -324,7 +388,7 @@ Rebuild runs synchronously in the Worker request. For large indexes, use an [ext
 ```json
 {
   "indexId": "products",
-  "liveVersion": "2026-07-10T12-00-00-000Z",
+  "liveVersion": "2026-07-10T12-00-00-000Z-9f3ab2c1",
   "status": "ready",
   "documents": 42,
   "indexSizeBytes": 1048576,
@@ -340,6 +404,23 @@ Rebuild runs synchronously in the Worker request. For large indexes, use an [ext
 | `building` | Rebuild in progress |
 | `ready` | Searchable snapshot available |
 
+On a **sharded index**, status and manifest aggregate across shards: `documents`, `indexSizeBytes`, and `pendingOps` are sums, `status` is the worst of all shards (`building` > `ready` > `empty`), `liveVersion` is `null`, and a `shards[]` array carries the per-shard breakdown:
+
+```json
+{
+  "indexId": "products",
+  "liveVersion": null,
+  "status": "ready",
+  "documents": 100000,
+  "indexSizeBytes": 134217728,
+  "pendingOps": 12,
+  "shards": [
+    { "indexId": "products--shard-0", "status": "ready", "documents": 49876, "pendingOps": 12, "...": "..." },
+    { "indexId": "products--shard-1", "status": "ready", "documents": 50124, "pendingOps": 0, "...": "..." }
+  ]
+}
+```
+
 ### `GET /v1/indexes/:indexId/manifest`
 
 Returns index configuration and stats for clients that need schema or version info:
@@ -348,7 +429,7 @@ Returns index configuration and stats for clients that need schema or version in
 {
   "indexId": "products",
   "name": "products",
-  "liveVersion": "2026-07-10T12-00-00-000Z",
+  "liveVersion": "2026-07-10T12-00-00-000Z-9f3ab2c1",
   "status": "ready",
   "schema": { "title": "string" },
   "settings": { "mode": "edge" },
@@ -378,4 +459,4 @@ The Worker sets `Access-Control-Allow-Origin: *` on all responses and handles `O
 
 ## Rate limits
 
-Cloudflare Workers and R2 have platform-level limits. On the **Workers Paid** plan you can set `limits.cpuMs` in `zbsearch.edge.config.json` (e.g. `300000` for 5 minutes) to accommodate in-Worker rebuilds on small indexes. The Free plan does not support custom CPU limits. Large rebuilds should run outside the Worker via `@zbsearch/edge-index-builder`.
+Cloudflare Workers and R2 have platform-level limits. The default `wrangler.toml` and setup-CLI template set `[limits] cpu_ms = 300000` (5 minutes) to accommodate in-Worker rebuilds on small indexes - on the **Workers Paid** plan this can also be tuned via `limits.cpuMs` in `zbsearch.edge.config.json`. Custom CPU limits require Workers Paid, and the Free plan's 10ms CPU cap makes search workloads fail outright (error 1102). Large rebuilds should run outside the Worker via `@zbsearch/edge-index-builder`.

@@ -11,6 +11,7 @@ export interface DefaultTokenizer extends Tokenizer {
   tokenizeSkipProperties: Set<string>
   stemmerSkipProperties: Set<string>
   stopWords?: string[]
+  stopWordsSet?: Set<string>
   allowDuplicates: boolean
   normalizationCache: Map<string, string>
   normalizeToken(this: DefaultTokenizer, prop: Optional<string>, token: string, withCache: Optional<boolean>): string
@@ -24,7 +25,7 @@ export function normalizeToken(this: DefaultTokenizer, prop: string, token: stri
   }
 
   // Remove stopwords if enabled
-  if (this.stopWords?.includes(token)) {
+  if (this.stopWordsSet?.has(token)) {
     if (withCache) {
       this.normalizationCache.set(key, '')
     }
@@ -72,17 +73,25 @@ function tokenize(
     return [input]
   }
 
-  const normalizeToken = this.normalizeToken.bind(this, prop ?? '')
-  let tokens: string[]
+  const property = prop ?? ''
+
   if (prop && this.tokenizeSkipProperties.has(prop)) {
-    tokens = [normalizeToken(input, withCache)]
-  } else {
-    const splitRule = SPLITTERS[this.language]
-    tokens = input
-      .toLowerCase()
-      .split(splitRule)
-      .map((t) => normalizeToken(t, withCache))
-      .filter(Boolean)
+    const token = this.normalizeToken(property, input, withCache)
+    return token ? [token] : []
+  }
+
+  const splitRule = SPLITTERS[this.language]
+  const parts = input.toLowerCase().split(splitRule)
+  const tokens: string[] = []
+  const partsLength = parts.length
+
+  for (let i = 0; i < partsLength; i++) {
+    const part = parts[i]!
+    if (!part) continue
+    const token = this.normalizeToken(property, part, withCache)
+    if (token) {
+      tokens.push(token)
+    }
   }
 
   const trimTokens = trim(tokens)
@@ -154,6 +163,7 @@ export function createTokenizer(config: DefaultTokenizerConfig = {}): DefaultTok
     stemmerSkipProperties: new Set(config.stemmerSkipProperties ? [config.stemmerSkipProperties].flat() : []),
     tokenizeSkipProperties: new Set(config.tokenizeSkipProperties ? [config.tokenizeSkipProperties].flat() : []),
     stopWords,
+    stopWordsSet: stopWords ? new Set(stopWords) : undefined,
     allowDuplicates: Boolean(config.allowDuplicates),
     normalizeToken,
     normalizationCache: new Map()

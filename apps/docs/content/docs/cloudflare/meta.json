@@ -9,6 +9,8 @@
 		"api-reference",
 		"indexing-and-rebuilds",
 		"production",
+		"cost-calculator",
+		"benchmarks",
 		"local-development"
 	]
 }

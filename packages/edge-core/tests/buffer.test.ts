@@ -13,6 +13,7 @@ import {
 } from '../src/buffer.js'
 import { encodeNdjsonLine } from '../src/codec.js'
 import { bufferSegmentKey } from '../src/paths.js'
+import type { ObjectStorage } from '../src/storage.js'
 import { MemoryObjectStorage } from './helpers/memory-storage.js'
 
 describe('buffer', () => {
@@ -164,5 +165,57 @@ describe('buffer', () => {
     const frozen = await freezeBufferForRebuild(storage, 'idx')
     assert.equal(frozen.ops.length, 0)
     assert.equal(frozen.frozenSegmentKeys.length, 0)
+  })
+
+  it('reads many WAL entries in listed order across fetch chunks', async () => {
+    const storage = new MemoryObjectStorage()
+    for (let i = 1; i <= 25; i++) {
+      await appendBufferOp(storage, 'idx', {
+        op: 'upsert',
+        id: String(i),
+        ts: `t${i}`,
+        doc: { n: i }
+      })
+    }
+
+    const ops = await readBufferOps(storage, 'idx')
+    assert.equal(ops.length, 25)
+    assert.deepEqual(
+      ops.map((op) => (op as { id: string }).id),
+      Array.from({ length: 25 }, (_, i) => String(i + 1))
+    )
+  })
+
+  it('fetches WAL entries with bounded concurrency', async () => {
+    const memory = new MemoryObjectStorage()
+    for (let i = 1; i <= 25; i++) {
+      await appendBufferOp(memory, 'idx', {
+        op: 'upsert',
+        id: String(i),
+        ts: `t${i}`,
+        doc: { n: i }
+      })
+    }
+
+    let inFlight = 0
+    let maxInFlight = 0
+    const storage: ObjectStorage = {
+      get: async (key) => {
+        inFlight += 1
+        maxInFlight = Math.max(maxInFlight, inFlight)
+        // Yield so concurrent gets within a chunk overlap.
+        await new Promise((resolve) => setTimeout(resolve, 1))
+        inFlight -= 1
+        return memory.get(key)
+      },
+      put: (key, body, opts) => memory.put(key, body, opts),
+      delete: (key) => memory.delete(key),
+      list: (prefix) => memory.list(prefix)
+    }
+
+    const ops = await readBufferOps(storage, 'idx')
+    assert.equal(ops.length, 25)
+    assert.ok(maxInFlight > 1, `expected parallel fetches, max in-flight was ${maxInFlight}`)
+    assert.ok(maxInFlight <= 10, `expected at most 10 in-flight fetches, got ${maxInFlight}`)
   })
 })

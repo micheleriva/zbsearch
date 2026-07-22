@@ -1,0 +1,101 @@
+name: PR Benchmarks
+
+on:
+  pull_request:
+    types: [labeled, synchronize, opened, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-benchmarks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  compare:
+    name: Base vs PR ZBSearch
+    if: >
+      contains(github.event.pull_request.labels.*.name, 'Run benchmarks') &&
+      (github.event.action != 'labeled' || github.event.label.name == 'Run benchmarks')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch base SHA
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: git fetch --depth=1 origin "$BASE_SHA"
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install monorepo dependencies (PR)
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build PR packages
+        run: |
+          pnpm --filter zbsearch build
+          pnpm --filter @zbsearch/stopwords build
+
+      - name: Prepare base worktree
+        id: base
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          BASE_DIR="${RUNNER_TEMP}/zbsearch-base"
+          git worktree add --detach "$BASE_DIR" "$BASE_SHA"
+          echo "dir=$BASE_DIR" >> "$GITHUB_OUTPUT"
+          echo "sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Install and build base packages
+        working-directory: ${{ steps.base.outputs.dir }}
+        run: |
+          set -euo pipefail
+          pnpm install --no-frozen-lockfile
+          pnpm --filter zbsearch build
+          pnpm --filter @zbsearch/stopwords build
+
+      - name: Install benchmark dependencies
+        working-directory: benchmarks
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Run base vs PR benchmarks
+        working-directory: benchmarks
+        env:
+          BENCHMARK_BASE_PACKAGE: ${{ steps.base.outputs.dir }}/packages/zbsearch
+          BENCHMARK_PR_PACKAGE: ${{ github.workspace }}/packages/zbsearch
+          BENCHMARK_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          BENCHMARK_PR_REF: ${{ github.event.pull_request.head.ref }}
+          BENCHMARK_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BENCHMARK_PR_SHA: ${{ github.event.pull_request.head.sha }}
+          BENCHMARK_REGRESSION_THRESHOLD: '5'
+        run: |
+          set -euo pipefail
+          mkdir -p benchmark
+          node compare-pr.js \
+            --format=markdown \
+            --json \
+            --out=benchmark/pr-vs-base.json \
+            > benchmark/pr-vs-base.md
+          cat benchmark/pr-vs-base.md
+
+      - name: Upload JSON results
+        if: always() && hashFiles('benchmarks/benchmark/pr-vs-base.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-vs-base-benchmarks-${{ github.event.pull_request.number }}
+          path: |
+            benchmarks/benchmark/pr-vs-base.json
+            benchmarks/benchmark/pr-vs-base.md
+          if-no-files-found: warn

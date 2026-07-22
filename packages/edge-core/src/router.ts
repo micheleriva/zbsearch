@@ -1,5 +1,5 @@
-import type { EdgeApiError } from './errors.js'
 import { EdgeApiError as EdgeApiErrorClass } from './errors.js'
+import type { WalCoordinator } from './coordinator.js'
 import type { ObjectStorage, ShardCache } from './storage.js'
 import {
   bufferDelete,
@@ -13,18 +13,27 @@ import {
   runSearch,
   type CreateIndexInput,
   type ScheduleRebuildOptions,
-  type SearchInput
+  type SearchInput,
+  type SearchOptions,
+  type SnapshotDbCacheOptions
 } from './service.js'
 import { deleteIndexMeta, getIndexMeta, listIndexMetas, saveIndexMeta } from './registry.js'
+import { isShardGroupMeta, physicalShardIds, shardIndexIds } from './shards.js'
 import type { IndexSettings } from './types.js'
 
 export interface RouterContext {
   storage: ObjectStorage
   cache: ShardCache
+  /** @deprecated Full-access key kept for backwards compatibility. Prefer writeApiKey + readApiKey. */
   apiKey?: string
+  readApiKey?: string
+  writeApiKey?: string
   scheduleBackground?: ScheduleRebuildOptions['schedule']
   rebuildThresholdOps?: number
   builderWebhookUrl?: string
+  snapshotCache?: SnapshotDbCacheOptions
+  walCoordinator?: WalCoordinator
+  shardSearchExecutor?: SearchOptions['executeShardSearch']
 }
 
 function scheduleOptions(ctx: RouterContext): ScheduleRebuildOptions {
@@ -32,6 +41,7 @@ function scheduleOptions(ctx: RouterContext): ScheduleRebuildOptions {
     schedule: ctx.scheduleBackground,
     threshold: ctx.rebuildThresholdOps,
     builderWebhookUrl: ctx.builderWebhookUrl,
+    walCoordinator: ctx.walCoordinator,
     source: 'threshold'
   }
 }
@@ -62,14 +72,55 @@ function json(status: number, body: unknown): HttpResponse {
   }
 }
 
-function ensureAuth(ctx: RouterContext, req: HttpRequest): void {
-  if (!ctx.apiKey) {
+function writeKey(ctx: RouterContext): string | undefined {
+  return ctx.writeApiKey ?? ctx.apiKey
+}
+
+function readKey(ctx: RouterContext): string | undefined {
+  return ctx.readApiKey ?? writeKey(ctx)
+}
+
+function bearerToken(req: HttpRequest): string | null {
+  const auth = req.headers.get('authorization')
+  return auth?.startsWith('Bearer ') ? auth.slice('Bearer '.length) : null
+}
+
+function ensureReadAuth(ctx: RouterContext, req: HttpRequest): void {
+  const key = readKey(ctx)
+  if (!key) {
     return
   }
-  const auth = req.headers.get('authorization')
-  if (auth !== `Bearer ${ctx.apiKey}`) {
-    throw new EdgeApiErrorClass(401, 'UNAUTHORIZED', 'Invalid or missing API key')
+  const token = bearerToken(req)
+  const admin = writeKey(ctx)
+  if (token === key || (admin !== undefined && token === admin)) {
+    return
   }
+  throw new EdgeApiErrorClass(401, 'UNAUTHORIZED', 'Invalid or missing API key')
+}
+
+function ensureWriteAuth(ctx: RouterContext, req: HttpRequest): void {
+  const key = writeKey(ctx)
+
+  if (!key) {
+    if (ctx.readApiKey) {
+      throw new EdgeApiErrorClass(403, 'FORBIDDEN', 'Writes are disabled: no write API key configured')
+    }
+    return
+  }
+
+  if (bearerToken(req) !== key) {
+    throw new EdgeApiErrorClass(401, 'UNAUTHORIZED', 'Invalid or missing write API key')
+  }
+}
+
+const WRITE_METHODS = new Set(['PUT', 'PATCH', 'DELETE'])
+
+function isWriteRoute(req: HttpRequest): boolean {
+  if (WRITE_METHODS.has(req.method)) {
+    return true
+  }
+
+  return req.method === 'POST' && matchPath(req.pathname, '/v1/indexes/:indexId/search') === null
 }
 
 function matchPath(pathname: string, pattern: string): Record<string, string> | null {
@@ -101,11 +152,17 @@ export async function handleRequest(ctx: RouterContext, req: HttpRequest): Promi
       return json(200, { name: 'zbsearch-edge', version: '0.1.0' })
     }
 
-    ensureAuth(ctx, req)
+    if (isWriteRoute(req)) {
+      ensureWriteAuth(ctx, req)
+    } else {
+      ensureReadAuth(ctx, req)
+    }
 
     if (req.method === 'GET' && req.pathname === '/v1/indexes') {
       const indexes = await listIndexMetas(ctx.storage)
-      return json(200, { indexes })
+      const hidden = physicalShardIds(indexes)
+
+      return json(200, { indexes: indexes.filter((meta) => !hidden.has(meta.id)) })
     }
 
     if (req.method === 'POST' && req.pathname === '/v1/indexes') {
@@ -126,13 +183,41 @@ export async function handleRequest(ctx: RouterContext, req: HttpRequest): Promi
       if (req.method === 'PATCH') {
         const meta = await getIndexMeta(ctx.storage, indexId)
         const patch = await req.json<{ settings?: IndexSettings }>()
+
         meta.settings = { ...meta.settings, ...patch.settings }
+
         await saveIndexMeta(ctx.storage, meta)
+
+        if (isShardGroupMeta(meta)) {
+          for (const shardId of shardIndexIds(meta.id, meta.shards!.count)) {
+            const shardMeta = await getIndexMeta(ctx.storage, shardId)
+            shardMeta.settings = { ...shardMeta.settings, ...patch.settings }
+            await saveIndexMeta(ctx.storage, shardMeta)
+          }
+        }
         return json(200, meta)
       }
 
       if (req.method === 'DELETE') {
+        let groupShardIds: string[] = []
+
+        try {
+          const meta = await getIndexMeta(ctx.storage, indexId)
+          if (isShardGroupMeta(meta)) {
+            groupShardIds = shardIndexIds(meta.id, meta.shards!.count)
+          }
+        } catch (err) {
+          if (!(err instanceof EdgeApiErrorClass && err.status === 404)) {
+            throw err
+          }
+        }
+
         await deleteIndexMeta(ctx.storage, indexId)
+
+        for (const shardId of groupShardIds) {
+          await deleteIndexMeta(ctx.storage, shardId)
+        }
+
         return json(202, { status: 'deleting', indexId })
       }
     }
@@ -151,21 +236,28 @@ export async function handleRequest(ctx: RouterContext, req: HttpRequest): Promi
 
     const rebuildMatch = matchPath(req.pathname, '/v1/indexes/:indexId/rebuild')
     if (rebuildMatch && req.method === 'POST') {
-      const meta = await rebuildIndex(ctx.storage, rebuildMatch.indexId!)
+      const meta = await rebuildIndex(ctx.storage, rebuildMatch.indexId!, {
+        walCoordinator: ctx.walCoordinator
+      })
       return json(202, { status: 'rebuilt', indexId: meta.id, liveVersion: meta.liveVersion })
     }
 
     const searchMatch = matchPath(req.pathname, '/v1/indexes/:indexId/search')
     if (searchMatch && req.method === 'POST') {
       const body = await req.json<SearchInput>()
-      const results = await runSearch(ctx.storage, ctx.cache, searchMatch.indexId!, body)
+      const results = await runSearch(ctx.storage, ctx.cache, searchMatch.indexId!, body, {
+        snapshotCache: ctx.snapshotCache,
+        executeShardSearch: ctx.shardSearchExecutor
+      })
       return json(200, results)
     }
 
     const docCollectionMatch = matchPath(req.pathname, '/v1/indexes/:indexId/documents')
     if (docCollectionMatch && req.method === 'POST') {
       const body = await req.json<{ id: string; document: Record<string, unknown> }>()
-      const result = await bufferUpsert(ctx.storage, docCollectionMatch.indexId!, body.id, body.document)
+      const result = await bufferUpsert(ctx.storage, docCollectionMatch.indexId!, body.id, body.document, {
+        walCoordinator: ctx.walCoordinator
+      })
       await afterBufferedWrite(ctx, docCollectionMatch.indexId!)
       return json(202, result)
     }
@@ -177,13 +269,17 @@ export async function handleRequest(ctx: RouterContext, req: HttpRequest): Promi
 
       if (req.method === 'PUT') {
         const body = await req.json<Record<string, unknown>>()
-        const result = await bufferUpsert(ctx.storage, indexId, docId, body)
+        const result = await bufferUpsert(ctx.storage, indexId, docId, body, {
+          walCoordinator: ctx.walCoordinator
+        })
         await afterBufferedWrite(ctx, indexId)
         return json(202, result)
       }
 
       if (req.method === 'DELETE') {
-        const result = await bufferDelete(ctx.storage, indexId, docId)
+        const result = await bufferDelete(ctx.storage, indexId, docId, {
+          walCoordinator: ctx.walCoordinator
+        })
         await afterBufferedWrite(ctx, indexId)
         return json(202, result)
       }
@@ -192,13 +288,12 @@ export async function handleRequest(ctx: RouterContext, req: HttpRequest): Promi
     const batchMatch = matchPath(req.pathname, '/v1/indexes/:indexId/documents/batch')
     if (batchMatch && req.method === 'POST') {
       const body = await req.json<{
-        operations: Array<
-          | { op: 'upsert'; id: string; doc: Record<string, unknown> }
-          | { op: 'delete'; id: string }
-        >
+        operations: Array<{ op: 'upsert'; id: string; doc: Record<string, unknown> } | { op: 'delete'; id: string }>
       }>()
       const indexId = batchMatch.indexId!
-      const result = await bufferBatch(ctx.storage, indexId, body.operations)
+      const result = await bufferBatch(ctx.storage, indexId, body.operations, {
+        walCoordinator: ctx.walCoordinator
+      })
       await afterBufferedWrite(ctx, indexId)
       return json(202, result)
     }

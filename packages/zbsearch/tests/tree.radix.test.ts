@@ -1,5 +1,6 @@
 import t from 'tap'
 import { RadixTree } from '../src/trees/radix.js'
+import { levenshtein } from '../src/components/levenshtein.js'
 
 const phrases = [
   { id: 1, doc: 'the quick, brown fox' },
@@ -227,4 +228,98 @@ t.test('test from trie for compatibility', (t) => {
     t.notOk(tree.contains(phrases[0].doc))
     t.strictSame(tree.find({ term: phrases[0].doc }), {})
   })
+})
+
+t.test('find with tolerance on compressed edges', (t) => {
+  t.test('should not miss genuine matches hidden behind compressed edges', (t) => {
+    t.plan(3)
+
+    const tree = new RadixTree()
+    tree.insert('boosting', 1)
+    tree.insert('boasting', 2)
+    tree.insert('boats', 3)
+
+    // lev("boosting", "boasting") is 1, but the paths diverge right before a
+    // multi-character edge: "bo" + "osting" vs "bo" + "a" + "sting".
+    t.strictSame(tree.find({ term: 'boosting', tolerance: 1 }), { boosting: [1], boasting: [2] })
+    t.strictSame(tree.find({ term: 'boasting', tolerance: 1 }), { boasting: [2], boosting: [1] })
+
+    tree.insert('reinforcements', 4)
+    t.strictSame(tree.find({ term: 'renforcements', tolerance: 1 }), { reinforcements: [4] })
+  })
+
+  t.test('should match brute-force Levenshtein distance plus the prefix rule', (t) => {
+    const words = [
+      'boosting',
+      'boasting',
+      'boats',
+      'reinforcements',
+      'altered',
+      'altars',
+      'moelleux',
+      'moelleuse',
+      'moelle',
+      'scroll',
+      'scrolled',
+      'apple',
+      'apply',
+      'app',
+      'apt',
+      'apex',
+      'about',
+      'again',
+      'hello',
+      'help',
+      'held',
+      'yellow',
+      'yelp',
+      'world',
+      'word',
+      'words',
+      'sword',
+      'chris',
+      'christopher',
+      'cris',
+      'craig'
+    ]
+
+    const tree = new RadixTree()
+    for (let id = 0; id < words.length; id++) {
+      tree.insert(words[id], id)
+    }
+
+    const queries: Array<[string, number]> = [
+      ['boosting', 1],
+      ['boosting', 2],
+      ['boasting', 1],
+      ['renforcements', 1],
+      ['altvred', 1],
+      ['moelleux', 1],
+      ['moelleux', 2],
+      ['scrol', 1],
+      ['app', 1],
+      ['app', 2],
+      ['helo', 1],
+      ['yelo', 2],
+      ['word', 1],
+      ['swrd', 2],
+      ['christopher', 1],
+      ['xylo', 2]
+    ]
+
+    t.plan(queries.length)
+
+    for (const [term, tolerance] of queries) {
+      const expected: Record<string, number[]> = {}
+      for (let id = 0; id < words.length; id++) {
+        const w = words[id]
+        if (levenshtein(term, w) <= tolerance || w.startsWith(term)) {
+          expected[w] = [id]
+        }
+      }
+      t.strictSame(tree.find({ term, tolerance }), expected, `term "${term}" with tolerance ${tolerance}`)
+    }
+  })
+
+  t.end()
 })

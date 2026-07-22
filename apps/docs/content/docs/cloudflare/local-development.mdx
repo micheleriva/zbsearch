@@ -73,7 +73,7 @@ The CLI uses `@zbsearch/storage-s3` to read/write the same R2 paths as the Worke
 
 ```
 deploy/cloudflare/
-  wrangler.toml         ← Worker config, R2 binding, cron, vars
+  wrangler.toml         ← Worker config, R2 + Durable Object bindings, cron, vars, cpu_ms
   .env.example          ← R2 credentials template for CLI/CI
   ingest-unicorns.sh    ← Example bulk import script
   README.md             ← Quick reference
@@ -144,15 +144,16 @@ pnpm --filter @zbsearch/edge-core build
 
 Consider running a watch command in a second terminal during active core development.
 
-### Testing with API_KEY locally
+### Testing with API keys locally
 
-Set a secret for local dev:
+Set secrets for local dev:
 
 ```bash
-wrangler secret put API_KEY --config deploy/cloudflare/wrangler.toml
+wrangler secret put WRITE_API_KEY --config deploy/cloudflare/wrangler.toml
+wrangler secret put READ_API_KEY --config deploy/cloudflare/wrangler.toml
 ```
 
-Or temporarily remove auth by not setting the secret - local dev defaults to open access.
+Or temporarily remove auth by not setting the secrets - local dev defaults to open access.
 
 ### Remote dev with real R2
 

@@ -26,7 +26,7 @@ pnpm docs:build
 
 ## Search
 
-Site search is powered by **ZBSearch** via Fumadocs' built-in search API. The monorepo maps `@orama/orama` to the local `zbsearch` package so Fumadocs uses ZBSearch instead of Orama.
+Site search is powered by **ZBSearch** via Fumadocs' built-in search API. The monorepo overrides `fumadocs-core`'s `@orama/orama` dependency to the local `zbsearch` package (see `pnpm-workspace.yaml`), so Fumadocs uses ZBSearch instead of Orama.
 
 ## Content
 

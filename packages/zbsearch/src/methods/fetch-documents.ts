@@ -67,33 +67,20 @@ export function fetchDocuments<T extends AnyZBSearch, ResultDocument extends Typ
   limit: number
 ): Result<ResultDocument>[] {
   const docs = zbsearch.data.docs
+  const results: Result<ResultDocument>[] = []
+  const end = Math.min(offset + limit, uniqueDocsArray.length)
 
-  const results: Result<ResultDocument>[] = Array.from({
-    length: limit
-  })
-
-  const resultIDs: Set<InternalDocumentID> = new Set()
-
-  // We already have the list of ALL the document IDs containing the search terms.
-  // We loop over them starting from a positional value "offset" and ending at "offset + limit"
-  // to provide pagination capabilities to the search.
-  for (let i = offset; i < limit + offset; i++) {
+  for (let i = offset; i < end; i++) {
     const idAndScore = uniqueDocsArray[i]
 
-    // If there are no more results, just break the loop
     if (typeof idAndScore === 'undefined') {
       break
     }
 
     const [id, score] = idAndScore
-
-    if (!resultIDs.has(id)) {
-      // We retrieve the full document only AFTER making sure that we really want it.
-      // We never retrieve the full document preventively.
-      const fullDoc = zbsearch.documentsStore.get(docs, id)
-      results[i] = { id: getDocumentIdFromInternalId(zbsearch.internalDocumentIDStore, id), score, document: fullDoc! }
-      resultIDs.add(id)
-    }
+    const fullDoc = zbsearch.documentsStore.get(docs, id)
+    results.push({ id: getDocumentIdFromInternalId(zbsearch.internalDocumentIDStore, id), score, document: fullDoc! })
   }
+
   return results
 }

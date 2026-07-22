@@ -81,13 +81,17 @@ export function insertDocumentScoreParameters(
   prop: string,
   id: DocumentID,
   tokens: string[],
-  docsCount: number
-): void {
-  const internalId = getInternalDocumentId(index.sharedInternalDocumentStore, id)
+  docsCount: number,
+  internalId?: InternalDocumentID
+): InternalDocumentID {
+  const resolvedInternalId = internalId ?? getInternalDocumentId(index.sharedInternalDocumentStore, id)
 
-  index.avgFieldLength[prop] = ((index.avgFieldLength[prop] ?? 0) * (docsCount - 1) + tokens.length) / docsCount
-  index.fieldLengths[prop][internalId] = tokens.length
-  index.frequencies[prop][internalId] = {}
+  index.avgFieldLength[prop] =
+    ((index.avgFieldLength[prop] ?? 0) * (docsCount - 1) + tokens.length) / docsCount
+  index.fieldLengths[prop][resolvedInternalId] = tokens.length
+  index.frequencies[prop][resolvedInternalId] = {}
+
+  return resolvedInternalId
 }
 
 export function insertTokenScoreParameters(
@@ -95,20 +99,47 @@ export function insertTokenScoreParameters(
   prop: string,
   id: DocumentID,
   tokens: string[],
-  token: string
+  token: string,
+  internalId?: InternalDocumentID
 ): void {
   let tokenFrequency = 0
+  const tokenLength = tokens.length
 
-  for (const t of tokens) {
-    if (t === token) {
+  for (let i = 0; i < tokenLength; i++) {
+    if (tokens[i] === token) {
       tokenFrequency++
     }
   }
 
-  const internalId = getInternalDocumentId(index.sharedInternalDocumentStore, id)
-  const tf = tokenFrequency / tokens.length
+  const resolvedInternalId = internalId ?? getInternalDocumentId(index.sharedInternalDocumentStore, id)
+  const tf = tokenLength > 0 ? tokenFrequency / tokenLength : 0
 
-  index.frequencies[prop][internalId]![token] = tf
+  index.frequencies[prop][resolvedInternalId]![token] = tf
+}
+
+export function insertRadixTokens(
+  index: Index,
+  prop: string,
+  node: RadixTree,
+  id: DocumentID,
+  internalId: InternalDocumentID,
+  tokens: string[],
+  docsCount: number
+): void {
+  insertDocumentScoreParameters(index, prop, id, tokens, docsCount, internalId)
+  const frequencies = index.frequencies[prop][internalId]!
+  const tokenLength = tokens.length
+  const invLength = tokenLength > 0 ? 1 / tokenLength : 0
+
+  for (let i = 0; i < tokenLength; i++) {
+    const token = tokens[i]!
+    if (Object.hasOwn(frequencies, token)) {
+      frequencies[token] += invLength
+    } else {
+      frequencies[token] = invLength
+      node.insert(token, internalId)
+    }
+  }
 }
 
 export function removeDocumentScoreParameters(index: Index, prop: string, id: DocumentID, docsCount: number): void {
@@ -205,48 +236,41 @@ export function create<T extends AnyZBSearch, TSchema extends T['schema']>(
   return index
 }
 
-function insertScalarBuilder(
-  implementation: IIndex<Index>,
+function insertScalarValue(
+  _implementation: IIndex<Index>,
   index: Index,
   prop: string,
+  id: DocumentID,
   internalId: InternalDocumentID,
+  value: SearchableValue,
   language: string | undefined,
   tokenizer: Tokenizer,
   docsCount: number,
   options?: InsertOptions
-) {
-  return (value: SearchableValue) => {
-    const { type, node } = index.indexes[prop]
-    switch (type) {
-      case 'Bool': {
-        node[value ? 'true' : 'false'].add(internalId)
-        break
-      }
-      case 'AVL': {
-        const avlRebalanceThreshold = options?.avlRebalanceThreshold ?? 1
-        node.insert(value as number, internalId, avlRebalanceThreshold)
-        break
-      }
-      case 'Radix': {
-        const tokens = tokenizer.tokenize(value as string, language, prop, false)
-        implementation.insertDocumentScoreParameters(index, prop, internalId, tokens, docsCount)
-
-        for (const token of tokens) {
-          implementation.insertTokenScoreParameters(index, prop, internalId, tokens, token)
-
-          node.insert(token, internalId)
-        }
-
-        break
-      }
-      case 'Flat': {
-        node.insert(value as ScalarSearchableType, internalId)
-        break
-      }
-      case 'BKD': {
-        node.insert(value as unknown as BKDGeoPoint, [internalId])
-        break
-      }
+): void {
+  const { type, node } = index.indexes[prop]
+  switch (type) {
+    case 'Bool': {
+      node[value ? 'true' : 'false'].add(internalId)
+      break
+    }
+    case 'AVL': {
+      const avlRebalanceThreshold = options?.avlRebalanceThreshold ?? 1
+      node.insert(value as number, internalId, avlRebalanceThreshold)
+      break
+    }
+    case 'Radix': {
+      const tokens = tokenizer.tokenize(value as string, language, prop, false)
+      insertRadixTokens(index, prop, node as RadixTree, id, internalId, tokens, docsCount)
+      break
+    }
+    case 'Flat': {
+      node.insert(value as ScalarSearchableType, internalId)
+      break
+    }
+    case 'BKD': {
+      node.insert(value as unknown as BKDGeoPoint, [internalId])
+      break
     }
   }
 }
@@ -268,25 +292,36 @@ export function insert(
     return insertVector(index, prop, value as number[] | Float32Array, id, internalId)
   }
 
-  const insertScalar = insertScalarBuilder(
-    implementation,
-    index,
-    prop,
-    internalId,
-    language,
-    tokenizer,
-    docsCount,
-    options
-  )
-
   if (!isArrayType(schemaType)) {
-    return insertScalar(value)
+    return insertScalarValue(
+      implementation,
+      index,
+      prop,
+      id,
+      internalId,
+      value,
+      language,
+      tokenizer,
+      docsCount,
+      options
+    )
   }
 
   const elements = value as Array<string | number | boolean>
   const elementsLength = elements.length
   for (let i = 0; i < elementsLength; i++) {
-    insertScalar(elements[i])
+    insertScalarValue(
+      implementation,
+      index,
+      prop,
+      id,
+      internalId,
+      elements[i]!,
+      language,
+      tokenizer,
+      docsCount,
+      options
+    )
   }
 }
 
@@ -409,29 +444,29 @@ export function calculateResultScores(
   resultsMap: Map<number, number>,
   boostPerProperty: number,
   whereFiltersIDs: Set<InternalDocumentID> | undefined,
-  keywordMatchesMap: Map<InternalDocumentID, Map<string, number>>
+  keywordMatchesMap?: Map<InternalDocumentID, Map<string, number>>
 ) {
-  const documentIDs = Array.from(ids)
-
   const avgFieldLength = index.avgFieldLength[prop]
   const fieldLengths = index.fieldLengths[prop]
   const zbsearchFrequencies = index.frequencies[prop]
   const termOccurrences = getTermDocumentFrequency(index, prop, term)
 
   // Calculate TF-IDF value for each term, in each document, for each index.
-  const documentIDsLength = documentIDs.length
+  const documentIDsLength = ids.length
   for (let k = 0; k < documentIDsLength; k++) {
-    const internalId = documentIDs[k]
+    const internalId = ids[k]
     if (whereFiltersIDs && !whereFiltersIDs.has(internalId)) {
       continue
     }
 
-    // Track keyword matches per property
-    if (!keywordMatchesMap.has(internalId)) {
-      keywordMatchesMap.set(internalId, new Map())
+    if (keywordMatchesMap) {
+      // Track keyword matches per property
+      if (!keywordMatchesMap.has(internalId)) {
+        keywordMatchesMap.set(internalId, new Map())
+      }
+      const propertyMatches = keywordMatchesMap.get(internalId)!
+      propertyMatches.set(prop, (propertyMatches.get(prop) || 0) + 1)
     }
-    const propertyMatches = keywordMatchesMap.get(internalId)!
-    propertyMatches.set(prop, (propertyMatches.get(prop) || 0) + 1)
 
     const tf = zbsearchFrequencies?.[internalId]?.[term] ?? 0
 
@@ -443,6 +478,152 @@ export function calculateResultScores(
       resultsMap.set(internalId, bm25 * boostPerProperty)
     }
   }
+}
+
+function collectFindResultIds(searchResult: FindResult): Set<InternalDocumentID> {
+  const ids = new Set<InternalDocumentID>()
+
+  for (const word in searchResult) {
+    const docIds = searchResult[word]
+    for (let i = 0; i < docIds.length; i++) {
+      ids.add(docIds[i])
+    }
+  }
+
+  return ids
+}
+
+function filterIdsToCandidates(
+  ids: InternalDocumentID[],
+  candidates: Set<InternalDocumentID>
+): InternalDocumentID[] {
+  const filtered: InternalDocumentID[] = []
+
+  for (let i = 0; i < ids.length; i++) {
+    const id = ids[i]
+    if (candidates.has(id)) {
+      filtered.push(id)
+    }
+  }
+
+  return filtered
+}
+
+function searchThresholdZero(
+  index: Index,
+  tokens: string[],
+  propertiesToSearch: string[],
+  exact: boolean,
+  tolerance: number,
+  boost: Record<string, number>,
+  relevance: Required<BM25Params>,
+  docsCount: number,
+  whereFiltersIDs: Set<InternalDocumentID> | undefined
+): TokenScore[] {
+  const findCache = new Map<string, FindResult>()
+  const candidateIds = new Set<InternalDocumentID>()
+  const matchingProperties: string[] = []
+
+  for (const prop of propertiesToSearch) {
+    if (!(prop in index.indexes)) {
+      continue
+    }
+
+    const tree = index.indexes[prop]
+    if (tree.type !== 'Radix') {
+      throw createError('WRONG_SEARCH_PROPERTY_TYPE', prop)
+    }
+
+    const boostPerProperty = boost[prop] ?? 1
+    if (boostPerProperty <= 0) {
+      throw createError('INVALID_BOOST_VALUE', boostPerProperty)
+    }
+
+    let propertyIntersection: Set<InternalDocumentID> | undefined
+    const tokenLength = tokens.length
+
+    for (let i = 0; i < tokenLength; i++) {
+      const token = tokens[i]
+      const cacheKey = `${prop}\0${token}`
+      let searchResult = findCache.get(cacheKey)
+
+      if (!searchResult) {
+        searchResult = (tree.node as RadixTree).find({ term: token, exact, tolerance })
+        findCache.set(cacheKey, searchResult)
+      }
+
+      if (!Object.keys(searchResult).length) {
+        propertyIntersection = undefined
+        break
+      }
+
+      const tokenIds = collectFindResultIds(searchResult)
+      propertyIntersection =
+        propertyIntersection === undefined ? tokenIds : setIntersection(propertyIntersection, tokenIds)
+
+      if (!propertyIntersection.size) {
+        break
+      }
+    }
+
+    if (!propertyIntersection || !propertyIntersection.size) {
+      continue
+    }
+
+    matchingProperties.push(prop)
+
+    for (const id of propertyIntersection) {
+      if (!whereFiltersIDs || whereFiltersIDs.has(id)) {
+        candidateIds.add(id)
+      }
+    }
+  }
+
+  if (!candidateIds.size) {
+    return []
+  }
+
+  const resultsMap = new Map<number, number>()
+
+  for (const prop of matchingProperties) {
+    const tree = index.indexes[prop]
+    if (tree.type !== 'Radix') {
+      continue
+    }
+
+    const boostPerProperty = boost[prop] ?? 1
+    const tokenLength = tokens.length
+
+    for (let i = 0; i < tokenLength; i++) {
+      const token = tokens[i]
+      const cacheKey = `${prop}\0${token}`
+      const searchResult = findCache.get(cacheKey)!
+
+      const words = Object.keys(searchResult)
+      for (let j = 0; j < words.length; j++) {
+        const word = words[j]
+        const filteredIds = filterIdsToCandidates(searchResult[word], candidateIds)
+
+        if (filteredIds.length > 0) {
+          calculateResultScores(
+            index,
+            prop,
+            word,
+            filteredIds,
+            docsCount,
+            relevance,
+            resultsMap,
+            boostPerProperty,
+            whereFiltersIDs
+          )
+        }
+      }
+    }
+  }
+
+  return Array.from(resultsMap.entries())
+    .map(([id, score]): TokenScore => [id, score])
+    .sort((a, b) => b[1] - a[1])
 }
 
 export function search(
@@ -461,6 +642,24 @@ export function search(
 ): TokenScore[] {
   const tokens = tokenizer.tokenize(term, language)
   const keywordsCount = tokens.length || 1
+
+  if (!tokens.length && !term) {
+    tokens.push('')
+  }
+
+  if (!threshold && tokens.length > 1) {
+    return searchThresholdZero(
+      index,
+      tokens,
+      propertiesToSearch,
+      exact,
+      tolerance,
+      boost,
+      relevance,
+      docsCount,
+      whereFiltersIDs
+    )
+  }
 
   // Track keyword matches per document and property
   const keywordMatchesMap = new Map<InternalDocumentID, Map<string, number>>()
@@ -481,11 +680,6 @@ export function search(
     const boostPerProperty = boost[prop] ?? 1
     if (boostPerProperty <= 0) {
       throw createError('INVALID_BOOST_VALUE', boostPerProperty)
-    }
-
-    // if the tokenizer returns an empty array, we returns all the documents
-    if (tokens.length === 0 && !term) {
-      tokens.push('')
     }
 
     // Process each token in the search term

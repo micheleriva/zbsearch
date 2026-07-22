@@ -105,8 +105,12 @@ async function runWizard(paths) {
   })
 
   console.log('\nWorker secrets (optional). Leave blank to skip.')
-  config.secrets.apiKey = await ask(rl, 'API key for Bearer auth', {
-    defaultValue: config.secrets.apiKey,
+  config.secrets.writeApiKey = await ask(rl, 'Write API key (full access: writes + reads)', {
+    defaultValue: config.secrets.writeApiKey,
+    secret: true
+  })
+  config.secrets.readApiKey = await ask(rl, 'Read-only API key (search + status only)', {
+    defaultValue: config.secrets.readApiKey,
     secret: true
   })
   config.secrets.builderWebhookUrl = await ask(rl, 'External rebuild webhook URL', {
@@ -142,7 +146,8 @@ async function confirmDeploy(config) {
   if (config.r2.createPreviewBucket) {
     console.log(`  Preview bucket: ${config.r2.previewBucket}`)
   }
-  console.log(`  API key: ${config.secrets.apiKey ? 'set' : 'not set'}`)
+  console.log(`  Write API key: ${config.secrets.writeApiKey ? 'set' : 'not set'}`)
+  console.log(`  Read API key: ${config.secrets.readApiKey ? 'set' : 'not set'}`)
   console.log(`  Rebuild webhook: ${config.secrets.builderWebhookUrl ? 'set' : 'not set'}`)
 
   const answer = await rl.question('\nContinue? (y/N): ')
@@ -167,12 +172,13 @@ async function createBuckets(config, paths, dryRun) {
 }
 
 async function setSecrets(config, paths, dryRun) {
-  if (!config.secrets.apiKey && !config.secrets.builderWebhookUrl) {
+  if (!config.secrets.readApiKey && !config.secrets.writeApiKey && !config.secrets.builderWebhookUrl) {
     return
   }
 
   step('Setting Worker secrets')
-  await putSecret('API_KEY', config.secrets.apiKey, { dryRun, paths })
+  await putSecret('READ_API_KEY', config.secrets.readApiKey, { dryRun, paths })
+  await putSecret('WRITE_API_KEY', config.secrets.writeApiKey, { dryRun, paths })
   await putSecret('BUILDER_WEBHOOK_URL', config.secrets.builderWebhookUrl, { dryRun, paths })
 }
 

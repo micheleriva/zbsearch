@@ -274,3 +274,24 @@ t.test('Issue #797', async (t) => {
   t.equal(res.count, 1)
   t.equal(res.hits[0].id, '2')
 })
+
+t.test('typo tolerance finds matches hidden behind compressed radix edges', async (t) => {
+  const db = await create({
+    schema: {
+      name: 'string'
+    } as const
+  })
+  await insertMultiple(db, [
+    { id: '1', name: 'boosting' },
+    { id: '2', name: 'boasting' },
+    { id: '3', name: 'boats' }
+  ])
+
+  const res = await search(db, {
+    term: 'boosting',
+    tolerance: 1
+  })
+
+  t.equal(res.count, 2)
+  t.strictSame(res.hits.map((h) => h.id).sort(), ['1', '2'])
+})

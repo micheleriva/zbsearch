@@ -16,6 +16,7 @@ export interface IndexMeta {
   name: string
   schema: AnySchema
   settings: IndexSettings
+  shards?: { count: number }
   liveVersion: string | null
   buildingVersion: string | null
   status: IndexStatus
@@ -68,6 +69,25 @@ export interface BufferedWriteResponse {
   changeId: string
   bufferedAt: string
   indexStatus: IndexStatus
+  shards?: ShardWriteResult[]
+}
+
+export interface ShardWriteResult {
+  indexId: string
+  ops: number
+  changeId: string
+  bufferedAt: string
+  indexStatus: IndexStatus
+}
+
+export interface ShardStatusSummary {
+  indexId: string
+  liveVersion: string | null
+  status: IndexStatus
+  documents: number
+  indexSizeBytes: number
+  pendingOps: number
+  lastRebuildAt: string | null
 }
 
 export interface IndexStatusResponse {
@@ -79,4 +99,5 @@ export interface IndexStatusResponse {
   pendingOps: number
   lastRebuildAt: string | null
   lastAppliedOffset: string | null
+  shards?: ShardStatusSummary[]
 }

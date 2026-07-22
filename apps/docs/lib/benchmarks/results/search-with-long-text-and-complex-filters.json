@@ -1,0 +1,45 @@
+{
+  "name": "search with long text and complex filters",
+  "date": "2026-07-15T18:54:54.682Z",
+  "version": "1.0.0",
+  "results": [
+    {
+      "name": "search with long text and complex filters in Orama 3.1.18",
+      "ops": 7219,
+      "margin": 0.64,
+      "percentSlower": 52.11
+    },
+    {
+      "name": "search with long text and complex filters in ZBSearch 3.3.1",
+      "ops": 15073,
+      "margin": 0.67,
+      "percentSlower": 0
+    },
+    {
+      "name": "search with long text and complex filters in Fuse.js 7.5.0",
+      "ops": 13,
+      "margin": 0.98,
+      "percentSlower": 99.91
+    },
+    {
+      "name": "search with long text and complex filters in Lunr 2.3.9",
+      "ops": 1505,
+      "margin": 1.92,
+      "percentSlower": 90.02
+    },
+    {
+      "name": "search with long text and complex filters in MiniSearch 7.2.0",
+      "ops": 2328,
+      "margin": 1.05,
+      "percentSlower": 84.56
+    }
+  ],
+  "fastest": {
+    "name": "search with long text and complex filters in ZBSearch 3.3.1",
+    "index": 1
+  },
+  "slowest": {
+    "name": "search with long text and complex filters in Fuse.js 7.5.0",
+    "index": 2
+  }
+}

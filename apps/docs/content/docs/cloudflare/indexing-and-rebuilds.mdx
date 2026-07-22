@@ -7,15 +7,28 @@ ZBSearch Edge separates **writes** from **snapshot promotion** on purpose. Searc
 
 ## Write path: the WAL
 
-When you upsert or delete a document, the Worker appends an operation to an **append-only WAL entry** in R2:
+When you upsert or delete a document, the Worker appends the operation to an **append-only WAL** in R2. How the append happens depends on whether the `IndexCoordinator` Durable Object binding is present (it is in all default wrangler configs).
+
+### WAL segments (default, with the coordinator)
+
+With the `INDEX_COORDINATOR` binding configured, writes are **batched into segments** instead of writing one R2 object per operation:
 
 ```
-wal/{indexId}/head.json                    ← pending count, oldest op timestamp
-wal/{indexId}/entries/{seq}_{ts}_{changeId}.ndjson
+wal/{indexId}/head.json                          ← pending count, oldest op timestamp
+wal/{indexId}/segments/0000000001-0000000087_chg_xxx.ndjson
+wal/{indexId}/segments/open.ndjson               ← mirror of the currently open segment
 ...
 ```
 
-Legacy deployments may still have in-place buffer segments under `buffer/{indexId}/segments/`; the Worker reads both during migration.
+One `IndexCoordinator` Durable Object per index serializes all appends: it assigns sequence numbers, accumulates operations into an in-memory open segment, and seals it to a new R2 object once the segment reaches roughly **100 operations or 256 KB**. `open.ndjson` mirrors the not-yet-sealed segment so readers and rebuilds can see those operations without talking to the Durable Object. Head/meta mutations also go through the coordinator, so concurrent writers can never interleave sequence numbers or corrupt `head.json`.
+
+### Per-op entries (fallback, without the coordinator)
+
+If the binding is absent - standalone `@zbsearch/edge-core` usage or the `@zbsearch/edge-index-builder` CLI - edge-core falls back to the original layout: one R2 object per write under `wal/{indexId}/entries/{seq}_{ts}_{changeId}.ndjson`, with the rebuild lock emulated by the `status: 'building'` flag in index metadata.
+
+**Zero-touch migration:** existing per-op entries keep working - the first coordinated rebuild consumes both entries and segments. One caveat: once segments are active on an index, don't run mixed old/new writers against it (e.g. a legacy standalone edge-core deployment alongside the Worker). The binding is one-way per deployment.
+
+Legacy deployments may still have in-place buffer segments under `buffer/{indexId}/segments/`; the Worker reads those during migration too.
 
 Each WAL file contains one or more NDJSON lines (one operation per line):
 
@@ -26,11 +39,11 @@ Each WAL file contains one or more NDJSON lines (one operation per line):
 
 The API responds immediately with `202` and a `changeId`. The index's `pendingOps` counter increments. **Documents in the WAL are not searchable until the next rebuild** (unless you use bulk import below).
 
-Batch writes (`POST /documents/batch`) append all operations to a **single WAL file**, reducing R2 PUT count.
+Batch writes (`POST /documents/batch`) append all operations to a **single WAL segment**, reducing R2 PUT count. WAL reads during rebuild and search-time overlay fetch entries with bounded parallelism (10 concurrent R2 reads) instead of one object at a time.
 
 ### Legacy segment rotation
 
-Older versions grew in-place segment files (`buffer/.../segments/000001.ndjson`) until 64 MB, then rotated. New writes use immutable WAL entries instead — no read-modify-write on segments.
+Older versions grew in-place segment files (`buffer/.../segments/000001.ndjson`) until 64 MB, then rotated. New writes use immutable WAL objects instead - no read-modify-write on legacy buffer segments.
 
 ## Read path: snapshots
 
@@ -42,19 +55,25 @@ indexes/{indexId}/{version}/snapshot.msgpack
 
 The `liveVersion` field in index metadata points to the current searchable version. Snapshots are **immutable** - rebuild always writes a new version and atomically updates `liveVersion` in metadata.
 
-The Worker caches snapshot bytes in **Workers Cache** (`caches.default`) to avoid repeated R2 reads on hot indexes.
+Search never re-decodes the whole snapshot per request. Three layers, fastest first:
+
+1. **Per-isolate deserialized cache** - an in-memory LRU holds fully loaded ZBSearch databases, keyed by the versioned snapshot key. A rebuild changes the version, so stale entries invalidate naturally. Bounded by `SNAPSHOT_CACHE_MAX_ENTRIES` (default `4`) and `SNAPSHOT_CACHE_MAX_BYTES` (default ~64 MB) worker vars.
+2. **Workers Cache API** (`caches.default`) - raw snapshot bytes, shared per colo. Cold isolates warm from here instead of hitting R2.
+3. **R2** - the durable source of truth.
 
 ## Rebuild pipeline
 
-A rebuild performs these steps:
+With the coordinator binding, a rebuild performs these steps:
 
-1. Set index status to `building`
-2. Load documents from the current live snapshot (if any)
-3. Read and apply all pending WAL operations (upserts overwrite, deletes remove)
-4. Build a new ZBSearch database in memory
-5. Serialize to msgpack and upload to R2
-6. Clear compacted WAL entries
-7. Set `liveVersion`, `documents`, `indexSizeBytes`, status `ready`, update `pendingOps`
+1. Acquire the **rebuild lock** on the index's `IndexCoordinator` Durable Object (replaces the racy `status: 'building'` check; a lock abandoned by a crashed rebuild can be stolen after 15 minutes)
+2. **Freeze** the WAL: the coordinator seals the open segment and hands back all pending operations plus the list of segment keys covered by this rebuild
+3. Load documents from the current live snapshot (if any)
+4. Read and apply all pending WAL operations (upserts overwrite, deletes remove)
+5. Build a new ZBSearch database in memory
+6. Serialize to msgpack and upload to R2
+7. **Finalize** through the coordinator: delete the frozen WAL segments, set `liveVersion`, `documents`, `indexSizeBytes`, status `ready`, update `pendingOps`, and release the lock
+
+Without the binding, the same pipeline runs with per-op entries and the metadata-flag lock (steps 1, 2, and 7 use `status: 'building'` in `meta.json` instead of the Durable Object).
 
 ```
 Before rebuild:
@@ -63,7 +82,7 @@ Before rebuild:
 
 After rebuild:
   liveVersion: v2  (new snapshot with merged state)
-  WAL: (compacted — entries merged into snapshot are removed)
+  WAL: (compacted - segments merged into snapshot are removed)
 ```
 
 You can trigger rebuild manually:
@@ -112,7 +131,7 @@ Every cron tick, the Worker lists indexes and rebuilds any where `pendingOps >= 
 
 Best for: demos, small catalogs, development.
 
-Limitations: Worker CPU and memory limits; not suitable for multi-GB indexes.
+Limitations: Worker CPU and memory limits; not suitable for multi-GB indexes. Also, every in-Worker rebuild replays the shard's **entire WAL backlog** in one invocation. Rolling rebuilds at the default 500-op threshold handle 100k+ documents fine, but a large one-shot backlog - bulk API ingest arriving faster than rebuilds drain, roughly 10k+ pending ops per shard - does not complete and wedges the shard at `building`. For bulk loads, use the external builder (`zbsearch-edge-builder import`) instead of the write API.
 
 ### 2. Manual rebuild via API
 
@@ -172,6 +191,19 @@ Copy the workflow from [`deploy/github-actions/zbsearch-rebuild.yml`](https://gi
 
 See [Production](/docs/cloudflare/production) for the full GitHub Actions setup.
 
+## Sharded indexes
+
+For larger catalogs, a logical index can be split into N physical shards at creation time (`"shards": N` on `POST /v1/indexes`, or `--shards N` on the builder CLI import). Each shard `<id>--shard-<i>` is an ordinary index with its own WAL, snapshots, `IndexCoordinator` Durable Object, and rebuild thresholds - everything on this page applies per shard.
+
+Implications for the rebuild pipeline:
+
+- **Group rebuild is serial**: `POST /v1/indexes/:id/rebuild` on the logical index rebuilds shards one at a time - parallel shard rebuilds in one invocation exceed the 128MB isolate memory limit once shards grow past a few thousand documents (measured in production). Cron rebuilds run inline and serially for the same reason.
+- **Threshold scheduling is per shard**: cron checks each shard's `pendingOps` independently, so hot shards rebuild more often than cold ones.
+- **Shard count is fixed**: re-sharding means re-importing into a new index.
+- **Search fans out to `ShardSearch` DOs**: with the `SEARCH_SHARD` binding, a group search runs each shard's query in that shard's own Durable Object isolate (warm snapshot cache included), so total index size is not capped by a single isolate's 128MB. Without the binding, all shards are searched in-process - fine while `shards × snapshot size` stays well under 128MB.
+
+See [API reference](/docs/cloudflare/api-reference#sharded-indexes) for routing, response shapes, and search caveats.
+
 ## Recommended patterns
 
 ### Bulk import
@@ -195,7 +227,9 @@ The `import` command:
 1. Parses documents and assigns stable IDs (slugified `company_name` or explicit `id`)
 2. Builds a ZBSearch snapshot in memory
 3. Uploads `snapshot.msgpack` to R2
-4. Clears any pending WAL entries and sets `liveVersion` — **documents are searchable immediately**
+4. Clears any pending WAL entries and sets `liveVersion` - **documents are searchable immediately**
+
+For very large catalogs, shard at import time by adding `--shards N` (2–64): documents are bucketed deterministically by id and each shard snapshot is uploaded independently. The shard count cannot be changed later without re-importing.
 
 For smaller batches via the API:
 
@@ -224,15 +258,19 @@ registry.json
 indexes/{indexId}/meta.json
 indexes/{indexId}/{version}/snapshot.msgpack
 wal/{indexId}/head.json
-wal/{indexId}/entries/*.ndjson
-buffer/{indexId}/head.json          ← legacy, read-only during migration
-buffer/{indexId}/segments/*.ndjson  ← legacy
+wal/{indexId}/segments/*.ndjson          ← batched ops (default, coordinated)
+wal/{indexId}/segments/open.ndjson       ← mirror of the open, unsealed segment
+wal/{indexId}/entries/*.ndjson           ← per-op entries (fallback without DO, pre-migration)
+buffer/{indexId}/head.json               ← legacy, read-only during migration
+buffer/{indexId}/segments/*.ndjson       ← legacy
 ```
 
 ## v1 limitations
 
-- **Full snapshots only** - no field-level sharding yet (planned for larger indexes)
+- **Full snapshots per shard** - sharding (2–64 shards) splits a logical index across physical indexes, but each shard snapshot is still monolithic
+- **Approximate cross-shard scoring** - BM25 IDF is per shard, and `groupBy` results are not merged on sharded indexes
 - **Index delete** removes metadata but does not purge R2 objects automatically
 - **Single region R2** - snapshot locality follows your R2 bucket; Workers run globally
+- **Coordinator binding is one-way per deployment** - once WAL segments are active on an index, don't run mixed old/new writers (e.g. a legacy standalone edge-core without the binding) against the same index
 
 Future versions will add sharded `.spb`/`.ivf` formats and additional runtime targets (Docker, AWS).

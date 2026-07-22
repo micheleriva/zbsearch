@@ -1,0 +1,137 @@
+name: PR Benchmarks Comment
+
+on:
+  workflow_run:
+    workflows: ['PR Benchmarks']
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  comment:
+    name: Post benchmark comment
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Download benchmark artifact and comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs')
+            const path = require('path')
+            const { execFileSync } = require('child_process')
+
+            const run = context.payload.workflow_run
+            const owner = context.repo.owner
+            const repo = context.repo.repo
+            const marker = '<!-- zbsearch-pr-benchmarks -->'
+
+            // Resolve the PR number (workflow_run.pull_requests is often empty for forks).
+            let prNumber = run.pull_requests?.[0]?.number ?? null
+            if (!prNumber) {
+              const headOwner = run.head_repository?.owner?.login
+              const headBranch = run.head_branch
+              if (headOwner && headBranch) {
+                const { data: prs } = await github.rest.pulls.list({
+                  owner,
+                  repo,
+                  state: 'open',
+                  head: `${headOwner}:${headBranch}`,
+                  per_page: 10
+                })
+                prNumber = prs[0]?.number ?? null
+              }
+            }
+            if (!prNumber) {
+              const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                owner,
+                repo,
+                commit_sha: run.head_sha
+              })
+              prNumber = prs.find((p) => p.state === 'open')?.number ?? prs[0]?.number ?? null
+            }
+            if (!prNumber) {
+              core.setFailed(`Could not resolve PR for workflow_run ${run.id} (head ${run.head_sha})`)
+              return
+            }
+
+            const { data: artifacts } = await github.rest.actions.listWorkflowRunArtifacts({
+              owner,
+              repo,
+              run_id: run.id,
+              per_page: 100
+            })
+            const artifact = artifacts.artifacts.find((a) =>
+              a.name.startsWith('pr-vs-base-benchmarks-') && !a.expired
+            )
+            if (!artifact) {
+              core.setFailed(`No pr-vs-base-benchmarks-* artifact on workflow_run ${run.id}`)
+              return
+            }
+
+            const download = await github.rest.actions.downloadArtifact({
+              owner,
+              repo,
+              artifact_id: artifact.id,
+              archive_format: 'zip'
+            })
+            const zipPath = path.join(process.env.RUNNER_TEMP, 'benchmarks.zip')
+            const extractDir = path.join(process.env.RUNNER_TEMP, 'benchmarks-out')
+            fs.writeFileSync(zipPath, Buffer.from(download.data))
+            fs.mkdirSync(extractDir, { recursive: true })
+            execFileSync('unzip', ['-o', zipPath, '-d', extractDir], { stdio: 'inherit' })
+
+            const mdPath = path.join(extractDir, 'pr-vs-base.md')
+            if (!fs.existsSync(mdPath)) {
+              core.setFailed(`Artifact missing pr-vs-base.md (extracted to ${extractDir})`)
+              return
+            }
+
+            const body = fs.readFileSync(mdPath, 'utf8')
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${run.id}`
+            const header = [
+              marker,
+              `### ZBSearch PR benchmarks`,
+              '',
+              `Workflow run: [${run.id}](${runUrl})`,
+              `Head \`${run.head_sha.slice(0, 7)}\``,
+              ''
+            ].join('\n')
+            const table = body.includes(marker)
+              ? body.slice(body.indexOf(marker) + marker.length).trimStart()
+              : body
+            const commentBody = `${header}${table}`
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number: prNumber,
+              per_page: 100
+            })
+            const existing = comments.find(
+              (c) => c.user?.type === 'Bot' && c.body?.includes(marker)
+            )
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body: commentBody
+              })
+              core.info(`Updated comment ${existing.id} on PR #${prNumber}`)
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: prNumber,
+                body: commentBody
+              })
+              core.info(`Created comment on PR #${prNumber}`)
+            }

@@ -1,9 +1,48 @@
+import { createRequire } from 'node:module'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import * as orama from '@orama/orama'
 import * as zbsearch from 'zbsearch'
 import dataset from './dataset.json' with { type: 'json' }
+import { stopWordTokenizer, searchParams, databaseSortConfig } from './benchmark-config.js'
+import {
+  buildFlexSearchIndex,
+  buildFuseIndex,
+  buildLunrIndex,
+  buildMiniSearchIndex,
+  runFlexSearchPlain,
+  runFusePlain,
+  runLunrPlain,
+  runMiniSearchPlain,
+  serializeFlexSearchIndex,
+  serializeFuseIndex,
+  serializeLunrIndex,
+  serializeMiniSearchIndex
+} from './alternate-engines.js'
 
 const engine = process.argv[2]
 const searchIterations = Number(process.argv[3] ?? 0)
+
+function loadModuleEngine(modulePath) {
+  const require = createRequire(join(modulePath, 'package.json'))
+
+  try {
+    return require(modulePath)
+  } catch {
+    const cjs = join(modulePath, 'dist', 'commonjs', 'index.js')
+
+    if (!existsSync(cjs)) {
+      throw new Error(`memory worker: cannot load module at ${modulePath}`)
+    }
+
+    return require(cjs)
+  }
+}
+
+const moduleEngine =
+  typeof engine === 'string' && engine.startsWith('module:')
+    ? loadModuleEngine(engine.slice('module:'.length))
+    : null
 
 const schema = {
   title: 'string',
@@ -31,28 +70,111 @@ function snapshot() {
 }
 
 function buildDatabase() {
+  if (moduleEngine) {
+    const db = moduleEngine.create({
+      schema,
+      components: { tokenizer: stopWordTokenizer },
+      sort: databaseSortConfig
+    })
+    moduleEngine.insertMultiple(db, dataset, dataset.length)
+    return db
+  }
+
   if (engine === 'orama') {
-    const db = orama.create({ schema })
-    orama.insertMultiple(db, dataset, 50)
+    const db = orama.create({ schema, components: { tokenizer: stopWordTokenizer } })
+    orama.insertMultiple(db, dataset, dataset.length)
     return db
   }
 
   if (engine === 'zbsearch') {
-    const db = zbsearch.create({ schema })
-    zbsearch.insertMultiple(db, dataset, 50)
+    const db = zbsearch.create({
+      schema,
+      components: { tokenizer: stopWordTokenizer },
+      sort: databaseSortConfig
+    })
+    zbsearch.insertMultiple(db, dataset, dataset.length)
     return db
+  }
+
+  if (engine === 'flexsearch') {
+    return buildFlexSearchIndex()
+  }
+
+  if (engine === 'minisearch') {
+    return buildMiniSearchIndex()
+  }
+
+  if (engine === 'fusejs') {
+    return buildFuseIndex()
+  }
+
+  if (engine === 'lunr') {
+    return buildLunrIndex()
   }
 
   throw new Error(`Unknown engine: ${engine}`)
 }
 
 function runSearch(db) {
-  if (engine === 'orama') {
-    orama.search(db, { term: 'Legend of Zelda' })
+  if (moduleEngine) {
+    moduleEngine.search(db, searchParams.plain)
     return
   }
 
-  zbsearch.search(db, { term: 'Legend of Zelda' })
+  if (engine === 'orama') {
+    orama.search(db, searchParams.plain)
+    return
+  }
+
+  if (engine === 'zbsearch') {
+    zbsearch.search(db, searchParams.plain)
+    return
+  }
+
+  if (engine === 'flexsearch') {
+    runFlexSearchPlain(db)
+    return
+  }
+
+  if (engine === 'fusejs') {
+    runFusePlain(db)
+    return
+  }
+
+  if (engine === 'lunr') {
+    runLunrPlain(db)
+    return
+  }
+
+  runMiniSearchPlain(db)
+}
+
+function getSerializedBytes(db) {
+  if (moduleEngine) {
+    return Buffer.byteLength(JSON.stringify(moduleEngine.save(db)))
+  }
+
+  if (engine === 'orama') {
+    return Buffer.byteLength(JSON.stringify(orama.save(db)))
+  }
+
+  if (engine === 'zbsearch') {
+    return Buffer.byteLength(JSON.stringify(zbsearch.save(db)))
+  }
+
+  if (engine === 'flexsearch') {
+    return serializeFlexSearchIndex(db)
+  }
+
+  if (engine === 'fusejs') {
+    return serializeFuseIndex(db)
+  }
+
+  if (engine === 'lunr') {
+    return serializeLunrIndex(db.index)
+  }
+
+  return serializeMiniSearchIndex(db)
 }
 
 gc()
@@ -71,13 +193,7 @@ if (searchIterations > 0) {
 }
 
 const afterSearch = searchIterations > 0 ? snapshot() : indexed
-
-let serializedBytes = 0
-if (engine === 'orama') {
-  serializedBytes = Buffer.byteLength(JSON.stringify(orama.save(db)))
-} else {
-  serializedBytes = Buffer.byteLength(JSON.stringify(zbsearch.save(db)))
-}
+const serializedBytes = getSerializedBytes(db)
 
 const output = {
   engine,

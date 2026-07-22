@@ -83,7 +83,7 @@ async function main() {
       return
     }
   } else if (dryRun) {
-    console.log('Dry run — no changes will be made.')
+    console.log('Dry run - no changes will be made.')
     for (const line of plan) {
       console.log(`  - ${line}`)
     }

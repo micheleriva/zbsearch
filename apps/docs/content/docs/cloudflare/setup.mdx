@@ -21,20 +21,22 @@ npx wrangler login
 npx zbsearch-edge-setup --init
 ```
 
-The wizard asks for Worker name, R2 bucket names, account ID, optional R2 API credentials, optional API key, and rebuild settings. It saves `zbsearch.edge.config.json` in your project directory (gitignore this file), generates `wrangler.toml` and `.env`, then provisions and deploys.
+The wizard asks for Worker name, R2 bucket names, account ID, optional R2 API credentials, optional read/write API keys, and rebuild settings. It saves `zbsearch.edge.config.json` in your project directory (gitignore this file), generates `wrangler.toml` and `.env`, then provisions and deploys.
 
 ### Config file instead of wizard
 
+Download the example config ([JSON](https://zbsearch.dev/downloads/zbsearch.edge.config.example.json)) and edit it:
+
 ```bash
-cp node_modules/@zbsearch/runtime-cloudflare/deploy/templates/config.example.json zbsearch.edge.config.json
+curl -o zbsearch.edge.config.json https://zbsearch.dev/downloads/zbsearch.edge.config.example.json
 # edit zbsearch.edge.config.json - set r2.accountId and R2 API credentials
 npx zbsearch-edge-setup
 ```
 
-YAML is also supported:
+YAML is also supported ([example](https://zbsearch.dev/downloads/zbsearch.edge.config.example.yaml)):
 
 ```bash
-cp node_modules/@zbsearch/runtime-cloudflare/deploy/templates/config.example.yaml zbsearch.edge.config.yaml
+curl -o zbsearch.edge.config.yaml https://zbsearch.dev/downloads/zbsearch.edge.config.example.yaml
 npx zbsearch-edge-setup --config zbsearch.edge.config.yaml
 ```
 
@@ -81,74 +83,96 @@ Follow the steps below if you prefer to configure each piece yourself.
 
 ## Prerequisites
 
-- A [Cloudflare account](https://dash.cloudflare.com/sign-up)
-- [Wrangler](https://developers.cloudflare.com/workers/wrangler/install-and-update/) v4+ (`npm i -g wrangler` or use the devDependency in the repo)
-- [Node.js](https://nodejs.org/) 20+ and [pnpm](https://pnpm.io/)
-- The zbsearch repository cloned locally
+- A [Cloudflare account](https://dash.cloudflare.com/sign-up) on the **Workers Paid plan** (see the callout below)
+- [Node.js](https://nodejs.org/) 20+
+- [Wrangler](https://developers.cloudflare.com/workers/wrangler/install-and-update/) v4+ (installed below)
 
 Log in to Cloudflare from Wrangler:
 
 ```bash
-wrangler login
+npx wrangler login
 ```
 
-## 1. Clone and install
+## 1. Install the runtime
 
 ```bash
-git clone https://github.com/micheleriva/zbsearch.git
-cd zbsearch
-pnpm install
+mkdir my-search-api && cd my-search-api
+npm init -y
+npm install @zbsearch/runtime-cloudflare @zbsearch/edge-index-builder wrangler
 ```
 
-Build the edge packages (required before deploy):
+Create a minimal `wrangler.toml` in your project directory:
 
-```bash
-pnpm --filter @zbsearch/edge-core build
-pnpm --filter @zbsearch/runtime-cloudflare build
+```toml
+name = "zbsearch-edge"
+main = "node_modules/@zbsearch/runtime-cloudflare/src/worker.ts"
+compatibility_date = "2025-03-01"
 ```
+
+No build step is needed - Wrangler bundles the Worker straight from the npm package.
 
 ## 2. Create an R2 bucket
 
 The default configuration expects a bucket named `zbsearch-edge`. Create it once:
 
 ```bash
-wrangler r2 bucket create zbsearch-edge
+npx wrangler r2 bucket create zbsearch-edge
 ```
 
-For local/preview dev, Wrangler also uses a preview bucket (`zbsearch-edge-preview`) configured in `deploy/cloudflare/wrangler.toml`. You can create it optionally:
+For local/preview dev, Wrangler also uses a preview bucket. You can create it optionally:
 
 ```bash
-wrangler r2 bucket create zbsearch-edge-preview
+npx wrangler r2 bucket create zbsearch-edge-preview
 ```
 
-To use a different bucket name, edit `deploy/cloudflare/wrangler.toml`:
+Add the bucket binding to `wrangler.toml`:
 
 ```toml
 [[r2_buckets]]
 binding = "BUCKET"
-bucket_name = "your-bucket-name"
-preview_bucket_name = "your-bucket-name-preview"
+bucket_name = "zbsearch-edge"
+preview_bucket_name = "zbsearch-edge-preview"
 ```
+
+The default configuration (and the setup-CLI template) also includes the Durable Object bindings (write coordinator, plus the per-shard search node used for distributed group searches) and an extended CPU limit:
+
+```toml
+[[durable_objects.bindings]]
+name = "INDEX_COORDINATOR"
+class_name = "IndexCoordinator"
+
+[[durable_objects.bindings]]
+name = "SEARCH_SHARD"
+class_name = "ShardSearch"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["IndexCoordinator"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["ShardSearch"]
+
+[limits]
+cpu_ms = 300000
+```
+
+<Callout type="warn">
+  ZBSearch Edge requires the **Workers Paid plan**. The Free plan caps CPU at 10ms per invocation, which search workloads exceed - see [Production](/docs/cloudflare/production#cloudflare-plan-requirements). The SQLite-backed Durable Object class above works on both plans.
+</Callout>
 
 ## 3. Configure the builder CLI (optional but recommended)
 
-The Worker handles search and WAL writes. **Rebuilds** that merge the WAL into a new snapshot can run inside the Worker (small indexes) or via an external CLI (production). The same CLI also supports **bulk import** — building a snapshot locally and uploading it to R2 without per-document API calls.
+The Worker handles search and WAL writes. **Rebuilds** that merge the WAL into a new snapshot can run inside the Worker (small indexes) or via an external CLI (production). The same CLI also supports **bulk import** - building a snapshot locally and uploading it to R2 without per-document API calls.
 
-Copy the example env file:
-
-```bash
-cp deploy/cloudflare/.env.example deploy/cloudflare/.env
-```
-
-Fill in your R2 credentials from the Cloudflare dashboard:
+Create a `.env` file in your project directory with your R2 credentials from the Cloudflare dashboard:
 
 1. Go to **R2 → Overview → Manage R2 API Tokens**
 2. Create a token with **Object Read & Write** on your bucket
 3. Copy the **Access Key ID**, **Secret Access Key**, and your **Account ID**
 
-Set these in `deploy/cloudflare/.env`:
-
 ```bash
+# .env (gitignore this)
 R2_BUCKET=zbsearch-edge
 R2_ACCESS_KEY_ID=your_access_key_id
 R2_SECRET_ACCESS_KEY=your_secret_access_key
@@ -159,45 +183,42 @@ R2_ENDPOINT=https://YOUR_ACCOUNT_ID.r2.cloudflarestorage.com
   The Worker binds to R2 natively via Wrangler - it does **not** need these S3 credentials. They are only for the builder CLI and CI runners.
 </Callout>
 
-Build the CLI after installing dependencies:
+Rebuild or import against R2 with the builder CLI (installed from npm in step 1):
 
 ```bash
-pnpm --filter @zbsearch/edge-index-builder build
-```
-
-Rebuild or import against R2:
-
-```bash
-source deploy/cloudflare/.env
-node packages/edge-index-builder/dist/cli.js rebuild --all
-node packages/edge-index-builder/dist/cli.js import products ./catalog.json \
+source .env
+npx zbsearch-edge-builder rebuild --all
+npx zbsearch-edge-builder import products ./catalog.json \
   --create --name products --schema-file ./schema.json
 ```
 
 See [Indexing & rebuilds](/docs/cloudflare/indexing-and-rebuilds#bulk-import) for import file formats (`{ "data": [...] }`, JSON array, or JSONL).
 
-## 4. Optional: protect the API with a key
+## 4. Optional: protect the API with keys
 
-By default, the API is open. For anything beyond local testing, set an API key:
+By default, the API is open. For anything beyond local testing, set two keys — a write key with full access, and a read-only key for search traffic (safe to embed in public clients):
 
 ```bash
-wrangler secret put API_KEY --config deploy/cloudflare/wrangler.toml
+npx wrangler secret put WRITE_API_KEY
+npx wrangler secret put READ_API_KEY
 ```
 
-When prompted, enter a strong random string. All authenticated requests must send:
+When prompted, enter a strong random string for each. Authenticated requests must send:
 
 ```
 Authorization: Bearer YOUR_API_KEY
 ```
 
-`/health` and `/v1/info` remain public so load balancers and uptime checks can probe the Worker without credentials.
+The write key can do everything (index management, document writes, rebuilds, searches). The read key only covers searches and index/metadata reads — it gets `401` on any write route. If you only set `READ_API_KEY`, writes are closed entirely. `/health` and `/v1/info` remain public so load balancers and uptime checks can probe the Worker without credentials.
+
+The legacy single `API_KEY` secret still works as a full-access key, but prefer the split above.
 
 ## 5. Deploy the Worker
 
-From the monorepo root:
+From your project directory:
 
 ```bash
-wrangler deploy --config deploy/cloudflare/wrangler.toml
+npx wrangler deploy
 ```
 
 Wrangler prints your Worker URL, for example:
@@ -235,7 +256,7 @@ curl -X POST "$WORKER_URL/v1/indexes" \
 
 The index ID is derived from the name (`products` from `"products"`, `my-products` from `"My Products"`).
 
-Insert a document (appended to WAL — searchable after rebuild, or sooner via WAL overlay):
+Insert a document (appended to WAL - searchable after rebuild, or sooner via WAL overlay):
 
 ```bash
 curl -X PUT "$WORKER_URL/v1/indexes/products/documents/sku-1" \
@@ -262,7 +283,7 @@ curl -X POST "$WORKER_URL/v1/indexes/products/search" \
 
 ## 7. Configure rebuild behavior
 
-Open `deploy/cloudflare/wrangler.toml`. Key settings:
+Open `wrangler.toml`. Key settings:
 
 ```toml
 [triggers]
@@ -270,17 +291,23 @@ crons = ["*/5 * * * *"]
 
 [vars]
 REBUILD_THRESHOLD_OPS = "500"
+
+[limits]
+cpu_ms = 300000
 ```
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | `crons` | Every 5 minutes | Worker checks indexes for pending writes |
 | `REBUILD_THRESHOLD_OPS` | `500` | Auto-rebuild in-Worker when pending ops reach this count |
+| `cpu_ms` | `300000` (5 min) | Per-request CPU limit (Workers Paid plan); headroom for in-Worker rebuilds |
+| `SNAPSHOT_CACHE_MAX_ENTRIES` | `4` | Deserialized snapshots cached per isolate |
+| `SNAPSHOT_CACHE_MAX_BYTES` | `67108864` | Byte budget for the per-isolate snapshot cache |
 
 For **development and small indexes**, the cron + threshold is enough. For **production**, use an [external rebuild runner](/docs/cloudflare/production) and set `BUILDER_WEBHOOK_URL` so the Worker triggers GitHub Actions instead of rebuilding inline.
 
 ```bash
-wrangler secret put BUILDER_WEBHOOK_URL --config deploy/cloudflare/wrangler.toml
+npx wrangler secret put BUILDER_WEBHOOK_URL
 ```
 
 ## Custom domains
@@ -293,7 +320,7 @@ routes = [
 ]
 ```
 
-Then redeploy with `wrangler deploy --config deploy/cloudflare/wrangler.toml`.
+Then redeploy with `npx wrangler deploy`.
 
 ## Teardown (unpublish / reset)
 
@@ -312,10 +339,10 @@ The script reads `zbsearch.edge.config.json` when present, otherwise `wrangler.t
 | Problem | Likely cause | Fix |
 | --- | --- | --- |
 | `404` on search after insert | No rebuild yet | Call `POST /v1/indexes/:id/rebuild` or wait for cron |
-| `401 Unauthorized` | Missing or wrong `Authorization` header | Set `API_KEY` secret and send `Bearer` token |
+| `401 Unauthorized` | Missing or wrong `Authorization` header | Set `WRITE_API_KEY`/`READ_API_KEY` secrets and send a `Bearer` token |
 | R2 bucket not found on deploy | Bucket name mismatch | Match `bucket_name` in `wrangler.toml` to an existing R2 bucket |
-| Rebuild CLI fails | Missing S3 credentials | Fill `deploy/cloudflare/.env` with R2 API token values |
-| `import` command not found | CLI not built | Run `pnpm --filter @zbsearch/edge-index-builder build` |
+| Rebuild CLI fails | Missing S3 credentials | Fill `.env` with R2 API token values |
+| Searches fail with error 1102 | Free plan 10ms CPU cap | Upgrade to Workers Paid |
 | Worker CPU timeout on rebuild | Index too large for in-Worker rebuild | Use external builder via `BUILDER_WEBHOOK_URL`, or bulk `import` |
 
 ## What's next

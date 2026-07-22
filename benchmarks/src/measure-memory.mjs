@@ -7,9 +7,20 @@ const workerPath = join(__dirname, 'memory-worker.mjs')
 
 export function measureEngineMemory(engine, options = {}) {
   const { searches = 0 } = options
+  const engineArg =
+    typeof engine === 'string'
+      ? engine
+      : engine?.modulePath
+        ? `module:${engine.modulePath}`
+        : null
+
+  if (!engineArg) {
+    throw new Error('measureEngineMemory: engine must be a string or { modulePath }')
+  }
+
   const result = spawnSync(
     process.execPath,
-    ['--expose-gc', workerPath, engine, String(searches)],
+    ['--expose-gc', workerPath, engineArg, String(searches)],
     {
       encoding: 'utf8',
       env: process.env
@@ -17,7 +28,7 @@ export function measureEngineMemory(engine, options = {}) {
   )
 
   if (result.status !== 0) {
-    throw new Error(result.stderr || result.stdout || `memory worker failed for ${engine}`)
+    throw new Error(result.stderr || result.stdout || `memory worker failed for ${engineArg}`)
   }
 
   return JSON.parse(result.stdout.trim())

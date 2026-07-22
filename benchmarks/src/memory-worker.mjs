@@ -1,3 +1,6 @@
+import { createRequire } from 'node:module'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import * as orama from '@orama/orama'
 import * as zbsearch from 'zbsearch'
 import dataset from './dataset.json' with { type: 'json' }
@@ -19,6 +22,27 @@ import {
 
 const engine = process.argv[2]
 const searchIterations = Number(process.argv[3] ?? 0)
+
+function loadModuleEngine(modulePath) {
+  const require = createRequire(join(modulePath, 'package.json'))
+
+  try {
+    return require(modulePath)
+  } catch {
+    const cjs = join(modulePath, 'dist', 'commonjs', 'index.js')
+
+    if (!existsSync(cjs)) {
+      throw new Error(`memory worker: cannot load module at ${modulePath}`)
+    }
+
+    return require(cjs)
+  }
+}
+
+const moduleEngine =
+  typeof engine === 'string' && engine.startsWith('module:')
+    ? loadModuleEngine(engine.slice('module:'.length))
+    : null
 
 const schema = {
   title: 'string',
@@ -46,6 +70,16 @@ function snapshot() {
 }
 
 function buildDatabase() {
+  if (moduleEngine) {
+    const db = moduleEngine.create({
+      schema,
+      components: { tokenizer: stopWordTokenizer },
+      sort: databaseSortConfig
+    })
+    moduleEngine.insertMultiple(db, dataset, dataset.length)
+    return db
+  }
+
   if (engine === 'orama') {
     const db = orama.create({ schema, components: { tokenizer: stopWordTokenizer } })
     orama.insertMultiple(db, dataset, dataset.length)
@@ -82,6 +116,11 @@ function buildDatabase() {
 }
 
 function runSearch(db) {
+  if (moduleEngine) {
+    moduleEngine.search(db, searchParams.plain)
+    return
+  }
+
   if (engine === 'orama') {
     orama.search(db, searchParams.plain)
     return
@@ -111,6 +150,10 @@ function runSearch(db) {
 }
 
 function getSerializedBytes(db) {
+  if (moduleEngine) {
+    return Buffer.byteLength(JSON.stringify(moduleEngine.save(db)))
+  }
+
   if (engine === 'orama') {
     return Buffer.byteLength(JSON.stringify(orama.save(db)))
   }

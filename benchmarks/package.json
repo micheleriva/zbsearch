@@ -8,6 +8,8 @@
     "benchmark": "node index.js",
     "benchmark:compare": "node compare.js --format=both --json",
     "benchmark:compare:quick": "node compare.js --format=both --quick",
+    "benchmark:compare:pr": "node compare-pr.js --format=markdown --json",
+    "benchmark:compare:pr:quick": "node compare-pr.js --format=markdown --quick",
     "benchmark:algorithms": "node algorithms.js",
     "benchmark:bkd": "node bkd.js",
     "benchmark:avl": "node avl.js",

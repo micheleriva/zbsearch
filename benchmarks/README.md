@@ -53,11 +53,11 @@ Add the **`Run benchmarks`** label to a pull request. The **PR Benchmarks** work
 
 1. Builds ZBSearch from the PR and from the base SHA (git worktree)
 2. Runs `compare-pr.js`
-3. Posts (or updates) a sticky PR comment with the table, regressions, and improvements (informational — does not fail the check)
+3. Uploads the report artifact; **PR Benchmarks Comment** then posts (or updates) a sticky PR comment
 
 Re-runs automatically on new commits while the label remains.
 
-Uses `pull_request_target` so comments also work for **fork** PRs (plain `pull_request` tokens are read-only on forks). The workflow file on the **base branch** is what runs; merge workflow changes to `main` before relying on them for external PRs.
+Fork PRs are supported: benchmarks run on `pull_request` (read-only token), and commenting runs separately on `workflow_run` with the base-repo token.
 
 ## Other suites
 

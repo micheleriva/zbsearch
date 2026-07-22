@@ -21,7 +21,7 @@ export function innerHybridSearch<T extends AnyZBSearch, ResultDocument = TypedD
   params: SearchParamsHybrid<T, ResultDocument>,
   language?: string
 ) {
-  const fullTextIDs = minMaxScoreNormalization(innerFullTextSearch(zbsearch, params, language))
+  const fullTextIDs = innerFullTextSearch(zbsearch, params, language)
   const vectorIDs = innerVectorSearch(zbsearch, params, language)
 
   const hybridWeights = params.hybridWeights
@@ -106,13 +106,6 @@ function extractScore(token: TokenScore) {
   return token[1]
 }
 
-function minMaxScoreNormalization(results: TokenScore[]): TokenScore[] {
-  // In this case I disabled the `prefer-spread` rule because spread seems to be slower
-  // eslint-disable-next-line prefer-spread
-  const maxScore = Math.max.apply(Math, results.map(extractScore))
-  return results.map(([id, score]) => [id, score / maxScore] as TokenScore)
-}
-
 function normalizeScore(score: number, maxScore: number) {
   return score / maxScore
 }
@@ -127,10 +120,8 @@ function mergeAndRankResults(
   query: string,
   hybridWeights: HybridWeights | undefined
 ) {
-  // eslint-disable-next-line prefer-spread
-  const maxTextScore = Math.max.apply(Math, textResults.map(extractScore))
-  // eslint-disable-next-line prefer-spread
-  const maxVectorScore = Math.max.apply(Math, vectorResults.map(extractScore))
+  const maxTextScore = Math.max(...textResults.map(extractScore))
+  const maxVectorScore = Math.max(...vectorResults.map(extractScore))
   const hasHybridWeights = hybridWeights && hybridWeights.text && hybridWeights.vector
 
   const { text: textWeight, vector: vectorWeight } = hasHybridWeights ? hybridWeights : getQueryWeights(query)

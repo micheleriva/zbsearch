@@ -104,11 +104,7 @@ export function prioritizeTokenScores(
     return resultsWithIdAndScore.slice(0, lastTokenWithAllKeywords + 1)
   }
 
-  // If the threshold is between 0 and 1, we will return all the results that contains at least the threshold of search terms
-  // For example, if threshold is 0.5, we will return all the results that contains at least 50% of the search terms
-  // (fuzzy match with a minimum threshold)
-  const thresholdLength =
-    lastTokenWithAllKeywords + Math.ceil((threshold * 100 * (allResults - lastTokenWithAllKeywords)) / 100)
+  const thresholdLength = lastTokenWithAllKeywords + Math.ceil(threshold * (allResults - lastTokenWithAllKeywords))
 
   return resultsWithIdAndScore.slice(0, Math.min(allResults, thresholdLength))
 }

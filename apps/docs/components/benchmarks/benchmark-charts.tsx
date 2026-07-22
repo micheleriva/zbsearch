@@ -141,7 +141,7 @@ function BenchmarkMatrix({
                   if (!result) {
                     return (
                       <td key={suite.id} className="rounded-lg bg-fd-muted/20 px-3 py-3">
-                        <span className="text-xs text-fd-muted-foreground">—</span>
+                        <span className="text-xs text-fd-muted-foreground">-</span>
                       </td>
                     );
                   }

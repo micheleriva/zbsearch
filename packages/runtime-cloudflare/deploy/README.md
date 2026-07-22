@@ -1,6 +1,6 @@
 # ZBSearch Edge on Cloudflare
 
-Deploy ZBSearch Edge from npm — no monorepo clone required.
+Deploy ZBSearch Edge from npm - no monorepo clone required.
 
 ## Quick start
 
@@ -32,9 +32,9 @@ npx zbsearch-edge-setup
 
 In your project directory:
 
-- `zbsearch.edge.config.json` — your settings (gitignore this; may contain secrets)
-- `wrangler.toml` — generated Worker config
-- `.env` — R2 credentials for rebuild CLI and teardown
+- `zbsearch.edge.config.json` - your settings (gitignore this; may contain secrets)
+- `wrangler.toml` - generated Worker config
+- `.env` - R2 credentials for rebuild CLI and teardown
 
 ## Teardown
 
@@ -45,6 +45,6 @@ npx zbsearch-edge-teardown --yes
 
 ## Packages
 
-- `@zbsearch/runtime-cloudflare` — Worker runtime + setup/teardown CLIs
-- `@zbsearch/edge-index-builder` — rebuild CLI for production indexes
-- `@zbsearch/edge-core` — installed automatically as a dependency
+- `@zbsearch/runtime-cloudflare` - Worker runtime + setup/teardown CLIs
+- `@zbsearch/edge-index-builder` - rebuild CLI for production indexes
+- `@zbsearch/edge-core` - installed automatically as a dependency

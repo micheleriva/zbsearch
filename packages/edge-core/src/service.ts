@@ -11,14 +11,24 @@ import {
   readBufferOps
 } from './buffer.js'
 import { badRequest, notFound } from './errors.js'
+import type { WalCoordinator } from './coordinator.js'
 import { getIndexMeta, registerIndex, saveIndexMeta } from './registry.js'
 import { indexMetaKey, newVersionId, snapshotKey } from './paths.js'
+import { isShardGroupMeta, shardIndexId } from './shards.js'
+import {
+  bufferBatchSharded,
+  bufferDeleteSharded,
+  bufferUpsertSharded,
+  getShardedManifest,
+  getShardedStatus,
+  maybeScheduleRebuildSharded,
+  rebuildShardGroup,
+  runShardedSearch
+} from './shard-group.js'
 import type { ObjectStorage, ShardCache } from './storage.js'
 import type {
   BufferedWriteResponse,
-  BufferDeleteOp,
   BufferOp,
-  BufferUpsertOp,
   IndexMeta,
   IndexSettings,
   IndexStatusResponse
@@ -28,6 +38,85 @@ export interface CreateIndexInput {
   name: string
   schema: AnySchema
   settings?: IndexSettings
+  shards?: number
+}
+
+export interface SnapshotDbCacheOptions {
+  maxEntries?: number
+  maxBytes?: number
+}
+
+const DEFAULT_SNAPSHOT_DB_CACHE_MAX_ENTRIES = 4
+const DEFAULT_SNAPSHOT_DB_CACHE_MAX_BYTES = 64 * 1024 * 1024
+const MAX_SHARD_COUNT = 64
+
+interface SnapshotDbCacheEntry {
+  db: AnyZBSearch
+  bytes: number
+}
+
+const snapshotDbCache = new Map<string, SnapshotDbCacheEntry>()
+let snapshotDbCacheBytes = 0
+let snapshotDbCacheMaxEntries = DEFAULT_SNAPSHOT_DB_CACHE_MAX_ENTRIES
+let snapshotDbCacheMaxBytes = DEFAULT_SNAPSHOT_DB_CACHE_MAX_BYTES
+
+function evictSnapshotDbCache(): void {
+  while (snapshotDbCache.size > snapshotDbCacheMaxEntries || snapshotDbCacheBytes > snapshotDbCacheMaxBytes) {
+    const oldest = snapshotDbCache.keys().next()
+    if (oldest.done) {
+      break
+    }
+    const entry = snapshotDbCache.get(oldest.value)!
+    snapshotDbCache.delete(oldest.value)
+    snapshotDbCacheBytes -= entry.bytes
+  }
+}
+
+export function configureSnapshotDbCache(options: SnapshotDbCacheOptions = {}): void {
+  if (options.maxEntries !== undefined) {
+    snapshotDbCacheMaxEntries = Math.max(0, options.maxEntries)
+  }
+  if (options.maxBytes !== undefined) {
+    snapshotDbCacheMaxBytes = Math.max(0, options.maxBytes)
+  }
+  evictSnapshotDbCache()
+}
+
+export function clearSnapshotDbCache(): void {
+  snapshotDbCache.clear()
+  snapshotDbCacheBytes = 0
+  snapshotDbCacheMaxEntries = DEFAULT_SNAPSHOT_DB_CACHE_MAX_ENTRIES
+  snapshotDbCacheMaxBytes = DEFAULT_SNAPSHOT_DB_CACHE_MAX_BYTES
+}
+
+function getCachedSnapshotDb(key: string): AnyZBSearch | null {
+  const entry = snapshotDbCache.get(key)
+
+  if (!entry) {
+    return null
+  }
+
+  snapshotDbCache.delete(key)
+  snapshotDbCache.set(key, entry)
+
+  return entry.db
+}
+
+function setCachedSnapshotDb(key: string, db: AnyZBSearch, bytes: number): void {
+  if (snapshotDbCacheMaxEntries === 0 || bytes > snapshotDbCacheMaxBytes) {
+    return
+  }
+
+  const existing = snapshotDbCache.get(key)
+
+  if (existing) {
+    snapshotDbCacheBytes -= existing.bytes
+  }
+
+  snapshotDbCache.set(key, { db, bytes })
+  snapshotDbCacheBytes += bytes
+
+  evictSnapshotDbCache()
 }
 
 export interface SearchInput {
@@ -56,15 +145,39 @@ function slugify(name: string): string {
     .replace(/^-|-$/g, '')
 }
 
-export async function createIndex(
-  storage: ObjectStorage,
-  input: CreateIndexInput
-): Promise<IndexMeta> {
+export async function createIndex(storage: ObjectStorage, input: CreateIndexInput): Promise<IndexMeta> {
+  if (!input || typeof input.name !== 'string') {
+    throw badRequest('Missing index name')
+  }
+
   const id = slugify(input.name)
+
   if (!id) {
     throw badRequest('Invalid index name')
   }
 
+  if (input.shards !== undefined) {
+    if (!Number.isInteger(input.shards) || input.shards < 2 || input.shards > MAX_SHARD_COUNT) {
+      throw badRequest(`shards must be an integer between 2 and ${MAX_SHARD_COUNT}`)
+    }
+  }
+
+  const meta = await createIndexWithId(storage, id, input)
+
+  if (input.shards !== undefined) {
+    for (let i = 0; i < input.shards; i++) {
+      await createIndexWithId(storage, shardIndexId(id, i), {
+        name: shardIndexId(id, i),
+        schema: input.schema,
+        settings: input.settings
+      })
+    }
+  }
+
+  return meta
+}
+
+async function createIndexWithId(storage: ObjectStorage, id: string, input: CreateIndexInput): Promise<IndexMeta> {
   const existing = await storage.get(indexMetaKey(id))
   if (existing) {
     throw badRequest(`Index ${id} already exists`)
@@ -81,6 +194,7 @@ export async function createIndex(
       mode: 'edge',
       ...input.settings
     },
+    ...(input.shards !== undefined ? { shards: { count: input.shards } } : {}),
     liveVersion: null,
     buildingVersion: null,
     status: 'empty',
@@ -97,20 +211,28 @@ export async function createIndex(
   return meta
 }
 
-export async function bufferUpsert(
+export interface BufferedWriteOptions {
+  walCoordinator?: WalCoordinator
+}
+
+async function appendWriteOps(
   storage: ObjectStorage,
-  indexId: string,
-  docId: string,
-  doc: Record<string, unknown>
+  meta: IndexMeta,
+  ops: BufferOp[],
+  options: BufferedWriteOptions
 ): Promise<BufferedWriteResponse> {
-  const meta = await getIndexMeta(storage, indexId)
-  const ts = new Date().toISOString()
-  const { changeId, bufferedAt, head } = await appendBufferOp(storage, indexId, {
-    op: 'upsert',
-    id: docId,
-    ts,
-    doc
-  })
+  if (options.walCoordinator) {
+    const { changeId, bufferedAt } = await options.walCoordinator.appendOps(meta.id, ops)
+    return {
+      status: 'buffered',
+      changeId,
+      bufferedAt,
+      indexStatus: meta.liveVersion ? meta.status : 'empty'
+    }
+  }
+
+  const { changeId, bufferedAt, head } =
+    ops.length === 1 ? await appendBufferOp(storage, meta.id, ops[0]!) : await appendWalBatch(storage, meta.id, ops)
 
   meta.pendingOps = head.pendingOps
   meta.status = meta.liveVersion ? meta.status : 'empty'
@@ -124,6 +246,24 @@ export async function bufferUpsert(
   }
 }
 
+export async function bufferUpsert(
+  storage: ObjectStorage,
+  indexId: string,
+  docId: string,
+  doc: Record<string, unknown>,
+  options: BufferedWriteOptions = {}
+): Promise<BufferedWriteResponse> {
+  const meta = await getIndexMeta(storage, indexId)
+
+  if (isShardGroupMeta(meta)) {
+    return bufferUpsertSharded(storage, meta, docId, doc, options)
+  }
+
+  const ts = new Date().toISOString()
+
+  return appendWriteOps(storage, meta, [{ op: 'upsert', id: docId, ts, doc }], options)
+}
+
 export interface ImportDocument {
   id: string
   doc: Record<string, unknown>
@@ -133,7 +273,7 @@ export async function importDocuments(
   storage: ObjectStorage,
   indexId: string,
   documents: ImportDocument[],
-  options?: { create?: CreateIndexInput }
+  options?: { create?: CreateIndexInput; walCoordinator?: WalCoordinator }
 ): Promise<IndexMeta> {
   let meta: IndexMeta
   try {
@@ -143,6 +283,10 @@ export async function importDocuments(
       throw err
     }
     meta = await createIndex(storage, { ...options.create, name: options.create.name || indexId })
+  }
+
+  if (isShardGroupMeta(meta)) {
+    throw badRequest(`Index ${indexId} is a shard group; import into its shards or use importShardedDocuments`)
   }
 
   const version = newVersionId()
@@ -157,7 +301,11 @@ export async function importDocuments(
     contentType: 'application/msgpack'
   })
 
-  await clearBuffer(storage, indexId)
+  if (options?.walCoordinator) {
+    await options.walCoordinator.clearBuffer(indexId)
+  } else {
+    await clearBuffer(storage, indexId)
+  }
 
   meta.liveVersion = version
   meta.buildingVersion = null
@@ -175,12 +323,13 @@ export async function importDocuments(
 export async function bufferBatch(
   storage: ObjectStorage,
   indexId: string,
-  operations: Array<
-    | { op: 'upsert'; id: string; doc: Record<string, unknown> }
-    | { op: 'delete'; id: string }
-  >
+  operations: Array<{ op: 'upsert'; id: string; doc: Record<string, unknown> } | { op: 'delete'; id: string }>,
+  options: BufferedWriteOptions = {}
 ): Promise<BufferedWriteResponse> {
   const meta = await getIndexMeta(storage, indexId)
+  if (isShardGroupMeta(meta)) {
+    return bufferBatchSharded(storage, meta, operations, options)
+  }
   const ts = new Date().toISOString()
   const ops: BufferOp[] = operations.map((operation) =>
     operation.op === 'upsert'
@@ -188,46 +337,32 @@ export async function bufferBatch(
       : { op: 'delete', id: operation.id, ts }
   )
 
-  const { changeId, bufferedAt, head } = await appendWalBatch(storage, indexId, ops)
-
-  meta.pendingOps = head.pendingOps
-  meta.status = meta.liveVersion ? meta.status : 'empty'
-  await saveIndexMeta(storage, meta)
-
-  return {
-    status: 'buffered',
-    changeId,
-    bufferedAt,
-    indexStatus: meta.status
-  }
+  return appendWriteOps(storage, meta, ops, options)
 }
 
 export async function bufferDelete(
   storage: ObjectStorage,
   indexId: string,
-  docId: string
+  docId: string,
+  options: BufferedWriteOptions = {}
 ): Promise<BufferedWriteResponse> {
   const meta = await getIndexMeta(storage, indexId)
-  const ts = new Date().toISOString()
-  const { changeId, bufferedAt, head } = await appendBufferOp(storage, indexId, {
-    op: 'delete',
-    id: docId,
-    ts
-  })
 
-  meta.pendingOps = head.pendingOps
-  await saveIndexMeta(storage, meta)
-
-  return {
-    status: 'buffered',
-    changeId,
-    bufferedAt,
-    indexStatus: meta.status
+  if (isShardGroupMeta(meta)) {
+    return bufferDeleteSharded(storage, meta, docId, options)
   }
+
+  const ts = new Date().toISOString()
+  return appendWriteOps(storage, meta, [{ op: 'delete', id: docId, ts }], options)
 }
 
 export async function getStatus(storage: ObjectStorage, indexId: string): Promise<IndexStatusResponse> {
   const meta = await getIndexMeta(storage, indexId)
+
+  if (isShardGroupMeta(meta)) {
+    return getShardedStatus(storage, meta)
+  }
+
   return {
     indexId: meta.id,
     liveVersion: meta.liveVersion,
@@ -240,16 +375,18 @@ export async function getStatus(storage: ObjectStorage, indexId: string): Promis
   }
 }
 
-async function loadSnapshotDb(
-  storage: ObjectStorage,
-  meta: IndexMeta,
-  cache: ShardCache
-): Promise<AnyZBSearch | null> {
+async function loadSnapshotDb(storage: ObjectStorage, meta: IndexMeta, cache: ShardCache): Promise<AnyZBSearch | null> {
   if (!meta.liveVersion) {
     return null
   }
 
   const key = snapshotKey(meta.id, meta.liveVersion)
+
+  const cachedDb = getCachedSnapshotDb(key)
+  if (cachedDb) {
+    return cachedDb
+  }
+
   const cacheKey = `snapshot:${key}`
 
   let bytes = await cache.get(cacheKey)
@@ -265,6 +402,7 @@ async function loadSnapshotDb(
   const raw = decode(bytes)
   const db = create({ schema: meta.schema, language: meta.settings.language as any })
   load(db, raw as any)
+  setCachedSnapshotDb(key, db, bytes.byteLength)
   return db
 }
 
@@ -281,16 +419,14 @@ async function loadDocumentsFromSnapshot(
 
   for (const doc of Object.values(db.data.docs.docs)) {
     if (doc && typeof doc === 'object' && 'id' in doc && doc.id != null) {
-      docs.set(String(doc.id), doc as Record<string, unknown>)
+      docs.set(String(doc.id), { ...(doc as Record<string, unknown>) })
     }
   }
+
   return docs
 }
 
-async function readPendingBufferOps(
-  storage: ObjectStorage,
-  meta: IndexMeta
-): Promise<BufferOp[]> {
+async function readPendingBufferOps(storage: ObjectStorage, meta: IndexMeta): Promise<BufferOp[]> {
   if (meta.pendingOps === 0) {
     return []
   }
@@ -341,19 +477,32 @@ export interface ScheduleRebuildOptions {
   builderWebhookUrl?: string
   schedule?: (task: Promise<unknown>) => void
   source?: 'threshold' | 'scheduler'
+  walCoordinator?: WalCoordinator
+  runInline?: boolean
 }
+
+const REBUILD_STATUS_STALE_MS = 15 * 60 * 1000
 
 export async function maybeScheduleRebuild(
   storage: ObjectStorage,
   indexId: string,
   options: ScheduleRebuildOptions = {}
 ): Promise<void> {
-  if (!options.schedule) {
+  if (!options.schedule && !options.runInline) {
     return
   }
 
   const meta = await getIndexMeta(storage, indexId)
-  if (meta.status === 'building') {
+
+  if (isShardGroupMeta(meta)) {
+    await maybeScheduleRebuildSharded(storage, meta, options)
+    return
+  }
+
+  if (
+    meta.status === 'building' &&
+    Date.now() - Date.parse(meta.updatedAt) <= REBUILD_STATUS_STALE_MS
+  ) {
     return
   }
 
@@ -363,7 +512,7 @@ export async function maybeScheduleRebuild(
   }
 
   if (options.builderWebhookUrl) {
-    options.schedule(
+    options.schedule?.(
       fetch(options.builderWebhookUrl, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -373,12 +522,58 @@ export async function maybeScheduleRebuild(
     return
   }
 
-  options.schedule(rebuildIndex(storage, indexId))
+  if (options.runInline) {
+    await rebuildIndex(storage, indexId, { walCoordinator: options.walCoordinator })
+    return
+  }
+
+  options.schedule!(rebuildIndex(storage, indexId, { walCoordinator: options.walCoordinator }))
 }
 
-export async function rebuildIndex(storage: ObjectStorage, indexId: string): Promise<IndexMeta> {
+export interface RebuildOptions {
+  walCoordinator?: WalCoordinator
+}
+
+export async function rebuildIndex(
+  storage: ObjectStorage,
+  indexId: string,
+  options: RebuildOptions = {}
+): Promise<IndexMeta> {
+  const groupMeta = await getIndexMeta(storage, indexId)
+
+  if (isShardGroupMeta(groupMeta)) {
+    return rebuildShardGroup(storage, groupMeta, options)
+  }
+
+  const coordinator = options.walCoordinator
+
+  if (coordinator) {
+    const acquired = await coordinator.acquireRebuildLock(indexId)
+
+    if (!acquired) {
+      return getIndexMeta(storage, indexId)
+    }
+    try {
+      return await runRebuild(storage, indexId, coordinator)
+    } finally {
+      await coordinator.releaseRebuildLock(indexId)
+    }
+  }
+
+  return runRebuild(storage, indexId, undefined)
+}
+
+async function runRebuild(
+  storage: ObjectStorage,
+  indexId: string,
+  coordinator: WalCoordinator | undefined
+): Promise<IndexMeta> {
   const meta = await getIndexMeta(storage, indexId)
-  if (meta.status === 'building') {
+  if (
+    !coordinator &&
+    meta.status === 'building' &&
+    Date.now() - Date.parse(meta.updatedAt) <= REBUILD_STATUS_STALE_MS
+  ) {
     return meta
   }
 
@@ -388,48 +583,91 @@ export async function rebuildIndex(storage: ObjectStorage, indexId: string): Pro
   meta.status = 'building'
   await saveIndexMeta(storage, meta)
 
-  const baseDocs = await loadDocumentsFromSnapshot(storage, meta, {
-    get: async () => null,
-    set: async () => {},
-    delete: async () => {}
-  })
-  const { ops: bufferOps, frozenSegmentKeys } = await freezeBufferForRebuild(storage, indexId)
-  const merged = applyBufferOps(baseDocs, bufferOps)
+  try {
+    const baseDocs = await loadDocumentsFromSnapshot(storage, meta, {
+      get: async () => null,
+      set: async () => {},
+      delete: async () => {}
+    })
+    const { ops: bufferOps, frozenSegmentKeys } = coordinator
+      ? await coordinator.freezeForRebuild(indexId)
+      : await freezeBufferForRebuild(storage, indexId)
+    const merged = applyBufferOps(baseDocs, bufferOps)
 
-  const db = create({ schema: meta.schema, language: meta.settings.language as any })
-  const documents = [...merged.entries()].map(([id, doc]) => ({ id, ...doc }))
-  if (documents.length > 0) {
-    insertMultiple(db, documents as any)
+    const db = create({ schema: meta.schema, language: meta.settings.language as any })
+    const documents = [...merged.entries()].map(([id, doc]) => ({ id, ...doc }))
+    if (documents.length > 0) {
+      insertMultiple(db, documents as any)
+    }
+
+    const raw = await save(db)
+    const snapshotBytes = encode(raw)
+    await storage.put(snapshotKey(indexId, version), snapshotBytes, {
+      contentType: 'application/msgpack'
+    })
+
+    const lastRebuildAt = new Date().toISOString()
+
+    if (coordinator) {
+      return await coordinator.finalizeAfterRebuild(indexId, frozenSegmentKeys, {
+        version,
+        documents: documents.length,
+        indexSizeBytes: snapshotBytes.byteLength,
+        lastRebuildAt
+      })
+    }
+
+    const head = await finalizeBufferAfterRebuild(storage, indexId, frozenSegmentKeys)
+
+    meta.liveVersion = version
+    meta.buildingVersion = null
+    meta.status = documents.length > 0 || head.pendingOps > 0 ? 'ready' : 'empty'
+    meta.documents = documents.length
+    meta.indexSizeBytes = snapshotBytes.byteLength
+    meta.pendingOps = head.pendingOps
+    meta.lastRebuildAt = lastRebuildAt
+    meta.lastAppliedOffset = null
+    await saveIndexMeta(storage, meta)
+
+    return meta
+  } catch (err) {
+    const failed = await getIndexMeta(storage, indexId).catch(() => meta)
+    failed.buildingVersion = null
+    failed.status = failed.liveVersion ? 'ready' : 'empty'
+    await saveIndexMeta(storage, failed).catch(() => {})
+    throw err
   }
+}
 
-  const raw = await save(db)
-  const snapshotBytes = encode(raw)
-  await storage.put(snapshotKey(indexId, version), snapshotBytes, {
-    contentType: 'application/msgpack'
-  })
-
-  const head = await finalizeBufferAfterRebuild(storage, indexId, frozenSegmentKeys)
-
-  meta.liveVersion = version
-  meta.buildingVersion = null
-  meta.status = documents.length > 0 || head.pendingOps > 0 ? 'ready' : 'empty'
-  meta.documents = documents.length
-  meta.indexSizeBytes = snapshotBytes.byteLength
-  meta.pendingOps = head.pendingOps
-  meta.lastRebuildAt = new Date().toISOString()
-  meta.lastAppliedOffset = null
-  await saveIndexMeta(storage, meta)
-
-  return meta
+export interface SearchOptions {
+  snapshotCache?: SnapshotDbCacheOptions
+  /**
+   * When set, shard-group searches fan out through this executor (one call
+   * per shard) instead of searching every shard in the current process.
+   * Use it to run each shard search in its own isolate (e.g. a subrequest
+   * per shard) so total index size is not limited by a single isolate's
+   * 128MB memory.
+   */
+  executeShardSearch?: (shardId: string, params: SearchInput) => Promise<Record<string, unknown>>
 }
 
 export async function runSearch(
   storage: ObjectStorage,
   cache: ShardCache,
   indexId: string,
-  params: SearchInput
+  params: SearchInput,
+  options: SearchOptions = {}
 ): Promise<Record<string, unknown>> {
+  if (options.snapshotCache) {
+    configureSnapshotDbCache(options.snapshotCache)
+  }
+
   const meta = await getIndexMeta(storage, indexId)
+  
+  if (isShardGroupMeta(meta)) {
+    return runShardedSearch(storage, cache, meta, params, options)
+  }
+
   const loaded = await loadSearchableDb(storage, meta, cache)
 
   if (!loaded) {
@@ -458,6 +696,11 @@ export async function runSearch(
 
 export async function getIndexManifest(storage: ObjectStorage, indexId: string) {
   const meta = await getIndexMeta(storage, indexId)
+
+  if (isShardGroupMeta(meta)) {
+    return getShardedManifest(storage, meta)
+  }
+
   return {
     indexId: meta.id,
     name: meta.name,

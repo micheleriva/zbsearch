@@ -1,0 +1,141 @@
+---
+title: Benchmarks
+description: Load-test ZBSearch Edge with the k6 harness in benchmarks/http - corpus generation, timed ingest, search/write/mixed/coldstart scenarios, and CI. Cloudflare deploy is in beta.
+---
+
+The monorepo ships an HTTP load-testing harness at [`benchmarks/http/`](https://github.com/micheleriva/zbsearch/tree/main/benchmarks/http) that exercises a deployed (or local) ZBSearch Edge Worker end to end: generate a corpus, ingest it, then drive k6 scenarios against the REST API.
+
+## Prerequisites
+
+- [k6](https://k6.io/) - on macOS: `brew install k6`
+- A target Worker: either `wrangler dev` locally or a deployed Worker URL
+- For offline ingest (default): the builder CLI built (`pnpm --filter @zbsearch/edge-index-builder build`) and R2 credentials in `deploy/cloudflare/.env`
+
+## The harness
+
+| File | Purpose |
+| --- | --- |
+| `generate-corpus.mjs` | Seeded, deterministic JSONL corpus generator (`{id, title, description, rating, genres[]}`). Also writes a `vocab.json` used by the k6 query mix. |
+| `ingest.mjs` | Timed ingest: builds a snapshot via the builder CLI and uploads to R2 (default), or streams batches through `POST /documents/batch` with `--via-api`. |
+| `k6/search.js` | Ramping arrival-rate search load, p(99) latency threshold |
+| `k6/write.js` | Constant-rate batch upserts, tracks `pendingOps` drift |
+| `k6/mixed.js` | ~95% searches / ~5% batch writes on a shared ramp |
+| `k6/coldstart.js` | One search every 5s to observe cold vs warm latency |
+| `run.sh` | Orchestrator: generate corpus (if missing) → ingest → warm → search + mixed scenarios |
+
+All k6 scenarios read `BASE_URL` (required), `API_KEY`, and `INDEX_ID` (default `loadtest`) from the environment.
+
+## Quick run against `wrangler dev`
+
+Start the local Worker in one terminal:
+
+```bash
+wrangler dev --config deploy/cloudflare/wrangler.toml
+```
+
+Then run the full flow with a 10k-document corpus, ingesting through the API (local Wrangler emulates R2, so the offline builder import does not apply):
+
+```bash
+cd benchmarks/http
+./run.sh 10000 --local --via-api
+```
+
+`--local` defaults `BASE_URL` to `http://127.0.0.1:8787` and `API_KEY` to `dev-key`.
+
+## Run against a deployed Worker
+
+Set credentials and let `run.sh` use the offline builder import (fastest for large corpora):
+
+```bash
+export BASE_URL=https://your-worker.workers.dev
+export API_KEY=your_api_key
+source deploy/cloudflare/.env   # R2 credentials for the builder CLI
+
+cd benchmarks/http
+./run.sh 100000
+```
+
+Or ingest through the API instead:
+
+```bash
+./run.sh 100000 --via-api
+```
+
+### Step by step (without `run.sh`)
+
+```bash
+cd benchmarks/http
+
+# 1. Generate the corpus (seeded; safe to re-run)
+node generate-corpus.mjs --docs 100000 --out data/corpus-100k.jsonl
+
+# 2a. Ingest offline via the builder CLI (builds snapshot, uploads to R2)
+node ingest.mjs --corpus data/corpus-100k.jsonl --index loadtest
+
+# 2b. ...or via the API
+node ingest.mjs --via-api --corpus data/corpus-100k.jsonl \
+  --base-url "$BASE_URL" --api-key "$API_KEY" --batch-size 100 --concurrency 4
+
+# 3. Run any scenario directly
+k6 run --summary-export results/search-$(date +%Y%m%dT%H%M%SZ).json k6/search.js
+```
+
+Useful scenario env vars: `WARMUP=true` (short 30s search run), `ABORT_ON_THRESHOLD=true`, `WRITE_RATE` / `WRITE_DURATION` / `BATCH_SIZE` (write), `COLD_DURATION` (coldstart).
+
+## Results
+
+`run.sh` and the examples above write timestamped k6 JSON summaries to `benchmarks/http/results/`.
+
+## Baseline results (local, July 2026)
+
+Measured with `wrangler dev` on an Apple Silicon laptop against the generated corpus (~1.3 KB/doc snapshots, text-heavy documents). **Read these as relative, not absolute**: local runs are a single process (no isolate fan-out), `wrangler dev` does not enforce the 128 MB isolate memory limit, and local R2/Cache behavior differs from production. Re-run against a deployed Worker for authoritative numbers.
+
+| Scenario | Docs | Snapshot | Result |
+| --- | --- | --- | --- |
+| Search ramp 50→1000 req/s, clean index | 10,000 | 13.6 MB | ~470 req/s sustained avg; **med 1.1 ms, p95 16.5 ms, p99 &lt; 500 ms ✓**; 0.002% errors |
+| Search ramp, clean index, snapshot **larger than** `SNAPSHOT_CACHE_MAX_BYTES` (64 MB default) | 89,300 | 110 MB | **Collapse**: every request re-fetches + re-decodes the snapshot → 8.5 s avg latency, 99.96% errors |
+| Search ramp, clean index, cache budget raised to fit (250 MB) | 89,300 | 110 MB | **0% errors**, ~395 req/s avg; med 40.6 ms, p90 771 ms, p95 795 ms (single-process queuing at the top of the ramp) |
+| Mixed 95% search / 5% writes, index dirty | 89,300 | 110 MB | **Collapse**: with `pendingOps > 0` every search re-indexes all documents → ~8.5 s per search, 99.8% errors, writes time out behind searches |
+| Bulk ingest via API (`documents/batch`, 100/batch, concurrency 4) | 10,000 | - | ~1,590 docs/s, p99 batch latency 764 ms, 0 failed batches |
+| Bulk ingest via API, sustained (auto-rebuilds firing) | 100,000 | - | ~230 docs/s effective; ~11% batch 503s during in-Worker rebuild windows (local artifact - use the external builder for bulk loads) |
+| Bulk ingest via API into a **4-shard** index | 100,000 | 4× ~31 MB | ~615 docs/s (2.7× monolithic - writes parallelize across per-shard coordinators), 3.6% failed batches |
+| Group rebuild (all shards in parallel) | 96,400 | 124 MB total | ~6 s |
+| Search ramp 50→1000 req/s, 4-shard, clean | 96,400 | 4× ~31 MB | 99.1% success, ~243 req/s avg; **uncontended warm latency ~20 ms** (cold ~2.7 s = one-time load of 4 shard snapshots). Median under ramp ~1.5 s is single-process queueing: each request fans out to 4 shard searches in one local process - production isolates scale this horizontally |
+| Mixed 95/5, 4-shard, dirty | 96,400 | - | Still collapses (99.8%): any dirty shard forces its full re-index per search (~2.6–3 s vs ~8.5 s monolithic - sharding divides the cost by shard count, but doesn't remove it). Keep `pendingOps` at zero with external rebuilds |
+
+Key takeaways:
+
+- A warm isolate cache serves searches in single-digit to tens of ms; the versioned snapshot key means rebuilds invalidate it automatically.
+- **The snapshot must fit the isolate cache budget.** A snapshot larger than `SNAPSHOT_CACHE_MAX_BYTES` is not degraded - it is an outage. Size the budget so your largest index fits with headroom, and remember production isolates are capped at 128 MB total.
+- **Past that ceiling, shard.** [Sharded indexes](/docs/cloudflare/api-reference#sharded-indexes) split a logical index across physical shards whose snapshots each fit the cache budget - this is the supported way to scale beyond a monolithic snapshot, rather than raising `SNAPSHOT_CACHE_MAX_BYTES` toward the isolate limit.
+- **Dirty searches re-index the whole index per request.** Keep `pendingOps` near zero on large indexes: lower `REBUILD_THRESHOLD_OPS`, run the external builder frequently, and prefer bulk import over API writes.
+- Snapshot size is corpus-dependent; measure your own with `GET /v1/indexes/:id/status` (`indexSizeBytes`) before choosing tiers.
+
+## Baseline results (deployed, July 2026)
+
+Measured against a production Worker on the Workers Paid plan (k6 over a residential connection - latencies include internet RTT):
+
+| Scenario | Docs | Result |
+| --- | --- | --- |
+| Search ramp, clean index, 4 shards (in-process fan-out) | 10,000 (13.9 MB total) | 310,190 requests at ~470 req/s, **0.00% errors**; med 168 ms, p90 233 ms, p95 273 ms, max 16 s (cold isolates) |
+| Search ramp, clean index, 8 shards (`ShardSearch` DO fan-out), DOs cold | 100,000 (132 MB total) | 17,870 requests, 98.7% success (errors all in the initial cold window); med 292 ms, p90 411 ms, p95 502 ms, max 60 s (cold DO snapshot loads) |
+| Search ramp, same index, DOs warm | 100,000 (8× 16.5 MB) | 18,000 requests at 75 req/s for 4 min, **0.00% errors**; med 333 ms, p90 446 ms, p95 492 ms, max 2.7 s |
+| Single group search, cold → warm | 100,000 (8 shards) | 3.3 s cold → ~330-450 ms warm |
+| Bulk ingest via API (`documents/batch`, 100/batch) | 10,000 | ~75-80 docs/s sustained (concurrency 4), 0 failed batches; ~800 docs/s attempted at concurrency 16; threshold auto-rebuilds keep up |
+| Mixed 95% search / 5% writes, index dirty | 10,000 | **Collapse** (98.5% errors, med 3.2 s): the dirty-path re-index cost is the same as local - keep `pendingOps` at zero |
+| Same search load on the **Workers Free plan** | 10,000 | 97.8% of searches fail with error 1102 (10ms CPU cap) - [Workers Paid is required](/docs/cloudflare/production#cloudflare-plan-requirements) |
+
+Warm single-request latency is ~180-450 ms end to end depending on shard count; engine time is tens of ms - the rest is network RTT and per-shard `meta.json` reads from R2 (see the [cost calculator](/docs/cloudflare/cost-calculator) for what those reads cost at scale).
+
+Why 100k docs needs the `ShardSearch` Durable Object: a group search that fans out in-process must hold every shard snapshot in one isolate - 8× 16.5 MB = 132 MB > the 128 MB limit, which produced 15-22 s latencies and OOM 503s. Routing each shard search to its own DO gives every shard a private isolate whose snapshot cache stays warm across requests. Two loopback alternatives do **not** work: fetching your own workers.dev hostname is rejected at the edge, and a same-worker service binding runs in the *same* isolate, sharing the memory limit.
+
+## CI workflow
+
+A manual-dispatch workflow at [`deploy/github-actions/zbsearch-loadtest.yml`](https://github.com/micheleriva/zbsearch/blob/main/deploy/github-actions/zbsearch-loadtest.yml) runs any single scenario from GitHub Actions. Copy it to `.github/workflows/` in your deployment repo, then add repository secrets:
+
+| Secret | Value |
+| --- | --- |
+| `LOADTEST_BASE_URL` | Deployed Worker URL |
+| `LOADTEST_API_KEY` | API key for the target Worker |
+
+Dispatch it from **Actions → Loadtest → Run workflow**, picking the scenario (`search`, `write`, `mixed`, or `coldstart`) and the target `index_id` (must already exist and be ingested). The k6 JSON summary is uploaded as a build artifact (30-day retention).

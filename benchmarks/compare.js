@@ -61,7 +61,12 @@ const rows = report.results.map((result) =>
 const meta = {
   title: 'Orama vs ZBSearch Benchmarks',
   oramaVersion: report.versions.orama,
-  zbsearchVersion: report.versions.zbsearch
+  zbsearchVersion: report.versions.zbsearch,
+  leftLabel: `Orama ${report.versions.orama}`,
+  rightLabel: `ZBSearch ${report.versions.zbsearch}`,
+  leftShort: 'Orama',
+  rightShort: 'ZB',
+  deltaHeader: 'Δ (ZB / Orama)'
 }
 
 const winners = summarizeWinners(rows)

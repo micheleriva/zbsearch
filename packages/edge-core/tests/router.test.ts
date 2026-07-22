@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 
 import { handleRequest, toResponse } from '../src/router.js'
 import { NoopShardCache } from '../src/storage.js'
-import { createIndex, rebuildIndex } from '../src/service.js'
+import { createIndex, rebuildIndex, bufferUpsert } from '../src/service.js'
 import { MemoryObjectStorage } from './helpers/memory-storage.js'
 import { makeRequest } from './helpers/http-request.js'
 
@@ -45,6 +45,95 @@ describe('router', () => {
       makeRequest('GET', '/v1/indexes', { headers: { authorization: 'Bearer secret-key' } })
     )
     assert.equal(authorized.status, 200)
+  })
+
+  it('read key reads but cannot write', async () => {
+    const storage = new MemoryObjectStorage()
+    await createIndex(storage, { name: 'rw', schema: { title: 'string' } })
+    await bufferUpsert(storage, 'rw', '1', { title: 'Readable' })
+    await rebuildIndex(storage, 'rw')
+    const auth = { storage, cache: new NoopShardCache(), readApiKey: 'read-key', writeApiKey: 'write-key' }
+
+    const read = await handleRequest(
+      auth,
+      makeRequest('GET', '/v1/indexes', { headers: { authorization: 'Bearer read-key' } })
+    )
+    assert.equal(read.status, 200)
+
+    const search = await handleRequest(
+      auth,
+      makeRequest('POST', '/v1/indexes/rw/search', {
+        headers: { authorization: 'Bearer read-key' },
+        body: { term: 'x' }
+      })
+    )
+    assert.equal(search.status, 200)
+
+    const write = await handleRequest(
+      auth,
+      makeRequest('PUT', '/v1/indexes/rw/documents/1', {
+        headers: { authorization: 'Bearer read-key' },
+        body: { title: 'Nope' }
+      })
+    )
+    assert.equal(write.status, 401)
+
+    const create = await handleRequest(
+      auth,
+      makeRequest('POST', '/v1/indexes', {
+        headers: { authorization: 'Bearer read-key' },
+        body: { name: 'nope', schema: { title: 'string' } }
+      })
+    )
+    assert.equal(create.status, 401)
+
+    const rebuild = await handleRequest(
+      auth,
+      makeRequest('POST', '/v1/indexes/rw/rebuild', { headers: { authorization: 'Bearer read-key' } })
+    )
+    assert.equal(rebuild.status, 401)
+  })
+
+  it('write key has full access', async () => {
+    const storage = new MemoryObjectStorage()
+    await createIndex(storage, { name: 'admin', schema: { title: 'string' } })
+    const auth = { storage, cache: new NoopShardCache(), readApiKey: 'read-key', writeApiKey: 'write-key' }
+
+    const write = await handleRequest(
+      auth,
+      makeRequest('PUT', '/v1/indexes/admin/documents/1', {
+        headers: { authorization: 'Bearer write-key' },
+        body: { title: 'Yes' }
+      })
+    )
+    assert.equal(write.status, 202)
+
+    const read = await handleRequest(
+      auth,
+      makeRequest('GET', '/v1/indexes', { headers: { authorization: 'Bearer write-key' } })
+    )
+    assert.equal(read.status, 200)
+  })
+
+  it('rejects all writes when only a read key is configured', async () => {
+    const storage = new MemoryObjectStorage()
+    await createIndex(storage, { name: 'ro', schema: { title: 'string' } })
+    const auth = { storage, cache: new NoopShardCache(), readApiKey: 'read-key' }
+
+    const write = await handleRequest(
+      auth,
+      makeRequest('PUT', '/v1/indexes/ro/documents/1', {
+        headers: { authorization: 'Bearer read-key' },
+        body: { title: 'Nope' }
+      })
+    )
+    assert.equal(write.status, 403)
+
+    const anonWrite = await handleRequest(
+      auth,
+      makeRequest('PUT', '/v1/indexes/ro/documents/1', { body: { title: 'Nope' } })
+    )
+    assert.equal(anonWrite.status, 403)
   })
 
   it('creates and lists indexes', async () => {

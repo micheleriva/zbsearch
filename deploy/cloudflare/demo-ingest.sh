@@ -42,7 +42,7 @@ api GET /health | pretty
 echo ""
 echo "==> Ensure index '${INDEX_ID}' exists"
 if ! api GET "/v1/indexes/${INDEX_ID}" | pretty; then
-  echo "Index missing — creating..."
+  echo "Index missing - creating..."
   api POST /v1/indexes "$(cat <<EOF
 {
   "name": "${INDEX_ID}",

@@ -113,7 +113,7 @@
     "benchmark": "node ../../benchmarks/index.js",
     "predev": "rm -rf dist && mkdir dist",
     "dev": "swc -s -w --extensions .ts,.cts -d dist src",
-    "prebuild": "npm run lint",
+    "prebuild": "npm run lint && cp ../../README.md ./README.md",
     "build": "tshy",
     "lint": "exit 0;",
     "test": "c8 -c tests/config/c8-local.json node --import tsx --test tests/*.test.ts",

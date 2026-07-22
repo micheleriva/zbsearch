@@ -1,27 +1,33 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/zbsearchsearch/zbsearch/refs/heads/main/misc/readme/zbsearch-readme-hero-light.png#gh-light-mode-only" />
-</p>
+# 😈 ZBSearch
 
-[![Tests](https://github.com/micheleriva/zbsearch/actions/workflows/turbo.yml/badge.svg)](https://github.com/micheleriva/zbsearch/actions/workflows/turbo.yml)
+ZBSearch (_zee bee search_) is a zero-bs fork of Orama maintained by **the original Orama team**.
 
-If you need more info, help, or want to provide general feedback on ZBSearch, join the [ZBSearch Slack channel](https://zbsearch.to/slack)
+- [Michele Riva](https://www.linkedin.com/in/micheleriva95/) (ex Co-Founder, CTO)
+- [Angela Angelini](https://www.linkedin.com/in/angeliningl/) (ex Co-Founder, CDO)
+- [Tommaso Allevi](https://www.linkedin.com/in/tommaso-allevi-a9979045/) (ex Sr. Engineer)
+- [Francesca Giannino](https://www.linkedin.com/in/francesca-giannino-293ba819/) (ex Sr. Engineer)
+- [Alberto Moretti](https://www.linkedin.com/in/alberto-moretti-95b23b1a9/) (ex Sr. Engineer)
+- [Aileen Villanueva Lecuona](https://www.linkedin.com/in/aileen-villanueva-31155666) (ex Sr. Engineer)
+- [Fausto Quaggia](https://www.linkedin.com/in/faustoquaggia/) (ex Eng. Manager)
+- [Davide Spaziani Testa](https://www.linkedin.com/in/davidespazianitesta) (ex Sr. Designer)
+
+After [Michele's departure](https://www.micheleriva.dev/writings/my-last-day-at-orama), the entire engineering team left Orama and reassembled to maintain this popular project with no external influence. No VC, no business incentives, no bs. Just open source software. Help us get 10.5k stars back!
 
 # Highlighted features
 
-- [Full-Text search](https://docs.zbsearch.com/docs/zbsearch-js/search)
-- [Vector Search](https://docs.zbsearch.com/docs/zbsearch-js/search/vector-search)
-- [Hybrid Search](https://docs.zbsearch.com/docs/zbsearch-js/search/hybrid-search)
-- [GenAI Chat Sessions](https://docs.zbsearch.com/docs/zbsearch-js/answer-engine)
-- [Search Filters](https://docs.zbsearch.com/docs/zbsearch-js/search/filters)
-- [Geosearch](https://docs.zbsearch.com/docs/zbsearch-js/search/geosearch)
-- [Pinning Rules (Merchandising)](https://docs.zbsearch.com/docs/zbsearch-js/results-pinning)
-- [Facets](https://docs.zbsearch.com/docs/zbsearch-js/search/facets)
-- [Fields Boosting](https://docs.zbsearch.com/docs/zbsearch-js/search/fields-boosting)
-- [Typo Tolerance](https://docs.zbsearch.com/docs/zbsearch-js/search#typo-tolerance)
-- [Exact Match](https://docs.zbsearch.com/docs/zbsearch-js/search#exact-match)
-- [BM25](https://docs.zbsearch.com/docs/zbsearch-js/search/bm25)
-- [Stemming and tokenization in 30 languages](https://docs.zbsearch.com/docs/zbsearch-js/text-analysis/stemming)
-- [Plugin System](https://docs.zbsearch.com/docs/zbsearch-js/plugins)
+- [Full-Text search](https://zbsearch.dev/docs/zbsearch/search)
+- [Vector Search](https://zbsearch.dev/docs/zbsearch/search/vector-search)
+- [Hybrid Search](https://zbsearch.dev/docs/zbsearch/search/hybrid-search)
+- [Search Filters](https://zbsearch.dev/docs/zbsearch/search/filters)
+- [Geosearch](https://zbsearch.dev/docs/zbsearch/search/geosearch)
+- [Pinning Rules (Merchandising)](https://zbsearch.dev/docs/zbsearch/results-pinning)
+- [Facets](https://zbsearch.dev/docs/zbsearch/search/facets)
+- [Fields Boosting](https://zbsearch.dev/docs/zbsearch/search/fields-boosting)
+- [Typo Tolerance](https://zbsearch.dev/docs/zbsearch/search#typo-tolerance)
+- [Exact Match](https://zbsearch.dev/docs/zbsearch/search#exact-match)
+- [BM25](https://zbsearch.dev/docs/zbsearch/search/bm25)
+- [Stemming and tokenization in 30 languages](https://zbsearch.dev/docs/zbsearch/text-analysis/stemming)
+- [Plugin System](https://zbsearch.dev/docs/zbsearch/plugins)
 
 # Installation
 
@@ -49,13 +55,7 @@ With Deno, you can just use the same CDN URL or use npm specifiers:
 import { create, search, insert } from 'npm:zbsearch'
 ```
 
-Read the complete documentation at [https://docs.zbsearch.com](https://docs.zbsearch.com).
-
-# ZBSearch Features
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/zbsearchsearch/zbsearch/refs/heads/main/misc/readme/features-light.png#gh-light-mode-only" />
-</p>
+Read the complete documentation at [https://zbsearch.dev](https://zbsearch.dev).
 
 # Usage
 
@@ -142,7 +142,7 @@ import { create, insertMultiple, search } from 'zbsearch'
 const db = create({
   schema: {
     title: 'string',
-    embedding: 'vector[5]'', // we are using a 5-dimensional vector.
+    embedding: 'vector[5]', // we are using a 5-dimensional vector.
   },
 });
 
@@ -168,7 +168,7 @@ const results = search(db, {
 })
 ```
 
-Have trouble generating embeddings for vector and hybrid search? Try our `@zbsearch/plugin-embeddings` plugin!
+Have trouble generating embeddings for vector and hybrid search? Try our `zbsearch/plugin-embeddings` plugin!
 
 ```js
 import { create } from 'zbsearch'
@@ -194,7 +194,7 @@ const db = create({
   schema: {
     description: 'string',
     // ZBSearch generates 512-dimensions vectors.
-    // When using @zbsearch/plugin-embeddings, set the property where you want to store embeddings as `vector[512]`.
+    // When using zbsearch/plugin-embeddings, set the property where you want to store embeddings as `vector[512]`.
     embeddings: 'vector[512]'
   },
   plugins: [plugin]
@@ -209,75 +209,25 @@ await insert(db, { description: 'Bose QuietComfort Bluetooth Headphones' })
 // ZBSearch will also generate and use embeddings at search time when search mode is set to "vector" or "hybrid"!
 const searchResults = await search(db, {
   term: 'Headphones for 12th grade students',
-  mode: 'vector'
+  mode: 'vector',
+  similarity: 0.75,
 })
 ```
 
-Want to use OpenAI embedding models? Use our [Secure Proxy](https://docs.zbsearch.com/docs/zbsearch-js/plugins/plugin-secure-proxy) plugin to call OpenAI from the client-side securely.
-
-# RAG and Chat Experiences with ZBSearch
-
-Since `v3.0.0`, ZBSearch allows you to create your own ChatGPT/Perplexity/SearchGPT-like experience. You will need to call the OpenAI APIs, so we strongly recommend using the [Secure Proxy Plugin](https://docs.zbsearch.com/docs/zbsearch-js/plugins/plugin-secure-proxy) to do that securely from your client side. It's free!
-
-```js
-import { create, insert } from 'zbsearch'
-import { pluginSecureProxy } from '@zbsearch/plugin-secure-proxy'
-
-const secureProxy = await pluginSecureProxy({
-  apiKey: 'my-api-key',
-  defaultProperty: 'embeddings',
-  models: {
-    // The chat model to use to generate the chat answer
-    chat: 'openai/gpt-4o-mini'
-  }
-})
-
-const db = create({
-  schema: {
-    name: 'string'
-  },
-  plugins: [secureProxy]
-})
-
-insert(db, { name: 'John Doe' })
-insert(db, { name: 'Jane Doe' })
-
-const session = new AnswerSession(db, {
-  // Customize the prompt for the system
-  systemPrompt: 'You will get a name as context, please provide a greeting message',
-  events: {
-    // Log all state changes. Useful to reactively update a UI on a new message chunk, sources, etc.
-    onStateChange: console.log,
-  }
-})
-
-const response = await session.ask({
-  term: 'john'
-})
-
-console.log(response) // Hello, John Doe! How are you doing?
-```
-
-Read the complete documentation [here](https://docs.zbsearch.com/docs/zbsearch-js/usage/answer-engine/introduction).
+Read the complete [documentation](https://zbsearch.dev).
 
 # Official Docs
 
-Read the complete documentation at [https://docs.zbsearch.com/open-source](https://docs.zbsearch.com/open-source).
+Read the complete documentation at [https://zbsearch.dev](https://zbsearch.dev).
 
 # Official ZBSearch Plugins
 
-- [Plugin Embeddings](https://docs.zbsearch.com/docs/zbsearch-js/plugins/plugin-embeddings)
-- [Plugin Secure Proxy](https://docs.zbsearch.com/docs/zbsearch-js/plugins/plugin-secure-proxy)
-- [Plugin Analytics](https://docs.zbsearch.com/docs/zbsearch-js/plugins/plugin-analytics)
-- [Plugin Data Persistence](https://docs.zbsearch.com/docs/zbsearch-js/plugins/plugin-data-persistence)
-- [Plugin QPS](https://docs.zbsearch.com/docs/zbsearch-js/plugins/plugin-qps)
-- [Plugin PT15](https://docs.zbsearch.com/docs/zbsearch-js/plugins/plugin-pt15)
-- [Plugin Vitepress](https://docs.zbsearch.com/docs/zbsearch-js/plugins/plugin-vitepress)
-- [Plugin Docusaurus](https://docs.zbsearch.com/docs/zbsearch-js/plugins/plugin-docusaurus)
-- [Plugin Astro](https://docs.zbsearch.com/docs/zbsearch-js/plugins/plugin-astro)
-- [Plugin Nextra](https://docs.zbsearch.com/docs/zbsearch-js/plugins/plugin-nextra)
+- [Plugin Embeddings](https://zbsearch.dev/docs/zbsearch/plugins/plugin-embeddings)
+- [Plugin Data Persistence](https://zbsearch.dev/docs/zbsearch/plugins/plugin-data-persistence)
+- [Plugin QPS](https://zbsearch.dev/docs/zbsearch/plugins/plugin-qps)
+- [Plugin PT15](https://zbsearch.dev/docs/zbsearch/plugins/plugin-pt15)
 
-Write your own plugin: [https://docs.zbsearch.com/docs/zbsearch-js/plugins/writing-your-own-plugins](https://docs.zbsearch.com/docs/zbsearch-js/plugins/writing-your-own-plugins)
+Write your own plugin: [https://zbsearch.dev](https://zbsearch.dev)
 
 # License
 

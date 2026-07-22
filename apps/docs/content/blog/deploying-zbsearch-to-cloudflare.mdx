@@ -1,32 +1,28 @@
 ---
 title: How We Built ZBSearch Edge for Cloudflare Workers
-description: A deep dive into the architecture behind ZBSearch Edge. Workers, R2, append-only WALs, immutable snapshots, and the package split that keeps the runtime portable.
+description: Workers, R2, Durable Objects, WAL segments, sharded indexes, and the package split that keeps the runtime portable.
 author: Michele Riva
-date: 2026-07-13
+date: 2026-07-21
 ---
 
-We wanted ZBSearch to run at the edge: a globally distributed search API without operating our own servers, with the same full-text, vector, and hybrid search you get from the `zbsearch` library in the browser or Node.js.
+We wanted ZBSearch at the edge: a globally distributed search API without operating our own servers, with the same full-text, vector, and hybrid search you get from the `zbsearch` library.
 
-That goal became **ZBSearch Edge**, a self-hosted search API on **Cloudflare Workers** with **R2** as durable storage. You deploy it to your own Cloudflare account. There is no control plane, no billing integration, and no vendor lock-in beyond standard Cloudflare infrastructure.
+That became **ZBSearch Edge** - a self-hosted API on **Cloudflare Workers** with **R2** as durable storage. You deploy it to your own account. No control plane, no billing integration, no lock-in beyond standard Cloudflare infrastructure.
 
-This post walks through how we designed and implemented it.
+## Design constraints
 
-## The constraints we designed around
+Workers are great for low-latency HTTP, but they have tight CPU/memory limits, no local disk, and billing tied to request duration. R2 is cheap and durable, but every read/write is a network hop.
 
-Cloudflare Workers are excellent for low-latency HTTP at the edge, but they are not a general-purpose database host. A Worker has tight CPU and memory limits, no persistent local disk, and billing tied to request duration. R2 gives us cheap, durable object storage with an S3-compatible API, but every read and write is a network round trip.
+Those constraints forced a specific shape:
 
-Those constraints pushed us toward a specific shape:
+1. **Reads** - load a pre-built snapshot, cache it hard, serve search.
+2. **Writes** - append to a log in R2, acknowledge immediately (`202`), merge later.
+3. **Heavy work** - full rebuilds belong in CI/CLI, not a 128 MB isolate.
+4. **Portability** - Cloudflare is the first runtime, not the only one.
 
-1. **Reads should be fast and predictable**: load a pre-built index snapshot, cache it at the edge, serve search.
-2. **Writes should be cheap and durable**: append operations to a log in R2, acknowledge immediately, merge later.
-3. **Heavy work should run outside the Worker**: full index rebuilds belong in CI or a CLI, not in a 128 MB isolate.
-4. **The core logic should be portable**: Cloudflare is the first runtime, not the only one we have in mind.
+The result: **snapshot + WAL**, coordinated by Durable Objects, with optional sharding for large catalogs.
 
-The result is a **snapshot + WAL** architecture with a deliberate package split.
-
-## High-level architecture
-
-At runtime, a single Cloudflare Worker fronts every request. It delegates to `@zbsearch/edge-core` for routing, index management, and search orchestration. Storage and caching are injected through small interfaces implemented for Cloudflare:
+## Architecture at a glance
 
 ```mermaid
 flowchart TB
@@ -36,9 +32,13 @@ flowchart TB
 
   subgraph edge [Cloudflare Edge]
     Worker["Worker (@zbsearch/runtime-cloudflare)"]
-    Cache[Workers Cache]
+    Coord[IndexCoordinator DO]
+    SearchDO[ShardSearch DO]
+    Cache[Isolate LRU + Workers Cache]
     Core["@zbsearch/edge-core"]
     Worker --> Core
+    Core --> Coord
+    Core --> SearchDO
     Core --> Cache
   end
 
@@ -54,421 +54,166 @@ flowchart TB
   end
 
   App -->|HTTPS| Worker
-  Core -->|snapshots + WAL| R2
+  Coord -->|WAL segments| R2
+  Core -->|snapshots| R2
   Worker -.->|webhook| CI
 ```
 
-**Clients** talk to the Worker over HTTPS. **Search** loads an immutable msgpack snapshot from R2 (cached in Workers Cache). **Writes** append NDJSON operations to an append-only WAL in R2 and return `202 Accepted` immediately. **Rebuilds** merge the live snapshot with pending WAL entries into a new snapshot version.
+| Path | What happens |
+| --- | --- |
+| **Write** | `IndexCoordinator` batches ops into WAL segments in R2 → `202 Accepted` |
+| **Search** | Load live snapshot (3-layer cache); overlay pending WAL when `pendingOps > 0` |
+| **Rebuild** | Freeze WAL → merge → upload new immutable snapshot → promote `liveVersion` |
+| **Large indexes** | Create with `shards: N`; search fans out to `ShardSearch` DOs |
 
-## Package split: keep the core portable
+## Package split
 
-We split the implementation into four published npm packages (currently **v3.3.1**) so the Cloudflare adapter stays thin:
+Four published packages (**v3.3.2**). The Cloudflare adapter stays thin; the core stays portable:
 
 | Package | Responsibility |
 | --- | --- |
-| `@zbsearch/edge-core` | REST router, WAL, rebuild logic, search orchestration (runtime-agnostic) |
-| `@zbsearch/runtime-cloudflare` | Workers entrypoint (`fetch`, `scheduled`), R2 + Cache bindings, setup/teardown CLIs |
-| `@zbsearch/storage-s3` | S3-compatible storage driver for R2 (used by the builder CLI) |
+| `@zbsearch/edge-core` | REST router, WAL, rebuild, search (runtime-agnostic) |
+| `@zbsearch/runtime-cloudflare` | Worker + Durable Objects, R2/Cache adapters, setup/teardown CLIs |
+| `@zbsearch/storage-s3` | S3 driver for R2 (builder CLI) |
 | `@zbsearch/edge-index-builder` | CLI for production rebuilds and bulk `import` |
 
-```mermaid
-flowchart LR
-  subgraph runtime [Cloudflare Runtime]
-    W["@zbsearch/runtime-cloudflare<br/>~85 lines"]
-    R2A[R2ObjectStorage]
-    CA[WorkersShardCache]
-    W --> R2A
-    W --> CA
-  end
+`edge-core` depends only on `zbsearch` and msgpack. Storage and caching are two small interfaces (`ObjectStorage`, `ShardCache`). A future Docker/Lambda/Fly runtime only needs those adapters.
 
-  subgraph core [Portable Core]
-    EC["@zbsearch/edge-core"]
-    EC --> ZB[zbsearch]
-    EC --> MP[msgpack]
-  end
+## Two Durable Objects
 
-  subgraph builder [External Builder]
-    CLI["@zbsearch/edge-index-builder"]
-    S3["@zbsearch/storage-s3"]
-    CLI --> S3
-    CLI --> EC
-  end
+Default wrangler configs bind both. They are what make the edge deployment production-shaped:
 
-  W --> EC
-  R2A -.->|implements| OS[ObjectStorage]
-  CA -.->|implements| SC[ShardCache]
-  S3 -.->|implements| OS
+**`IndexCoordinator`** - one DO per physical index. Serializes all WAL appends, assigns sequence numbers, batches ops into sealed segments (~**100 ops or 256 KB**), and holds the rebuild lock (stealable after 15 minutes if a rebuild crashes). Head/meta mutations go through it, so concurrent writers cannot corrupt `head.json`.
+
+**`ShardSearch`** - one DO per physical shard. Group searches fan out here so each shard query runs (and keeps its snapshot cache warm) in its own isolate. That is how total index size escapes the single-isolate **128 MB** ceiling. Without the binding, shard search falls back to in-process fan-out (fine while `shards × snapshot` stays under ~128 MB).
+
+## Write path: WAL segments
+
+```
+wal/{indexId}/head.json
+wal/{indexId}/segments/0000000001-0000000087_chg_xxx.ndjson
+wal/{indexId}/segments/open.ndjson   ← mirror of the unsealed segment
 ```
 
-`edge-core` depends only on `zbsearch` and `@msgpack/msgpack`. It knows nothing about Cloudflare. The Worker file in `runtime-cloudflare` is roughly 85 lines: wire up `R2ObjectStorage` and `WorkersShardCache`, call `handleRequest`, set CORS headers, and register a cron handler.
+Without the coordinator (standalone `edge-core` or the builder CLI), writes fall back to one R2 object per op under `wal/.../entries/`. Existing per-op entries keep working; the first coordinated rebuild consumes both layouts.
 
-This matters because the storage layer is abstracted behind two interfaces:
+Batch API writes (`POST .../documents/batch`) land in a **single segment**, cutting R2 PUTs. The API always returns `202` with a `changeId` - durable immediately, compacted into a snapshot on rebuild.
 
-```ts
-// ObjectStorage: durable blobs in R2/S3
-interface ObjectStorage {
-  get(key: string): Promise<ObjectGetResult | null>
-  put(key: string, body: Uint8Array, opts?: { contentType?: string }): Promise<{ etag: string }>
-  delete(key: string): Promise<void>
-  list(prefix: string): AsyncIterable<{ key: string; size: number }>
-}
+## Read path: three caches + WAL overlay
 
-// ShardCache: hot snapshot bytes at the edge
-interface ShardCache {
-  get(key: string): Promise<Uint8Array | null>
-  set(key: string, body: Uint8Array, ttlSec: number): Promise<void>
-  delete(key: string): Promise<void>
-}
-```
+Search never re-decodes a snapshot on every request when it can avoid it:
 
-Any future runtime (Docker, AWS Lambda, Fly.io) only needs to implement these two adapters. The REST API, WAL semantics, and rebuild pipeline stay unchanged.
+1. **Per-isolate LRU** - fully deserialized ZBSearch DBs (`SNAPSHOT_CACHE_MAX_ENTRIES` default 4, `SNAPSHOT_CACHE_MAX_BYTES` default ~64 MB). Rebuilds change the version key → natural invalidation.
+2. **Workers Cache API** - raw snapshot bytes, shared per colo.
+3. **R2** - source of truth.
 
-## R2 storage layout
+When `pendingOps > 0`, search overlays WAL ops onto snapshot documents in memory and returns `includesBuffer: true`. Keep `pendingOps` near zero in production - dirty searches re-index the shard per request and dominate latency.
 
-Every index is a directory tree under a single R2 bucket. A top-level `registry.json` lists index IDs; each index has metadata, versioned snapshots, and a WAL:
+## Sharded indexes
 
-```mermaid
-flowchart TD
-  Root[registry.json]
-  Root --> Meta["indexes/{id}/meta.json"]
-  Meta --> Snap["indexes/{id}/{version}/snapshot.msgpack"]
-  Meta --> WalHead["wal/{id}/head.json"]
-  WalHead --> WalEntry["wal/{id}/entries/{seq}_{ts}_{changeId}.ndjson"]
-```
+Pass `"shards": N` (2–64) on create, or `--shards N` on import. Each physical shard `<id>--shard-<i>` is an ordinary index: own WAL, snapshot, coordinator, rebuild threshold. Documents route by FNV-1a of the doc id - **ids must be stable**.
 
-**`meta.json`** tracks the index schema, settings, `liveVersion` (the current searchable snapshot), `pendingOps` (unmerged WAL count), document counts, and status (`empty`, `ready`, `building`).
+Implications:
 
-**`snapshot.msgpack`** is a serialized ZBSearch database, the same format `save()` and `load()` produce in the library. Snapshots are **immutable**. A rebuild always writes a new version directory and atomically updates `liveVersion` in metadata.
+- Group rebuild is **serial** (parallel would OOM the isolate).
+- Threshold scheduling is **per shard** (hot shards rebuild more often).
+- Shard count is **fixed** - re-shard by re-importing.
+- Cross-shard BM25 IDF is approximate; `groupBy` is not merged across shards.
 
-**`wal/{indexId}/head.json`** holds the WAL head: total op count, pending op count, and oldest op timestamp.
-
-**`wal/{indexId}/entries/*.ndjson`** stores append-only WAL files. Each file contains one or more NDJSON lines:
-
-```json
-{"op":"upsert","id":"sku-1","ts":"2026-07-10T12:00:00.000Z","doc":{"title":"Headphones","price":99}}
-{"op":"delete","id":"sku-2","ts":"2026-07-10T12:01:00.000Z"}
-```
-
-Batch writes (`POST /v1/indexes/:id/documents/batch`) pack multiple operations into a **single WAL file**, reducing R2 PUT count compared to one PUT per document.
-
-### Why we moved from in-place segments to append-only WAL
-
-Early versions grew in-place segment files under `buffer/{indexId}/segments/` until they hit 64 MB, then rotated. That pattern requires **read-modify-write** on R2 for every append, which is expensive and contention-prone.
-
-The current design writes **immutable WAL entry files** on every write. No object is ever updated in place. During rebuild, consumed entries are deleted in bulk. Legacy segment paths are still read for migration, but new writes only use the WAL layout.
-
-## Write path: buffer first, merge later
-
-When a client upserts or deletes a document, the Worker does not rebuild the index inline.
-
-```mermaid
-sequenceDiagram
-  participant Client
-  participant Worker
-  participant R2
-
-  Client->>Worker: PUT /documents/:id
-  Worker->>R2: append WAL entry (new object)
-  Worker->>R2: update wal/head.json + meta.json
-  Worker-->>Client: 202 Accepted (changeId)
-
-  alt pendingOps >= threshold
-    Worker->>Worker: ctx.waitUntil(rebuild or webhook)
-  end
-```
-
-The flow in code:
-
-1. Append an operation to a new WAL entry file in R2.
-2. Increment `pendingOps` in the WAL head and index metadata.
-3. Return `202 Accepted` with a `changeId` and `bufferedAt` timestamp.
-4. If `pendingOps` crosses `REBUILD_THRESHOLD_OPS`, schedule a background rebuild or fire a webhook.
-
-```ts
-// Simplified from edge-core service.ts
-export async function bufferUpsert(storage, indexId, docId, doc) {
-  const { changeId, bufferedAt, head } = await appendBufferOp(storage, indexId, {
-    op: 'upsert', id: docId, ts: new Date().toISOString(), doc
-  })
-  meta.pendingOps = head.pendingOps
-  await saveIndexMeta(storage, meta)
-  return { status: 'buffered', changeId, bufferedAt }
-}
-```
-
-This write path is intentionally **eventually consistent** at the snapshot level. Rebuilds compact WAL entries into a new `liveVersion`. Until then, search can still see pending writes, as described in the next section.
-
-## Read path: snapshots, overlay, and edge cache
-
-Search requests hit `runSearch()` in `edge-core`, which loads a searchable database through `loadSearchableDb()`:
-
-```mermaid
-flowchart TD
-  Start[POST /search] --> ReadWal[Read pending WAL ops]
-  ReadWal --> Check{pendingOps > 0?}
-  Check -->|No| LoadSnap[Load snapshot from Cache or R2]
-  LoadSnap --> Search[search on snapshot db]
-  Check -->|Yes| LoadDocs[Load snapshot documents]
-  LoadDocs --> Merge[Apply WAL ops to document map]
-  Merge --> Build[Build in-memory ZBSearch db]
-  Build --> Search
-  Search --> Flag{includesBuffer?}
-  Flag -->|No| Res1[200 + includesBuffer: false]
-  Flag -->|Yes| Res2[200 + includesBuffer: true]
-```
-
-1. Read pending WAL operations from R2.
-2. If there are no pending ops and a `liveVersion` exists, load the snapshot from R2 (or Workers Cache) and deserialize it with `load()`.
-3. If there **are** pending ops, load the snapshot's documents into a `Map`, apply WAL operations in order (upserts overwrite, deletes remove), build a fresh in-memory ZBSearch database with `insertMultiple()`, and search that.
-
-The response includes `includesBuffer: true` when pending WAL ops were overlaid at query time, and `includesBuffer: false` when the search ran purely against the compacted snapshot.
-
-```ts
-// Search merges snapshot + WAL when pendingOps > 0
-const bufferOps = await readPendingBufferOps(storage, meta)
-if (bufferOps.length === 0) {
-  const db = await loadSnapshotDb(storage, meta, cache)
-  return { db, includesBuffer: false }
-}
-const baseDocs = await loadDocumentsFromSnapshot(storage, meta, cache)
-const merged = applyBufferOps(baseDocs, bufferOps)
-const db = create({ schema: meta.schema })
-insertMultiple(db, [...merged.entries()].map(([id, doc]) => ({ id, ...doc })))
-return { db, includesBuffer: true }
-```
-
-**Workers Cache** stores snapshot bytes under synthetic cache URLs (`https://zbsearch-edge-cache.invalid/...`) with a one-hour TTL. Hot indexes avoid repeated R2 reads on every search. The cache is a performance layer. R2 remains the source of truth.
-
-The tradeoff is clear: searches against a large index with many pending WAL ops pay the cost of rebuilding an in-memory database per request. That is why rebuilds matter for production throughput, even though correctness does not strictly require them.
+Rule of thumb (~1.3 KB/doc): **25–50k docs per shard** keeps snapshots under the default cache budget. Past ~50k total docs, use `SEARCH_SHARD`.
 
 ## Rebuild pipeline
 
-A rebuild merges snapshot state with pending WAL operations into a new immutable snapshot:
-
 ```mermaid
 stateDiagram-v2
-  [*] --> Ready: index created / import
+  [*] --> Ready: create / import
   Ready --> Building: rebuild triggered
-  Building --> Ready: new snapshot promoted
-  note right of Building
-    1. Freeze WAL entries
-    2. Merge snapshot + WAL in memory
-    3. Upload new snapshot.msgpack
-    4. Delete compacted WAL files
-    5. Update liveVersion in meta
-  end note
+  Building --> Ready: liveVersion promoted
 ```
 
-```mermaid
-flowchart LR
-  subgraph before [Before Rebuild]
-    V1["liveVersion: v1"]
-    W1["WAL: upsert A, delete B, upsert C"]
-  end
+1. Acquire rebuild lock on the coordinator  
+2. Freeze WAL (seal open segment, collect pending ops)  
+3. Merge snapshot + WAL → new msgpack snapshot  
+4. Finalize: delete frozen segments, set `liveVersion`, release lock  
 
-  subgraph after [After Rebuild]
-    V2["liveVersion: v2"]
-    W2["WAL: compacted or new ops only"]
-  end
+Concurrent writes during rebuild survive as new `pendingOps`.
 
-  before -->|merge + serialize| after
-```
+| Strategy | Best for |
+| --- | --- |
+| In-Worker cron (`*/5`) | Demos, small catalogs |
+| Threshold after write (`REBUILD_THRESHOLD_OPS`) | Near-real-time small indexes |
+| `POST /v1/indexes/:id/rebuild` | Controlled batches |
+| External CLI / CI (`zbsearch-edge-builder`) | **Production** |
 
-The freeze/compaction model handles concurrent writes: if new WAL entries arrive while a rebuild runs, they survive compaction and remain as `pendingOps` for the next cycle.
-
-Rebuilds can be triggered four ways:
-
-| Strategy | How it works | Best for |
-| --- | --- | --- |
-| **In-Worker cron** | `scheduled()` lists indexes, rebuilds when `pendingOps >= threshold` | Demos, small catalogs |
-| **Threshold after write** | Each buffered write calls `maybeScheduleRebuild()` | Near-real-time small indexes |
-| **Manual API** | `POST /v1/indexes/:id/rebuild` | Controlled batch imports |
-| **External CLI / CI** | `npx zbsearch-edge-builder rebuild` against R2 via S3 API | Production, large indexes |
-
-For production, we recommend **external rebuilds**. In-Worker rebuilds share the Worker's CPU and memory budget. A multi-hundred-megabyte snapshot can exceed isolate limits. The Worker cron can instead POST to `BUILDER_WEBHOOK_URL`, which triggers GitHub Actions (or any CI) to run:
+When `BUILDER_WEBHOOK_URL` is set, cron **never** rebuilds inline - it only notifies your runner. In-Worker rebuilds that face a huge one-shot backlog (~10k+ pending ops per shard) can wedge at `building`; use `import` for bulk loads.
 
 ```bash
-npm install @zbsearch/edge-index-builder@3.3.1
+npm install @zbsearch/edge-index-builder@3.3.2
 npx zbsearch-edge-builder rebuild --all
 ```
 
-A typical CI job only needs Node.js, your R2 credentials as secrets, and the published builder package. No monorepo clone or local build step:
+## Bulk import
 
-```yaml
-- uses: actions/setup-node@v4
-  with:
-    node-version: 22
-- run: npm install @zbsearch/edge-index-builder@3.3.1
-- run: npx zbsearch-edge-builder rebuild --all
-  env:
-    R2_BUCKET: ${{ secrets.R2_BUCKET }}
-    R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-    R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-    R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
-```
-
-Schedule it every 15 minutes, trigger it manually, or invoke it from a webhook relay via `repository_dispatch`.
-
-## Bulk import: skip the WAL entirely
-
-For large catalogs, per-document API writes are the wrong tool. Install `@zbsearch/edge-index-builder` and use the `import` command to build a snapshot locally and upload it directly to R2:
+Skip the WAL for large catalogs - build the snapshot on a machine with real memory and upload it:
 
 ```bash
-npm install @zbsearch/edge-index-builder@3.3.1
 npx zbsearch-edge-builder import products ./catalog.json \
-  --create --name products --schema-file ./schema.json
+  --create --name products --schema-file ./schema.json --shards 8
 ```
 
-```mermaid
-flowchart LR
-  JSON[catalog.json] --> CLI["zbsearch-edge-builder import"]
-  CLI --> Build[Build ZBSearch db in memory]
-  Build --> Upload[Upload snapshot.msgpack to R2]
-  Upload --> Meta[Set liveVersion + clear WAL]
-  Meta --> Live[Searchable immediately]
-```
+Documents are searchable immediately (`liveVersion` set, WAL cleared).
 
-Import:
-
-1. Parses JSON or JSONL input and assigns stable document IDs.
-2. Builds a ZBSearch database in memory on the build machine (no Worker CPU limits).
-3. Uploads `snapshot.msgpack` to R2.
-4. Clears any pending WAL entries and sets `liveVersion`. Documents are searchable immediately.
-
-This path is how we load demo datasets like the unicorns corpus in seconds instead of issuing thousands of HTTP writes.
-
-## The Cloudflare Worker entrypoint
-
-The Worker in `@zbsearch/runtime-cloudflare` is intentionally minimal. On each `fetch`:
-
-```ts
-export default {
-  async fetch(request, env, ctx) {
-    const storage = new R2ObjectStorage(env.BUCKET)
-    const cache = new WorkersShardCache(caches.default)
-
-    const response = toResponse(await handleRequest({
-      storage,
-      cache,
-      apiKey: env.API_KEY,
-      scheduleBackground: (task) => ctx.waitUntil(task),
-      rebuildThresholdOps: Number(env.REBUILD_THRESHOLD_OPS),
-      builderWebhookUrl: env.BUILDER_WEBHOOK_URL,
-    }, req))
-
-    response.headers.set('access-control-allow-origin', '*')
-    return response
-  },
-
-  async scheduled(event, env, ctx) {
-    // Cron: check every index, schedule rebuild or webhook
-    for (const index of await listIndexMetas(storage)) {
-      await maybeScheduleRebuild(storage, index.id, { ...options, source: 'scheduler' })
-    }
-  }
-}
-```
-
-`ctx.waitUntil()` is the key Workers primitive: rebuilds and webhook calls run after the response is sent, without blocking the client. When `BUILDER_WEBHOOK_URL` is set, the Worker **never** rebuilds inline on cron. It only notifies the external runner.
-
-Environment configuration:
-
-| Binding / secret | Purpose |
-| --- | --- |
-| `BUCKET` (R2) | Durable storage for snapshots, WAL, metadata |
-| `API_KEY` (secret) | Bearer token for `/v1/*` routes |
-| `REBUILD_THRESHOLD_OPS` (var) | Pending ops before auto-rebuild or webhook |
-| `BUILDER_WEBHOOK_URL` (secret) | External rebuild trigger URL |
-
-Public routes (`GET /health`, `GET /v1/info`, `OPTIONS`) skip authentication.
-
-## Deploy tooling: from npm install to live Worker
-
-Everything ships on npm. Setup and teardown CLIs live inside `@zbsearch/runtime-cloudflare`; production rebuilds use `@zbsearch/edge-index-builder`. Install from any empty project directory:
+## Deploy and auth
 
 ```bash
-mkdir my-search-api && cd my-search-api
-npm init -y
-npm install @zbsearch/runtime-cloudflare@3.3.1 wrangler
+npm install @zbsearch/runtime-cloudflare@3.3.2 wrangler
 npx wrangler login
 npx zbsearch-edge-setup --init
 ```
 
-```mermaid
-flowchart TD
-  Start[zbsearch-edge-setup --init] --> Config[Write wrangler.toml + .env]
-  Config --> Buckets[Create R2 buckets]
-  Buckets --> Secrets[Set Worker secrets]
-  Secrets --> Deploy[wrangler deploy]
-  Deploy --> Live[Worker URL ready]
-```
+The setup CLI writes `wrangler.toml`, creates R2 buckets, sets secrets, and deploys. Generated config binds `BUCKET`, `INDEX_COORDINATOR`, and `SEARCH_SHARD`.
 
-`zbsearch-edge-setup` runs an interactive wizard (or reads `zbsearch.edge.config.json`) and:
+| Secret / var | Purpose |
+| --- | --- |
+| `WRITE_API_KEY` | Full access (reads + writes) |
+| `READ_API_KEY` | Searches/status only - safe for public clients |
+| `BUILDER_WEBHOOK_URL` | External rebuild trigger |
+| `REBUILD_THRESHOLD_OPS` | Default `500` |
+| `SNAPSHOT_CACHE_*` | Isolate LRU bounds |
 
-1. Writes `wrangler.toml` and `.env` (R2 S3 credentials for the builder CLI).
-2. Creates R2 buckets (production + preview).
-3. Sets Worker secrets (`API_KEY`, `BUILDER_WEBHOOK_URL`).
-4. Runs `wrangler deploy`.
+Legacy `API_KEY` still works as full-access. Public: `GET /health`, `GET /v1/info`, `OPTIONS`.
 
-The generated `wrangler.toml` points at the Worker entrypoint inside `node_modules/@zbsearch/runtime-cloudflare`. You never compile packages locally.
+**Workers Paid is required** - Free-plan CPU (10 ms) cannot run search. Paid also unlocks extended CPU for in-Worker rebuilds.
 
-Generated `wrangler.toml` includes:
-
-```toml
-[[r2_buckets]]
-binding = "BUCKET"
-bucket_name = "zbsearch-edge"
-
-[triggers]
-crons = ["*/5 * * * *"]
-
-[vars]
-REBUILD_THRESHOLD_OPS = "500"
-```
-
-Teardown is symmetric: `npx zbsearch-edge-teardown` removes the Worker and optionally deletes R2 buckets.
-
-## REST API surface
-
-`edge-core` implements a versioned REST API routed by pathname matching. No framework, just explicit handlers:
+## REST surface
 
 | Method | Path | Behavior |
 | --- | --- | --- |
-| `POST` | `/v1/indexes` | Create index with schema |
-| `POST` | `/v1/indexes/:id/documents` | Buffer upsert (`202`) |
-| `PUT` | `/v1/indexes/:id/documents/:docId` | Buffer upsert (`202`) |
-| `DELETE` | `/v1/indexes/:id/documents/:docId` | Buffer delete (`202`) |
+| `POST` | `/v1/indexes` | Create (`shards` optional) |
+| `POST`/`PUT`/`DELETE` | `/v1/indexes/:id/documents...` | Buffer write (`202`) |
 | `POST` | `/v1/indexes/:id/documents/batch` | Batch buffer (`202`) |
-| `POST` | `/v1/indexes/:id/search` | Search (fulltext / vector / hybrid) |
+| `POST` | `/v1/indexes/:id/search` | Full-text / vector / hybrid |
 | `POST` | `/v1/indexes/:id/rebuild` | Trigger rebuild |
 | `GET` | `/v1/indexes/:id/status` | `pendingOps`, `liveVersion`, sizes |
 
-Search accepts the same parameters as the `zbsearch` library: `term`, `mode`, `where`, `vector`, `hybridWeights`, facets, and more.
+Search params match the `zbsearch` library: `term`, `mode`, `where`, `vector`, `hybridWeights`, facets, and more.
 
-## Design decisions and tradeoffs
+## Tradeoffs we accepted
 
-**Snapshot + WAL instead of live mutable indexes.** Workers cannot host a mutable on-disk index. R2 is object storage, not a database. Immutable snapshots give us predictable read performance; the WAL gives us cheap, durable writes without read-modify-write contention.
+- **Snapshot + WAL**, not a live mutable index - R2 is object storage; immutable snapshots give predictable reads.
+- **Full msgpack snapshots per shard** - simple and correct; sharding is how we scale past one isolate. Binary `.spb`/`.ivf` formats are still future work.
+- **Eventual consistency with overlay** - writes are durable immediately; search can see them before rebuild via WAL overlay, but latency suffers until compaction.
+- **No control plane** - state lives in R2. Redeploy against the same bucket and you recover.
+- **Beta** - index delete does not purge R2 objects; no fine-grained multi-key auth beyond read/write.
 
-**Full snapshots in v1.** Every rebuild serializes the entire index. This is simple and correct up to tens of thousands of documents. Sharded `.spb` / `.ivf` formats are planned for larger catalogs. Monitor `indexSizeBytes` in `/status` and move rebuilds off-Worker as indexes grow.
-
-**Eventual consistency with read-your-writes via overlay.** Writes are durable in R2 immediately, and search overlays pending WAL ops so recent writes are visible before rebuild. Rebuilds remain essential for search latency at scale.
-
-**No control plane.** Index state lives entirely in R2. Redeploy the Worker against the same bucket and you recover. No external database, no account system, no billing.
-
-**Beta, with rough edges.** Index delete removes metadata but does not purge R2 objects automatically. There is no multi-key auth in v1. The webhook payload is a simple JSON blob. Production setups often add a thin relay for GitHub `repository_dispatch`.
-
-## What we learned
-
-Building search on Workers is viable if you respect the platform boundaries: **serve reads from cached snapshots, append writes to a log, and push heavy merges to external compute.** The package split paid off immediately. `edge-core` has comprehensive tests without a Cloudflare account, and the Worker adapter is small enough to audit in one sitting.
-
-If you want to try it:
+## Try it
 
 ```bash
-npm install @zbsearch/runtime-cloudflare@3.3.1 wrangler
+npm install @zbsearch/runtime-cloudflare@3.3.2 wrangler
 npx wrangler login
 npx zbsearch-edge-setup --init
 ```
 
-For production rebuilds, add `@zbsearch/edge-index-builder@3.3.1` and run `npx zbsearch-edge-builder rebuild --all` from CI or your laptop.
+For production rebuilds: `@zbsearch/edge-index-builder@3.3.2` → `npx zbsearch-edge-builder rebuild --all` from CI.
 
-For operational details, endpoint reference, and production hardening, see the [Cloudflare docs](/docs/cloudflare). For the indexing and rebuild semantics in depth, see [Indexing & rebuilds](/docs/cloudflare/indexing-and-rebuilds).
+See the [Cloudflare docs](/docs/cloudflare), [Indexing & rebuilds](/docs/cloudflare/indexing-and-rebuilds), and [Production](/docs/cloudflare/production) for operational detail.

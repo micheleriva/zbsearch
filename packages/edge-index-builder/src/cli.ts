@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises'
 
-import { importDocuments, rebuildIndex, listIndexMetas } from '@zbsearch/edge-core'
+import { importDocuments, importShardedDocuments, rebuildIndex, listIndexMetas } from '@zbsearch/edge-core'
 import type { CreateIndexInput } from '@zbsearch/edge-core'
 import { createS3StorageFromEnv } from '@zbsearch/storage-s3'
 
@@ -16,6 +16,7 @@ function parseArgs(argv: string[]): {
   schema?: CreateIndexInput['schema']
   schemaFile?: string
   language?: string
+  shards?: number
 } {
   const [command, indexId, filePath, ...rest] = argv
   let create = false
@@ -23,6 +24,7 @@ function parseArgs(argv: string[]): {
   let schema: CreateIndexInput['schema'] | undefined
   let schemaFile: string | undefined
   let language: string | undefined
+  let shards: number | undefined
 
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i]!
@@ -38,6 +40,21 @@ function parseArgs(argv: string[]): {
       language = rest[++i]
       continue
     }
+    if (arg === '--shards') {
+      const value = rest[++i]
+
+      if (!value) {
+        throw new Error('--shards requires a count')
+      }
+
+      shards = Number.parseInt(value, 10)
+
+      if (!Number.isInteger(shards) || shards < 2) {
+        throw new Error('--shards must be an integer >= 2')
+      }
+
+      continue
+    }
     if (arg === '--schema') {
       const value = rest[++i]
       if (!value) {
@@ -51,13 +68,20 @@ function parseArgs(argv: string[]): {
     }
   }
 
-  return { command: command ?? '', indexId, filePath, create, name, schema, schemaFile, language }
+  return { command: command ?? '', indexId, filePath, create, name, schema, schemaFile, language, shards }
 }
 
 async function runImport(
   indexId: string,
   filePath: string,
-  options: { create: boolean; name?: string; schema?: CreateIndexInput['schema']; schemaFile?: string; language?: string }
+  options: {
+    create: boolean
+    name?: string
+    schema?: CreateIndexInput['schema']
+    schemaFile?: string
+    language?: string
+    shards?: number
+  }
 ): Promise<void> {
   const storage = createS3StorageFromEnv()
   const documents = await loadImportDocuments(filePath)
@@ -65,6 +89,23 @@ async function runImport(
   let schema = options.schema
   if (!schema && options.schemaFile) {
     schema = JSON.parse(await readFile(options.schemaFile, 'utf8')) as CreateIndexInput['schema']
+  }
+
+  if (options.shards !== undefined) {
+    const result = await importShardedDocuments(storage, indexId, documents, {
+      shards: options.shards,
+      create:
+        options.create && schema
+          ? {
+              name: options.name ?? indexId,
+              schema,
+              settings: options.language ? { language: options.language } : undefined
+            }
+          : undefined
+    })
+
+    console.log(JSON.stringify(result))
+    return
   }
 
   const meta = await importDocuments(storage, indexId, documents, {
@@ -122,7 +163,8 @@ async function main(): Promise<void> {
       name: args.name,
       schema: args.schema,
       schemaFile: args.schemaFile,
-      language: args.language
+      language: args.language,
+      shards: args.shards
     })
     return
   }
@@ -130,7 +172,7 @@ async function main(): Promise<void> {
   console.log(`Usage:
   zbsearch-edge-builder rebuild [indexId]
   zbsearch-edge-builder rebuild --all
-  zbsearch-edge-builder import <indexId> <file> [--create] [--name <name>] [--schema '<json>'] [--schema-file <path>] [--language <lang>]`)
+  zbsearch-edge-builder import <indexId> <file> [--create] [--name <name>] [--schema '<json>'] [--schema-file <path>] [--language <lang>] [--shards <n>]`)
   process.exit(1)
 }
 

@@ -6,7 +6,8 @@ import {
   walEntriesPrefix,
   walEntryFileName,
   walEntryKey,
-  walHeadKey
+  walHeadKey,
+  walSegmentsPrefix
 } from './paths.js'
 import type { ObjectStorage } from './storage.js'
 import type { BufferDeleteOp, BufferHead, BufferOp, BufferUpsertOp } from './types.js'
@@ -29,13 +30,27 @@ export async function getBufferHead(storage: ObjectStorage, indexId: string): Pr
   return defaultHead()
 }
 
-async function saveBufferHead(storage: ObjectStorage, indexId: string, head: BufferHead): Promise<void> {
+export async function saveBufferHead(
+  storage: ObjectStorage,
+  indexId: string,
+  head: BufferHead
+): Promise<void> {
   await storage.put(walHeadKey(indexId), encodeJson(head), { contentType: 'application/json' })
 }
 
-async function listWalEntryKeys(storage: ObjectStorage, indexId: string): Promise<string[]> {
+export const WAL_SEGMENT_MAX_OPS = 100
+export const WAL_SEGMENT_MAX_BYTES = 256 * 1024
+
+export function encodeWalSegmentOps(ops: BufferOp[]): Uint8Array {
+  return concatBytes(ops.map((op) => encodeNdjsonLine(op)))
+}
+
+async function listWalObjectKeys(storage: ObjectStorage, indexId: string): Promise<string[]> {
   const keys: string[] = []
   for await (const entry of storage.list(walEntriesPrefix(indexId))) {
+    keys.push(entry.key)
+  }
+  for await (const entry of storage.list(walSegmentsPrefix(indexId))) {
     keys.push(entry.key)
   }
   for await (const entry of storage.list(legacyBufferSegmentsPrefix(indexId))) {
@@ -45,18 +60,28 @@ async function listWalEntryKeys(storage: ObjectStorage, indexId: string): Promis
   return keys
 }
 
+const WAL_READ_CONCURRENCY = 10
+
 async function readBufferOpsFromKeys(storage: ObjectStorage, keys: string[]): Promise<BufferOp[]> {
   const ops: BufferOp[] = []
-  for (const key of keys) {
-    const obj = await storage.get(key)
-    if (!obj) {
-      continue
-    }
-    const text = new TextDecoder().decode(obj.body)
-    for (const line of parseNdjson(text)) {
-      ops.push(line as BufferOp)
+
+  for (let i = 0; i < keys.length; i += WAL_READ_CONCURRENCY) {
+    const chunk = keys.slice(i, i + WAL_READ_CONCURRENCY)
+    const results = await Promise.all(chunk.map((key) => storage.get(key)))
+
+    for (const obj of results) {
+      if (!obj) {
+        continue
+      }
+
+      const text = new TextDecoder().decode(obj.body)
+
+      for (const line of parseNdjson(text)) {
+        ops.push(line as BufferOp)
+      }
     }
   }
+
   return ops
 }
 
@@ -123,14 +148,14 @@ export async function appendWalBatch(
 }
 
 export async function readBufferOps(storage: ObjectStorage, indexId: string): Promise<BufferOp[]> {
-  return readBufferOpsFromKeys(storage, await listWalEntryKeys(storage, indexId))
+  return readBufferOpsFromKeys(storage, await listWalObjectKeys(storage, indexId))
 }
 
 export async function freezeBufferForRebuild(
   storage: ObjectStorage,
   indexId: string
 ): Promise<{ ops: BufferOp[]; frozenSegmentKeys: string[] }> {
-  const frozenSegmentKeys = await listWalEntryKeys(storage, indexId)
+  const frozenSegmentKeys = await listWalObjectKeys(storage, indexId)
   const ops = await readBufferOpsFromKeys(storage, frozenSegmentKeys)
   return { ops, frozenSegmentKeys }
 }
@@ -144,7 +169,7 @@ export async function finalizeBufferAfterRebuild(
     await storage.delete(key)
   }
 
-  const remainingKeys = await listWalEntryKeys(storage, indexId)
+  const remainingKeys = await listWalObjectKeys(storage, indexId)
   if (remainingKeys.length === 0) {
     await storage.delete(walHeadKey(indexId))
     await storage.delete(bufferHeadKey(indexId))
@@ -163,9 +188,15 @@ export async function clearBuffer(storage: ObjectStorage, indexId: string): Prom
   for await (const entry of storage.list(walEntriesPrefix(indexId))) {
     await storage.delete(entry.key)
   }
+
+  for await (const entry of storage.list(walSegmentsPrefix(indexId))) {
+    await storage.delete(entry.key)
+  }
+
   for await (const entry of storage.list(legacyBufferSegmentsPrefix(indexId))) {
     await storage.delete(entry.key)
   }
+
   await storage.delete(walHeadKey(indexId))
   await storage.delete(bufferHeadKey(indexId))
 }

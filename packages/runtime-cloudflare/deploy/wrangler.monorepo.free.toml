@@ -1,0 +1,35 @@
+name = "zbsearch-edge"
+main = "../src/worker.ts"
+compatibility_date = "2025-03-01"
+
+[observability]
+enabled = true
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "zbsearch-edge"
+preview_bucket_name = "zbsearch-edge-preview"
+
+[[durable_objects.bindings]]
+name = "INDEX_COORDINATOR"
+class_name = "IndexCoordinator"
+
+# One Durable Object per physical shard: shard-group searches fan out here
+# so every shard search runs (and stays warm) in its own isolate.
+[[durable_objects.bindings]]
+name = "SEARCH_SHARD"
+class_name = "ShardSearch"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["IndexCoordinator"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["ShardSearch"]
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+REBUILD_THRESHOLD_OPS = "500"

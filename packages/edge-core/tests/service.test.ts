@@ -13,7 +13,8 @@ import {
   runSearch
 } from '../src/service.js'
 import { getIndexMeta, saveIndexMeta } from '../src/registry.js'
-import { snapshotKey } from '../src/paths.js'
+import { indexMetaKey, snapshotKey } from '../src/paths.js'
+import { encodeJson } from '../src/codec.js'
 import type { ObjectStorage } from '../src/storage.js'
 import { NoopShardCache } from '../src/storage.js'
 import { MemoryObjectStorage } from './helpers/memory-storage.js'
@@ -249,6 +250,25 @@ describe('service', () => {
     assert.equal((await getStatus(storage, 'flush')).pendingOps, 0)
   })
 
+  it('maybeScheduleRebuild runInline rebuilds immediately without a schedule fn', async () => {
+    const storage = new MemoryObjectStorage()
+    await createIndex(storage, {
+      name: 'inline',
+      schema: { title: 'string' },
+      settings: { rebuildThresholdOps: 1 }
+    })
+    await bufferUpsert(storage, 'inline', '1', { title: 'One' })
+
+    await maybeScheduleRebuild(storage, 'inline', { threshold: 1, runInline: true })
+
+    const status = await getStatus(storage, 'inline')
+    assert.equal(status.pendingOps, 0)
+    assert.equal(status.status, 'ready')
+
+    const results = await runSearch(storage, new NoopShardCache(), 'inline', { term: 'one' })
+    assert.ok(results.count >= 1)
+  })
+
   it('maybeScheduleRebuild skips when index is already building', async () => {
     const storage = new MemoryObjectStorage()
     await createIndex(storage, {
@@ -270,6 +290,62 @@ describe('service', () => {
       }
     })
     assert.equal(scheduled.length, 0)
+  })
+
+  it('maybeScheduleRebuild proceeds when a building status is stale', async () => {
+    const storage = new MemoryObjectStorage()
+    await createIndex(storage, {
+      name: 'stale',
+      schema: { title: 'string' },
+      settings: { rebuildThresholdOps: 1 }
+    })
+    await bufferUpsert(storage, 'stale', '1', { title: 'One' })
+
+    const meta = await getIndexMeta(storage, 'stale')
+    meta.status = 'building'
+    await saveIndexMeta(storage, meta)
+    // age the status past the 15-minute stale window (saveIndexMeta bumps updatedAt)
+    meta.updatedAt = new Date(Date.now() - 20 * 60 * 1000).toISOString()
+    await storage.put(indexMetaKey('stale'), encodeJson(meta), { contentType: 'application/json' })
+
+    const scheduled: Promise<unknown>[] = []
+    await maybeScheduleRebuild(storage, 'stale', {
+      threshold: 1,
+      schedule: (task) => {
+        scheduled.push(task)
+      }
+    })
+    assert.equal(scheduled.length, 1)
+    await scheduled[0]
+
+    const rebuilt = await getIndexMeta(storage, 'stale')
+    assert.equal(rebuilt.status, 'ready')
+    assert.equal(rebuilt.pendingOps, 0)
+  })
+
+  it('rebuildIndex resets status when the rebuild fails', async () => {
+    class FailingSnapshotStorage extends MemoryObjectStorage {
+      override async put(
+        key: string,
+        body: Uint8Array,
+        opts?: { contentType?: string }
+      ): Promise<{ etag: string }> {
+        if (key.endsWith('/snapshot.msgpack')) {
+          throw new Error('simulated storage failure')
+        }
+        return super.put(key, body, opts)
+      }
+    }
+
+    const storage = new FailingSnapshotStorage()
+    await createIndex(storage, { name: 'failrebuild', schema: { title: 'string' } })
+    await bufferUpsert(storage, 'failrebuild', '1', { title: 'One' })
+
+    await assert.rejects(() => rebuildIndex(storage, 'failrebuild'), /simulated storage failure/)
+
+    const meta = await getIndexMeta(storage, 'failrebuild')
+    assert.equal(meta.status, 'empty')
+    assert.equal(meta.buildingVersion, null)
   })
 
   it('maybeScheduleRebuild posts to builder webhook instead of rebuilding inline', async () => {

@@ -47,9 +47,13 @@ describe('paths', () => {
 
   it('generates version ids without colons or dots', () => {
     const version = newVersionId()
-    assert.match(version, /^[\dT-]+Z?$/)
+    assert.match(version, /^[\dT-]+Z-[0-9a-f]+$/)
     assert.equal(version.includes(':'), false)
     assert.equal(version.includes('.'), false)
+  })
+
+  it('generates unique version ids within the same millisecond', () => {
+    assert.notEqual(newVersionId(), newVersionId())
   })
 
   it('generates change ids with prefix', () => {

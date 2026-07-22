@@ -9,12 +9,21 @@ description: Harden ZBSearch Edge for production - authentication, external rebu
 
 Running ZBSearch Edge in production means protecting your API, offloading rebuilds from the Worker, and monitoring index health. This page covers the recommended production setup.
 
+## Cloudflare plan requirements
+
+<Callout type="warn" title="Workers Paid plan required">
+  ZBSearch Edge requires the **Workers Paid plan** ($5/mo). The Free plan caps CPU at 10ms per invocation, which search workloads exceed - in load tests 97.8% of searches on a 10k-document index failed with error 1102. Paid also unlocks `[limits] cpu_ms = 300000` (extended CPU time for in-Worker rebuilds).
+</Callout>
+
+The `IndexCoordinator` Durable Object (WAL batching and rebuild locking) uses a SQLite-backed class, which is available on both plans - but without the Paid plan's CPU budget the API is not usable for search.
+
 ## Authentication
 
-Always set an API key before exposing the Worker publicly:
+Always set API keys before exposing the Worker publicly — a full-access write key, and a read-only key you can safely embed in public clients:
 
 ```bash
-wrangler secret put API_KEY --config deploy/cloudflare/wrangler.toml
+wrangler secret put WRITE_API_KEY --config deploy/cloudflare/wrangler.toml
+wrangler secret put READ_API_KEY --config deploy/cloudflare/wrangler.toml
 ```
 
 Clients must send:
@@ -22,6 +31,8 @@ Clients must send:
 ```
 Authorization: Bearer YOUR_SECRET_KEY
 ```
+
+The read-only key covers searches and index/metadata reads only; it gets `401` on any write route. The legacy single `API_KEY` secret still works as a full-access key.
 
 Public endpoints (no key required):
 
@@ -65,7 +76,7 @@ node packages/edge-index-builder/dist/cli.js rebuild products
 node packages/edge-index-builder/dist/cli.js rebuild --all
 ```
 
-For initial or full catalog reloads, use `import` instead of per-document API writes — see [Indexing & rebuilds](/docs/cloudflare/indexing-and-rebuilds#bulk-import).
+For initial or full catalog reloads, use `import` instead of per-document API writes - see [Indexing & rebuilds](/docs/cloudflare/indexing-and-rebuilds#bulk-import).
 
 ## GitHub Actions setup
 
@@ -125,7 +136,8 @@ Confirm `pendingOps` is `0` and `lastRebuildAt` is recent.
 
 | Secret | Required | Description |
 | --- | --- | --- |
-| `API_KEY` | Recommended | Bearer token for API auth |
+| `WRITE_API_KEY` | Recommended | Full-access Bearer token (reads + writes) |
+| `READ_API_KEY` | Recommended | Read-only Bearer token (searches, status) — safe for public clients |
 | `BUILDER_WEBHOOK_URL` | Production | URL called when rebuild threshold is hit |
 
 ### Worker vars (`wrangler.toml`)
@@ -133,6 +145,28 @@ Confirm `pendingOps` is `0` and `lastRebuildAt` is recent.
 | Var | Default | Description |
 | --- | --- | --- |
 | `REBUILD_THRESHOLD_OPS` | `500` | Pending ops before cron triggers rebuild/webhook |
+| `SNAPSHOT_CACHE_MAX_ENTRIES` | `4` | Max deserialized snapshots kept in the per-isolate LRU cache |
+| `SNAPSHOT_CACHE_MAX_BYTES` | `67108864` (~64 MB) | Max total bytes held by the per-isolate snapshot cache |
+
+### Worker bindings (`wrangler.toml`)
+
+| Binding | Type | Description |
+| --- | --- | --- |
+| `BUCKET` | R2 bucket | Snapshots, WAL, and index metadata |
+| `INDEX_COORDINATOR` | Durable Object (`IndexCoordinator`) | One DO per index: serializes WAL appends, batches ops into segments, holds the rebuild lock. SQLite-backed class (`new_sqlite_classes` migration). |
+| `SEARCH_SHARD` | Durable Object (`ShardSearch`) | One DO per physical shard: group searches fan out here so every shard search runs (and keeps its snapshot cache warm) in its own isolate. This is what removes the 128MB single-isolate ceiling on total index size. Optional - without the binding, group searches fan out in-process. |
+
+### Caching behavior
+
+Search latency is dominated by which cache layer serves the snapshot:
+
+| Layer | Scope | What it stores |
+| --- | --- | --- |
+| Per-isolate LRU | Single Worker isolate | Fully deserialized ZBSearch database, keyed by version |
+| Workers Cache API | Colo | Raw snapshot bytes (`caches.default`) |
+| R2 | Global | Source of truth |
+
+Hot indexes on warm isolates skip both deserialization and network I/O entirely. Cold isolates in a warm colo pay one Cache API read plus deserialization; a new colo pays one R2 read. Expect the isolate cache to absorb the large majority of search traffic on any index queried more than occasionally, and the Cache API to cover most of the rest - R2 reads should be rare outside of fresh colos and just-rebuilt versions. Rebuilds change the version key, so post-rebuild traffic re-warms once per colo rather than serving stale data.
 
 ### Rebuild CLI env
 
@@ -161,7 +195,7 @@ Point uptime monitoring at `GET /health`. No auth required.
 Poll `GET /v1/indexes/:id/status` for:
 
 - `pendingOps` - growing unbounded means rebuilds are failing or too infrequent
-- `status` - stuck on `building` indicates a failed rebuild
+- `status` - `building` longer than your rebuild duration indicates a failed rebuild. With the coordinator binding, the abandoned lock becomes stealable after 15 minutes, so the next rebuild attempt recovers on its own.
 - `lastRebuildAt` - stale timestamp means writes are not being merged
 
 ### Cloudflare observability
@@ -177,7 +211,7 @@ Use the Cloudflare dashboard for Worker invocations, errors, and CPU time. Watch
 
 ## Security checklist
 
-- [ ] `API_KEY` set and enforced on all `/v1/*` routes
+- [ ] `WRITE_API_KEY` and `READ_API_KEY` set and enforced on all `/v1/*` routes; only the read key reaches public clients
 - [ ] R2 API tokens scoped to the minimum bucket permissions
 - [ ] R2 credentials stored as GitHub secrets, not in the repo
 - [ ] Custom domain with Cloudflare SSL if exposing publicly
@@ -186,13 +220,18 @@ Use the Cloudflare dashboard for Worker invocations, errors, and CPU time. Watch
 
 ## Scaling guidance
 
+Measured locally with the [load-testing harness](/docs/cloudflare/benchmarks) (~1.3 KB/doc snapshots, single-process `wrangler dev` - re-run against your deployment for authoritative numbers):
+
 | Index size | Rebuild location | Search |
 | --- | --- | --- |
-| &lt; 10k docs, &lt; 10 MB snapshot | In-Worker cron OK | Workers Cache helps hot reads |
-| 10k–500k docs | External CLI / CI | Monitor R2 egress; cache TTL 1h |
-| 500k+ docs | External CLI; plan for sharding (future) | Consider dedicated read replicas |
+| &lt; 10k docs, &lt; 15 MB snapshot | In-Worker cron OK | ~470 req/s sustained (deployed, 0.00% errors); med ~170 ms incl. network RTT |
+| 10k–100k docs, snapshot fits `SNAPSHOT_CACHE_MAX_BYTES` | External CLI / CI recommended | Warm cache serves med ~40 ms; keep `pendingOps` near zero - dirty searches re-index everything per request |
+| Snapshot &gt; cache budget at any size | External CLI mandatory | **Do not operate here** - every search re-fetches and re-decodes the full snapshot (measured: ~8.5 s avg, ~100% errors) |
+| 100k+ docs / total snapshots &gt; ~100 MB | External CLI; shard the index (`--shards N`) | With the `SEARCH_SHARD` binding, each shard search runs in its own Durable Object isolate - total index size is no longer capped by one isolate. Measured: 100k docs / 8 shards, 0.00% errors warm, med ~330 ms |
 
-v1 stores **full msgpack snapshots**. Very large indexes will hit Worker memory limits during in-Worker rebuild. Use the external builder and watch `indexSizeBytes` in `/status`.
+v1 stores **full msgpack snapshots per shard**. A group search that fans out in-process must hold every shard snapshot in one isolate (8× 16.5 MB = 132 MB > 128 MB - measured: 15-22 s latencies and OOM 503s at 100k docs). The `ShardSearch` Durable Object gives each shard a private isolate with a warm cache, which is the supported architecture past ~50k docs total. As a rule of thumb, at ~1.3 KB/document a shard of **25–50k documents** keeps each snapshot comfortably under the default 64 MB `SNAPSHOT_CACHE_MAX_BYTES`, which also bounds the re-indexing cost of dirty searches (WAL overlay) per shard. Very large indexes will hit Worker memory limits during in-Worker rebuild - use the external builder and watch `indexSizeBytes` in `/status`.
+
+One more rebuild caveat, learned the hard way in production testing: in-Worker rebuilds replay a shard's whole WAL backlog in a single invocation. Rolling rebuilds at the default 500-op threshold sail through 100k+ docs, but a large one-shot backlog (bulk API ingest faster than rebuilds drain, roughly 10k+ pending ops per shard) does not complete - the status wedges at `building` and retries. For bulk loads, use the external builder (`zbsearch-edge-builder import`) instead of the write API.
 
 ## Cost considerations
 
@@ -201,7 +240,7 @@ You pay Cloudflare for:
 - **Workers** - requests and CPU time (rebuilds in-Worker consume CPU ms)
 - **R2** - storage and Class A/B operations (WAL appends, snapshot reads)
 
-Search-heavy workloads benefit from Workers Cache reducing R2 reads. Write-heavy workloads append WAL entries and trigger periodic full snapshot rewrites.
+Search-heavy workloads benefit from the per-isolate snapshot cache and Workers Cache reducing R2 reads and deserialization cost. Write-heavy workloads are batched into WAL segments (roughly 100 ops / 256 KB per R2 object when the coordinator is bound) and trigger periodic full snapshot rewrites.
 
 ## Disaster recovery
 

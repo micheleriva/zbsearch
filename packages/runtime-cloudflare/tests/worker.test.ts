@@ -2,6 +2,7 @@ import { describe, it, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 
 import worker, { type Env } from '../src/worker.js'
+import { clearSnapshotDbCache } from '@zbsearch/edge-core'
 import { MockCache, MockR2Bucket } from './mocks/cloudflare.js'
 
 const mockCache = new MockCache()
@@ -102,9 +103,73 @@ describe('worker fetch', () => {
     assert.equal((await fetchWorker('/v1/info', env)).status, 200)
   })
 
+  it('separates read and write API keys', async () => {
+    const env = makeEnv({ READ_API_KEY: 'read-secret', WRITE_API_KEY: 'write-secret' })
+
+    const anonRead = await fetchWorker('/v1/indexes', env, { method: 'GET' })
+    assert.equal(anonRead.status, 401)
+
+    const read = await fetchWorker('/v1/indexes', env, {
+      method: 'GET',
+      headers: { authorization: 'Bearer read-secret' }
+    })
+    assert.equal(read.status, 200)
+
+    const readKeyWrite = await fetchWorker('/v1/indexes', env, {
+      method: 'POST',
+      headers: { authorization: 'Bearer read-secret', 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Nope', schema: { title: 'string' } })
+    })
+    assert.equal(readKeyWrite.status, 401)
+
+    const writeKeyWrite = await fetchWorker('/v1/indexes', env, {
+      method: 'POST',
+      headers: { authorization: 'Bearer write-secret', 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Allowed', schema: { title: 'string' } })
+    })
+    assert.equal(writeKeyWrite.status, 201)
+
+    const writeKeyRead = await fetchWorker('/v1/indexes', env, {
+      method: 'GET',
+      headers: { authorization: 'Bearer write-secret' }
+    })
+    assert.equal(writeKeyRead.status, 200)
+  })
+
   it('returns 404 for unknown routes', async () => {
     const res = await fetchWorker('/v1/does-not-exist', makeEnv())
     assert.equal(res.status, 404)
+  })
+
+  it('accepts snapshot cache limits via env vars', async () => {
+    const env = makeEnv({
+      SNAPSHOT_CACHE_MAX_ENTRIES: '2',
+      SNAPSHOT_CACHE_MAX_BYTES: String(16 * 1024 * 1024)
+    })
+
+    await fetchWorker('/v1/indexes', env, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'cache-opts', schema: { title: 'string' } })
+    })
+    await fetchWorker('/v1/indexes/cache-opts/documents/doc-1', env, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'Cache Options Doc' })
+    })
+    await fetchWorker('/v1/indexes/cache-opts/rebuild', env, { method: 'POST' })
+
+    for (let i = 0; i < 2; i++) {
+      const res = await fetchWorker('/v1/indexes/cache-opts/search', env, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ term: 'cache options' })
+      })
+      assert.equal(res.status, 200)
+      assert.ok(((await res.json()) as { count: number }).count >= 1)
+    }
+
+    clearSnapshotDbCache()
   })
 
   it('lists indexes after creation', async () => {

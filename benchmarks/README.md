@@ -57,6 +57,8 @@ Add the **`Run benchmarks`** label to a pull request. The **PR Benchmarks** work
 
 Re-runs automatically on new commits while the label remains.
 
+Uses `pull_request_target` so comments also work for **fork** PRs (plain `pull_request` tokens are read-only on forks). The workflow file on the **base branch** is what runs; merge workflow changes to `main` before relying on them for external PRs.
+
 ## Other suites
 
 | Script | Description |

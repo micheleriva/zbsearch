@@ -1,12 +1,13 @@
 name: PR Benchmarks
 
 on:
-  pull_request:
+  pull_request_target:
     types: [labeled, synchronize, opened, reopened, ready_for_review]
 
 permissions:
   contents: read
   pull-requests: write
+  issues: write
 
 concurrency:
   group: pr-benchmarks-${{ github.event.pull_request.number }}
@@ -22,10 +23,18 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - name: Check out PR
+      - name: Check out PR head
         uses: actions/checkout@v4
         with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/head
           fetch-depth: 0
+          # Do not hand the write-capable token to untrusted PR code.
+          persist-credentials: false
+
+      - name: Fetch base SHA
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: git fetch --depth=1 origin "$BASE_SHA"
 
       - uses: pnpm/action-setup@v4
 
@@ -67,13 +76,12 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Run base vs PR benchmarks
-        id: bench
         working-directory: benchmarks
         env:
           BENCHMARK_BASE_PACKAGE: ${{ steps.base.outputs.dir }}/packages/zbsearch
           BENCHMARK_PR_PACKAGE: ${{ github.workspace }}/packages/zbsearch
           BENCHMARK_BASE_REF: ${{ github.event.pull_request.base.ref }}
-          BENCHMARK_PR_REF: ${{ github.head_ref }}
+          BENCHMARK_PR_REF: ${{ github.event.pull_request.head.ref }}
           BENCHMARK_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           BENCHMARK_PR_SHA: ${{ github.event.pull_request.head.sha }}
           BENCHMARK_REGRESSION_THRESHOLD: '5'
@@ -116,8 +124,9 @@ jobs:
               ''
             ].join('\n')
 
-            // Strip the marker from the file body if present, then rebuild.
-            const table = body.includes(marker) ? body.slice(body.indexOf(marker) + marker.length).trimStart() : body
+            const table = body.includes(marker)
+              ? body.slice(body.indexOf(marker) + marker.length).trimStart()
+              : body
             const commentBody = `${header}${table}`
 
             const { data: comments } = await github.rest.issues.listComments({
@@ -127,7 +136,9 @@ jobs:
               per_page: 100
             })
 
-            const existing = comments.find((c) => c.user?.type === 'Bot' && c.body?.includes(marker))
+            const existing = comments.find(
+              (c) => c.user?.type === 'Bot' && c.body?.includes(marker)
+            )
 
             if (existing) {
               await github.rest.issues.updateComment({

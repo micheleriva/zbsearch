@@ -2,6 +2,7 @@ packages:
   - 'packages/*'
   - 'sandboxes/*'
   - 'apps/*'
+  - 'benchmarks'
 
 allowBuilds:
   '@swc/core': true
@@ -37,7 +38,9 @@ minimumReleaseAgeExclude:
 
 overrides:
   hastscript: ^9.0.1
-  '@orama/orama': 'link:packages/zbsearch'
+  # Fumadocs depends on @orama/orama; map only that edge to local zbsearch.
+  # Do not override globally — benchmarks must compare against real Orama.
+  'fumadocs-core>@orama/orama': 'link:packages/zbsearch'
 
 peerDependencyRules:
   ignoreMissing:

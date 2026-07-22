@@ -6,7 +6,7 @@ settings:
 
 overrides:
   hastscript: ^9.0.1
-  '@orama/orama': link:packages/zbsearch
+  fumadocs-core>@orama/orama: link:packages/zbsearch
 
 importers:
 
@@ -136,6 +136,43 @@ importers:
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
+
+  benchmarks:
+    dependencies:
+      '@orama/orama':
+        specifier: ^3.1.18
+        version: 3.1.18
+      '@zbsearch/plugin-pt15':
+        specifier: file:../packages/plugin-pt15
+        version: file:packages/plugin-pt15
+      '@zbsearch/plugin-qps':
+        specifier: file:../packages/plugin-qps
+        version: file:packages/plugin-qps
+      '@zbsearch/stopwords':
+        specifier: file:../packages/stopwords
+        version: link:../packages/stopwords
+      flexsearch:
+        specifier: ^0.8.212
+        version: 0.8.212
+      fuse.js:
+        specifier: ^7.5.0
+        version: 7.5.0
+      lunr:
+        specifier: ^2.3.9
+        version: 2.3.9
+      minisearch:
+        specifier: ^7.2.0
+        version: 7.2.0
+      zbsearch:
+        specifier: file:../packages/zbsearch
+        version: link:../packages/zbsearch
+    devDependencies:
+      benny:
+        specifier: ^3.7.1
+        version: 3.7.1
+      esbuild:
+        specifier: ^0.28.1
+        version: 0.28.1
 
   packages/edge-core:
     dependencies:
@@ -1833,6 +1870,10 @@ packages:
     resolution: {integrity: sha512-9ApYM/3+rBt9V80aYg6tZfzj3UWdiYyCt7gJUD1VJKvWF5nwKDSICXbYIQbspFTq6TOpbsEtIC0LArB8d9PFmg==}
     engines: {node: ^16.14.0 || >=18.0.0}
 
+  '@orama/orama@3.1.18':
+    resolution: {integrity: sha512-a61ljmRVVyG5MC/698C8/FfFDw5a8LOIvyOLW5fztgUXqUpc1jOfQzOitSCbge657OgXXThmY3Tk8fpiDb4UcA==}
+    engines: {node: '>= 20.0.0'}
+
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
@@ -3418,6 +3459,12 @@ packages:
     resolution: {integrity: sha512-siPY6BD5dQ2SZPl3I0OZBHL27ZqZvLEosObsZRQ1NUB8qcxegwt0T9eKtV96JMFQpIz1elhkzqOg4c/Ri6Dp9A==}
     engines: {node: ^14.14.0 || >=16.0.0}
 
+  '@zbsearch/plugin-pt15@file:packages/plugin-pt15':
+    resolution: {directory: packages/plugin-pt15, type: directory}
+
+  '@zbsearch/plugin-qps@file:packages/plugin-qps':
+    resolution: {directory: packages/plugin-qps, type: directory}
+
   abbrev@2.0.0:
     resolution: {integrity: sha512-6/mh1E2u2YgEsCHdY0Yx5oW+61gZU+1vXaoiHHrpKeuRNNgFvS+/jrwHiQhB5apAf5oB7UB7E19ol2R2LKH8hQ==}
     engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
@@ -4735,6 +4782,10 @@ packages:
   functions-have-names@1.2.3:
     resolution: {integrity: sha512-xckBUXyTIqT97tq2x2AMb+g163b5JFysYk0x4qxNFwbfQkmNZoiRHb6sPzI9/QV33WeuvVYBUIiD4NzNIyqaRQ==}
 
+  fuse.js@7.5.0:
+    resolution: {integrity: sha512-sQtrEfA+ez/3G0cCZecF70oqpCRttCexYUG4mUrtWL49ULUzUyxokt5kyqwtKzj1270RaKih+hcP3qLcumccow==}
+    engines: {node: '>=10'}
+
   get-caller-file@2.0.5:
     resolution: {integrity: sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg==}
     engines: {node: 6.* || 8.* || >= 10.*}
@@ -5682,6 +5733,9 @@ packages:
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
+  lunr@2.3.9:
+    resolution: {integrity: sha512-zTU3DaZaF3Rt9rhN3uBMGQD3dD2/vFQqnvZCDv4dl5iOzq2IZQqTxu90r4E5J+nP70J3ilqVCrbho2eWaeW8Ow==}
+
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
 
@@ -6081,6 +6135,9 @@ packages:
   minipass@7.1.3:
     resolution: {integrity: sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==}
     engines: {node: '>=16 || 14 >=14.17'}
+
+  minisearch@7.2.0:
+    resolution: {integrity: sha512-dqT2XBYUOZOiC5t2HRnwADjhNS2cecp9u+TJRiJ1Qp/f5qjkeT5APcGPjHw+bz89Ms8Jp+cG4AlE+QZ/QnDglg==}
 
   minizlib@2.1.2:
     resolution: {integrity: sha512-bAxsR8BVfj60DWXHE3u30oHzfl4G7khkSuPW+qvpd7jFRHm7dLxOjUk1EHACJ/hxLY8phGJ0YhYHZo7jil7Qdg==}
@@ -9241,6 +9298,8 @@ snapshots:
       - bluebird
       - supports-color
 
+  '@orama/orama@3.1.18': {}
+
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
@@ -11486,6 +11545,14 @@ snapshots:
     dependencies:
       arch: 3.0.0
 
+  '@zbsearch/plugin-pt15@file:packages/plugin-pt15':
+    dependencies:
+      zbsearch: link:packages/zbsearch
+
+  '@zbsearch/plugin-qps@file:packages/plugin-qps':
+    dependencies:
+      zbsearch: link:packages/zbsearch
+
   abbrev@2.0.0: {}
 
   abbrev@4.0.0: {}
@@ -12863,8 +12930,7 @@ snapshots:
 
   flatted@3.3.3: {}
 
-  flexsearch@0.8.212:
-    optional: true
+  flexsearch@0.8.212: {}
 
   for-each@0.3.5:
     dependencies:
@@ -13051,6 +13117,8 @@ snapshots:
       is-document.all: 1.0.0
 
   functions-have-names@1.2.3: {}
+
+  fuse.js@7.5.0: {}
 
   get-caller-file@2.0.5: {}
 
@@ -14160,6 +14228,8 @@ snapshots:
     dependencies:
       react: 19.2.7
 
+  lunr@2.3.9: {}
+
   magic-string@0.30.21:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
@@ -14954,6 +15024,8 @@ snapshots:
   minipass@5.0.0: {}
 
   minipass@7.1.3: {}
+
+  minisearch@7.2.0: {}
 
   minizlib@2.1.2:
     dependencies:

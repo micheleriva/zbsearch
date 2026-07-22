@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/runtime-cloudflare",
-  "version": "3.3.2",
+  "version": "3.3.3",
   "description": "Cloudflare Workers runtime for ZBSearch Edge",
   "type": "module",
   "sideEffects": false,

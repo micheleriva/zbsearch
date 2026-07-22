@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/plugin-match-highlight",
-  "version": "3.3.2",
+  "version": "3.3.3",
   "description": "ZBSearch plugin for search match highlighting",
   "keywords": [
     "full-text search",

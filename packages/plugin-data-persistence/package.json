@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/plugin-data-persistence",
-  "version": "3.3.2",
+  "version": "3.3.3",
   "description": "Data persistence plugin for ZBSearch",
   "type": "module",
   "sideEffects": false,

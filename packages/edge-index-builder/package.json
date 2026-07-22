@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/edge-index-builder",
-  "version": "3.3.2",
+  "version": "3.3.3",
   "description": "Rebuild and bulk-import CLI for ZBSearch Edge indexes",
   "type": "module",
   "bin": {

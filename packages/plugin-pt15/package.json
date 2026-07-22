@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/plugin-pt15",
-  "version": "3.3.2",
+  "version": "3.3.3",
   "description": "Performant search algorithm optimized for descriptive texts",
   "keywords": [
     "zbsearch",

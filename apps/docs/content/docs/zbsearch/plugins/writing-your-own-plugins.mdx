@@ -3,8 +3,6 @@ title: Writing your own plugins
 description: Learn how to write your own plugins in ZBSearch.
 ---
 
-With ZBSearch `v2.0.0-beta.5`, we introduced the new plugin system. This allows you to write your own plugins and use them in your ZBSearch project.
-
 The ZBSearch plugin system is meant to replace the old hooks system, which is now deprecated.
 
 If you had any custom hook, it would be incredibly easy to migrate it to a plugin, as the APIs are 100% backward compatible.
@@ -19,9 +17,9 @@ An example plugin could look like this:
 function loggerPlugin() {
   return {
     name: "logger",
-    beforeSearch: (orama, query) => {
+    beforeSearch: (instance, query) => {
       console.log(
-        `About to search for ${query.term} on ZBSearch instance ${orama.id}`
+        `About to search for ${query.term} on ZBSearch instance ${instance.id}`
       );
     },
   };
@@ -36,15 +34,15 @@ import { create, insert, search } from "zbsearch";
 function loggerPlugin() {
   return {
     name: "logger",
-    beforeSearch: (orama, query) => {
+    beforeSearch: (instance, query) => {
       console.log(
-        `About to search for ${query.term} on ZBSearch instance ${orama.id}`
+        `About to search for ${query.term} on ZBSearch instance ${instance.id}`
       );
     },
   };
 }
 
-const orama = create({
+const zbsearch = create({
   id: "my-instance", // Remember, IDs are automatically generated if not provided
   schema: {
     name: "string",
@@ -52,8 +50,8 @@ const orama = create({
   plugins: [loggerPlugin()],
 });
 
-insert(orama, { name: "John" });
-search(orama, { term: "John" });
+insert(zbsearch, { name: "John" });
+search(zbsearch, { term: "John" });
 
 // Console logs: "About to search for john on ZBSearch instance my-instance"
 ```
@@ -71,8 +69,8 @@ When working with `async` hooks remember to always use the `async` keyword modif
 async function afterInsertPluginExample() {
   return {
     name: "after-insert-plugin",
-    afterInsert: async (orama, id, document) => {
-      console.log("ZBSearch instance: ", orama);
+    afterInsert: async (instance, id, document) => {
+      console.log("ZBSearch instance: ", instance);
       console.log("Document id: ", id);
       console.log("Document inserted: ", document);
     },
@@ -82,8 +80,6 @@ async function afterInsertPluginExample() {
 </Callout>
 
 ## Plugin hooks
-
-With `v2.0.0-beta.5`, we essentially moved the hooks from the `components` property of the ZBSearch instance to the `plugins` property.
 
 The available hooks are:
 
@@ -111,8 +107,8 @@ Runs before an insert operation. Receives the ZBSearch instance, the document ID
 function beforeInsertPluginExample() {
   return {
     name: "before-insert-plugin",
-    beforeInsert: (orama, id, document) => {
-      console.log("ZBSearch instance: ", orama);
+    beforeInsert: (instance, id, document) => {
+      console.log("ZBSearch instance: ", instance);
       console.log("Document id: ", id);
       console.log("Document to be inserted: ", document);
     },
@@ -128,8 +124,8 @@ Runs after an insert operation. Receives the ZBSearch instance, the document ID,
 function afterInsertPluginExample() {
   return {
     name: "after-insert-plugin",
-    afterInsert: (orama, id, document) => {
-      console.log("ZBSearch instance: ", orama);
+    afterInsert: (instance, id, document) => {
+      console.log("ZBSearch instance: ", instance);
       console.log("Document id: ", id);
       console.log("Document inserted: ", document);
     },
@@ -145,8 +141,8 @@ Runs before a remove operation. Receives the ZBSearch instance and the document 
 function beforeRemovePluginExample() {
   return {
     name: "before-remove-plugin",
-    beforeRemove: (orama, id) => {
-      console.log("ZBSearch instance: ", orama);
+    beforeRemove: (instance, id) => {
+      console.log("ZBSearch instance: ", instance);
       console.log("Document id: ", id);
     },
   };
@@ -161,8 +157,8 @@ Runs after a remove operation. Receives the ZBSearch instance and the document I
 function afterRemovePluginExample() {
   return {
     name: "after-remove-plugin",
-    afterRemove: (orama, id) => {
-      console.log("ZBSearch instance: ", orama);
+    afterRemove: (instance, id) => {
+      console.log("ZBSearch instance: ", instance);
       console.log("Document id: ", id);
     },
   };
@@ -177,8 +173,8 @@ Runs before an update operation. Receives the ZBSearch instance and the document
 function beforeUpdatePluginExample() {
   return {
     name: "before-update-plugin",
-    beforeUpdate: (orama, id) => {
-      console.log("ZBSearch instance: ", orama);
+    beforeUpdate: (instance, id) => {
+      console.log("ZBSearch instance: ", instance);
       console.log("Document id: ", id);
     },
   };
@@ -193,8 +189,8 @@ Runs after an update operation. Receives the ZBSearch instance and the document 
 function afterUpdatePluginExample() {
   return {
     name: "after-update-plugin",
-    afterUpdate: (orama, id) => {
-      console.log("ZBSearch instance: ", orama);
+    afterUpdate: (instance, id) => {
+      console.log("ZBSearch instance: ", instance);
       console.log("Document id: ", id);
     },
   };
@@ -209,8 +205,8 @@ Runs before a search operation. Receives the ZBSearch instance and the query obj
 function beforeSearchPluginExample() {
   return {
     name: "before-search-plugin",
-    beforeSearch: (orama, query) => {
-      console.log("ZBSearch instance: ", orama);
+    beforeSearch: (instance, query) => {
+      console.log("ZBSearch instance: ", instance);
       console.log("Query: ", query);
     },
   };
@@ -225,8 +221,8 @@ Runs after a search operation. Receives the ZBSearch instance, the query object,
 function afterSearchPluginExample() {
   return {
     name: "after-search-plugin",
-    afterSearch: (orama, query, result) => {
-      console.log("ZBSearch instance: ", orama);
+    afterSearch: (instance, query, result) => {
+      console.log("ZBSearch instance: ", instance);
       console.log("Query: ", query);
       console.log("Search result: ", result);
     },
@@ -248,8 +244,8 @@ the `beforeInsertMultiple` hook will be called for each document. \
 function beforeInsertMultiplePluginExample() {
   return {
     name: "before-insert-multiple-plugin",
-    beforeInsertMultiple: (orama, documents) => {
-      console.log("ZBSearch instance: ", orama);
+    beforeInsertMultiple: (instance, documents) => {
+      console.log("ZBSearch instance: ", instance);
       console.log("Documents to be inserted: ", documents);
     },
   };
@@ -270,8 +266,8 @@ the `afterInsertMultiple` hook will be called for each document. \
 function afterInsertMultiplePluginExample() {
   return {
     name: "after-insert-multiple-plugin",
-    afterInsertMultiple: (orama, documents) => {
-      console.log("ZBSearch instance: ", orama);
+    afterInsertMultiple: (instance, documents) => {
+      console.log("ZBSearch instance: ", instance);
       console.log("Documents inserted: ", documents);
     },
   };
@@ -292,8 +288,8 @@ the `beforeRemoveMultiple` hook will be called for each document. \
 function beforeRemoveMultiplePluginExample() {
   return {
     name: "before-remove-multiple-plugin",
-    beforeRemoveMultiple: (orama, ids) => {
-      console.log("ZBSearch instance: ", orama);
+    beforeRemoveMultiple: (instance, ids) => {
+      console.log("ZBSearch instance: ", instance);
       console.log("Document IDs to be removed: ", ids);
     },
   };
@@ -314,8 +310,8 @@ the `afterRemoveMultiple` hook will be called for each document. \
 function afterRemoveMultiplePluginExample() {
   return {
     name: "after-remove-multiple-plugin",
-    afterRemoveMultiple: (orama, ids) => {
-      console.log("ZBSearch instance: ", orama);
+    afterRemoveMultiple: (instance, ids) => {
+      console.log("ZBSearch instance: ", instance);
       console.log("Document IDs removed: ", ids);
     },
   };
@@ -339,8 +335,8 @@ Also, consider that the `update` operation is a shorthand for the `remove` and `
 function beforeUpdateMultiplePluginExample() {
   return {
     name: "before-update-multiple-plugin",
-    beforeUpdateMultiple: (orama, ids) => {
-      console.log("ZBSearch instance: ", orama);
+    beforeUpdateMultiple: (instance, ids) => {
+      console.log("ZBSearch instance: ", instance);
       console.log("Document IDs to be updated: ", ids);
     },
   };
@@ -364,45 +360,10 @@ Also, consider that the `update` operation is a shorthand for the `remove` and `
 function afterUpdateMultiplePluginExample() {
   return {
     name: "after-update-multiple-plugin",
-    afterUpdateMultiple: (orama, ids) => {
-      console.log("ZBSearch instance: ", orama);
+    afterUpdateMultiple: (instance, ids) => {
+      console.log("ZBSearch instance: ", instance);
       console.log("Document IDs updated: ", ids);
     },
   };
 }
 ```
-
-## Migrating from hooks to plugins
-
-If you were using the old hooks system, you can easily migrate to the new plugin system by moving your hooks to a single plugin.
-
-For instance, if you had a `beforeInsert` hook, you can migrate it to a plugin like this:
-
-```diff
-import { create } from 'zbsearch'
-
-const db = create({
-  schema: {
-    name: 'string'
-  },
-- components: {
--   beforeInsert: (orama, id, document) => {
--     console.log('ZBSearch instance: ', orama)
--     console.log('Document id: ', id)
--     console.log('Document to be inserted: ', document)
--   }
-- }
-+ plugins: [
-+   {
-+     name: 'before-insert-plugin',
-+     beforeInsert: (orama, id, document) => {
-+       console.log('ZBSearch instance: ', orama)
-+       console.log('Document id: ', id)
-+       console.log('Document to be inserted: ', document)
-+     }
-+   }
-+ ]
-})
-```
-
-Types, behavior, and arguments are 100% backward compatible, so you don't need to change anything else.

@@ -1,11 +1,17 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { appName, gitConfig } from './shared';
+import { ZBSearchIcon } from '@/components/icons/zbsearch';
 
 export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
       // JSX supported
-      title: appName,
+      title: (
+        <span className="inline-flex items-center gap-2">
+          <ZBSearchIcon className="size-5 object-contain" />
+          {appName}
+        </span>
+      ),
     },
     links: [
       {

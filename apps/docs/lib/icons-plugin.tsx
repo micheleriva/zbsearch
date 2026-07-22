@@ -3,9 +3,11 @@ import { icons } from 'lucide-react';
 import type { LoaderPlugin } from 'fumadocs-core/source';
 
 import { CloudflareIcon } from '@/components/icons/cloudflare';
+import { ZBSearchIcon } from '@/components/icons/zbsearch';
 
 const customIcons: Record<string, ComponentType> = {
   Cloudflare: CloudflareIcon,
+  ZBSearch: ZBSearchIcon,
 };
 
 function resolveIcon(icon?: string): ReactNode {

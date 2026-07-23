@@ -41,6 +41,7 @@ export default async function BlogPostPage(props: PageProps<'/blog/[slug]'>) {
               year: 'numeric',
               month: 'long',
               day: 'numeric',
+              timeZone: 'UTC',
             })}
           </span>
         </div>
@@ -84,5 +85,13 @@ export async function generateMetadata(props: PageProps<'/blog/[slug]'>): Promis
   return {
     title: page.data.title,
     description: page.data.description,
+    openGraph: {
+      type: 'article',
+      images: `/og/blog/${params.slug}`,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      images: `/og/blog/${params.slug}`,
+    },
   };
 }

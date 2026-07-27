@@ -55,6 +55,48 @@ const movieDB = create({
 });
 ```
 
+## Schema-less usage (schema inference)
+
+The `schema` is **optional**. If you omit it, ZBSearch infers the type of every document property the first time it sees it, and indexes it on the fly:
+
+```javascript copy
+import { create, insert, search } from "zbsearch";
+
+const db = create();
+
+await insert(db, { title: "The Godfather", year: 1972, cast: { director: "Coppola" } });
+
+// db.schema is now: { title: "string", year: "number", cast: { director: "string" } }
+await search(db, { term: "godfather" });
+```
+
+Inferred types follow these rules:
+
+| Document value                          | Inferred type                              |
+| --------------------------------------- | ------------------------------------------ |
+| `string`                                | `string`                                   |
+| `number`                                | `number`                                   |
+| `boolean`                               | `boolean`                                  |
+| `string[]` / `number[]` / `boolean[]`   | `string[]` / `number[]` / `boolean[]`      |
+| `{ lat: number, lon: number }`          | `geopoint`                                 |
+| nested object                           | recursively inferred as nested properties  |
+| empty array, `null`, `undefined`        | deferred until a concrete value appears    |
+
+A few things worth knowing:
+
+- **Types lock on first sight.** If `year` is first seen as a `number`, a later document with `year: "1972"` is rejected with a `SCHEMA_VALIDATION_FAILURE` error, exactly as with a declared schema.
+- **Vectors are never inferred**, because a `number[]` is indistinguishable from an embedding. Declare vector (embedding) properties explicitly and let everything else be inferred:
+
+```javascript copy
+const db = create({
+  schema: { embedding: "vector[384]" },
+  inferSchema: true, // required: a provided schema is strict by default
+});
+```
+
+- **Providing a schema keeps the strict behavior**: properties not declared in the schema are stored but not indexed, unless you opt into inference with `inferSchema: true` as above. Conversely, `create({ inferSchema: false })` stores documents without indexing anything.
+- Inferred schemas are preserved by `save`/`load`, so schema-less databases survive persistence round-trips.
+
 ## Nested properties
 
 ZBSearch supports nested properties natively. Just add them as you would typically do in any JavaScript object:

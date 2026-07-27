@@ -1,7 +1,7 @@
 import { createError } from '../errors.js'
 import {
-  AnyZBSearch,
   AnySorterStore,
+  AnyZBSearch,
   ISorter,
   SearchableType,
   SorterConfig,
@@ -9,6 +9,7 @@ import {
   SortType,
   SortValue
 } from '../types.js'
+import { safeArrayPush } from '../utils.js'
 import { isVectorType } from './defaults.js'
 import {
   DocumentID,
@@ -16,7 +17,6 @@ import {
   InternalDocumentID,
   InternalDocumentIDStore
 } from './internal-document-id-store.js'
-import { safeArrayPush } from '../utils.js'
 import { getLocale } from './tokenizer/languages.js'
 
 interface PropertySort<K> {
@@ -38,6 +38,31 @@ export interface Sorter extends AnySorterStore {
   sortableProperties: string[]
   sortablePropertiesWithTypes: Record<string, SortType>
   sorts: Record<string, PropertySort<number | string | boolean>>
+  unsortableProperties: string[]
+}
+
+export function addSortablePropertyToSorter(sorter: Sorter, path: string, type: SearchableType): void {
+  if (!sorter.enabled || (sorter.unsortableProperties ?? []).includes(path)) {
+    return
+  }
+
+  switch (type) {
+    case 'boolean':
+    case 'number':
+    case 'string':
+      sorter.sortableProperties.push(path)
+      sorter.sortablePropertiesWithTypes[path] = type
+      sorter.sorts[path] = {
+        docs: new Map(),
+        orderedDocsToRemove: new Map(),
+        orderedDocs: [],
+        type: type
+      }
+      break
+    default:
+      // We don't allow to sort by arrays, enums, geopoints, or vectors
+      return
+  }
 }
 
 function innerCreate<T extends AnyZBSearch>(
@@ -54,7 +79,8 @@ function innerCreate<T extends AnyZBSearch>(
     isSorted: true,
     sortableProperties: [],
     sortablePropertiesWithTypes: {},
-    sorts: {}
+    sorts: {},
+    unsortableProperties: sortableDeniedProperties
   }
 
   for (const [prop, type] of Object.entries<SearchableType>(schema)) {
@@ -79,33 +105,28 @@ function innerCreate<T extends AnyZBSearch>(
       continue
     }
 
-    if (!isVectorType(type)) {
-      switch (type) {
-        case 'boolean':
-        case 'number':
-        case 'string':
-          sorter.sortableProperties.push(path)
-          sorter.sortablePropertiesWithTypes[path] = type
-          sorter.sorts[path] = {
-            docs: new Map(),
-            orderedDocsToRemove: new Map(),
-            orderedDocs: [],
-            type: type
-          }
-          break
-        case 'geopoint':
-        case 'enum':
-          // We don't allow to sort by enums or geopoints
-          continue
-        case 'enum[]':
-        case 'boolean[]':
-        case 'number[]':
-        case 'string[]':
-          // We don't allow to sort by arrays
-          continue
-        default:
-          throw createError('INVALID_SORT_SCHEMA_TYPE', Array.isArray(type) ? 'array' : type, path)
-      }
+    if (isVectorType(type)) {
+      continue
+    }
+
+    switch (type) {
+      case 'boolean':
+      case 'number':
+      case 'string':
+        addSortablePropertyToSorter(sorter, path, type)
+        break
+      case 'geopoint':
+      case 'enum':
+        // We don't allow to sort by enums or geopoints
+        continue
+      case 'enum[]':
+      case 'boolean[]':
+      case 'number[]':
+      case 'string[]':
+        // We don't allow to sort by arrays
+        continue
+      default:
+        throw createError('INVALID_SORT_SCHEMA_TYPE', Array.isArray(type) ? 'array' : type, path)
     }
   }
 
@@ -331,7 +352,8 @@ export function load<R = unknown>(sharedInternalDocumentStore: InternalDocumentI
     sortablePropertiesWithTypes: rawDocument.sortablePropertiesWithTypes,
     sorts,
     enabled: true,
-    isSorted: rawDocument.isSorted
+    isSorted: rawDocument.isSorted,
+    unsortableProperties: rawDocument.unsortableProperties ?? []
   }
 }
 

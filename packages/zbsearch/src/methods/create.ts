@@ -1,12 +1,18 @@
-import { formatElapsedTime, getDocumentIndexId, getDocumentProperties, validateSchema, assertSchemaHasNoReservedKeys } from '../components/defaults.js'
-import { DocumentsStore, createDocumentsStore } from '../components/documents-store.js'
-import { AVAILABLE_PLUGIN_HOOKS, getAllPluginsByHook } from '../components/plugins.js'
+import {
+  assertSchemaHasNoReservedKeys,
+  formatElapsedTime,
+  getDocumentIndexId,
+  getDocumentProperties,
+  validateSchema
+} from '../components/defaults.js'
+import { createDocumentsStore, DocumentsStore } from '../components/documents-store.js'
 import { FUNCTION_COMPONENTS, OBJECT_COMPONENTS, runAfterCreate } from '../components/hooks.js'
-import { Index, createIndex } from '../components/index.js'
+import { createIndex, Index } from '../components/index.js'
 import { createInternalDocumentIDStore } from '../components/internal-document-id-store.js'
-import { Sorter, createSorter } from '../components/sorter.js'
-import { createTokenizer } from '../components/tokenizer/index.js'
 import { createPinning } from '../components/pinning.js'
+import { AVAILABLE_PLUGIN_HOOKS, getAllPluginsByHook } from '../components/plugins.js'
+import { createSorter, Sorter } from '../components/sorter.js'
+import { createTokenizer } from '../components/tokenizer/index.js'
 import { createError } from '../errors.js'
 import {
   AnySchema,
@@ -17,15 +23,16 @@ import {
   IndexesConfig,
   ISorter,
   ObjectComponents,
-  ZBSearch,
-  ZBSearchPlugin,
   SorterConfig,
-  Tokenizer
+  Tokenizer,
+  ZBSearch,
+  ZBSearchPlugin
 } from '../types.js'
 import { uniqueId } from '../utils.js'
 
 interface CreateArguments<ZBSearchSchema, TIndex, TDocumentStore, TSorter, TPinning> {
-  schema: ZBSearchSchema
+  schema?: ZBSearchSchema
+  inferSchema?: boolean
   indexes?: IndexesConfig
   sort?: SorterConfig
   language?: string
@@ -76,26 +83,25 @@ function validateComponents<
 }
 
 export function create<
-  ZBSearchSchema extends AnySchema,
+  // `any` (not AnySchema) is the deliberate default for schemaless usage:
+  // it routes to the loose, already-supported typing path and avoids
+  // distributing the schema-mapped types over an index signature.
+  ZBSearchSchema extends AnySchema = any,
   TIndex = IIndex<Index>,
   TDocumentStore = IDocumentsStore<DocumentsStore>,
   TSorter = ISorter<Sorter>,
   TPinning = any
->({
-  schema,
-  indexes,
-  sort,
-  language,
-  components,
-  id,
-  plugins
-}: CreateArguments<ZBSearchSchema, TIndex, TDocumentStore, TSorter, TPinning>): ZBSearch<
-  ZBSearchSchema,
-  TIndex,
-  TDocumentStore,
-  TSorter,
-  TPinning
-> {
+>(
+  args: CreateArguments<ZBSearchSchema, TIndex, TDocumentStore, TSorter, TPinning> = {}
+): ZBSearch<ZBSearchSchema, TIndex, TDocumentStore, TSorter, TPinning> {
+  const { indexes, sort, language, plugins } = args
+  let { id } = args
+  const schema = (args.schema ?? {}) as ZBSearchSchema
+  // When no schema is provided, schema inference defaults to on.
+  // When a schema is provided, it is enforced strictly unless inference is explicitly enabled for undeclared properties.
+  const inferSchema = args.inferSchema ?? args.schema === undefined
+  let components = args.components
+
   if (!components) {
     components = {}
   }
@@ -169,6 +175,7 @@ export function create<
     data: {},
     caches: {},
     schema,
+    inferSchema,
     tokenizer,
     index,
     sorter,

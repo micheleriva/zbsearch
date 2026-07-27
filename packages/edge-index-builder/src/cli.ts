@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises'
-
-import { importDocuments, importShardedDocuments, rebuildIndex, listIndexMetas } from '@zbsearch/edge-core'
 import type { CreateIndexInput } from '@zbsearch/edge-core'
+import { importDocuments, importShardedDocuments, listIndexMetas, rebuildIndex } from '@zbsearch/edge-core'
 import { createS3StorageFromEnv } from '@zbsearch/storage-s3'
 
 import { loadImportDocuments } from './import-documents.js'
@@ -94,14 +93,13 @@ async function runImport(
   if (options.shards !== undefined) {
     const result = await importShardedDocuments(storage, indexId, documents, {
       shards: options.shards,
-      create:
-        options.create && schema
-          ? {
-              name: options.name ?? indexId,
-              schema,
-              settings: options.language ? { language: options.language } : undefined
-            }
-          : undefined
+      create: options.create
+        ? {
+            name: options.name ?? indexId,
+            ...(schema ? { schema } : {}),
+            settings: options.language ? { language: options.language } : undefined
+          }
+        : undefined
     })
 
     console.log(JSON.stringify(result))
@@ -109,14 +107,13 @@ async function runImport(
   }
 
   const meta = await importDocuments(storage, indexId, documents, {
-    create:
-      options.create && schema
-        ? {
-            name: options.name ?? indexId,
-            schema,
-            settings: options.language ? { language: options.language } : undefined
-          }
-        : undefined
+    create: options.create
+      ? {
+          name: options.name ?? indexId,
+          ...(schema ? { schema } : {}),
+          settings: options.language ? { language: options.language } : undefined
+        }
+      : undefined
   })
 
   console.log(

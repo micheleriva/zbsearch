@@ -1,20 +1,19 @@
-import { create, insertMultiple, load, save, search, type AnySchema, type AnyZBSearch } from 'zbsearch'
-import { encode, decode } from '@msgpack/msgpack'
+import { decode, encode } from '@msgpack/msgpack'
+import { type AnySchema, type AnyZBSearch, create, insertMultiple, load, save, search } from 'zbsearch'
 
 import {
-  applyBufferOps,
   appendBufferOp,
   appendWalBatch,
+  applyBufferOps,
   clearBuffer,
   finalizeBufferAfterRebuild,
   freezeBufferForRebuild,
   readBufferOps
 } from './buffer.js'
-import { badRequest, notFound } from './errors.js'
 import type { WalCoordinator } from './coordinator.js'
-import { getIndexMeta, registerIndex, saveIndexMeta } from './registry.js'
+import { badRequest, notFound } from './errors.js'
 import { indexMetaKey, newVersionId, snapshotKey } from './paths.js'
-import { isShardGroupMeta, shardIndexId } from './shards.js'
+import { getIndexMeta, registerIndex, saveIndexMeta } from './registry.js'
 import {
   bufferBatchSharded,
   bufferDeleteSharded,
@@ -25,18 +24,13 @@ import {
   rebuildShardGroup,
   runShardedSearch
 } from './shard-group.js'
+import { isShardGroupMeta, shardIndexId } from './shards.js'
 import type { ObjectStorage, ShardCache } from './storage.js'
-import type {
-  BufferedWriteResponse,
-  BufferOp,
-  IndexMeta,
-  IndexSettings,
-  IndexStatusResponse
-} from './types.js'
+import type { BufferedWriteResponse, BufferOp, IndexMeta, IndexSettings, IndexStatusResponse } from './types.js'
 
 export interface CreateIndexInput {
   name: string
-  schema: AnySchema
+  schema?: AnySchema
   settings?: IndexSettings
   shards?: number
 }
@@ -499,10 +493,7 @@ export async function maybeScheduleRebuild(
     return
   }
 
-  if (
-    meta.status === 'building' &&
-    Date.now() - Date.parse(meta.updatedAt) <= REBUILD_STATUS_STALE_MS
-  ) {
+  if (meta.status === 'building' && Date.now() - Date.parse(meta.updatedAt) <= REBUILD_STATUS_STALE_MS) {
     return
   }
 
@@ -663,7 +654,7 @@ export async function runSearch(
   }
 
   const meta = await getIndexMeta(storage, indexId)
-  
+
   if (isShardGroupMeta(meta)) {
     return runShardedSearch(storage, cache, meta, params, options)
   }

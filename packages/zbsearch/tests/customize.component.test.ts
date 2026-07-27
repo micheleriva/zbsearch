@@ -5,7 +5,7 @@ import {
   sorter as defaultSorter
 } from '../src/components.js'
 import { DocumentsStore } from '../src/components/documents-store.js'
-import { DocumentID, InternalDocumentIDStore } from '../src/components/internal-document-id-store.js'
+import { DocumentID, InternalDocumentID, InternalDocumentIDStore } from '../src/components/internal-document-id-store.js'
 import { Sorter } from '../src/components/sorter.js'
 import {
   AnyDocument,
@@ -15,6 +15,7 @@ import {
   IDocumentsStore,
   ISorter,
   SyncOrAsyncValue,
+  count,
   create,
   insert,
   load,
@@ -40,10 +41,17 @@ t.test('index', (t) => {
       }
     })
     const id = insert(db, { number: 1 }) as string
-    await search(db, { sortBy: { property: 'number' } })
+    t.equal(count(db), 1)
+
+    const result = await search(db, { sortBy: { property: 'number' } })
+    t.equal(result.count, 1)
+
     await remove(db, id)
+    t.equal(count(db), 0)
+
     const raw = await save(db)
     await load(db, raw)
+    t.equal(count(db), 0)
 
     t.end()
   })
@@ -79,8 +87,8 @@ t.test('documentStore', (t) => {
       getAll(s) {
         return store.getAll(s)
       },
-      store(s, id, doc) {
-        return store.store(s, id, doc)
+      store(s, id, internalId, doc) {
+        return store.store(s, id, internalId, doc)
       }
     }
     const db = create({
@@ -92,10 +100,17 @@ t.test('documentStore', (t) => {
       }
     })
     const id = insert(db, { number: 1 }) as string
-    await search(db, { sortBy: { property: 'number' } })
+    t.equal(count(db), 1)
+
+    const result = await search(db, { sortBy: { property: 'number' } })
+    t.equal(result.count, 1)
+
     await remove(db, id)
+    t.equal(count(db), 0)
+
     const raw = await save(db)
     await load(db, raw)
+    t.equal(count(db), 0)
 
     t.end()
   })
@@ -117,10 +132,17 @@ t.test('documentStore', (t) => {
       }
     })
     const id = await insert(db, { number: 1 })
-    await search(db, { sortBy: { property: 'number' } })
+    t.equal(count(db), 1)
+
+    const result = await search(db, { sortBy: { property: 'number' } })
+    t.equal(result.count, 1)
+
     await remove(db, id)
+    t.equal(count(db), 0)
+
     const raw = await save(db)
     await load(db, raw)
+    t.equal(count(db), 0)
 
     t.end()
   })
@@ -261,10 +283,17 @@ t.test('sorter', (t) => {
       }
     })
     const id = await insert(db, { number: 1 })
-    await search(db, { sortBy: { property: 'number' } })
+    t.equal(count(db), 1)
+
+    const result = await search(db, { sortBy: { property: 'number' } })
+    t.equal(result.count, 1)
+
     await remove(db, id)
+    t.equal(count(db), 0)
+
     const raw = await save(db)
     await load(db, raw)
+    t.equal(count(db), 0)
 
     t.end()
   })
@@ -296,8 +325,8 @@ t.test('sorter', (t) => {
       getAll(store: DocStorage): SyncOrAsyncValue<Record<number, any>> {
         return this.doc.getAll(store.storage)
       }
-      store(store: DocStorage, id: DocumentID, doc: AnyDocument): boolean {
-        return this.doc.store(store.storage, id, doc)
+      store(store: DocStorage, id: DocumentID, internalId: InternalDocumentID, doc: AnyDocument): boolean {
+        return this.doc.store(store.storage, id, internalId, doc)
       }
       remove(store: DocStorage, id: DocumentID): SyncOrAsyncValue<boolean> {
         return this.doc.remove(store.storage, id)
@@ -305,8 +334,8 @@ t.test('sorter', (t) => {
       count(store: DocStorage): number {
         return this.doc.count(store.storage)
       }
-      async load<R = unknown>(sharedInternalDocumentStore: InternalDocumentIDStore, raw: R): Promise<DocStorage> {
-        const originalDoc = await this.doc.load(sharedInternalDocumentStore, raw)
+      load<R = unknown>(sharedInternalDocumentStore: InternalDocumentIDStore, raw: R): DocStorage {
+        const originalDoc = this.doc.load(sharedInternalDocumentStore, raw)
 
         return {
           storage: originalDoc,
@@ -329,10 +358,17 @@ t.test('sorter', (t) => {
       }
     })
     const id = await insert(db, { number: 1 })
-    await search(db, { sortBy: { property: 'number' } })
+    t.equal(count(db), 1)
+
+    const result = await search(db, { sortBy: { property: 'number' } })
+    t.equal(result.count, 1)
+
     await remove(db, id)
+    t.equal(count(db), 0)
+
     const raw = await save(db)
     await load(db, raw)
+    t.equal(count(db), 0)
 
     t.end()
   })

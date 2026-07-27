@@ -17,7 +17,8 @@
     "benchmark:vector": "node vector.js",
     "benchmark:vector-ivf": "node vector-ivf.js",
     "benchmark:bundle-size": "node bundle-size.js",
-    "benchmark:memory": "node memory.js"
+    "benchmark:memory": "node memory.js",
+    "benchmark:multilingual-quality": "node multilingual-quality.js"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +27,7 @@
     "@orama/orama": "^3.1.18",
     "@zbsearch/plugin-pt15": "file:../packages/plugin-pt15",
     "@zbsearch/plugin-qps": "file:../packages/plugin-qps",
+    "@zbsearch/stemmers": "file:../packages/stemmers",
     "@zbsearch/stopwords": "file:../packages/stopwords",
     "flexsearch": "^0.8.212",
     "fuse.js": "^7.5.0",

@@ -1,7 +1,7 @@
-import { SUPPORTED_LANGUAGES } from './components/tokenizer/languages.js'
+import { MULTILINGUAL_LANGUAGE, SUPPORTED_LANGUAGES } from './components/tokenizer/languages.js'
 import { sprintf } from './utils.js'
 
-const allLanguages = SUPPORTED_LANGUAGES.join('\n - ')
+const allLanguages = [...SUPPORTED_LANGUAGES, MULTILINGUAL_LANGUAGE].join('\n - ')
 
 const errors = {
   NO_LANGUAGE_WITH_CUSTOM_TOKENIZER: 'Do not pass the language option to create when using a custom tokenizer.',

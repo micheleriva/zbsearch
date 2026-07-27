@@ -1,0 +1,53 @@
+export const language = 'french'
+
+export const documents = [
+  { id: 'fr-01', text: 'Le chien court dans le parc tous les matins.' },
+  { id: 'fr-02', text: 'Les chiens des voisins aboient quand le facteur passe.' },
+  { id: 'fr-03', text: 'Ils ont adopté un chien au refuge de la ville.' },
+  { id: 'fr-04', text: "Le chat dort sur le canapé tout l'après-midi." },
+  { id: 'fr-05', text: 'Les chats chassent les souris dans la grange.' },
+  { id: 'fr-06', text: 'La bibliothèque municipale possède des milliers de livres.' },
+  { id: 'fr-07', text: 'Elle a rendu les livres avant la date limite.' },
+  { id: 'fr-08', text: 'Il lit un chapitre chaque soir avant de dormir.' },
+  { id: 'fr-09', text: 'Le train pour la capitale part du quai numéro deux.' },
+  { id: 'fr-10', text: 'Les trains de banlieue sont bondés aux heures de pointe.' },
+  { id: 'fr-11', text: "Elle a voyagé à travers le pays en train l'été dernier." },
+  { id: 'fr-12', text: 'Le marché du samedi vend des fruits frais et du fromage.' },
+  { id: 'fr-13', text: 'Au marché on trouve des légumes de saison.' },
+  { id: 'fr-14', text: 'Les fermiers apportent du miel et des œufs au marché.' },
+  { id: 'fr-15', text: 'Le cheval galope dans le pré derrière la ferme.' },
+  { id: 'fr-16', text: "Les chevaux du manège s'entraînent chaque matin." },
+  { id: 'fr-17', text: 'La forêt de pins couvre toute la colline.' },
+  { id: 'fr-18', text: 'Les forêts de la région abritent des cerfs et des sangliers.' },
+  { id: 'fr-19', text: "L'école du village accueille une centaine d'élèves." },
+  { id: 'fr-20', text: 'Les écoles publiques ferment pendant les grandes vacances.' },
+  { id: 'fr-21', text: 'Il mange une pomme chaque matin au petit-déjeuner.' },
+  { id: 'fr-22', text: 'Ils mangeaient des crêpes à la fête du village.' },
+  { id: 'fr-23', text: 'Le boulanger cuit le pain avant le lever du soleil.' },
+  { id: 'fr-24', text: 'Le pain de campagne reste frais plusieurs jours.' },
+  { id: 'fr-25', text: "Elles ont préparé un gâteau au chocolat pour l'anniversaire." },
+  { id: 'fr-26', text: 'Le fleuve coule lentement entre les peupliers.' },
+  { id: 'fr-27', text: 'Les fleuves de montagne débordent après les pluies.' },
+  { id: 'fr-28', text: 'Il joue du violon dans un orchestre amateur.' },
+  { id: 'fr-29', text: 'Elle joue du clavecin pour se détendre après le travail.' },
+  { id: 'fr-30', text: 'Les musiciens répètent la symphonie chaque jeudi soir.' }
+]
+
+export const queries = [
+  { term: 'chiens', kind: 'morphology', relevant: ['fr-01', 'fr-02', 'fr-03'] },
+  { term: 'chats', kind: 'morphology', relevant: ['fr-04', 'fr-05'] },
+  { term: 'chevaux', kind: 'morphology', relevant: ['fr-15', 'fr-16'] },
+  { term: 'livre', kind: 'morphology', relevant: ['fr-06', 'fr-07'] },
+  { term: 'trains', kind: 'morphology', relevant: ['fr-09', 'fr-10', 'fr-11'] },
+  { term: 'manger', kind: 'morphology', relevant: ['fr-21', 'fr-22'] },
+  { term: 'foret', kind: 'diacritic', relevant: ['fr-17', 'fr-18'] },
+  { term: 'ecole', kind: 'diacritic', relevant: ['fr-19', 'fr-20'] },
+  { term: 'marche', kind: 'diacritic', relevant: ['fr-12', 'fr-13', 'fr-14'] },
+  { term: 'pain', kind: 'exact', relevant: ['fr-23', 'fr-24'] },
+  { term: 'violon', kind: 'exact', relevant: ['fr-28'] },
+  { term: 'clavecin', kind: 'exact', relevant: ['fr-29'] },
+  { term: 'chocolat', kind: 'exact', relevant: ['fr-25'] },
+  { term: 'telescope', kind: 'negative', relevant: [] },
+  { term: 'refrigerateur', kind: 'negative', relevant: [] },
+  { term: 'dinosaure', kind: 'negative', relevant: [] }
+]

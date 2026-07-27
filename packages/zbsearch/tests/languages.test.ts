@@ -46,5 +46,10 @@ t.test('language locales', async (t) => {
   t.test('unknown or missing languages return undefined', async (t) => {
     t.equal(getLocale(undefined), undefined)
     t.equal(getLocale('klingon'), undefined)
+    t.equal(getLocale('multilingual'), undefined)
+  })
+
+  t.test('multilingual is a tokenizer mode, not a supported language', async (t) => {
+    t.notOk(SUPPORTED_LANGUAGES.includes('multilingual'))
   })
 })

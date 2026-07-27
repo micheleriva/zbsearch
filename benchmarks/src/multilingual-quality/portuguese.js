@@ -1,0 +1,53 @@
+export const language = 'portuguese'
+
+export const documents = [
+  { id: 'pt-01', text: 'O cão corre atrás da bola no jardim.' },
+  { id: 'pt-02', text: 'Os cães da vizinhança ladram quando passa o carteiro.' },
+  { id: 'pt-03', text: 'Adotaram um cão do abrigo municipal.' },
+  { id: 'pt-04', text: 'O coelho come cenouras no jardim.' },
+  { id: 'pt-05', text: 'Os coelhos cavam tocas debaixo da sebe.' },
+  { id: 'pt-06', text: 'A biblioteca do bairro guarda milhares de livros.' },
+  { id: 'pt-07', text: 'Ela devolveu os livros antes do prazo.' },
+  { id: 'pt-08', text: 'Ele lê um capítulo todas as noites antes de dormir.' },
+  { id: 'pt-09', text: 'O comboio para a capital parte da linha três às nove.' },
+  { id: 'pt-10', text: 'Os comboios suburbanos vão cheios na hora de ponta.' },
+  { id: 'pt-11', text: 'Viajou pelo país de comboio no verão passado.' },
+  { id: 'pt-12', text: 'A feira de sábado vende fruta fresca e queijo.' },
+  { id: 'pt-13', text: 'Na feira encontram-se legumes da época.' },
+  { id: 'pt-14', text: 'Os agricultores levam mel e ovos à feira.' },
+  { id: 'pt-15', text: 'A árvore do quintal dá sombra no verão.' },
+  { id: 'pt-16', text: 'As árvores da avenida perdem as folhas no outono.' },
+  { id: 'pt-17', text: 'O coração do velho carvalho estava oco por dentro.' },
+  { id: 'pt-18', text: 'Os médicos ouviram o coração do paciente com atenção.' },
+  { id: 'pt-19', text: 'O menino aprende a nadar na piscina municipal.' },
+  { id: 'pt-20', text: 'Os meninos brincam no parque depois da escola.' },
+  { id: 'pt-21', text: 'Ele fala três línguas além da sua.' },
+  { id: 'pt-22', text: 'Falavam da viagem durante todo o jantar.' },
+  { id: 'pt-23', text: 'O padeiro coze o pão antes do amanhecer.' },
+  { id: 'pt-24', text: 'O pão de centeio fica fresco durante vários dias.' },
+  { id: 'pt-25', text: 'Fizeram um bolo de laranja para o aniversário.' },
+  { id: 'pt-26', text: 'O riacho desce devagar entre os choupos do vale.' },
+  { id: 'pt-27', text: 'Os riachos de montanha sobem depressa depois da chuva.' },
+  { id: 'pt-28', text: 'Ela toca violoncelo numa orquestra da cidade.' },
+  { id: 'pt-29', text: 'Ele toca acordeão para relaxar depois do trabalho.' },
+  { id: 'pt-30', text: 'Os músicos ensaiam a ópera todas as quintas-feiras.' }
+]
+
+export const queries = [
+  { term: 'caes', kind: 'morphology', relevant: ['pt-01', 'pt-02', 'pt-03'] },
+  { term: 'coelhos', kind: 'morphology', relevant: ['pt-04', 'pt-05'] },
+  { term: 'livro', kind: 'morphology', relevant: ['pt-06', 'pt-07'] },
+  { term: 'comboios', kind: 'morphology', relevant: ['pt-09', 'pt-10', 'pt-11'] },
+  { term: 'falando', kind: 'morphology', relevant: ['pt-21', 'pt-22'] },
+  { term: 'meninos', kind: 'morphology', relevant: ['pt-19', 'pt-20'] },
+  { term: 'arvore', kind: 'diacritic', relevant: ['pt-15', 'pt-16'] },
+  { term: 'coracao', kind: 'diacritic', relevant: ['pt-17', 'pt-18'] },
+  { term: 'pao', kind: 'diacritic', relevant: ['pt-23', 'pt-24'] },
+  { term: 'acordeao', kind: 'diacritic', relevant: ['pt-29'] },
+  { term: 'feira', kind: 'exact', relevant: ['pt-12', 'pt-13', 'pt-14'] },
+  { term: 'violoncelo', kind: 'exact', relevant: ['pt-28'] },
+  { term: 'laranja', kind: 'exact', relevant: ['pt-25'] },
+  { term: 'submarino', kind: 'negative', relevant: [] },
+  { term: 'geladeira', kind: 'negative', relevant: [] },
+  { term: 'dinossauro', kind: 'negative', relevant: [] }
+]

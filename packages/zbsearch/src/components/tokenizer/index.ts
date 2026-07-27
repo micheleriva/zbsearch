@@ -2,7 +2,14 @@ import type { Optional } from '../../types.js'
 import { createError } from '../../errors.js'
 import { Stemmer, Tokenizer, DefaultTokenizerConfig } from '../../types.js'
 import { replaceDiacritics } from './diacritics.js'
-import { Language, SPLITTERS, SUPPORTED_LANGUAGES, LANGUAGES_WITH_SIGNIFICANT_DIACRITICS } from './languages.js'
+import {
+  Language,
+  MULTILINGUAL_LANGUAGE,
+  SPLITTERS,
+  SUPPORTED_LANGUAGES,
+  LANGUAGES_WITH_SIGNIFICANT_DIACRITICS,
+  SupportedLanguage
+} from './languages.js'
 import { stemmer as english } from './english-stemmer.js'
 
 export interface DefaultTokenizer extends Tokenizer {
@@ -32,13 +39,14 @@ export function normalizeToken(this: DefaultTokenizer, prop: string, token: stri
     return ''
   }
 
+  // Fold diacritics BEFORE stemming, so that accented and unaccented surface forms of the same word converge to the same stem (e.g. Portuguese "pão"/"pao" must not stem differently depending on how the user typed it).
+  if (!LANGUAGES_WITH_SIGNIFICANT_DIACRITICS.has(this.language)) {
+    token = replaceDiacritics(token)
+  }
+
   // Apply stemming if enabled
   if (this.stemmer && !this.stemmerSkipProperties.has(prop)) {
     token = this.stemmer(token)
-  }
-
-  if (!LANGUAGES_WITH_SIGNIFICANT_DIACRITICS.has(this.language)) {
-    token = replaceDiacritics(token)
   }
   if (withCache) {
     this.normalizationCache.set(key, token)
@@ -55,6 +63,34 @@ function trim(text: string[]): string[] {
     text.shift()
   }
   return text
+}
+
+// Fallback for runtimes without Intl.Segmenter: maximal runs of Unicode letters/numbers.
+// Less precise than UAX #29 word segmentation (e.g. it keeps "l'amour" whole instead of splitting on the apostrophe) but script-agnostic.
+const UNICODE_WORD = /[\p{L}\p{N}]+/gu
+
+let multilingualSegmenter: Intl.Segmenter | undefined
+
+function splitMultilingual(input: string): string[] {
+  if (
+    multilingualSegmenter === undefined &&
+    typeof Intl !== 'undefined' &&
+    typeof Intl.Segmenter === 'function'
+  ) {
+    multilingualSegmenter = new Intl.Segmenter(undefined, { granularity: 'word' })
+  }
+
+  if (multilingualSegmenter) {
+    const parts: string[] = []
+    for (const { segment, isWordLike } of multilingualSegmenter.segment(input)) {
+      if (isWordLike) {
+        parts.push(segment.toLowerCase())
+      }
+    }
+    return parts
+  }
+
+  return input.toLowerCase().match(UNICODE_WORD) ?? []
 }
 
 function tokenize(
@@ -80,8 +116,10 @@ function tokenize(
     return token ? [token] : []
   }
 
-  const splitRule = SPLITTERS[this.language]
-  const parts = input.toLowerCase().split(splitRule)
+  const parts =
+    this.language === MULTILINGUAL_LANGUAGE
+      ? splitMultilingual(input)
+      : input.toLowerCase().split(SPLITTERS[this.language as SupportedLanguage])
   const tokens: string[] = []
   const partsLength = parts.length
 
@@ -106,7 +144,7 @@ function tokenize(
 export function createTokenizer(config: DefaultTokenizerConfig = {}): DefaultTokenizer {
   if (!config.language) {
     config.language = 'english'
-  } else if (!SUPPORTED_LANGUAGES.includes(config.language)) {
+  } else if (config.language !== MULTILINGUAL_LANGUAGE && !SUPPORTED_LANGUAGES.includes(config.language)) {
     throw createError('LANGUAGE_NOT_SUPPORTED', config.language)
   }
 

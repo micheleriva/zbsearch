@@ -1,0 +1,53 @@
+export const language = 'german'
+
+export const documents = [
+  { id: 'de-01', text: 'Der Hund läuft jeden Morgen durch den Park.' },
+  { id: 'de-02', text: 'Die Hunde der Nachbarn bellen, wenn der Briefträger kommt.' },
+  { id: 'de-03', text: 'Sie haben einen Hund aus dem Tierheim adoptiert.' },
+  { id: 'de-04', text: 'Die Katze schläft den ganzen Nachmittag auf dem Sofa.' },
+  { id: 'de-05', text: 'Die Katzen jagen Mäuse im Garten hinter dem Haus.' },
+  { id: 'de-06', text: 'Die Stadtbibliothek besitzt mehr als fünfzigtausend Bücher.' },
+  { id: 'de-07', text: 'Er hat das Buch vor dem Wochenende zurückgegeben.' },
+  { id: 'de-08', text: 'Sie liest jeden Abend ein Kapitel vor dem Einschlafen.' },
+  { id: 'de-09', text: 'Der Zug in die Hauptstadt fährt um neun Uhr ab.' },
+  { id: 'de-10', text: 'Die Züge zur Hauptverkehrszeit sind meist sehr voll.' },
+  { id: 'de-11', text: 'Sie ist letzten Sommer mit dem Zug durchs Land gereist.' },
+  { id: 'de-12', text: 'Der Markt am Samstag verkauft frisches Obst und Käse.' },
+  { id: 'de-13', text: 'Auf dem Markt gibt es Gemüse der Saison zu guten Preisen.' },
+  { id: 'de-14', text: 'Die Bauern bringen Honig und Eier auf den Markt.' },
+  { id: 'de-15', text: 'Das Haus am Hang bietet einen weiten Blick ins Tal.' },
+  { id: 'de-16', text: 'Die Häuser in der Altstadt stehen eng aneinander.' },
+  { id: 'de-17', text: 'Der Baum im Garten spendet im Sommer angenehmen Schatten.' },
+  { id: 'de-18', text: 'Die Bäume entlang der Allee verlieren im Herbst ihre Blätter.' },
+  { id: 'de-19', text: 'Der Gärtner pflanzt im Frühjahr Tomaten und Kräuter.' },
+  { id: 'de-20', text: 'Die Kinder pflanzen im Schulgarten Sonnenblumen.' },
+  { id: 'de-21', text: 'Er spielt seit zehn Jahren Geige im Orchester.' },
+  { id: 'de-22', text: 'Die Schüler spielen nach dem Unterricht Klavier.' },
+  { id: 'de-23', text: 'Die Musiker proben die Sinfonie jeden Donnerstag.' },
+  { id: 'de-24', text: 'Das Wetter war schön, und viele Spaziergänger kamen in den Park.' },
+  { id: 'de-25', text: 'Sie fanden das alte Segelboot schön und kauften es am See.' },
+  { id: 'de-26', text: 'Der Fluss fließt ruhig durch die Wiesen des Tals.' },
+  { id: 'de-27', text: 'Die Flüsse in den Bergen steigen nach starkem Regen schnell.' },
+  { id: 'de-28', text: 'Der Bäcker backt das Brot jeden Tag vor Sonnenaufgang.' },
+  { id: 'de-29', text: 'Das Brot aus dem Holzofen bleibt lange frisch.' },
+  { id: 'de-30', text: 'Sie haben einen Kuchen zum Geburtstag gebacken.' }
+]
+
+export const queries = [
+  { term: 'hunde', kind: 'morphology', relevant: ['de-01', 'de-02', 'de-03'] },
+  { term: 'katzen', kind: 'morphology', relevant: ['de-04', 'de-05'] },
+  { term: 'häuser', kind: 'morphology', relevant: ['de-15', 'de-16'] },
+  { term: 'bücher', kind: 'morphology', relevant: ['de-06', 'de-07'] },
+  { term: 'spielen', kind: 'morphology', relevant: ['de-21', 'de-22'] },
+  { term: 'bäume', kind: 'morphology', relevant: ['de-17', 'de-18'] },
+  { term: 'schon', kind: 'diacritic', relevant: ['de-24', 'de-25'] },
+  { term: 'gemuse', kind: 'diacritic', relevant: ['de-13'] },
+  { term: 'markt', kind: 'exact', relevant: ['de-12', 'de-13', 'de-14'] },
+  { term: 'brot', kind: 'exact', relevant: ['de-28', 'de-29'] },
+  { term: 'fluss', kind: 'exact', relevant: ['de-26', 'de-27'] },
+  { term: 'klavier', kind: 'exact', relevant: ['de-22'] },
+  { term: 'sinfonie', kind: 'exact', relevant: ['de-23'] },
+  { term: 'kühlschrank', kind: 'negative', relevant: [] },
+  { term: 'hubschrauber', kind: 'negative', relevant: [] },
+  { term: 'pirat', kind: 'negative', relevant: [] }
+]

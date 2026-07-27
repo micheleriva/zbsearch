@@ -72,3 +72,29 @@ Fork PRs are supported: benchmarks run on `pull_request` (read-only token), and 
 | `npm run benchmark:memory` | Memory footprint |
 | `npm run benchmark:bundle-size` | Serialized index size |
 | `npm run benchmark:algorithms` | BM25 / QPS / PT15 |
+
+## Multilingual search quality
+
+Measures **search quality** (not throughput) of the zero-config `language: 'multilingual'` tokenizer against per-language tuned installs and the plain `create({ schema })` default. Uses a small hand-authored corpus (`src/multilingual-quality/`) with judged queries in 8 languages (English, Italian, Spanish, German, French, Portuguese, Russian, Arabic), mixing inflection variants, diacritic-dropped queries, exact forms, and negative probes.
+
+```sh
+# From repo root
+pnpm --filter zbsearch build
+pnpm --filter @zbsearch/stemmers build
+pnpm --filter @zbsearch/stopwords build
+
+cd benchmarks
+npm install
+npm run benchmark:multilingual-quality
+```
+
+Prints a Markdown table (P@10 / R@10 / MRR per language and config, plus a macro average and a mixed-index scenario) and writes the full per-query results to `benchmark/results/multilingual-quality.json`.
+
+How to read it:
+
+- Queries run with stock `search(db, { term, limit: 10 })` defaults, which include **prefix matching**: a query like `gato` still finds `gatos` in every config. The remaining morphology gap comes from stem-level changes (umlauts, verb endings, articles) that prefix matching cannot recover.
+- **multilingual ≈ per-language** on exact-form queries, diacritic-dropped queries, and non-Latin scripts: Unicode-aware tokenization plus diacritic folding covers those cases without any configuration.
+- **multilingual < per-language** on inflection/morphology queries: the tuned configs stem (e.g. `running` → `run`, `Häuser` → `haus`) and drop stopwords, the zero-config mode does not.
+- **multilingual ≫ english-default** on Russian and Arabic: the default English splitter discards non-Latin characters entirely, so recall collapses there. The runner prints a loud warning if multilingual ever scores *below* english-default on those two languages, which would indicate a tokenizer bug rather than a trade-off.
+- Diacritic folding covers Latin scripts plus Cyrillic `ё`→`е` and Arabic alef variants (`آ`/`أ`/`إ`/`ٱ`→`ا`, `ى`→`ي`), and folding runs *before* stemming so accented and unaccented surface forms of a word share a stem (e.g. Portuguese `pão`/`pao`). The residual Arabic gap vs per-language comes from the Arabic stemmer itself (weak on bare forms and verb prefixes), not from tokenization.
+

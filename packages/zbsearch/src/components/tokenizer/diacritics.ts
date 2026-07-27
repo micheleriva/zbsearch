@@ -196,11 +196,25 @@ const CHARCODE_REPLACE_MAPPING = [
   115
 ]
 
-function replaceChar(charCode: number): number {
-  if (charCode < DIACRITICS_CHARCODE_START || charCode > DIACRITICS_CHARCODE_END) return charCode
+// Non-Latin foldings the Latin table above cannot cover. These unify common orthographic variants so that, e.g., Russian "ёлка"/"елка" and Arabic "آلاف"/"الاف" converge to the same token.
+const EXTRA_FOLDINGS: Record<number, number> = {
+  0x0401: 0x0415, // Ё > Е (Cyrillic)
+  0x0451: 0x0435, // ё > е (Cyrillic)
+  0x0622: 0x0627, // آ > ا (Arabic alef madda)
+  0x0623: 0x0627, // أ > ا (Arabic alef with hamza above)
+  0x0625: 0x0627, // إ > ا (Arabic alef with hamza below)
+  0x0671: 0x0627, // ٱ > ا (Arabic alef wasla)
+  0x0649: 0x064a // ى > ي (Arabic alef maksura)
+}
 
-  /* c8 ignore next  */
-  return CHARCODE_REPLACE_MAPPING[charCode - DIACRITICS_CHARCODE_START] || charCode
+function replaceChar(charCode: number): number {
+  if (charCode < DIACRITICS_CHARCODE_START) return charCode
+  if (charCode <= DIACRITICS_CHARCODE_END) {
+    /* c8 ignore next  */
+    return CHARCODE_REPLACE_MAPPING[charCode - DIACRITICS_CHARCODE_START] || charCode
+  }
+
+  return EXTRA_FOLDINGS[charCode] ?? charCode
 }
 
 export function replaceDiacritics(str: string): string {
@@ -208,19 +222,22 @@ export function replaceDiacritics(str: string): string {
 
   for (let idx = 0; idx < len; idx++) {
     const charCode = str.charCodeAt(idx)
-    if (charCode < DIACRITICS_CHARCODE_START || charCode > DIACRITICS_CHARCODE_END) {
+    if (charCode < DIACRITICS_CHARCODE_START) {
       continue
     }
 
-    const replaced = CHARCODE_REPLACE_MAPPING[charCode - DIACRITICS_CHARCODE_START]
-    if (!replaced || replaced === charCode) {
+    const replaced = replaceChar(charCode)
+
+    if (replaced === charCode) {
       continue
     }
 
     const codes = new Array<number>(len)
+
     for (let j = 0; j < idx; j++) {
       codes[j] = str.charCodeAt(j)
     }
+
     codes[idx] = replaced
 
     for (let j = idx + 1; j < len; j++) {

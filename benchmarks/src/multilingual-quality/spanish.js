@@ -1,0 +1,53 @@
+export const language = 'spanish'
+
+export const documents = [
+  { id: 'es-01', text: 'El perro corre detrás de la pelota en el jardín.' },
+  { id: 'es-02', text: 'Los perros del barrio ladran cuando pasa el cartero.' },
+  { id: 'es-03', text: 'Adoptaron un perro de la protectora de animales.' },
+  { id: 'es-04', text: 'El gato duerme en el sofá durante la tarde.' },
+  { id: 'es-05', text: 'Los gatos persiguen las palomas en la plaza.' },
+  { id: 'es-06', text: 'El archivo municipal guarda miles de libros.' },
+  { id: 'es-07', text: 'Devolvió los libros al archivo antes de la fecha límite.' },
+  { id: 'es-08', text: 'Lee una novela cada noche antes de dormir.' },
+  { id: 'es-09', text: 'El tren a la capital sale del andén dos a las nueve.' },
+  { id: 'es-10', text: 'Los trenes de cercanías van llenos a la hora punta.' },
+  { id: 'es-11', text: 'Viajó por todo el país en tren el verano pasado.' },
+  { id: 'es-12', text: 'El mercado de los sábados vende fruta fresca y queso.' },
+  { id: 'es-13', text: 'En el mercado se encuentran verduras de temporada.' },
+  { id: 'es-14', text: 'Los agricultores llevan miel y aceite al mercado.' },
+  { id: 'es-15', text: 'El niño aprende a nadar en la piscina municipal.' },
+  { id: 'es-16', text: 'Los niños juegan en el parque después de la escuela.' },
+  { id: 'es-17', text: 'El árbol del patio da sombra en verano.' },
+  { id: 'es-18', text: 'Los árboles del paseo pierden las hojas en otoño.' },
+  { id: 'es-19', text: 'La música de la fiesta se escucha desde la calle.' },
+  { id: 'es-20', text: 'Toca la guitarra en un grupo con sus amigos.' },
+  { id: 'es-21', text: 'Los músicos ensayan cada jueves en el auditorio.' },
+  { id: 'es-22', text: 'El panadero hornea el pan antes del amanecer.' },
+  { id: 'es-23', text: 'El pan integral se mantiene fresco varios días.' },
+  { id: 'es-24', text: 'Prepararon un pastel de chocolate para el cumpleaños.' },
+  { id: 'es-25', text: 'El río baja tranquilo entre los chopos del valle.' },
+  { id: 'es-26', text: 'Los ríos de montaña crecen después de las lluvias.' },
+  { id: 'es-27', text: 'La casa tiene un balcón con vistas al mar.' },
+  { id: 'es-28', text: 'Las casas del pueblo se pintan de blanco cada primavera.' },
+  { id: 'es-29', text: 'Corre diez kilómetros cada mañana antes del trabajo.' },
+  { id: 'es-30', text: 'Corriendo por el parque encontró a un viejo amigo.' }
+]
+
+export const queries = [
+  { term: 'perros', kind: 'morphology', relevant: ['es-01', 'es-02', 'es-03'] },
+  { term: 'gato', kind: 'morphology', relevant: ['es-04', 'es-05'] },
+  { term: 'libro', kind: 'morphology', relevant: ['es-06', 'es-07'] },
+  { term: 'corriendo', kind: 'morphology', relevant: ['es-29', 'es-30'] },
+  { term: 'trenes', kind: 'morphology', relevant: ['es-09', 'es-10', 'es-11'] },
+  { term: 'nino', kind: 'diacritic', relevant: ['es-15', 'es-16'] },
+  { term: 'arbol', kind: 'diacritic', relevant: ['es-17', 'es-18'] },
+  { term: 'musica', kind: 'diacritic', relevant: ['es-19', 'es-21'] },
+  { term: 'rio', kind: 'diacritic', relevant: ['es-25', 'es-26'] },
+  { term: 'mercado', kind: 'exact', relevant: ['es-12', 'es-13', 'es-14'] },
+  { term: 'pan', kind: 'exact', relevant: ['es-22', 'es-23'] },
+  { term: 'guitarra', kind: 'exact', relevant: ['es-20'] },
+  { term: 'chocolate', kind: 'exact', relevant: ['es-24'] },
+  { term: 'submarino', kind: 'negative', relevant: [] },
+  { term: 'nevera', kind: 'negative', relevant: [] },
+  { term: 'volcan', kind: 'negative', relevant: [] }
+]

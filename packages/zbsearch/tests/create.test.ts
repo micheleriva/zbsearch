@@ -41,5 +41,25 @@ t.test('create method', (t) => {
     )
   })
 
+  t.test('should accept "multilingual" as language', async (t) => {
+    const zbsearch = create({
+      schema: { text: 'string' },
+      language: 'multilingual'
+    })
+
+    t.equal(zbsearch.tokenizer.language, 'multilingual')
+  })
+
+  t.test('should throw when multilingual stemming is enabled without a custom stemmer', async (t) => {
+    t.throws(
+      () =>
+        create({
+          schema: { text: 'string' },
+          components: { tokenizer: { language: 'multilingual', stemming: true } }
+        }),
+      { code: 'MISSING_STEMMER' }
+    )
+  })
+
   t.end()
 })

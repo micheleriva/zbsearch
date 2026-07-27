@@ -193,8 +193,78 @@ t.test('hybrid search', async (t) => {
     })
 
     t.equal(results.count, 2)
+    t.equal(results.hits[0].score, 1)
+    t.equal(results.hits[1].score, 1)
+  })
+
+  t.test('should work without a term (vector-only input)', async (t) => {
+    const db = await create({
+      schema: {
+        text: 'string',
+        embedding: 'vector[5]',
+        number: 'number'
+      } as const
+    })
+
+    await insertMultiple(db, [
+      { text: 'hello world', embedding: [1, 2, 3, 4, 5], number: 1 },
+      { text: 'hello there', embedding: [1, 2, 3, 4, 4], number: 2 },
+      { text: 'foo bar', embedding: [9, 9, 9, 9, 9], number: 3 }
+    ])
+
+    const results = await search(db, {
+      mode: 'hybrid',
+      vector: {
+        value: [1, 2, 3, 4, 5],
+        property: 'embedding'
+      },
+      similarity: 0.95
+    })
+
+    t.equal(results.count, 2)
+    for (const hit of results.hits) {
+      t.ok(Number.isFinite(hit.score), 'score should never be NaN')
+    }
+    // Pure vector contribution: 0.5 * normalized similarity
     t.equal(results.hits[0].score, 0.5)
-    t.equal(results.hits[1].score, 0.5)
+    t.equal(results.hits[0].document.number, 1)
+  })
+
+  t.test('should honor a zero weight in hybridWeights', async (t) => {
+    const db = await create({
+      schema: {
+        text: 'string',
+        embedding: 'vector[5]',
+        number: 'number'
+      } as const
+    })
+
+    await insertMultiple(db, [
+      { text: 'hello world', embedding: [1, 2, 3, 4, 5], number: 1 },
+      { text: 'hello there', embedding: [1, 2, 3, 4, 4], number: 2 },
+      { text: 'foo bar', embedding: [9, 9, 9, 9, 9], number: 3 }
+    ])
+
+    const results = await search(db, {
+      mode: 'hybrid',
+      term: 'hello',
+      vector: {
+        value: [1, 2, 3, 4, 5],
+        property: 'embedding'
+      },
+      similarity: 0.9,
+      hybridWeights: {
+        text: 0, // ignore full-text scores entirely
+        vector: 1
+      }
+    })
+
+    // The best vector match ranks first with its normalized similarity as the score
+    t.equal(results.hits[0].document.number, 1)
+    t.equal(results.hits[0].score, 1)
+    for (const hit of results.hits) {
+      t.ok(Number.isFinite(hit.score), 'score should never be NaN')
+    }
   })
 })
 

@@ -13,7 +13,8 @@ import { fetchDocuments } from './fetch-documents.js'
 export function innerVectorSearch<T extends AnyZBSearch, ResultDocument = TypedDocument<T>>(
   zbsearch: T,
   params: Pick<SearchParamsVector<T, ResultDocument>, 'vector' | 'similarity' | 'where'>,
-  language: Language | undefined
+  language: Language | undefined,
+  precomputedWhereFiltersIDs?: Set<InternalDocumentID>
 ) {
   const vector = params.vector
 
@@ -36,9 +37,10 @@ export function innerVectorSearch<T extends AnyZBSearch, ResultDocument = TypedD
   }
 
   const index = zbsearch.data.index
-  let whereFiltersIDs: Set<InternalDocumentID> | undefined
+  let whereFiltersIDs: Set<InternalDocumentID> | undefined = precomputedWhereFiltersIDs
   const hasFilters = Object.keys(params.where ?? {}).length > 0
-  if (hasFilters) {
+
+  if (hasFilters && whereFiltersIDs === undefined) {
     whereFiltersIDs = zbsearch.index.searchByWhereClause(index, zbsearch.tokenizer, params.where!, language)
   }
 

@@ -26,7 +26,8 @@ export function innerFullTextSearch<T extends AnyZBSearch>(
     SearchParamsFullText<T>,
     'term' | 'properties' | 'where' | 'exact' | 'tolerance' | 'boost' | 'relevance' | 'threshold'
   >,
-  language: Language | undefined
+  language: Language | undefined,
+  precomputedWhereFiltersIDs?: Set<number>
 ) {
   const { term, properties } = params
 
@@ -56,8 +57,9 @@ export function innerFullTextSearch<T extends AnyZBSearch>(
 
   // If filters are enabled, we need to get the IDs of the documents that match the filters.
   const hasFilters = Object.keys(params.where ?? {}).length > 0
-  let whereFiltersIDs: Set<number> | undefined
-  if (hasFilters) {
+  let whereFiltersIDs: Set<number> | undefined = precomputedWhereFiltersIDs
+
+  if (hasFilters && whereFiltersIDs === undefined) {
     whereFiltersIDs = zbsearch.index.searchByWhereClause(index, zbsearch.tokenizer, params.where!, language)
   }
 

@@ -1,0 +1,53 @@
+export const language = 'italian'
+
+export const documents = [
+  { id: 'it-01', text: 'Il cane corre nel parco ogni mattina prima di colazione.' },
+  { id: 'it-02', text: 'I cani del vicino abbaiano appena sentono il campanello.' },
+  { id: 'it-03', text: 'Ha adottato un cane dal rifugio per animali.' },
+  { id: 'it-04', text: 'Il gatto dorme sulla poltrona accanto alla finestra.' },
+  { id: 'it-05', text: 'I gatti di casa cacciano le lucertole nel cortile.' },
+  { id: 'it-06', text: 'La biblioteca comunale ospita migliaia di libri antichi.' },
+  { id: 'it-07', text: 'Ha restituito i libri in biblioteca prima della scadenza.' },
+  { id: 'it-08', text: 'Legge un romanzo ogni sera prima di addormentarsi.' },
+  { id: 'it-09', text: 'Il treno per Milano parte dal binario quattro alle nove.' },
+  { id: 'it-10', text: "I treni regionali sono spesso affollati all'ora di punta." },
+  { id: 'it-11', text: 'Ha viaggiato attraverso il paese in treno la scorsa estate.' },
+  { id: 'it-12', text: 'Il mercato del sabato vende frutta fresca e formaggi locali.' },
+  { id: 'it-13', text: 'Al mercato si trovano verdure di stagione a buon prezzo.' },
+  { id: 'it-14', text: "I contadini portano il miele e l'olio nuovo al mercato." },
+  { id: 'it-15', text: 'La città vecchia si arrampica sulla collina tra i cipressi.' },
+  { id: 'it-16', text: "Hanno visitato molte città d'arte durante le vacanze." },
+  { id: 'it-17', text: 'Il caffè della stazione apre alle cinque del mattino.' },
+  { id: 'it-18', text: 'Prende sempre un caffè al bancone prima di andare al lavoro.' },
+  { id: 'it-19', text: 'I bambini giocano a pallone nel cortile della scuola.' },
+  { id: 'it-20', text: 'La partita di calcio finisce quasi sempre con un pareggio.' },
+  { id: 'it-21', text: 'Giocava a carte con i nonni ogni domenica pomeriggio.' },
+  { id: 'it-22', text: "Il fornaio sforna il pane caldo all'alba." },
+  { id: 'it-23', text: 'Il pane di segale si conserva fresco per diversi giorni.' },
+  { id: 'it-24', text: 'Hanno preparato una torta al cioccolato per il compleanno.' },
+  { id: 'it-25', text: 'Il fiume scorre lento tra i pioppi della pianura.' },
+  { id: 'it-26', text: 'I fiumi di montagna scendono rapidi dopo la pioggia.' },
+  { id: 'it-27', text: "Il violino dell'orchestra suona un assolo nel secondo atto." },
+  { id: 'it-28', text: 'Suona il pianoforte da quando aveva sei anni.' },
+  { id: 'it-29', text: 'I musicisti provano la sinfonia ogni giovedì sera.' },
+  { id: 'it-30', text: 'Le montagne innevate si specchiano nel lago alpino.' }
+]
+
+export const queries = [
+  { term: 'cani', kind: 'morphology', relevant: ['it-01', 'it-02', 'it-03'] },
+  { term: 'gatto', kind: 'morphology', relevant: ['it-04', 'it-05'] },
+  { term: 'libro', kind: 'morphology', relevant: ['it-06', 'it-07'] },
+  { term: 'giocano', kind: 'morphology', relevant: ['it-19', 'it-21'] },
+  { term: 'treni', kind: 'morphology', relevant: ['it-09', 'it-10', 'it-11'] },
+  { term: 'fiumi', kind: 'morphology', relevant: ['it-25', 'it-26'] },
+  { term: 'citta', kind: 'diacritic', relevant: ['it-15', 'it-16'] },
+  { term: 'caffe', kind: 'diacritic', relevant: ['it-17', 'it-18'] },
+  { term: 'mercato', kind: 'exact', relevant: ['it-12', 'it-13', 'it-14'] },
+  { term: 'pane', kind: 'exact', relevant: ['it-22', 'it-23'] },
+  { term: 'montagne', kind: 'exact', relevant: ['it-26', 'it-30'] },
+  { term: 'violino', kind: 'exact', relevant: ['it-27'] },
+  { term: 'sinfonia', kind: 'exact', relevant: ['it-29'] },
+  { term: 'astronave', kind: 'negative', relevant: [] },
+  { term: 'frigorifero', kind: 'negative', relevant: [] },
+  { term: 'dinosauro', kind: 'negative', relevant: [] }
+]

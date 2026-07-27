@@ -39,7 +39,9 @@ export const SUPPORTED_LANGUAGE_LOCALES: Record<string, string> = {
   sanskrit: 'sa'
 }
 
-export const SPLITTERS: Record<Language, RegExp> = {
+export const MULTILINGUAL_LANGUAGE = 'multilingual' as const
+
+export const SPLITTERS: Record<SupportedLanguage, RegExp> = {
   dutch: /[^A-Za-zàèéìòóù0-9_'-]+/gim,
   english: /[^A-Za-zàèéìòóù0-9_'-]+/gim,
   french: /[^a-z0-9äâàéèëêïîöôùüûœç-]+/gim,
@@ -57,7 +59,7 @@ export const SPLITTERS: Record<Language, RegExp> = {
   serbian: /[^a-z0-9čćžšđČĆŽŠĐ]+/gim,
   turkish: /[^a-z0-9çÇğĞıİöÖşŞüÜ]+/gim,
   lithuanian: /[^a-z0-9ąčęėįšųūžĄČĘĖĮŠŲŪŽ]+/gim,
-  arabic: /[^a-z0-9أ-ي]+/gim,
+  arabic: /[^a-z0-9ء-ي]+/gim,
   nepali: /[^a-z0-9अ-ह]+/gim,
   irish: /[^a-z0-9áéíóúÁÉÍÓÚ]+/gim,
   indian: /[^a-z0-9अ-ह]+/gim,
@@ -82,7 +84,9 @@ export function getLocale(language: string | undefined) {
     : undefined
 }
 
-export type Language = (typeof SUPPORTED_LANGUAGES)[number]
+export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number]
+
+export type Language = SupportedLanguage | typeof MULTILINGUAL_LANGUAGE
 
 // Languages whose diacritics are semantically significant (e.g. Vietnamese tone marks).
 // Their tokens must not be folded to ASCII during tokenization, otherwise distinct

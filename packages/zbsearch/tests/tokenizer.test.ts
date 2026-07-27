@@ -559,4 +559,108 @@ t.test('Custom stop-words rules', async (t) => {
       code: 'CUSTOM_STOP_WORDS_MUST_BE_FUNCTION_OR_ARRAY'
     })
   })
+
+  t.test('multilingual mode', async (t) => {
+    // NOTE: this test must run before any other multilingual tokenization in this file, because the Intl.Segmenter instance is cached at module level on first use and the fallback can only trigger beforehand.
+    t.test('falls back to a Unicode regex when Intl.Segmenter is unavailable', async (t) => {
+      const originalSegmenter = Intl.Segmenter
+      // @ts-expect-error simulating a runtime without Intl.Segmenter
+      delete Intl.Segmenter
+      t.teardown(() => {
+        Intl.Segmenter = originalSegmenter
+      })
+
+      const tokenizer = createTokenizer({ language: 'multilingual' })
+      const O = tokenizer.tokenize('The quick fox съешь café')
+
+      t.strictSame(O, ['the', 'quick', 'fox', 'съешь', 'cafe'])
+    })
+
+    t.test('tokenizes mixed Latin and Cyrillic scripts, lowercased and diacritic-folded', async (t) => {
+      const tokenizer = createTokenizer({ language: 'multilingual' })
+
+      const I1 = 'The quick BROWN fox. Съешь же ещё этих МЯГКИХ французских булок'
+      const I2 = 'Un café crème et deux croissants'
+
+      t.strictSame(tokenizer.tokenize(I1), [
+        'the',
+        'quick',
+        'brown',
+        'fox',
+        'съешь',
+        'же',
+        'еще',
+        'этих',
+        'мягких',
+        'французских',
+        'булок'
+      ])
+      t.strictSame(tokenizer.tokenize(I2), ['un', 'cafe', 'creme', 'et', 'deux', 'croissants'])
+    })
+
+    t.test('produces searchable tokens for CJK text', async (t) => {
+      const tokenizer = createTokenizer({ language: 'multilingual' })
+
+      const tokens = tokenizer.tokenize('日本語のテキストを検索する')
+
+      t.ok(tokens.length > 0, 'CJK input yields tokens')
+      for (const token of tokens) {
+        t.equal(token, token.toLowerCase(), 'tokens are lowercased')
+      }
+    })
+
+    t.test('honors stopWords, custom stemmer, and allowDuplicates', async (t) => {
+      const tokenizer = createTokenizer({ language: 'multilingual', stopWords: ['the'] })
+      t.strictSame(tokenizer.tokenize('the fox the dog'), ['fox', 'dog'])
+
+      const stemmed = createTokenizer({ language: 'multilingual', stemmer: (word) => `${word}!` })
+      t.strictSame(stemmed.tokenize('quick fox'), ['quick!', 'fox!'])
+
+      const duplicates = createTokenizer({ language: 'multilingual', allowDuplicates: true })
+      t.strictSame(duplicates.tokenize('test test test'), ['test', 'test', 'test'])
+    })
+
+    t.test('still rejects a different explicit language at tokenize time', async (t) => {
+      const tokenizer = createTokenizer({ language: 'multilingual' })
+
+      t.throws(() => tokenizer.tokenize('some text', 'russian'), { code: 'LANGUAGE_NOT_SUPPORTED' })
+    })
+
+    t.test('requires an explicit custom stemmer when stemming is enabled', async (t) => {
+      t.throws(() => createTokenizer({ language: 'multilingual', stemming: true }), { code: 'MISSING_STEMMER' })
+    })
+
+    t.test('folds Cyrillic ё and Arabic alef variants', async (t) => {
+      const tokenizer = createTokenizer({ language: 'multilingual' })
+
+      t.strictSame(tokenizer.tokenize('ёлка'), ['елка'])
+      t.strictSame(tokenizer.tokenize('Съешь ещё'), ['съешь', 'еще'])
+      t.strictSame(tokenizer.tokenize('آلاف إبراهيم'), ['الاف', 'ابراهيم'])
+    })
+
+    t.test('folds diacritics before stemming, so accented and folded forms share a stem', async (t) => {
+      const seen: string[] = []
+      const tokenizer = createTokenizer({
+        language: 'multilingual',
+        stemmer: (word) => {
+          seen.push(word)
+          return word
+        }
+      })
+
+      tokenizer.tokenize('pão')
+      tokenizer.tokenize('pao')
+
+      t.strictSame(seen, ['pao', 'pao'], 'the stemmer receives the diacritic-folded form')
+    })
+  })
+
+  t.test('arabic tokenizer keeps alef madda and standalone hamza inside words', async (t) => {
+    const tokenizer = createTokenizer({ language: 'arabic' })
+
+    // آ (U+0622) and ء (U+0621) were outside the old splitter range, so words
+    // like آلاف and قراءة were shredded into fragments.
+    t.strictSame(tokenizer.tokenize('آلاف'), ['الاف'])
+    t.strictSame(tokenizer.tokenize('قراءة'), ['قراءة'])
+  })
 })

@@ -1,0 +1,52 @@
+export const language = 'english'
+
+export const documents = [
+  { id: 'en-01', text: 'The red fox runs across the meadow every morning before sunrise.' },
+  { id: 'en-02', text: 'She goes running in the park when the weather is mild.' },
+  { id: 'en-03', text: 'A marathon runner practices twice a day to prepare for the race.' },
+  { id: 'en-04', text: 'The baker wakes at dawn to prepare fresh bread for the village.' },
+  { id: 'en-05', text: 'This bakery sells croissants, baguettes, and sourdough loaves.' },
+  { id: 'en-06', text: "He baked a lemon cake for his daughter's birthday party." },
+  { id: 'en-07', text: 'The old library on Main Street holds over fifty thousand books.' },
+  { id: 'en-08', text: 'She borrowed three novels from the library last weekend.' },
+  { id: 'en-09', text: 'Reading before bed helps him fall asleep faster.' },
+  { id: 'en-10', text: 'The fishermen set out before dawn and returned with a full catch.' },
+  { id: 'en-11', text: 'Fishing on the lake is a popular weekend pastime here.' },
+  { id: 'en-12', text: 'He caught a large trout near the river bend.' },
+  { id: 'en-13', text: 'The café on the corner serves excellent espresso and pastries.' },
+  { id: 'en-14', text: 'She updated her résumé before applying for the new position.' },
+  { id: 'en-15', text: 'She planted tomatoes, peppers, and herbs in the spring.' },
+  { id: 'en-16', text: 'Planting native flowers attracts bees and butterflies to the garden.' },
+  { id: 'en-17', text: 'The children planted a small apple tree behind the school.' },
+  { id: 'en-18', text: 'The bus to the city center leaves the station at nine o’clock.' },
+  { id: 'en-19', text: 'Buses in this region are known for their punctuality.' },
+  { id: 'en-20', text: 'She traveled across the country by bus last summer.' },
+  { id: 'en-21', text: 'The violinist practices four hours every day in the conservatory.' },
+  { id: 'en-22', text: 'Playing the piano relaxes her after a long day at work.' },
+  { id: 'en-23', text: 'The orchestra performed a symphony by a young local composer.' },
+  { id: 'en-24', text: 'The hikers reached the summit just as the sun came up.' },
+  { id: 'en-25', text: 'Climbing steep trails requires good boots and patience.' },
+  { id: 'en-26', text: 'They climbed the north face of the mountain over three days.' },
+  { id: 'en-27', text: 'The market opens early and sells fresh fruit from nearby farms.' },
+  { id: 'en-28', text: 'Farmers bring vegetables, cheese, and honey to the Saturday market.' },
+  { id: 'en-29', text: 'The cat sleeps on the windowsill in the afternoon sun.' },
+  { id: 'en-30', text: 'Two cats chased a butterfly across the garden wall.' }
+]
+
+export const queries = [
+  { term: 'running', kind: 'morphology', relevant: ['en-01', 'en-02', 'en-03'] },
+  { term: 'climbing', kind: 'morphology', relevant: ['en-25', 'en-26'] },
+  { term: 'baking', kind: 'morphology', relevant: ['en-06'] },
+  { term: 'cats', kind: 'morphology', relevant: ['en-29', 'en-30'] },
+  { term: 'planting', kind: 'morphology', relevant: ['en-15', 'en-16', 'en-17'] },
+  { term: 'cafe', kind: 'diacritic', relevant: ['en-13'] },
+  { term: 'resume', kind: 'diacritic', relevant: ['en-14'] },
+  { term: 'library', kind: 'exact', relevant: ['en-07', 'en-08'] },
+  { term: 'garden', kind: 'exact', relevant: ['en-16', 'en-30'] },
+  { term: 'market', kind: 'exact', relevant: ['en-27', 'en-28'] },
+  { term: 'piano', kind: 'exact', relevant: ['en-22'] },
+  { term: 'bread', kind: 'exact', relevant: ['en-04'] },
+  { term: 'astronomy', kind: 'negative', relevant: [] },
+  { term: 'dishwasher', kind: 'negative', relevant: [] },
+  { term: 'elephant', kind: 'negative', relevant: [] }
+]

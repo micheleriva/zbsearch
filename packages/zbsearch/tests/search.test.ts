@@ -3,6 +3,26 @@ import { stopwords as englishStopwords } from '@zbsearch/stopwords/english'
 import { create, getByID, insert, insertMultiple, search } from '../src/index.js'
 
 t.test('search method', async (t) => {
+  t.test('with a multilingual index', async (t) => {
+    const db = create({
+      schema: { text: 'string' },
+      language: 'multilingual'
+    })
+
+    insert(db, { text: 'The quick brown fox jumps over the lazy dog' })
+    insert(db, { text: 'Съешь же ещё этих мягких французских булок' })
+    insert(db, { text: '日本語のテキストを検索する' })
+    insert(db, { text: "Un café crème et deux croissants, s'il vous plaît" })
+
+    t.equal((await search(db, { term: 'fox' })).count, 1, 'finds English text')
+    t.equal((await search(db, { term: 'мягких' })).count, 1, 'finds Cyrillic text')
+    t.equal((await search(db, { term: 'СЪЕШЬ' })).count, 1, 'is case-insensitive across scripts')
+    t.equal((await search(db, { term: 'cafe' })).count, 1, 'folds diacritics')
+    t.equal((await search(db, { term: 'テキスト' })).count, 1, 'finds CJK text')
+    t.equal((await search(db, { term: '日本' })).count, 1, 'prefix-matches CJK text')
+    t.equal((await search(db, { term: 'nonexistent' })).count, 0, 'returns nothing for absent terms')
+  })
+
   t.test('with term', async (t) => {
     const [db, id1, id2, id3, id4] = createSimpleDB()
 

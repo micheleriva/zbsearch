@@ -14,6 +14,37 @@ Since Chinese and Japanese logograms follow different rules than other alphabets
 Read more here about Chinese [here](/docs/zbsearch/supported-languages/using-chinese-with-zbsearch) and about Japanese [here](/docs/zbsearch/supported-languages/using-japanese-with-zbsearch).
 </Callout>
 
+## Multilingual mode (zero-config)
+
+If you don't know the language of your documents ahead of time - or a single index mixes several languages - use `multilingual` instead of a specific language:
+
+```js
+import { create } from 'zbsearch'
+
+const db = create({
+  schema: { title: 'string', content: 'string' },
+  language: 'multilingual'
+})
+```
+
+In this mode ZBSearch tokenizes with [`Intl.Segmenter`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter) (Unicode word segmentation, with a Unicode regex fallback on runtimes that lack it), so Latin, Cyrillic, Greek, Arabic, Hebrew, Indic, and CJK text all index correctly with no per-language setup. Tokens are lowercased, and diacritics are folded so that `café` matches `cafe`, `ёлка` matches `елка`, and `آلاف` matches `الاف`.
+
+Trade-offs compared to a per-language configuration:
+
+- **No stemming and no stop-words by default.** Queries for inflected forms (`running` vs. `run`) won't match unless you pass a custom `stemmer` function. Per-language installs with `@zbsearch/stemmers` remain the quality ceiling for single-language content: in the quality benchmark that ships with the repo (`benchmarks/`, `npm run benchmark:multilingual-quality`), the multilingual mode reaches ~0.70 recall@10 vs ~0.98 for tuned per-language installs, with most of the gap on inflection queries — while non-Latin scripts go from 0 (English default) to fully searchable.
+- **CJK segmentation is script-based, not dictionary-based.** It works well with prefix search, but for production Japanese or Chinese search prefer the [dedicated tokenizers](/docs/zbsearch/supported-languages/using-japanese-with-zbsearch).
+- Sorting falls back to the runtime's default collation, since there is no single locale.
+
+For multilingual *sites* (one locale per document), the recommended pattern is to keep a single multilingual index and store the locale as an `enum`, then filter at query time:
+
+```js
+const db = create({
+  schema: { title: 'string', content: 'string', locale: 'enum' },
+  language: 'multilingual'
+})
+
+await search(db, { term: 'getting started', where: { locale: { eq: 'it' } } })
+```
 
 ### Latin Alphabet
 

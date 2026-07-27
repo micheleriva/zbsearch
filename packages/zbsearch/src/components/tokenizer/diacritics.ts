@@ -203,7 +203,18 @@ function replaceChar(charCode: number): number {
   return CHARCODE_REPLACE_MAPPING[charCode - DIACRITICS_CHARCODE_START] || charCode
 }
 
-export function replaceDiacritics(str: string): string {
+// Non-Latin foldings the Latin table above cannot cover. These unify common orthographic variants so that, e.g., Russian "ёлка"/"елка" and Arabic "آلاف"/"الاف" converge to the same token.
+const EXTRA_FOLDINGS: Record<number, number> = {
+  0x0401: 0x0415, // Ё > Е (Cyrillic)
+  0x0451: 0x0435, // ё > е (Cyrillic)
+  0x0622: 0x0627, // آ > ا (Arabic alef madda)
+  0x0623: 0x0627, // أ > ا (Arabic alef with hamza above)
+  0x0625: 0x0627, // إ > ا (Arabic alef with hamza below)
+  0x0671: 0x0627, // ٱ > ا (Arabic alef wasla)
+  0x0649: 0x064a // ى > ي (Arabic alef maksura)
+}
+
+function replaceLatinDiacritics(str: string): string {
   const len = str.length
 
   for (let idx = 0; idx < len; idx++) {
@@ -231,4 +242,28 @@ export function replaceDiacritics(str: string): string {
   }
 
   return str
+}
+
+export function replaceDiacritics(str: string): string {
+  str = replaceLatinDiacritics(str)
+
+  let out = ''
+  let changed = false
+
+  for (let i = 0; i < str.length; i++) {
+    const replaced = EXTRA_FOLDINGS[str.charCodeAt(i)]
+
+    if (replaced !== undefined) {
+      if (!changed) {
+        out = str.slice(0, i)
+        changed = true
+      }
+      out += String.fromCharCode(replaced)
+
+    } else if (changed) {
+      out += str[i]
+    }
+  }
+
+  return changed ? out : str
 }

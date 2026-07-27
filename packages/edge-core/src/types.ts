@@ -9,6 +9,7 @@ export interface IndexSettings {
   rebuildIntervalSec?: number
   rebuildThresholdOps?: number
   mode?: IndexMode
+  inferSchema?: boolean
 }
 
 export interface IndexMeta {

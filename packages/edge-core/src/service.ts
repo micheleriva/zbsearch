@@ -284,7 +284,11 @@ export async function importDocuments(
   }
 
   const version = newVersionId()
-  const db = create({ schema: meta.schema, language: meta.settings.language as any })
+  const db = create({
+    schema: meta.schema,
+    language: meta.settings.language as any,
+    inferSchema: meta.settings.inferSchema
+  })
   const rows = documents.map(({ id, doc }) => ({ id, ...doc }))
   if (rows.length > 0) {
     insertMultiple(db, rows as any)
@@ -394,7 +398,11 @@ async function loadSnapshotDb(storage: ObjectStorage, meta: IndexMeta, cache: Sh
   }
 
   const raw = decode(bytes)
-  const db = create({ schema: meta.schema, language: meta.settings.language as any })
+  const db = create({
+    schema: meta.schema,
+    language: meta.settings.language as any,
+    inferSchema: meta.settings.inferSchema
+  })
   load(db, raw as any)
   setCachedSnapshotDb(key, db, bytes.byteLength)
   return db
@@ -458,7 +466,11 @@ async function loadSearchableDb(
     return null
   }
 
-  const db = create({ schema: meta.schema, language: meta.settings.language as any })
+  const db = create({
+    schema: meta.schema,
+    language: meta.settings.language as any,
+    inferSchema: meta.settings.inferSchema
+  })
   const documents = [...merged.entries()].map(([id, doc]) => ({ id, ...doc }))
   if (documents.length > 0) {
     insertMultiple(db, documents as any)
@@ -585,7 +597,11 @@ async function runRebuild(
       : await freezeBufferForRebuild(storage, indexId)
     const merged = applyBufferOps(baseDocs, bufferOps)
 
-    const db = create({ schema: meta.schema, language: meta.settings.language as any })
+    const db = create({
+      schema: meta.schema,
+      language: meta.settings.language as any,
+      inferSchema: meta.settings.inferSchema
+    })
     const documents = [...merged.entries()].map(([id, doc]) => ({ id, ...doc }))
     if (documents.length > 0) {
       insertMultiple(db, documents as any)
@@ -632,13 +648,6 @@ async function runRebuild(
 
 export interface SearchOptions {
   snapshotCache?: SnapshotDbCacheOptions
-  /**
-   * When set, shard-group searches fan out through this executor (one call
-   * per shard) instead of searching every shard in the current process.
-   * Use it to run each shard search in its own isolate (e.g. a subrequest
-   * per shard) so total index size is not limited by a single isolate's
-   * 128MB memory.
-   */
   executeShardSearch?: (shardId: string, params: SearchInput) => Promise<Record<string, unknown>>
 }
 

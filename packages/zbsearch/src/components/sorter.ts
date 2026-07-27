@@ -388,7 +388,8 @@ export function save<R = unknown>(sorter: Sorter): R {
     sortablePropertiesWithTypes: sorter.sortablePropertiesWithTypes,
     sorts,
     enabled: sorter.enabled,
-    isSorted: sorter.isSorted
+    isSorted: sorter.isSorted,
+    unsortableProperties: sorter.unsortableProperties ?? []
   } as R
 }
 

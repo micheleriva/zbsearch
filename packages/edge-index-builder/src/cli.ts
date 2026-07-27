@@ -16,6 +16,7 @@ function parseArgs(argv: string[]): {
   schemaFile?: string
   language?: string
   shards?: number
+  inferSchema?: boolean
 } {
   const [command, indexId, filePath, ...rest] = argv
   let create = false
@@ -24,11 +25,16 @@ function parseArgs(argv: string[]): {
   let schemaFile: string | undefined
   let language: string | undefined
   let shards: number | undefined
+  let inferSchema: boolean | undefined
 
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i]!
     if (arg === '--create') {
       create = true
+      continue
+    }
+    if (arg === '--infer-schema') {
+      inferSchema = true
       continue
     }
     if (arg === '--name') {
@@ -67,7 +73,7 @@ function parseArgs(argv: string[]): {
     }
   }
 
-  return { command: command ?? '', indexId, filePath, create, name, schema, schemaFile, language, shards }
+  return { command: command ?? '', indexId, filePath, create, name, schema, schemaFile, language, shards, inferSchema }
 }
 
 async function runImport(
@@ -80,6 +86,7 @@ async function runImport(
     schemaFile?: string
     language?: string
     shards?: number
+    inferSchema?: boolean
   }
 ): Promise<void> {
   const storage = createS3StorageFromEnv()
@@ -90,6 +97,14 @@ async function runImport(
     schema = JSON.parse(await readFile(options.schemaFile, 'utf8')) as CreateIndexInput['schema']
   }
 
+  const settings =
+    options.language || options.inferSchema
+      ? {
+          ...(options.language ? { language: options.language } : {}),
+          ...(options.inferSchema ? { inferSchema: true } : {})
+        }
+      : undefined
+
   if (options.shards !== undefined) {
     const result = await importShardedDocuments(storage, indexId, documents, {
       shards: options.shards,
@@ -97,7 +112,7 @@ async function runImport(
         ? {
             name: options.name ?? indexId,
             ...(schema ? { schema } : {}),
-            settings: options.language ? { language: options.language } : undefined
+            settings
           }
         : undefined
     })
@@ -111,7 +126,7 @@ async function runImport(
       ? {
           name: options.name ?? indexId,
           ...(schema ? { schema } : {}),
-          settings: options.language ? { language: options.language } : undefined
+          settings
         }
       : undefined
   })
@@ -161,7 +176,8 @@ async function main(): Promise<void> {
       schema: args.schema,
       schemaFile: args.schemaFile,
       language: args.language,
-      shards: args.shards
+      shards: args.shards,
+      inferSchema: args.inferSchema
     })
     return
   }
@@ -169,7 +185,7 @@ async function main(): Promise<void> {
   console.log(`Usage:
   zbsearch-edge-builder rebuild [indexId]
   zbsearch-edge-builder rebuild --all
-  zbsearch-edge-builder import <indexId> <file> [--create] [--name <name>] [--schema '<json>'] [--schema-file <path>] [--language <lang>] [--shards <n>]`)
+  zbsearch-edge-builder import <indexId> <file> [--create] [--name <name>] [--schema '<json>'] [--schema-file <path>] [--language <lang>] [--shards <n>] [--infer-schema]`)
   process.exit(1)
 }
 

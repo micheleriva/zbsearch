@@ -27,8 +27,7 @@ function inferTypeFromValue(value: unknown): SearchableType | undefined {
     return undefined
   }
 
-  // getDocumentProperties already treats any object with numeric lat/lon as
-  // a geopoint value, so inferring `geopoint` is the only consistent choice.
+  // getDocumentProperties already treats any object with numeric lat/lon as a geopoint value, so inferring `geopoint` is the only consistent choice.
   if (typeof value === 'object' && value !== null) {
     const point = value as { lat?: unknown; lon?: unknown }
     if (typeof point.lat === 'number' && typeof point.lon === 'number') {
@@ -65,6 +64,16 @@ function flattenDocument(doc: AnyDocument, prefix: string, leaves: Array<[string
   }
 }
 
+function hasPathConflict(knownProperties: Record<string, SearchableType>, path: string): boolean {
+  for (const known of Object.keys(knownProperties)) {
+    if (path.startsWith(`${known}.`) || known.startsWith(`${path}.`)) {
+      return true
+    }
+  }
+
+  return false
+}
+
 function setNestedSchemaProperty(schema: AnySchema, path: string, type: SearchableType): void {
   const tokens = path.split('.')
   const lastToken = tokens[tokens.length - 1]!
@@ -82,17 +91,6 @@ function setNestedSchemaProperty(schema: AnySchema, path: string, type: Searchab
   current[lastToken] = type
 }
 
-/**
- * Infers schema types for document properties that are not yet known to the
- * index, registering the corresponding index and sorter structures on the fly.
- *
- * Vectors and enums are never inferred: vectors must be declared in the
- * schema (e.g. `vector[512]`), and enums are only reachable through an
- * explicit schema. Objects with numeric `lat`/`lon` are inferred as
- * `geopoint`, mirroring how getDocumentProperties treats them.
- *
- * Returns `true` when at least one new property was registered.
- */
 export function inferSchemaFromDocument<T extends AnyZBSearch>(zbsearch: T, doc: AnyDocument): boolean {
   if (!zbsearch.inferSchema) {
     return false
@@ -110,9 +108,7 @@ export function inferSchemaFromDocument<T extends AnyZBSearch>(zbsearch: T, doc:
   for (const [path, value] of leaves) {
     const knownType = knownProperties[path]
     if (knownType) {
-      // The index already knows this property (e.g. after load()): make sure
-      // the runtime schema reflects its type so validateSchema keeps
-      // enforcing it.
+      // The index already knows this property (e.g. after load()): make sure the runtime schema reflects its type so validateSchema keeps enforcing it.
       if (getNested(zbsearch.schema as object, path) !== knownType) {
         setNestedSchemaProperty(zbsearch.schema as AnySchema, path, knownType)
       }
@@ -121,6 +117,12 @@ export function inferSchemaFromDocument<T extends AnyZBSearch>(zbsearch: T, doc:
 
     const type = inferTypeFromValue(value)
     if (!type) {
+      continue
+    }
+
+    if (hasPathConflict(knownProperties, path)) {
+      // A known property is a prefix of this path (e.g. `a` scalar, new `a.b`) or the reverse: the document shape conflicts with the locked type of
+      // the existing property. Skip registration and let validateSchema reject the document instead of corrupting the schema.
       continue
     }
 

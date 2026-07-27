@@ -271,4 +271,77 @@ t.test('schema inference', async (t) => {
 
     t.strictSame(db.schema, { title: 'string' })
   })
+
+  t.test('rejects documents whose shape conflicts with a locked property path', async (t) => {
+    t.test('scalar first, then nested object at the same path', async (t) => {
+      const db = create({})
+
+      await insert(db, { a: 'scalar', keep: true })
+
+      try {
+        await insert(db, { a: { b: 1 } })
+        t.fail('Should have thrown an error')
+      } catch (e) {
+        t.equal((e as any).code, 'SCHEMA_VALIDATION_FAILURE')
+      }
+
+      // The schema is not corrupted by the rejected document
+      t.strictSame(db.schema, { a: 'string', keep: 'boolean' })
+      t.notOk((db.data.index as any).indexes['a.b'])
+
+      const result = await search(db, { term: 'scalar' })
+      t.equal(result.count, 1)
+    })
+
+    t.test('nested object first, then scalar at the parent path', async (t) => {
+      const db = create({})
+
+      await insert(db, { a: { b: 1 } })
+
+      try {
+        await insert(db, { a: 'scalar' })
+        t.fail('Should have thrown an error')
+      } catch (e) {
+        t.equal((e as any).code, 'SCHEMA_VALIDATION_FAILURE')
+      }
+
+      t.strictSame(db.schema, { a: { b: 'number' } })
+
+      const result = await search(db, { term: '', where: { 'a.b': { eq: 1 } } })
+      t.equal(result.count, 1)
+    })
+  })
+
+  t.test('respects unsortableProperties for inferred fields, across save/load', async (t) => {
+    const db = create({
+      sort: { unsortableProperties: ['b'] }
+    })
+
+    await insert(db, { a: 'first', b: 42 })
+
+    // "b" was inferred and indexed, but not made sortable
+    t.ok((db.data.index as any).indexes.b)
+    t.notOk((db.data.sorting as any).sorts.b)
+
+    const raw = await save(db)
+    const restored = create({})
+    await load(restored, raw)
+
+    // The deny list survives the round trip: new docs still can't sort by "b"
+    await insert(restored, { a: 'second', b: 7 })
+    t.notOk((restored.data.sorting as any).sorts.b)
+
+    try {
+      await search(restored, { term: '', sortBy: { property: 'b', order: 'ASC' } })
+      t.fail('Should have thrown an error')
+    } catch (e) {
+      t.equal((e as any).code, 'UNABLE_TO_SORT_ON_UNKNOWN_FIELD')
+    }
+
+    const result = await search(restored, { term: '', sortBy: { property: 'a', order: 'DESC' } })
+    t.strictSame(
+      result.hits.map((h) => (h.document as any).a),
+      ['second', 'first']
+    )
+  })
 })

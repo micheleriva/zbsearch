@@ -268,6 +268,8 @@ t.test('insert method', async (t) => {
       insert(db, { name: 'bar' })
       insert(db, { inner: {} })
 
+      t.equal(count(db), 4)
+
       t.end()
     })
 
@@ -479,8 +481,7 @@ t.test('insertMultiple method', async (t) => {
     }
   })
 
-  // Skipping this test for now, as it is not reliable
-  t.skip('should support `timeout` parameter', async (t) => {
+  t.test('should support `timeout` parameter', async (t) => {
     const db = create({
       schema: {
         description: 'string'
@@ -488,20 +489,19 @@ t.test('insertMultiple method', async (t) => {
     })
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const docs = (dataset as DataSet).result.events.slice(0, 1000)
+    const docs = (dataset as DataSet).result.events.slice(0, 10)
 
-    const batchSize = 10
+    const batchSize = 1
+    const timeout = 50
 
     const before = Date.now()
-    insertMultiple(db, docs, batchSize, undefined, false, 200)
+    insertMultiple(db, docs, batchSize, undefined, false, timeout)
     const after = Date.now()
 
-    t.equal(count(db), 1000)
+    t.equal(count(db), docs.length)
     const batchNumber = Math.ceil(docs.length / batchSize)
-    // the "sleep" is yeilded between batches,
-    // so it is not fired for the last batch
-    const expectedTime = (batchNumber - 1) * 20
-    t.equal(after - before > expectedTime, true)
+    const expectedTime = (batchNumber - 1) * timeout
+    t.equal(after - before >= expectedTime, true)
   })
 
   t.test('should correctly rebalance AVL tree once the threshold is reached', async (t) => {

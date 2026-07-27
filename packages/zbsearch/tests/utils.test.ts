@@ -105,9 +105,7 @@ t.test('utils', async (t) => {
     t.equal(flattened['nested.nested2.nested3.bar'], 'baz')
   })
 
-  // This test is skipped because the implementation of isAsyncFunction is temporary and will be
-  // removed in a future version of ZBSearch.
-  t.skip('should correctly detect an async function', (t) => {
+  t.test('should correctly detect an async function', async (t) => {
     async function asyncFunction() {
       return 'async'
     }

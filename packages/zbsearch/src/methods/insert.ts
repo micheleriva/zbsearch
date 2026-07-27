@@ -485,20 +485,17 @@ function innerInsertMultipleSync<T extends AnyZBSearch>(
   }
 
   function processAllBatches() {
-    const startTime = Date.now()
-
     // eslint-disable-next-line no-constant-condition
     while (true) {
+      const startTime = Date.now()
       const hasMoreBatches = processNextBatch()
       if (!hasMoreBatches) break
 
       if (timeout > 0) {
         const elapsedTime = Date.now() - startTime
-        if (elapsedTime >= timeout) {
-          const remainingTime = timeout - (elapsedTime % timeout)
-          if (remainingTime > 0) {
-            sleep(remainingTime)
-          }
+        const waitTime = timeout - elapsedTime
+        if (waitTime > 0) {
+          sleep(waitTime)
         }
       }
     }

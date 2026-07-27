@@ -183,7 +183,10 @@ t.test('remove method', (t) => {
     const [db] = await createSimpleDB()
     const id5 = await insert(db, {})
 
-    await remove(db, id5)
+    const removed = await remove(db, id5)
+
+    t.ok(removed)
+    t.equal(count(db), 4)
 
     t.end()
   })
@@ -205,20 +208,50 @@ t.test('removeMultiple method', (t) => {
     t.end()
   })
 
-  // @todo: make sure sync methods do not block the event loop too.
-  t.skip('should run event loop every batch', async (t) => {
+  t.test('should remove all the given items synchronously even in multiple batches', (t) => {
     const [db, id1, id2, id3, id4] = createSimpleDB()
 
-    let count = 0
+    const removed = removeMultiple(db, [id1, id2, id3, id4], 2) as number
+
+    t.equal(removed, 4)
+    t.equal(count(db), 0)
+
+    t.end()
+  })
+
+  t.test('should run event loop every batch', async (t) => {
+    const db = create({
+      schema: {
+        name: 'string'
+      } as const,
+      plugins: [
+        {
+          name: 'force-async',
+          afterRemoveMultiple: async () => {}
+        }
+      ]
+    })
+
+    const ids = [
+      insert(db, { name: 'super coffee maker' }),
+      insert(db, { name: 'washing machine' }),
+      insert(db, { name: 'coffee maker' }),
+      insert(db, { name: 'dish washer' })
+    ] as string[]
+
+    let ticks = 0
     const intervalId = setInterval(() => {
-      count++
+      ticks++
     }, 0)
 
-    removeMultiple(db, [id1, id2, id3, id4], 1)
+    const removed = await removeMultiple(db, ids, 1)
 
     clearInterval(intervalId)
 
-    t.equal(count, 5)
+    t.equal(removed, ids.length)
+    t.equal(count(db), 0)
+    // the event loop turns at least once per batch
+    t.ok(ticks >= ids.length)
 
     t.end()
   })

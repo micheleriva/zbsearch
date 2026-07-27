@@ -316,22 +316,15 @@ function removeMultipleSync<T extends AnyZBSearch>(
     runMultipleHook(zbsearch.beforeRemoveMultiple, zbsearch, docIdsForHooks)
   }
 
-  let i = 0
-  function _removeMultipleSync() {
-    const batch = ids.slice(i * batchSize!, ++i * batchSize!)
-
-    if (!batch.length) return
+  for (let i = 0; i < ids.length; i += batchSize) {
+    const batch = ids.slice(i, i + batchSize)
 
     for (const doc of batch) {
       if (remove(zbsearch, doc, language, skipHooks)) {
         result++
       }
     }
-
-    setTimeout(_removeMultipleSync, 0)
   }
-
-  _removeMultipleSync()
 
   if (!skipHooks) {
     runMultipleHook(zbsearch.afterRemoveMultiple, zbsearch, docIdsForHooks)

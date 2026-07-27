@@ -7,7 +7,8 @@ import type {
   Result,
   HybridWeights
 } from '../types.js'
-import { getNanosecondsTime, formatNanoseconds, removeVectorsFromHits } from '../utils.js'
+import type { InternalDocumentID } from '../components/internal-document-id-store.js'
+import { getNanosecondsTime, formatNanoseconds, removeVectorsFromHits, sortTokenScorePredicate } from '../utils.js'
 import { getFacets } from '../components/facets.js'
 import { getGroups } from '../components/groups.js'
 import { fetchDocuments } from './fetch-documents.js'
@@ -21,8 +22,17 @@ export function innerHybridSearch<T extends AnyZBSearch, ResultDocument = TypedD
   params: SearchParamsHybrid<T, ResultDocument>,
   language?: string
 ) {
-  const fullTextIDs = innerFullTextSearch(zbsearch, params, language)
-  const vectorIDs = innerVectorSearch(zbsearch, params, language)
+
+  const hasFilters = Object.keys(params.where ?? {}).length > 0
+  let whereFiltersIDs: Set<InternalDocumentID> | undefined
+
+  if (hasFilters) {
+    whereFiltersIDs = zbsearch.index.searchByWhereClause(zbsearch.data.index, zbsearch.tokenizer, params.where!, language)
+  }
+
+  const hasFullTextInput = Boolean(params.term) || Boolean(params.properties)
+  const fullTextIDs = hasFullTextInput ? innerFullTextSearch(zbsearch, params, language, whereFiltersIDs) : []
+  const vectorIDs = innerVectorSearch(zbsearch, params, language, whereFiltersIDs)
 
   const hybridWeights = params.hybridWeights
   return mergeAndRankResults(fullTextIDs, vectorIDs, params.term ?? '', hybridWeights)
@@ -102,12 +112,23 @@ export function hybridSearch<T extends AnyZBSearch, ResultDocument = TypedDocume
   return performSearchLogic()
 }
 
-function extractScore(token: TokenScore) {
-  return token[1]
+function getMaxScore(results: TokenScore[]) {
+  let max = 0
+  const resultsLength = results.length
+
+  for (let i = 0; i < resultsLength; i++) {
+    const score = results[i][1]
+
+    if (score > max) {
+      max = score
+    }
+  }
+
+  return max
 }
 
 function normalizeScore(score: number, maxScore: number) {
-  return score / maxScore
+  return maxScore > 0 ? score / maxScore : 0
 }
 
 function hybridScoreBuilder(textWeight: number, vectorWeight: number) {
@@ -119,13 +140,15 @@ function mergeAndRankResults(
   vectorResults: TokenScore[],
   query: string,
   hybridWeights: HybridWeights | undefined
-) {
-  const maxTextScore = Math.max(...textResults.map(extractScore))
-  const maxVectorScore = Math.max(...vectorResults.map(extractScore))
-  const hasHybridWeights = hybridWeights && hybridWeights.text && hybridWeights.vector
+): TokenScore[] {
+  // Avoid Math.max(...results): spreading large result sets overflows the call stack.
+  const maxTextScore = getMaxScore(textResults)
+  const maxVectorScore = getMaxScore(vectorResults)
+  const hasHybridWeights =
+    hybridWeights && typeof hybridWeights.text === 'number' && typeof hybridWeights.vector === 'number'
 
   const { text: textWeight, vector: vectorWeight } = hasHybridWeights ? hybridWeights : getQueryWeights(query)
-  const mergedResults = new Map()
+  const mergedResults = new Map<InternalDocumentID, number>()
 
   const textResultsLength = textResults.length
   const hybridScore = hybridScoreBuilder(textWeight, vectorWeight)
@@ -144,7 +167,7 @@ function mergeAndRankResults(
     mergedResults.set(resultId, existingRes + hybridScore(0, normalizedScore))
   }
 
-  return [...mergedResults].sort((a, b) => b[1] - a[1])
+  return [...mergedResults].sort(sortTokenScorePredicate) as TokenScore[]
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

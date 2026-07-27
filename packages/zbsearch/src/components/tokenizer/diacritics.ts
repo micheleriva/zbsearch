@@ -196,13 +196,6 @@ const CHARCODE_REPLACE_MAPPING = [
   115
 ]
 
-function replaceChar(charCode: number): number {
-  if (charCode < DIACRITICS_CHARCODE_START || charCode > DIACRITICS_CHARCODE_END) return charCode
-
-  /* c8 ignore next  */
-  return CHARCODE_REPLACE_MAPPING[charCode - DIACRITICS_CHARCODE_START] || charCode
-}
-
 // Non-Latin foldings the Latin table above cannot cover. These unify common orthographic variants so that, e.g., Russian "ёлка"/"елка" and Arabic "آلاف"/"الاف" converge to the same token.
 const EXTRA_FOLDINGS: Record<number, number> = {
   0x0401: 0x0415, // Ё > Е (Cyrillic)
@@ -214,24 +207,37 @@ const EXTRA_FOLDINGS: Record<number, number> = {
   0x0649: 0x064a // ى > ي (Arabic alef maksura)
 }
 
-function replaceLatinDiacritics(str: string): string {
+function replaceChar(charCode: number): number {
+  if (charCode < DIACRITICS_CHARCODE_START) return charCode
+  if (charCode <= DIACRITICS_CHARCODE_END) {
+    /* c8 ignore next  */
+    return CHARCODE_REPLACE_MAPPING[charCode - DIACRITICS_CHARCODE_START] || charCode
+  }
+
+  return EXTRA_FOLDINGS[charCode] ?? charCode
+}
+
+export function replaceDiacritics(str: string): string {
   const len = str.length
 
   for (let idx = 0; idx < len; idx++) {
     const charCode = str.charCodeAt(idx)
-    if (charCode < DIACRITICS_CHARCODE_START || charCode > DIACRITICS_CHARCODE_END) {
+    if (charCode < DIACRITICS_CHARCODE_START) {
       continue
     }
 
-    const replaced = CHARCODE_REPLACE_MAPPING[charCode - DIACRITICS_CHARCODE_START]
-    if (!replaced || replaced === charCode) {
+    const replaced = replaceChar(charCode)
+
+    if (replaced === charCode) {
       continue
     }
 
     const codes = new Array<number>(len)
+
     for (let j = 0; j < idx; j++) {
       codes[j] = str.charCodeAt(j)
     }
+
     codes[idx] = replaced
 
     for (let j = idx + 1; j < len; j++) {
@@ -242,28 +248,4 @@ function replaceLatinDiacritics(str: string): string {
   }
 
   return str
-}
-
-export function replaceDiacritics(str: string): string {
-  str = replaceLatinDiacritics(str)
-
-  let out = ''
-  let changed = false
-
-  for (let i = 0; i < str.length; i++) {
-    const replaced = EXTRA_FOLDINGS[str.charCodeAt(i)]
-
-    if (replaced !== undefined) {
-      if (!changed) {
-        out = str.slice(0, i)
-        changed = true
-      }
-      out += String.fromCharCode(replaced)
-
-    } else if (changed) {
-      out += str[i]
-    }
-  }
-
-  return changed ? out : str
 }

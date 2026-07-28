@@ -104,6 +104,26 @@ import { restoreFromFile } from "@zbsearch/plugin-data-persistence/server";
 const db = await restoreFromFile("binary", filePath);
 ```
 
+## Persisting to a storage backend (IndexedDB, S3, …)
+
+Besides strings, buffers, and the filesystem, you can persist a snapshot
+directly into a pluggable storage backend — such as IndexedDB in the browser or
+S3/R2 on the server — with `persistToStorage` / `restoreFromStorage`:
+
+```javascript copy
+import { persistToStorage, restoreFromStorage } from "@zbsearch/plugin-data-persistence";
+import { IndexedDBStorage } from "@zbsearch/plugin-data-persistence/indexeddb";
+
+const storage = new IndexedDBStorage();
+await persistToStorage(originalInstance, storage, "my-index");
+
+const newInstance = await restoreFromStorage(storage, "my-index");
+```
+
+See [Storage Adapters](/docs/zbsearch/plugins/plugin-data-persistence/storage-adapters)
+for the full guide, the `PersistenceStorage` contract, and how to write your own
+adapter.
+
 # CommonJS Imports
 
 ZBSearch plugins ship **ESM** modules by default. This allows us to move faster when providing new features and bug fixes, as well as using the `"exports"` field in `package.json` to provide a better developer experience.

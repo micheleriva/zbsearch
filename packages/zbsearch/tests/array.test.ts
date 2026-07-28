@@ -23,7 +23,8 @@ t.test('create should support array of string', async (t) => {
   await checkSearchTerm(t, db, 'Harry', [harryId])
   await checkSearchTerm(t, db, 'James', [harryId, jamesId])
   await checkSearchTerm(t, db, 'Potter', [harryId, jamesId, lilyId])
-  await checkSearchTerm(t, db, 'P', [albusId, harryId, jamesId, lilyId])
+  // 'P' is a fragment of indexed words ('Percival', 'Potter'), so opt into prefix expansion.
+  await checkSearchTerm(t, db, 'P', [albusId, harryId, jamesId, lilyId], { prefix: true })
   await checkSearchTerm(t, db, 'foo', [])
 
   await checkSearchWhere(t, db, 'name', 'Albus', [albusId])
@@ -230,9 +231,10 @@ t.test('update supports array as well', async (t) => {
   t.ok(newDocId)
 })
 
-async function checkSearchTerm(t, db, term, expectedIds) {
+async function checkSearchTerm(t, db, term, expectedIds, extraParams = {}) {
   const result = await search(db, {
-    term
+    term,
+    ...extraParams
   })
   t.equal(result.hits.length, expectedIds.length)
   t.equal(result.count, expectedIds.length)

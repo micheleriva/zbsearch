@@ -227,7 +227,7 @@ Read the complete documentation at [https://zbsearch.dev](https://zbsearch.dev).
 - [Plugin QPS](https://zbsearch.dev/docs/zbsearch/plugins/plugin-qps)
 - [Plugin PT15](https://zbsearch.dev/docs/zbsearch/plugins/plugin-pt15)
 
-Write your own plugin: [https://zbsearch.dev](https://zbsearch.dev)
+Write your own plugin: [https://www.zbsearch.dev/docs/zbsearch/plugins/writing-your-own-plugins](https://www.zbsearch.dev/docs/zbsearch/plugins/writing-your-own-plugins)
 
 # License
 

@@ -387,7 +387,7 @@ export function getR2Credentials(configOrEnv) {
 }
 
 export function step(message) {
-  console.log(`\n→ ${message}`)
+  console.log(`\n-> ${message}`)
 }
 
 export async function run(command, args, { allowFailure = false, dryRun = false, input, cwd } = {}) {

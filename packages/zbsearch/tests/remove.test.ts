@@ -112,8 +112,10 @@ t.test('remove method', (t) => {
 
     await remove(zbsearch, halo)
 
+    // 'Hal' is a fragment of the indexed 'Halloween', so opt into prefix expansion.
     const searchResult = await search(zbsearch, {
-      term: 'Hal'
+      term: 'Hal',
+      prefix: true
     })
 
     t.equal(searchResult.count, 2)

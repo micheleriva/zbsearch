@@ -249,13 +249,16 @@ t.test('enum', async (t) => {
       { title: 'The Lord of the Rings: The Return of the King', year: 2003, categoryId: 4 }
     ])
 
+    // 'r' is a fragment of indexed words, so opt into prefix expansion.
     const result1 = await search(filmDb, {
-      term: 'r'
+      term: 'r',
+      prefix: true
     })
     t.equal(result1.hits.length, 2)
 
     const result2 = await search(filmDb, {
       term: 'r',
+      prefix: true,
       where: {
         categoryId: { eq: 1 }
       }
@@ -268,6 +271,7 @@ t.test('enum', async (t) => {
 
     const result3 = await search(filmDb, {
       term: 'r',
+      prefix: true,
       where: {
         year: { gt: 2000 },
         categoryId: { eq: 1 }
@@ -281,6 +285,7 @@ t.test('enum', async (t) => {
 
     const result4 = await search(filmDb, {
       term: 'r',
+      prefix: true,
       where: {
         year: { lte: 2000 },
         categoryId: { eq: 1 }
@@ -525,13 +530,16 @@ t.test('enum[]', async (t) => {
       { title: 'The Lord of the Rings: The Return of the King', year: 2003, tags: ['fantasy', 'adventure'] }
     ])
 
+    // 'l' is a fragment of indexed words, so opt into prefix expansion.
     const result1 = await search(filmDb, {
-      term: 'l'
+      term: 'l',
+      prefix: true
     })
     t.equal(result1.hits.length, 2)
 
     const result2 = await search(filmDb, {
       term: 'l',
+      prefix: true,
       where: {
         tags: { containsAll: ['war'] }
       }
@@ -544,6 +552,7 @@ t.test('enum[]', async (t) => {
 
     const result3 = await search(filmDb, {
       term: 'l',
+      prefix: true,
       where: {
         year: { gt: 2000 },
         tags: { containsAll: ['war'] }
@@ -557,6 +566,7 @@ t.test('enum[]', async (t) => {
 
     const result4 = await search(filmDb, {
       term: 'l',
+      prefix: true,
       where: {
         year: { lte: 2000 },
         tags: { containsAll: ['war'] }

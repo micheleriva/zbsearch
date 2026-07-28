@@ -18,13 +18,17 @@
     "benchmark:vector-ivf": "node vector-ivf.js",
     "benchmark:bundle-size": "node bundle-size.js",
     "benchmark:memory": "node memory.js",
-    "benchmark:multilingual-quality": "node multilingual-quality.js"
+    "benchmark:multilingual-quality": "node multilingual-quality.js",
+    "benchmark:search-quality": "node search-quality.js",
+    "test:search-quality": "node --test \"src/search-quality/*.test.js\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@orama/orama": "^3.1.18",
+    "@orama/stemmers": "^3.1.18",
+    "@orama/stopwords": "^3.1.18",
     "@zbsearch/plugin-pt15": "file:../packages/plugin-pt15",
     "@zbsearch/plugin-qps": "file:../packages/plugin-qps",
     "@zbsearch/stemmers": "file:../packages/stemmers",

@@ -64,11 +64,10 @@ t.test('issue-866: exact search should only match exact terms', async (t) => {
     await insert(db, { name: 'apple' })
     await insert(db, { name: 'application' })
     await insert(db, { name: 'app' })
-
-    // Without exact, "app" should match all three
+    
     const noExact = await search(db, {
       term: 'app',
-      exact: false
+      prefix: true
     })
 
     // With exact: true, "app" should only match the document with "app"
@@ -77,7 +76,7 @@ t.test('issue-866: exact search should only match exact terms', async (t) => {
       exact: true
     })
 
-    t.equal(noExact.count, 3, 'Without exact, should match all prefix matches')
+    t.equal(noExact.count, 3, 'With prefix: true, should match all prefix matches')
     t.equal(withExact.count, 1, 'With exact: true, should only match exact term')
     t.equal(withExact.hits[0].document.name, 'app', 'Should match only "app"')
   })

@@ -348,6 +348,12 @@ export interface SearchParamsFullText<T extends AnyZBSearch, ResultDocument = Ty
   exact?: boolean
 
   /**
+   * Whether to enable prefix matching (search-as-you-type), expanding each query token to every indexed word that starts with it — like Lucene's PrefixQuery.
+   * Enabled by default; prefix-expanded words score at a demoted weight so documents matching the full token rank higher. Set to false for Lucene-style exact token matching (best relevance on full-text queries). Ignored when `exact` or `tolerance` is set.
+   */
+  prefix?: boolean
+
+  /**
    * The maximum [levenshtein distance](https://en.wikipedia.org/wiki/Levenshtein_distance)
    * between the term and the searchable property.
    */
@@ -1017,7 +1023,8 @@ export interface IIndex<I extends AnyIndexStore> {
     relevance: Required<BM25Params>,
     docsCount: number,
     whereFiltersIDs: Set<InternalDocumentID> | undefined,
-    threshold?: number
+    threshold?: number,
+    prefix?: boolean
   ): TokenScore[]
 
   searchByWhereClause<T extends AnyZBSearch>(

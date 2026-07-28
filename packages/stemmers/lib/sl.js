@@ -84,8 +84,8 @@ const ENDINGS = [
   ['eš', 3],
   ['iš', 3],
   // nouns: instrumental singular f. (nočjo, perutjo); with the vowel trim
-  // below this also covers the 3rd person plural (delajo → dela → del,
-  // nosijo → nosi → nos)
+  // below this also covers the 3rd person plural (delajo -> dela -> del,
+  // nosijo -> nosi -> nos)
   ['jo', 3],
   // nouns: dual/plural dative and instrumental in -ma/-mi (hišama, stvarmi)
   ['ma', 4],
@@ -119,11 +119,11 @@ export function stemmer(word) {
     }
   }
 
-  // Step 2: trim residual theme/case vowels (mesta → mest, hiši → hiš),
-  // plus a final 'j' glide when it follows a consonant (vprašanje →
-  // vprašanj → vprašan, bratje → brat) or an 'i' - where -ij- is always an
+  // Step 2: trim residual theme/case vowels (mesta -> mest, hiši -> hiš),
+  // plus a final 'j' glide when it follows a consonant (vprašanje ->
+  // vprašanj -> vprašan, bratje -> brat) or an 'i' - where -ij- is always an
   // inflectional/thematic tail, so the whole -ija class collapses (operacija,
-  // operacije, operacijo, operacij → operac; ladja/ladij → lad). After
+  // operacije, operacijo, operacij -> operac; ladja/ladij -> lad). After
   // a/e/o/u the 'j' is part of the stem (muzej, kraj, razvoj) and is kept.
   // The stem is never shortened below 3 characters.
   let end = stem.length

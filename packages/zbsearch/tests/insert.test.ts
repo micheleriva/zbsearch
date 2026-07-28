@@ -370,7 +370,7 @@ t.test('insert short prefixes, as in #327 and #328', async (t) => {
 
     const prefixResults = await search(db, {
       term: 'RD',
-      exact: false
+      prefix: true
     })
 
     t.same(exactResults.count, 1)
@@ -378,10 +378,10 @@ t.test('insert short prefixes, as in #327 and #328', async (t) => {
     t.same(exactResults.hits[0].document.abbrv, 'RD')
 
     t.same(prefixResults.count, 2)
-    t.same(prefixResults.hits[0].id, '1')
-    t.same(prefixResults.hits[0].document.abbrv, 'RDGE')
-    t.same(prefixResults.hits[1].id, '2')
-    t.same(prefixResults.hits[1].document.abbrv, 'RD')
+    t.same(prefixResults.hits[0].id, '2')
+    t.same(prefixResults.hits[0].document.abbrv, 'RD')
+    t.same(prefixResults.hits[1].id, '1')
+    t.same(prefixResults.hits[1].document.abbrv, 'RDGE')
   })
 
   await t.test('example 2', async (t) => {
@@ -548,6 +548,7 @@ t.test('insertMultiple method', async (t) => {
 
     const results250 = await search(db, {
       term: 'name',
+      prefix: true,
       where: {
         number: {
           eq: 250

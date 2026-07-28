@@ -268,13 +268,17 @@ t.test('should correctly search words in Bulgarian', async (t) => {
     description: 'Гръдните мускули на пингвините са много по-мощни от тези на летящите им родственици'
   })
 
+  // 'пингвин' is a fragment of the indexed 'пингвините', so opt into prefix expansion.
   const firstSearchResult = await search(db, {
-    term: 'пингвин'
+    term: 'пингвин',
+    prefix: true
   })
   t.equal(firstSearchResult.count, 2)
 
+  // 'жълта' is a fragment of the indexed 'жълтата', so opt into prefix expansion.
   const secondSearchResult = await search(db, {
-    term: 'жълта'
+    term: 'жълта',
+    prefix: true
   })
   t.equal(secondSearchResult.count, 1)
 })

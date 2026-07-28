@@ -24,7 +24,7 @@ export function innerFullTextSearch<T extends AnyZBSearch>(
   zbsearch: T,
   params: Pick<
     SearchParamsFullText<T>,
-    'term' | 'properties' | 'where' | 'exact' | 'tolerance' | 'boost' | 'relevance' | 'threshold'
+    'term' | 'properties' | 'where' | 'exact' | 'prefix' | 'tolerance' | 'boost' | 'relevance' | 'threshold'
   >,
   language: Language | undefined,
   precomputedWhereFiltersIDs?: Set<number>
@@ -84,7 +84,8 @@ export function innerFullTextSearch<T extends AnyZBSearch>(
       applyDefault(params.relevance),
       docsCount,
       whereFiltersIDs,
-      threshold
+      threshold,
+      params.prefix
     )
 
     // When exact is true and we have a term, filter results to only include documents

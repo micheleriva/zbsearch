@@ -29,6 +29,7 @@ t.test('Plugin embeddings serialization', async (t) => {
 
     const searchResults = await search(db, {
       term: '',
+      prefix: true, // empty-term match-all now requires opting into prefix expansion
       properties: ['title'],
       includeVectors: true
     })
@@ -55,6 +56,7 @@ t.test('Plugin embeddings serialization', async (t) => {
 
     const restoredResults = await search(newDb, {
       term: '',
+      prefix: true, // empty-term match-all now requires opting into prefix expansion
       properties: ['title'],
       includeVectors: true
     })
@@ -106,6 +108,7 @@ t.test('Plugin embeddings serialization', async (t) => {
 
     const allDocs = await search(db, {
       term: '',
+      prefix: true, // empty-term match-all now requires opting into prefix expansion
       properties: ['title'],
       includeVectors: true
     })
@@ -137,6 +140,7 @@ t.test('Plugin embeddings serialization', async (t) => {
 
     const restoredDocs = await search(newDb, {
       term: '',
+      prefix: true, // empty-term match-all now requires opting into prefix expansion
       properties: ['title'],
       includeVectors: true
     })

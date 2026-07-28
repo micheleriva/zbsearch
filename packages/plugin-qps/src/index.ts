@@ -39,7 +39,10 @@ function search<T extends AnyZBSearch>(
   boost: Partial<Record<OnlyStrings<FlattenSchemaProperty<T>[]>, number>>,
   relevance: Required<BM25Params>,
   docsCount: number,
-  whereFiltersIDs: Set<InternalDocumentID> | undefined
+  whereFiltersIDs: Set<InternalDocumentID> | undefined,
+  threshold?: number,
+  // QPS expands tokens and scores exact matches above prefixed ones itself, so the `prefix` flag has no effect here.
+  prefix?: boolean
 ): TokenScore[] {
   const all: Map<InternalDocumentID, [number, number]> = new Map()
 

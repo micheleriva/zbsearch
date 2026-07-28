@@ -126,14 +126,13 @@ export function insertRadixTokens(
   insertDocumentScoreParameters(index, prop, id, tokens, docsCount, internalId)
   const frequencies = index.frequencies[prop][internalId]!
   const tokenLength = tokens.length
-  const invLength = tokenLength > 0 ? 1 / tokenLength : 0
 
   for (let i = 0; i < tokenLength; i++) {
     const token = tokens[i]!
     if (Object.hasOwn(frequencies, token)) {
-      frequencies[token] += invLength
+      frequencies[token] += 1
     } else {
-      frequencies[token] = invLength
+      frequencies[token] = 1
       node.insert(token, internalId)
     }
   }
@@ -513,6 +512,28 @@ function filterIdsToCandidates(ids: InternalDocumentID[], candidates: Set<Intern
   return filtered
 }
 
+// Prefix-expanded words (the query token is a strict prefix of the indexed word) score at a demoted weight so that documents matching the full query token always outrank partial, prefix-only matches.
+const PREFIX_EXPANSION_SCORE_DEMOTION = 0.5
+
+function bm25Idf(documentFrequency: number, docsCount: number): number {
+  return Math.log(1 + (docsCount - documentFrequency + 0.5) / (documentFrequency + 0.5))
+}
+
+// Demotion factor for a prefix-expanded word. Beyond the flat demotion, the word's effective IDF is capped at the exact token's IDF (Lucene blends term statistics across expansions the same way): a rare expansion must not outscore the exact token just because it appears in fewer documents.
+function prefixExpansionDemotion(tokenDf: number | undefined, wordDf: number, docsCount: number): number {
+  if (tokenDf === undefined) {
+    return PREFIX_EXPANSION_SCORE_DEMOTION
+  }
+
+  const wordIdf = bm25Idf(wordDf, docsCount)
+
+  if (!wordIdf) {
+    return PREFIX_EXPANSION_SCORE_DEMOTION
+  }
+
+  return PREFIX_EXPANSION_SCORE_DEMOTION * Math.min(1, bm25Idf(tokenDf, docsCount) / wordIdf)
+}
+
 function searchThresholdZero(
   index: Index,
   tokens: string[],
@@ -617,7 +638,7 @@ function searchThresholdZero(
             docsCount,
             relevance,
             resultsMap,
-            boostPerProperty,
+            boostPerProperty * (word === token ? 1 : prefixExpansionDemotion(searchResult[token]?.length, searchResult[word]!.length, docsCount)),
             whereFiltersIDs
           )
         }
@@ -642,7 +663,8 @@ export function search(
   relevance: Required<BM25Params>,
   docsCount: number,
   whereFiltersIDs: Set<InternalDocumentID> | undefined,
-  threshold = 0
+  threshold = 0,
+  prefix = true
 ): TokenScore[] {
   const tokens = tokenizer.tokenize(term, language)
   const keywordsCount = tokens.length || 1
@@ -651,12 +673,14 @@ export function search(
     tokens.push('')
   }
 
+  const radixExact = term ? exact || (!prefix && !tolerance) : false
+
   if (!threshold && tokens.length > 1) {
     return searchThresholdZero(
       index,
       tokens,
       propertiesToSearch,
-      exact,
+      radixExact,
       tolerance,
       boost,
       relevance,
@@ -690,7 +714,7 @@ export function search(
     const tokenLength = tokens.length
     for (let i = 0; i < tokenLength; i++) {
       const token = tokens[i]
-      const searchResult = tree.node.find({ term: token, exact, tolerance })
+      const searchResult = tree.node.find({ term: token, exact: radixExact, tolerance })
 
       // See if this token was found (for threshold=0 filtering)
       const termsFound = Object.keys(searchResult)
@@ -711,7 +735,7 @@ export function search(
           docsCount,
           relevance,
           resultsMap,
-          boostPerProperty,
+          boostPerProperty * (word === token ? 1 : prefixExpansionDemotion(searchResult[token]?.length, ids!.length, docsCount)),
           whereFiltersIDs,
           keywordMatchesMap
         )

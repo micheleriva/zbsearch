@@ -154,6 +154,7 @@ t.test('should return all the exact matches + X% of the partial matches', async 
 })
 
 // Related issue: https://github.com/oramasearch/orama/issues/911
+// Note: these cases exercise prefix (search-as-you-type) matching, which is opt-in via `prefix: true` - default search matches whole tokens exactly.
 t.test('should return results for words with same root if threshold is 0', async (t) => {
   const db = create({
     schema: {
@@ -194,7 +195,7 @@ t.test('should return results for words with same root if threshold is 0', async
   t.plan(testCases.length)
 
   for (const [term, expectedCount] of testCases) {
-    const result = await search(db, { term, threshold: 0 })
+    const result = await search(db, { term, threshold: 0, prefix: true })
     t.same(
       result.count,
       expectedCount,

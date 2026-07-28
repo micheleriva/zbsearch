@@ -19,7 +19,8 @@ t.test('search method', async (t) => {
     t.equal((await search(db, { term: 'СЪЕШЬ' })).count, 1, 'is case-insensitive across scripts')
     t.equal((await search(db, { term: 'cafe' })).count, 1, 'folds diacritics')
     t.equal((await search(db, { term: 'テキスト' })).count, 1, 'finds CJK text')
-    t.equal((await search(db, { term: '日本' })).count, 1, 'prefix-matches CJK text')
+    // '日本' is a prefix of an indexed CJK token, so opt into prefix expansion.
+    t.equal((await search(db, { term: '日本', prefix: true })).count, 1, 'prefix-matches CJK text')
     t.equal((await search(db, { term: 'nonexistent' })).count, 0, 'returns nothing for absent terms')
   })
 
@@ -391,7 +392,8 @@ t.test('search method', async (t) => {
         const { limit, offset, expectedIds } = c
         const name = `limit: ${limit}, offset: ${offset}`
         t.test(name, async (t) => {
-          const result = await search(db, { term: 'f', limit, offset })
+          // 'f' is a fragment of the indexed words, so opt into prefix expansion.
+          const result = await search(db, { term: 'f', limit, offset, prefix: true })
           const actualIds = result.hits.map((d) => d.id)
 
           t.equal(result.count, 4)
@@ -775,7 +777,9 @@ t.test('fix-544', async (t) => {
   await insert(db, { name: 'Christopher' })
   let result
 
-  result = await search(db, { term: 'Chris', tolerance: 0 })
+  // 'Chris' is a prefix of the indexed (stemmed) 'Christopher', so opt into
+  // prefix expansion: exact matching is now the default and would not match.
+  result = await search(db, { term: 'Chris', tolerance: 0, prefix: true })
   t.equal(result.count, 1)
 
   result = await search(db, { term: 'Chris', tolerance: 1 })

@@ -1,0 +1,60 @@
+name: Search Quality Benchmarks (BEIR)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  search-quality:
+    name: Ranking quality on BEIR datasets
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install monorepo dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build packages used by benchmarks
+        run: |
+          pnpm --filter zbsearch build
+          pnpm --filter @zbsearch/plugin-qps build
+          pnpm --filter @zbsearch/plugin-pt15 build
+          pnpm --filter @zbsearch/stopwords build
+
+      - name: Install benchmark dependencies
+        working-directory: benchmarks
+        run: npm install
+
+      - name: Cache BEIR datasets
+        uses: actions/cache@v4
+        with:
+          path: benchmarks/.cache/beir
+          key: beir-datasets-scifact-nfcorpus-arguana-v1
+
+      - name: Run search-quality benchmarks
+        working-directory: benchmarks
+        run: node search-quality.js | tee search-quality-output.txt
+
+      - name: Write job summary
+        working-directory: benchmarks
+        run: grep -E '^(###|\|)' search-quality-output.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload JSON results
+        uses: actions/upload-artifact@v4
+        with:
+          name: search-quality-benchmarks
+          path: benchmarks/benchmark/results/search-quality.json
+          if-no-files-found: warn

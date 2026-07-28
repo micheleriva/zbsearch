@@ -248,9 +248,10 @@ t.test('Issue #744', async (t) => {
     tolerance: 2
   })
   t.equal(s4.count, 4)
+  // Exact matches (docs 1-2 contain 'moelleux') outrank fuzzy tolerance-2 matches (docs 3-4): full-token matches always score above expansions.
   t.strictSame(
     s4.hits.map((h) => h.id),
-    ['3', '4', '1', '2']
+    ['1', '2', '3', '4']
   )
 })
 

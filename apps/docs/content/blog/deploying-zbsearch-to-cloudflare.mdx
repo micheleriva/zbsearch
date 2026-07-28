@@ -61,9 +61,9 @@ flowchart TB
 
 | Path | What happens |
 | --- | --- |
-| **Write** | `IndexCoordinator` batches ops into WAL segments in R2 → `202 Accepted` |
+| **Write** | `IndexCoordinator` batches ops into WAL segments in R2 -> `202 Accepted` |
 | **Search** | Load live snapshot (3-layer cache); overlay pending WAL when `pendingOps > 0` |
-| **Rebuild** | Freeze WAL → merge → upload new immutable snapshot → promote `liveVersion` |
+| **Rebuild** | Freeze WAL -> merge -> upload new immutable snapshot -> promote `liveVersion` |
 | **Large indexes** | Create with `shards: N`; search fans out to `ShardSearch` DOs |
 
 ## Package split
@@ -103,7 +103,7 @@ Batch API writes (`POST .../documents/batch`) land in a **single segment**, cutt
 
 Search never re-decodes a snapshot on every request when it can avoid it:
 
-1. **Per-isolate LRU** - fully deserialized ZBSearch DBs (`SNAPSHOT_CACHE_MAX_ENTRIES` default 4, `SNAPSHOT_CACHE_MAX_BYTES` default ~64 MB). Rebuilds change the version key → natural invalidation.
+1. **Per-isolate LRU** - fully deserialized ZBSearch DBs (`SNAPSHOT_CACHE_MAX_ENTRIES` default 4, `SNAPSHOT_CACHE_MAX_BYTES` default ~64 MB). Rebuilds change the version key -> natural invalidation.
 2. **Workers Cache API** - raw snapshot bytes, shared per colo.
 3. **R2** - source of truth.
 
@@ -133,7 +133,7 @@ stateDiagram-v2
 
 1. Acquire rebuild lock on the coordinator  
 2. Freeze WAL (seal open segment, collect pending ops)  
-3. Merge snapshot + WAL → new msgpack snapshot  
+3. Merge snapshot + WAL -> new msgpack snapshot  
 4. Finalize: delete frozen segments, set `liveVersion`, release lock  
 
 Concurrent writes during rebuild survive as new `pendingOps`.
@@ -214,6 +214,6 @@ npx wrangler login
 npx zbsearch-edge-setup --init
 ```
 
-For production rebuilds: `@zbsearch/edge-index-builder@3.3.2` → `npx zbsearch-edge-builder rebuild --all` from CI.
+For production rebuilds: `@zbsearch/edge-index-builder@3.3.2` -> `npx zbsearch-edge-builder rebuild --all` from CI.
 
 See the [Cloudflare docs](/docs/cloudflare), [Indexing & rebuilds](/docs/cloudflare/indexing-and-rebuilds), and [Production](/docs/cloudflare/production) for operational detail.

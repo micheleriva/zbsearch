@@ -84,9 +84,9 @@ function removePossessives(word) {
 
 /**
  * Normalizes the stem ending so inflectional variants conflate:
- * palatalized consonants are rewritten ("čt" → "ck", "št" → "sk",
- * "c"/"č" → "k", "z"/"ž" → "h"), a fleeting penultimate "e" is dropped
- * ("desek" → "desk") and a penultimate "ů" becomes "o" ("dům" → "dom").
+ * palatalized consonants are rewritten ("čt" -> "ck", "št" -> "sk",
+ * "c"/"č" -> "k", "z"/"ž" -> "h"), a fleeting penultimate "e" is dropped
+ * ("desek" -> "desk") and a penultimate "ů" becomes "o" ("dům" -> "dom").
  */
 function normalize(word) {
   if (word.endsWith('čt')) {

@@ -113,7 +113,7 @@ Create a new index.
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `name` | `string` | Yes | Display name; slugified to `id` (e.g. `"My Products"` → `my-products`) |
+| `name` | `string` | Yes | Display name; slugified to `id` (e.g. `"My Products"` -> `my-products`) |
 | `schema` | `object` | Yes | Same [schema types](/docs/zbsearch/usage/create) as standalone ZBSearch |
 | `settings` | `object` | No | See [index settings](#index-settings) |
 | `shards` | `number` | No | Create a **sharded index** with N physical shards (2–64). Fixed after creation - re-sharding means re-importing into a new index. |

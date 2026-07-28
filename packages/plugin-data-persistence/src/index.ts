@@ -7,6 +7,13 @@ import { METHOD_MOVED, UNSUPPORTED_FORMAT } from './errors.js'
 import { detectRuntime } from './utils.js'
 import { serializeZBSearchInstance, deserializeZBSearchInstance } from './seqproto.js'
 
+export { persistToStorage, restoreFromStorage } from './storage.js'
+export type {
+  PersistenceStorage,
+  PersistToStorageOptions,
+  RestoreFromStorageOptions
+} from './storage.js'
+
 const hexFromMap: Record<string, number> = {
   0: 0,
   1: 1,

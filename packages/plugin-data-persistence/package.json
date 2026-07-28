@@ -17,6 +17,10 @@
       "import": "./dist/server.js",
       "require": "./dist/server-commonjs.cjs",
       "node": "./dist/server-commonjs.cjs"
+    },
+    "./indexeddb": {
+      "types": "./dist/indexeddb.d.ts",
+      "import": "./dist/indexeddb.js"
     }
   },
   "types": "./dist/index.d.ts",
@@ -56,6 +60,7 @@
     "@typescript-eslint/parser": "^8.63.0",
     "benny": "^3.7.1",
     "c8": "^7.12.0",
+    "fake-indexeddb": "^6.2.5",
     "msgpack": "link:@types/msgpack/msgpack",
     "readable-stream": "^4.3.0",
     "tap": "^18.6.1",

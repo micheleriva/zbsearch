@@ -1,0 +1,230 @@
+---
+title: Storage Adapters
+description: Persist a ZBSearch snapshot into IndexedDB, S3, or any custom storage backend, then restore it back into memory.
+---
+
+The `persist` / `restore` and `persistToFile` / `restoreFromFile` APIs serialize
+a database to a string, a buffer, or the local filesystem. **Storage adapters**
+add a third destination: a pluggable backend such as **IndexedDB** in the
+browser, **S3/R2** on the server, or any custom key/value store.
+
+```javascript copy
+import {
+  persistToStorage,
+  restoreFromStorage,
+} from "@zbsearch/plugin-data-persistence";
+import { IndexedDBStorage } from "@zbsearch/plugin-data-persistence/indexeddb";
+
+const storage = new IndexedDBStorage();
+
+// Save the whole index under a key
+await persistToStorage(db, storage, "my-index");
+
+// ...later, e.g. after a page reload
+const restored = await restoreFromStorage(storage, "my-index");
+```
+
+<Callout type="info">
+  This is **snapshot** persistence: the entire index is written as one compact
+  payload, and restoring it loads that payload back into memory. The database is
+  fully in-memory when you query it — searches do **not** run against the
+  storage backend. The goal is durability and portability, not out-of-core
+  search.
+</Callout>
+
+## How it works
+
+`persistToStorage` serializes the database with one of the supported formats and
+writes the resulting bytes to `storage.put(key, bytes)`. `restoreFromStorage`
+reads the bytes back with `storage.get(key)`, deserializes them, and loads them
+into a fresh in-memory instance. The original database is never mutated by
+`persistToStorage`, so you can keep using it while a snapshot is written.
+
+```javascript copy
+// The in-memory db keeps working after persisting
+await persistToStorage(db, storage, "my-index");
+const results = await search(db, { term: "brave" }); // still works
+```
+
+## API
+
+### `persistToStorage(db, storage, key, options?)`
+
+| Argument  | Type                  | Description                                        |
+| --------- | --------------------- | -------------------------------------------------- |
+| `db`      | `ZBSearch`            | The database to snapshot.                          |
+| `storage` | `PersistenceStorage`  | The backend to write to.                           |
+| `key`     | `string`              | The key the snapshot is stored under.              |
+| `options` | `PersistToStorageOptions?` | See below.                                    |
+
+```ts
+interface PersistToStorageOptions {
+  format?: "json" | "dpack" | "binary" | "seqproto"; // defaults to "binary"
+  contentType?: string; // passed through to storage.put (e.g. for S3/HTTP)
+}
+```
+
+### `restoreFromStorage(storage, key, options?)`
+
+Returns a new, fully queryable database. Throws if `key` does not exist in the
+backend.
+
+```ts
+interface RestoreFromStorageOptions {
+  format?: "json" | "dpack" | "binary" | "seqproto"; // defaults to "binary"
+}
+```
+
+<Callout type="warn">
+  The `format` passed to `restoreFromStorage` **must match** the one used to
+  persist. The default for both is `binary`.
+</Callout>
+
+## Choosing a format
+
+All four formats from [`persist`](/docs/zbsearch/plugins/plugin-data-persistence)
+are supported. Unlike `persist("binary")`, which returns a hex string (two
+characters per byte), storage adapters keep `binary` as **raw msgpack bytes**, so
+persisted payloads are roughly half the size.
+
+| Format     | Payload        | Notes                                             |
+| ---------- | -------------- | ------------------------------------------------- |
+| `binary`   | raw msgpack    | **Default.** Smallest, recommended for IndexedDB. |
+| `json`     | UTF-8 JSON     | Human-readable, portable, larger.                 |
+| `dpack`    | dpack bytes    | Node-oriented.                                     |
+| `seqproto` | seqproto bytes | Compact binary, Node-oriented.                    |
+
+For browsers and IndexedDB, prefer `binary` or `json`.
+
+## The `PersistenceStorage` contract
+
+Any object implementing this interface can be used as a backend:
+
+```ts
+interface PersistenceStorage {
+  get(
+    key: string,
+    opts?: { ifNoneMatch?: string }
+  ): Promise<{ body: Uint8Array } | null>;
+  put(
+    key: string,
+    body: Uint8Array,
+    opts?: { contentType?: string }
+  ): Promise<unknown>;
+}
+```
+
+It is intentionally **structurally compatible with `ObjectStorage` from
+`@zbsearch/edge-core`**, so any edge-core storage backend can be passed directly,
+with no adapter in between — see [S3, R2, and MinIO](#s3-cloudflare-r2-and-minio)
+below.
+
+## S3, Cloudflare R2, and MinIO
+
+`S3ObjectStorage` from `@zbsearch/storage-s3` already implements the
+`PersistenceStorage` contract, so it works with `persistToStorage` /
+`restoreFromStorage` **out of the box** — no wrapper needed. This is ideal for
+the "build once, restore on many stateless workers" pattern: persist a prebuilt
+index to S3/R2 and have serverless functions restore it on cold start instead of
+re-indexing.
+
+```javascript copy
+import { S3ObjectStorage } from "@zbsearch/storage-s3";
+import { persistToStorage, restoreFromStorage } from "@zbsearch/plugin-data-persistence";
+
+const s3 = new S3ObjectStorage({
+  bucket: "my-bucket",
+  accessKeyId: "...",
+  secretAccessKey: "...",
+  region: "us-east-1",
+});
+
+await persistToStorage(db, s3, "indexes/my-index.msp");
+const restored = await restoreFromStorage(s3, "indexes/my-index.msp");
+```
+
+For **Cloudflare R2** or **MinIO**, set a custom `endpoint` (path-style
+addressing is enabled automatically):
+
+```javascript copy
+const r2 = new S3ObjectStorage({
+  bucket: "my-bucket",
+  accessKeyId: "...",
+  secretAccessKey: "...",
+  endpoint: "https://<account>.r2.cloudflarestorage.com",
+});
+```
+
+You can also build the storage from environment variables with
+`createS3StorageFromEnv()`, which reads `R2_*` / `S3_*` (and `AWS_REGION`) vars:
+
+```javascript copy
+import { createS3StorageFromEnv } from "@zbsearch/storage-s3";
+
+const storage = createS3StorageFromEnv(); // reads process.env
+await persistToStorage(db, storage, "indexes/my-index.msp");
+```
+
+## IndexedDB adapter
+
+`IndexedDBStorage` gives you durable, in-browser persistence: an index survives
+page reloads without being rebuilt from source documents.
+
+```javascript copy
+import { IndexedDBStorage } from "@zbsearch/plugin-data-persistence/indexeddb";
+
+const storage = new IndexedDBStorage({
+  databaseName: "zbsearch", // default: "zbsearch"
+  storeName: "indexes", // default: "indexes"
+});
+
+await persistToStorage(db, storage, "products");
+const restored = await restoreFromStorage(storage, "products");
+
+await storage.delete("products"); // remove a single snapshot
+await storage.clear(); // remove every snapshot in the store
+await storage.close(); // close the underlying connection
+```
+
+### Injecting a custom factory
+
+The constructor accepts an `indexedDB` factory, which is useful for tests or
+server-side rendering where a global `indexedDB` is not available. Any polyfill
+exposing an `IDBFactory` works (for example
+[`fake-indexeddb`](https://www.npmjs.com/package/fake-indexeddb)):
+
+```javascript copy
+import { IDBFactory } from "fake-indexeddb";
+import { IndexedDBStorage } from "@zbsearch/plugin-data-persistence/indexeddb";
+
+const storage = new IndexedDBStorage({ indexedDB: new IDBFactory() });
+```
+
+<Callout type="warn">
+  When no factory is provided and no global `indexedDB` exists, the constructor
+  throws. Pass a polyfill factory to use it outside the browser.
+</Callout>
+
+## Writing your own adapter
+
+Implementing the two-method contract is enough to target any store — Redis, a
+SQLite blob column, `localStorage`, or a remote HTTP API:
+
+```javascript copy
+class LocalStorageStorage {
+  async get(key) {
+    const value = localStorage.getItem(key);
+    if (value === null) return null;
+    return { body: Uint8Array.from(atob(value), (c) => c.charCodeAt(0)) };
+  }
+
+  async put(key, body) {
+    let binary = "";
+    for (const byte of body) binary += String.fromCharCode(byte);
+    localStorage.setItem(key, btoa(binary));
+    return { etag: "" };
+  }
+}
+
+await persistToStorage(db, new LocalStorageStorage(), "my-index");
+```

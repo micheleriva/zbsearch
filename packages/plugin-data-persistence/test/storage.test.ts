@@ -122,6 +122,38 @@ t.test('IndexedDBStorage', async (t) => {
     return
   }
 
+  t.test('recovers after an open failure instead of bricking', async (t) => {
+    t.plan(2)
+
+    // A factory whose first open() fails, then delegates to the real one.
+    let failedOnce = false
+    const flakyFactory = {
+      open(name: string, version?: number) {
+        if (!failedOnce) {
+          failedOnce = true
+          const request: any = { onerror: null, onsuccess: null, onupgradeneeded: null, error: new Error('boom') }
+          Promise.resolve().then(() => request.onerror && request.onerror())
+          return request
+        }
+        return (fakeFactory as IDBFactory).open(name, version)
+      }
+    } as unknown as IDBFactory
+
+    const storage = new IndexedDBStorage({ indexedDB: flakyFactory })
+
+    // First operation fails because the initial open() errors...
+    await t.rejects(storage.get('anything'), 'first open rejects')
+
+    // ...but the instance must not be permanently bricked: a retry re-opens.
+    const db = await generateTestDBInstance()
+    await persistToStorage(db, storage, 'after-recovery')
+    const restored = await restoreFromStorage(storage, 'after-recovery')
+    const results = await search(restored, { mode: 'fulltext', term: 'yourself' })
+    t.equal(results.count, 1, 'instance recovered and round-trips after the failure')
+
+    await storage.close()
+  })
+
   t.test('round-trips a database through IndexedDB', async (t) => {
     t.plan(3)
     const db = await generateTestDBInstance()

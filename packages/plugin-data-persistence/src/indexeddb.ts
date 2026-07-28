@@ -41,38 +41,52 @@ export class IndexedDBStorage implements PersistenceStorage {
 
   private openDatabase(): Promise<IDBDatabase> {
     if (!this.dbPromise) {
-      this.dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
-        const request = this.factory.open(this.databaseName)
-
-        request.onupgradeneeded = () => {
-          const database = request.result
-          if (!database.objectStoreNames.contains(this.storeName)) {
-            database.createObjectStore(this.storeName)
-          }
+      const pending = this.connect()
+      this.dbPromise = pending
+      // Never keep a rejected connection cached — otherwise a single open
+      // failure would permanently brick the instance. Clear it so a later call
+      // can retry. The original (rejecting) promise is still returned to the
+      // current caller.
+      pending.catch(() => {
+        if (this.dbPromise === pending) {
+          this.dbPromise = undefined
         }
-
-        request.onsuccess = () => {
-          const database = request.result
-          // A store name unseen at open time means the existing database was
-          // created without it. Bump the version to trigger onupgradeneeded.
-          if (!database.objectStoreNames.contains(this.storeName)) {
-            const nextVersion = database.version + 1
-            database.close()
-            const upgrade = this.factory.open(this.databaseName, nextVersion)
-            upgrade.onupgradeneeded = () => {
-              upgrade.result.createObjectStore(this.storeName)
-            }
-            upgrade.onsuccess = () => resolve(upgrade.result)
-            upgrade.onerror = () => reject(upgrade.error)
-            return
-          }
-          resolve(database)
-        }
-
-        request.onerror = () => reject(request.error)
       })
     }
     return this.dbPromise
+  }
+
+  private connect(): Promise<IDBDatabase> {
+    return new Promise<IDBDatabase>((resolve, reject) => {
+      const request = this.factory.open(this.databaseName)
+
+      request.onupgradeneeded = () => {
+        const database = request.result
+        if (!database.objectStoreNames.contains(this.storeName)) {
+          database.createObjectStore(this.storeName)
+        }
+      }
+
+      request.onsuccess = () => {
+        const database = request.result
+        // A store name unseen at open time means the existing database was
+        // created without it. Bump the version to trigger onupgradeneeded.
+        if (!database.objectStoreNames.contains(this.storeName)) {
+          const nextVersion = database.version + 1
+          database.close()
+          const upgrade = this.factory.open(this.databaseName, nextVersion)
+          upgrade.onupgradeneeded = () => {
+            upgrade.result.createObjectStore(this.storeName)
+          }
+          upgrade.onsuccess = () => resolve(upgrade.result)
+          upgrade.onerror = () => reject(upgrade.error)
+          return
+        }
+        resolve(database)
+      }
+
+      request.onerror = () => reject(request.error)
+    })
   }
 
   private async run<R>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest<R>): Promise<R> {
@@ -111,10 +125,15 @@ export class IndexedDBStorage implements PersistenceStorage {
   }
 
   async close(): Promise<void> {
-    if (this.dbPromise) {
-      const database = await this.dbPromise
-      database.close()
-      this.dbPromise = undefined
+    const pending = this.dbPromise
+    this.dbPromise = undefined
+    if (pending) {
+      try {
+        const database = await pending
+        database.close()
+      } catch {
+        // The connection never opened; there is nothing to close.
+      }
     }
   }
 }

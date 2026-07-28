@@ -130,6 +130,28 @@ ZBSearch currently supports 10 different data types:
 | `enum[]`         | An array of enums.                                                          | `['comedy', 'action', 'romance']`                                           |
 | `vector[<size>]` | A vector of numbers to perform vector search on.                            | `[0.403, 0.192, 0.830]`                                                     |
 
+## Schema inference (optional schema)
+
+The schema is optional. If you omit it, ZBSearch infers the type of every document property on first sight and indexes it on the fly:
+
+```js
+const db = create()
+
+insert(db, { name: 'Noise cancelling headphones', price: 99.99, meta: { rating: 4.5 } })
+// db.schema is now: { name: 'string', price: 'number', meta: { rating: 'number' } }
+```
+
+Types lock on first sight (a later conflicting value is rejected with `SCHEMA_VALIDATION_FAILURE`), and objects shaped like `{ lat, lon }` are inferred as `geopoint`. Vectors are the only types that are never inferred - a `number[]` is indistinguishable from an embedding — so embedding properties must still be declared, and they can be the only thing you declare:
+
+```js
+const db = create({
+  schema: { embedding: 'vector[1536]' },
+  inferSchema: true, // a provided schema is strict by default; this opts undeclared fields into inference
+})
+```
+
+Passing a schema keeps the classic strict behavior (undeclared fields are stored but not indexed). See the [official docs](https://zbsearch.dev) for the full inference rules.
+
 # Vector and Hybrid Search Support
 
 ZBSearch supports both vector and hybrid search by just setting `mode: 'vector'` when performing search.

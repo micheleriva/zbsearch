@@ -1,16 +1,15 @@
-import type { InsertOptions } from './methods/insert.js'
-import { MODE_FULLTEXT_SEARCH, MODE_HYBRID_SEARCH, MODE_VECTOR_SEARCH, RESERVED_VECTOR_INDEX_KEY } from './constants.js'
 import { DocumentsStore } from './components/documents-store.js'
 import { Index, TTree } from './components/index.js'
 import { DocumentID, InternalDocumentID, InternalDocumentIDStore } from './components/internal-document-id-store.js'
 import { Sorter } from './components/sorter.js'
 import { Language } from './components/tokenizer/languages.js'
+import { MODE_FULLTEXT_SEARCH, MODE_HYBRID_SEARCH, MODE_VECTOR_SEARCH, RESERVED_VECTOR_INDEX_KEY } from './constants.js'
+import type { InsertOptions } from './methods/insert.js'
 import { Point } from './trees/bkd.js'
 import { VectorIndex, VectorType, VectorTypeLike } from './trees/vector.js'
 
-export { MODE_FULLTEXT_SEARCH, MODE_HYBRID_SEARCH, MODE_VECTOR_SEARCH, RESERVED_VECTOR_INDEX_KEY } from './constants.js'
-
 export type { DefaultTokenizer } from './components/tokenizer/index.js'
+export { MODE_FULLTEXT_SEARCH, MODE_HYBRID_SEARCH, MODE_VECTOR_SEARCH, RESERVED_VECTOR_INDEX_KEY } from './constants.js'
 
 export type Nullable<T> = T | null
 
@@ -1335,6 +1334,7 @@ type Internals<
   }
   internalDocumentIDStore: InternalDocumentIDStore
   caches: Record<string, unknown>
+  inferSchema: boolean
   [kInsertions]: number | undefined
   [kRemovals]: number | undefined
 }

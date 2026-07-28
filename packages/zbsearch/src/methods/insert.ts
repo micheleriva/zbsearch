@@ -1,10 +1,19 @@
-import type { AnyZBSearch, PartialSchemaDeep, SearchableType, SortType, SortValue, TypedDocument } from '../types.js'
-import { isArrayType, isGeoPointType, isVectorType } from '../components.js'
-import { isAsyncFunction, sleep } from '../utils.js'
 import { runMultipleHook, runSingleHook } from '../components/hooks.js'
+import { inferSchemaFromDocument } from '../components/inference.js'
+import { getInternalDocumentId } from '../components/internal-document-id-store.js'
+import { isArrayType, isGeoPointType, isVectorType } from '../components.js'
 import { createError } from '../errors.js'
 import { Point } from '../trees/bkd.js'
-import { getInternalDocumentId } from '../components/internal-document-id-store.js'
+import type {
+  AnyDocument,
+  AnyZBSearch,
+  PartialSchemaDeep,
+  SearchableType,
+  SortType,
+  SortValue,
+  TypedDocument
+} from '../types.js'
+import { isAsyncFunction, sleep } from '../utils.js'
 
 export type InsertOptions = {
   avlRebalanceThreshold?: number
@@ -17,6 +26,8 @@ export function insert<T extends AnyZBSearch>(
   skipHooks?: boolean,
   options?: InsertOptions
 ): string | Promise<string> {
+  inferSchemaFromDocument(zbsearch, doc as AnyDocument)
+
   const errorProperty = zbsearch.validateSchema(doc, zbsearch.schema)
   if (errorProperty) {
     throw createError('SCHEMA_VALIDATION_FAILURE', errorProperty)
@@ -143,12 +154,8 @@ function innerInsertSync<T extends AnyZBSearch>(
 
   const docsCount = zbsearch.documentsStore.count(docs)
 
-  const {
-    indexableProperties,
-    indexablePropertiesWithTypes,
-    sortableProperties,
-    sortablePropertiesWithTypes
-  } = getInsertMetadata(zbsearch)
+  const { indexableProperties, indexablePropertiesWithTypes, sortableProperties, sortablePropertiesWithTypes } =
+    getInsertMetadata(zbsearch)
   const indexableValues = zbsearch.getDocumentProperties(doc, indexableProperties)
 
   for (const [key, value] of Object.entries(indexableValues)) {
@@ -278,8 +285,7 @@ function indexAndSortDocumentSync<T extends AnyZBSearch>(
   cachedSortableProperties?: string[],
   cachedSortableTypes?: Record<string, SortType>
 ) {
-  const indexTypes =
-    cachedIndexTypes ?? zbsearch.index.getSearchablePropertiesWithTypes(zbsearch.data.index)
+  const indexTypes = cachedIndexTypes ?? zbsearch.index.getSearchablePropertiesWithTypes(zbsearch.data.index)
   const internalDocumentId = getInternalDocumentId(zbsearch.internalDocumentIDStore, id)
 
   for (const prop of indexableProperties) {
@@ -323,10 +329,8 @@ function indexAndSortDocumentSync<T extends AnyZBSearch>(
     )
   }
 
-  const sortableProperties =
-    cachedSortableProperties ?? zbsearch.sorter.getSortableProperties(zbsearch.data.sorting)
-  const sortableTypes =
-    cachedSortableTypes ?? zbsearch.sorter.getSortablePropertiesWithTypes(zbsearch.data.sorting)
+  const sortableProperties = cachedSortableProperties ?? zbsearch.sorter.getSortableProperties(zbsearch.data.sorting)
+  const sortableTypes = cachedSortableTypes ?? zbsearch.sorter.getSortablePropertiesWithTypes(zbsearch.data.sorting)
   const sortableValues = zbsearch.getDocumentProperties(doc, sortableProperties)
 
   for (const prop of sortableProperties) {
@@ -425,16 +429,18 @@ function innerInsertMultipleSync<T extends AnyZBSearch>(
     const batch = docs.slice(i * batchSize, (i + 1) * batchSize)
     if (batch.length === 0) return false
 
-    const {
-      indexableProperties,
-      indexablePropertiesWithTypes,
-      sortableProperties,
-      sortablePropertiesWithTypes
-    } = getInsertMetadata(zbsearch)
+    let { indexableProperties, indexablePropertiesWithTypes, sortableProperties, sortablePropertiesWithTypes } =
+      getInsertMetadata(zbsearch)
     const batchOptions = { avlRebalanceThreshold: batch.length }
     const { docs: docsStore } = zbsearch.data
 
     for (const doc of batch) {
+      if (inferSchemaFromDocument(zbsearch, doc as AnyDocument)) {
+        // New properties were registered: refresh the memoized metadata.
+        ;({ indexableProperties, indexablePropertiesWithTypes, sortableProperties, sortablePropertiesWithTypes } =
+          getInsertMetadata(zbsearch))
+      }
+
       const errorProperty = zbsearch.validateSchema(doc, zbsearch.schema)
       if (errorProperty) {
         throw createError('SCHEMA_VALIDATION_FAILURE', errorProperty)

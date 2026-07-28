@@ -9,12 +9,13 @@ export interface IndexSettings {
   rebuildIntervalSec?: number
   rebuildThresholdOps?: number
   mode?: IndexMode
+  inferSchema?: boolean
 }
 
 export interface IndexMeta {
   id: string
   name: string
-  schema: AnySchema
+  schema?: AnySchema
   settings: IndexSettings
   shards?: { count: number }
   liveVersion: string | null

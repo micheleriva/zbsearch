@@ -1,3 +1,13 @@
+import { createError } from '../errors.js'
+import type { InsertOptions } from '../methods/insert.js'
+import { AVLTree } from '../trees/avl.js'
+import type { Point as BKDGeoPoint, Point } from '../trees/bkd.js'
+import { BKDTree } from '../trees/bkd.js'
+import { BoolNode } from '../trees/bool.js'
+import { FlatTree } from '../trees/flat.js'
+import { FindResult, RadixNodeJSON, RadixTree } from '../trees/radix.js'
+import { VectorType } from '../trees/vector.js'
+import { deserializeVectorIndex, resolveVectorIndexFactory } from '../trees/vector-index.js'
 import type {
   AnyIndexStore,
   AnyZBSearch,
@@ -17,17 +27,7 @@ import type {
   TokenScore,
   WhereCondition
 } from '../types.js'
-import type { InsertOptions } from '../methods/insert.js'
-import type { Point as BKDGeoPoint } from '../trees/bkd.js'
-import type { Point } from '../trees/bkd.js'
-import { FindResult, RadixNodeJSON, RadixTree } from '../trees/radix.js'
-import { createError } from '../errors.js'
-import { AVLTree } from '../trees/avl.js'
-import { FlatTree } from '../trees/flat.js'
-import { BKDTree } from '../trees/bkd.js'
-import { BoolNode } from '../trees/bool.js'
-
-import { convertDistanceToMeters, setIntersection, setUnion, setDifference } from '../utils.js'
+import { convertDistanceToMeters, setDifference, setIntersection, setUnion } from '../utils.js'
 import { BM25 } from './algorithms.js'
 import { getInnerType, getVectorSize, isArrayType, isVectorType } from './defaults.js'
 import {
@@ -36,8 +36,6 @@ import {
   InternalDocumentID,
   InternalDocumentIDStore
 } from './internal-document-id-store.js'
-import { VectorType } from '../trees/vector.js'
-import { deserializeVectorIndex, resolveVectorIndexFactory } from '../trees/vector-index.js'
 
 export type FrequencyMap = {
   [property: string]: {
@@ -86,8 +84,7 @@ export function insertDocumentScoreParameters(
 ): InternalDocumentID {
   const resolvedInternalId = internalId ?? getInternalDocumentId(index.sharedInternalDocumentStore, id)
 
-  index.avgFieldLength[prop] =
-    ((index.avgFieldLength[prop] ?? 0) * (docsCount - 1) + tokens.length) / docsCount
+  index.avgFieldLength[prop] = ((index.avgFieldLength[prop] ?? 0) * (docsCount - 1) + tokens.length) / docsCount
   index.fieldLengths[prop][resolvedInternalId] = tokens.length
   index.frequencies[prop][resolvedInternalId] = {}
 
@@ -189,51 +186,61 @@ export function create<T extends AnyZBSearch, TSchema extends T['schema']>(
       continue
     }
 
-    if (isVectorType(type)) {
-      const factory = resolveVectorIndexFactory(path, zbsearch.indexes)
-      index.searchableProperties.push(path)
-      index.searchablePropertiesWithTypes[path] = type
-      index.vectorIndexes[path] = {
-        type: 'Vector',
-        node: factory({ dim: getVectorSize(type), property: path }),
-        isArray: false
-      }
-    } else {
-      const isArray = /\[/.test(type as string)
-      switch (type) {
-        case 'boolean':
-        case 'boolean[]':
-          index.indexes[path] = { type: 'Bool', node: new BoolNode(), isArray }
-          break
-        case 'number':
-        case 'number[]':
-          index.indexes[path] = { type: 'AVL', node: new AVLTree<number, InternalDocumentID>(0, []), isArray }
-          break
-        case 'string':
-        case 'string[]':
-          index.indexes[path] = { type: 'Radix', node: new RadixTree(), isArray }
-          index.avgFieldLength[path] = 0
-          index.frequencies[path] = {}
-          index.tokenOccurrences[path] = {}
-          index.fieldLengths[path] = {}
-          break
-        case 'enum':
-        case 'enum[]':
-          index.indexes[path] = { type: 'Flat', node: new FlatTree(), isArray }
-          break
-        case 'geopoint':
-          index.indexes[path] = { type: 'BKD', node: new BKDTree(), isArray }
-          break
-        default:
-          throw createError('INVALID_SCHEMA_TYPE', Array.isArray(type) ? 'array' : type, path)
-      }
-
-      index.searchableProperties.push(path)
-      index.searchablePropertiesWithTypes[path] = type
-    }
+    addSearchablePropertyToIndex(zbsearch, index, path, type)
   }
 
   return index
+}
+
+export function addSearchablePropertyToIndex<T extends AnyZBSearch>(
+  zbsearch: T,
+  index: Index,
+  path: string,
+  type: SearchableType
+): void {
+  if (isVectorType(type)) {
+    const factory = resolveVectorIndexFactory(path, zbsearch.indexes)
+    index.searchableProperties.push(path)
+    index.searchablePropertiesWithTypes[path] = type
+    index.vectorIndexes[path] = {
+      type: 'Vector',
+      node: factory({ dim: getVectorSize(type), property: path }),
+      isArray: false
+    }
+    return
+  }
+
+  const isArray = /\[/.test(type as string)
+  switch (type) {
+    case 'boolean':
+    case 'boolean[]':
+      index.indexes[path] = { type: 'Bool', node: new BoolNode(), isArray }
+      break
+    case 'number':
+    case 'number[]':
+      index.indexes[path] = { type: 'AVL', node: new AVLTree<number, InternalDocumentID>(0, []), isArray }
+      break
+    case 'string':
+    case 'string[]':
+      index.indexes[path] = { type: 'Radix', node: new RadixTree(), isArray }
+      index.avgFieldLength[path] = 0
+      index.frequencies[path] = {}
+      index.tokenOccurrences[path] = {}
+      index.fieldLengths[path] = {}
+      break
+    case 'enum':
+    case 'enum[]':
+      index.indexes[path] = { type: 'Flat', node: new FlatTree(), isArray }
+      break
+    case 'geopoint':
+      index.indexes[path] = { type: 'BKD', node: new BKDTree(), isArray }
+      break
+    default:
+      throw createError('INVALID_SCHEMA_TYPE', Array.isArray(type) ? 'array' : type, path)
+  }
+
+  index.searchableProperties.push(path)
+  index.searchablePropertiesWithTypes[path] = type
 }
 
 function insertScalarValue(
@@ -493,10 +500,7 @@ function collectFindResultIds(searchResult: FindResult): Set<InternalDocumentID>
   return ids
 }
 
-function filterIdsToCandidates(
-  ids: InternalDocumentID[],
-  candidates: Set<InternalDocumentID>
-): InternalDocumentID[] {
+function filterIdsToCandidates(ids: InternalDocumentID[], candidates: Set<InternalDocumentID>): InternalDocumentID[] {
   const filtered: InternalDocumentID[] = []
 
   for (let i = 0; i < ids.length; i++) {

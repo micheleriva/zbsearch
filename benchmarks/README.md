@@ -126,7 +126,7 @@ Prints a Markdown table (P@10 / R@10 / MRR per language and config, plus a macro
 
 How to read it:
 
-- Queries run with stock `search(db, { term, limit: 10 })` defaults (exact token matching; prefix expansion is available as opt-in via `prefix: true` but is not used here). The morphology gap between configs comes from stem-level changes (umlauts, verb endings, articles) that plain tokenization cannot recover.
+- Queries run with stock `search(db, { term, limit: 10 })` defaults: **prefix matching is on** (search-as-you-type), with full-token matches scoring above prefix expansions. A query like `gato` still finds `gatos` in every config. The remaining morphology gap between configs comes from stem-level changes (umlauts, verb endings, articles) that prefix matching cannot recover.
 - **multilingual ≈ per-language** on exact-form queries, diacritic-dropped queries, and non-Latin scripts: Unicode-aware tokenization plus diacritic folding covers those cases without any configuration.
 - **multilingual < per-language** on inflection/morphology queries: the tuned configs stem (e.g. `running` -> `run`, `Häuser` -> `haus`) and drop stopwords, the zero-config mode does not.
 - **multilingual ≫ english-default** on Russian and Arabic: the default English splitter discards non-Latin characters entirely, so recall collapses there. The runner prints a loud warning if multilingual ever scores *below* english-default on those two languages, which would indicate a tokenizer bug rather than a trade-off.

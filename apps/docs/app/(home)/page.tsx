@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ServerCodeBlock } from 'fumadocs-ui/components/codeblock.rsc';
-import { BenchmarkCharts } from '@/components/benchmarks/benchmark-charts';
+import { QualitySpeedChart } from '@/components/benchmarks/quality-speed-chart';
 import { CloudflareIcon } from '@/components/icons/cloudflare';
 import {
   ArrowRight,
@@ -128,15 +128,15 @@ export default async function HomePage() {
 
       <section className="mx-auto flex w-full max-w-6xl flex-col items-center px-6 pt-16 pb-10 text-center">
         <h1 className="max-w-4xl text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
-          Search without
+          Come for the speed,
           <span className="block bg-gradient-to-r from-fd-foreground via-fd-foreground to-fd-muted-foreground bg-clip-text text-transparent">
-            the bullshit.
+            stay for the quality.
           </span>
         </h1>
 
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-fd-muted-foreground sm:text-xl">
-          A zero-bs fork of Orama maintained by the original team. Full-text, vector, and hybrid
-          search in your browser, server, or edge - in less than 2kb.
+          A zero-bs fork of Orama maintained by the original team. <br />
+          Full-text, vector, and hybrid search in your browser, server, or edge - in less than 2kb.
         </p>
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
@@ -157,7 +157,9 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <BenchmarkCharts />
+      <div className="mx-auto w-full max-w-6xl px-6 pb-14">
+        <QualitySpeedChart />
+      </div>
 
       <section className="mx-auto w-full max-w-6xl px-6 pb-20">
         <div className="mb-8 text-center">

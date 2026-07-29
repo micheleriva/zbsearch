@@ -1,45 +1,63 @@
 {
   "name": "search with filters",
-  "date": "2026-07-15T18:54:27.260Z",
+  "date": "2026-07-29T16:59:59.924Z",
   "version": "1.0.0",
   "results": [
     {
       "name": "search with filters in Orama 3.1.18",
-      "ops": 24952,
-      "margin": 0.31,
-      "percentSlower": 13.08
+      "ops": 20439,
+      "margin": 0.72,
+      "percentSlower": 91.21
     },
     {
-      "name": "search with filters in ZBSearch 3.3.1",
-      "ops": 28707,
-      "margin": 0.24,
+      "name": "search with filters in ZBSearch (BM25) 3.3.4",
+      "ops": 25170,
+      "margin": 0.72,
+      "percentSlower": 89.18
+    },
+    {
+      "name": "search with filters in ZBSearch (QPS) 3.3.4",
+      "ops": 29591,
+      "margin": 0.44,
+      "percentSlower": 87.28
+    },
+    {
+      "name": "search with filters in ZBSearch (PT15) 3.3.4",
+      "ops": 38926,
+      "margin": 0.4,
+      "percentSlower": 83.27
+    },
+    {
+      "name": "search with filters in FlexSearch 0.8.212",
+      "ops": 232629,
+      "margin": 0.4,
       "percentSlower": 0
     },
     {
       "name": "search with filters in Fuse.js 7.5.0",
-      "ops": 54,
-      "margin": 0.26,
-      "percentSlower": 99.81
+      "ops": 46,
+      "margin": 7.66,
+      "percentSlower": 99.98
     },
     {
       "name": "search with filters in Lunr 2.3.9",
-      "ops": 8128,
-      "margin": 2.31,
-      "percentSlower": 71.69
+      "ops": 7564,
+      "margin": 0.38,
+      "percentSlower": 96.75
     },
     {
       "name": "search with filters in MiniSearch 7.2.0",
-      "ops": 17796,
-      "margin": 0.55,
-      "percentSlower": 38.01
+      "ops": 16230,
+      "margin": 1.37,
+      "percentSlower": 93.02
     }
   ],
   "fastest": {
-    "name": "search with filters in ZBSearch 3.3.1",
-    "index": 1
+    "name": "search with filters in FlexSearch 0.8.212",
+    "index": 4
   },
   "slowest": {
     "name": "search with filters in Fuse.js 7.5.0",
-    "index": 2
+    "index": 5
   }
 }

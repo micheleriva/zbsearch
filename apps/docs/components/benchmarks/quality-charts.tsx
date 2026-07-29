@@ -22,6 +22,7 @@ import {
   type QualityMetricKey,
 } from '@/lib/benchmarks/quality-data';
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 
 type DatasetTab = 'macro' | string;
 
@@ -63,11 +64,13 @@ function SearchQualitySection() {
       : (searchQualityDatasets.find((entry) => entry.id === dataset)?.referenceBm25Ndcg10 ??
         null);
 
-  const rows = qualityEngineOrder.map((key) => ({
-    key,
-    ...engines[key],
-    value: engines[key][metric],
-  }));
+  const rows = qualityEngineOrder
+    .map((key) => ({
+      key,
+      ...engines[key],
+      value: engines[key][metric],
+    }))
+    .sort((a, b) => b.value - a.value);
 
   const maxValue = Math.max(
     ...rows.map((row) => row.value),
@@ -85,22 +88,30 @@ function SearchQualitySection() {
 
   return (
     <section className="rounded-2xl border border-fd-border bg-fd-card/80 p-4 sm:p-6">
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
+      <div className="mb-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <h2 className="text-xl font-semibold tracking-tight text-fd-foreground">
-            Search quality (BEIR)
+            <a href="#search-quality" className="group">
+              Search quality (BEIR)
+              <span
+                aria-hidden
+                className="ml-2 text-fd-primary opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+              >
+                #
+              </span>
+            </a>
           </h2>
-          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-fd-foreground/65">
-            Ranking quality on official BEIR collections with trec_eval-compatible metrics. Higher
-            is better. Primary metric is nDCG@10.
-          </p>
+          {datasetMeta && (
+            <p className="shrink-0 text-xs tabular-nums text-fd-foreground/55">
+              {datasetMeta.documents.toLocaleString('en-US')} docs ·{' '}
+              {datasetMeta.queries.toLocaleString('en-US')} queries
+            </p>
+          )}
         </div>
-        {datasetMeta && (
-          <p className="shrink-0 text-xs tabular-nums text-fd-foreground/55">
-            {datasetMeta.documents.toLocaleString()} docs · {datasetMeta.queries.toLocaleString()}{' '}
-            queries
-          </p>
-        )}
+        <p className="mt-1 text-sm leading-relaxed text-fd-foreground/65">
+          Ranking quality on official BEIR collections with trec_eval-compatible metrics. Higher is
+          better. Primary metric is nDCG@10.
+        </p>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
@@ -222,33 +233,63 @@ function SearchQualitySection() {
 
 function MultilingualSection() {
   const [metric, setMetric] = useState<MultilingualMetricKey>('recall');
+  const [view, setView] = useState<'macro' | 'mixed' | string>('macro');
   const [activeConfig, setActiveConfig] = useState<MultilingualConfigKey | null>(null);
 
-  const width = 640;
-  const height = 260;
-  const padding = { top: 16, right: 16, bottom: 36, left: 36 };
-  const chartWidth = width - padding.left - padding.right;
-  const chartHeight = height - padding.top - padding.bottom;
-  const groupWidth = chartWidth / multilingualLanguages.length;
-  const barWidth = groupWidth / (multilingualConfigs.length + 1);
+  const scores =
+    view === 'macro'
+      ? multilingualMacro
+      : view === 'mixed'
+        ? multilingualMixed
+        : multilingualPerLanguage[view];
+  const rows = multilingualConfigs
+    .filter((config) => config in scores)
+    .map((config) => ({ config, value: scores[config as keyof typeof scores][metric] }))
+    .sort((a, b) => b.value - a.value);
+  const maxValue = rows[0]?.value ?? 1;
 
-  const maxValue = Math.max(
-    ...multilingualLanguages.flatMap((language) =>
-      multilingualConfigs.map((config) => multilingualPerLanguage[language][config][metric]),
-    ),
-    0.01,
-  );
+  const viewLabel = (id: string) => {
+    if (id === 'macro') return 'Macro average';
+    if (id === 'mixed') return 'Mixed index';
+    return id[0].toUpperCase() + id.slice(1);
+  };
 
   return (
     <section className="rounded-2xl border border-fd-border bg-fd-card/80 p-4 sm:p-6">
       <div className="mb-5">
         <h2 className="text-xl font-semibold tracking-tight text-fd-foreground">
-          Multilingual quality
+          <a href="#multilingual" className="group">
+            Multilingual quality
+            <span
+              aria-hidden
+              className="ml-2 text-fd-primary opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+            >
+              #
+            </span>
+          </a>
         </h2>
-        <p className="mt-1 max-w-2xl text-sm leading-relaxed text-fd-foreground/65">
+        <p className="mt-1 text-sm leading-relaxed text-fd-foreground/65">
           Zero-config <code className="text-xs">language: &apos;multilingual&apos;</code> vs
           per-language stemmers/stopwords vs the English default tokenizer.
         </p>
+      </div>
+
+      <div className="mb-4 flex flex-wrap gap-2">
+        {(['macro', ...multilingualLanguages, 'mixed'] as string[]).map((id) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setView(id)}
+            className={cn(
+              'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+              view === id
+                ? 'border-fd-primary/40 bg-fd-primary/10 text-fd-foreground'
+                : 'border-fd-border bg-fd-background text-fd-foreground/65 hover:text-fd-foreground',
+            )}
+          >
+            {viewLabel(id)}
+          </button>
+        ))}
       </div>
 
       <div className="mb-5 flex flex-wrap gap-2">
@@ -269,150 +310,80 @@ function MultilingualSection() {
         ))}
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-3">
-        {multilingualConfigs.map((config) => (
-          <button
-            key={config}
-            type="button"
-            onMouseEnter={() => setActiveConfig(config)}
-            onMouseLeave={() => setActiveConfig(null)}
-            onFocus={() => setActiveConfig(config)}
-            onBlur={() => setActiveConfig(null)}
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-full border border-fd-border bg-fd-background px-2.5 py-1 text-xs transition-opacity',
-              activeConfig !== null && activeConfig !== config && 'opacity-40',
-            )}
-          >
-            <span
-              className="size-2 rounded-full"
-              style={{ backgroundColor: multilingualConfigColors[config] }}
-            />
-            {multilingualConfigLabels[config]}
-            <span className="ml-1 tabular-nums text-fd-foreground/55">
-              {formatScore(multilingualMacro[config][metric])}
-            </span>
-          </button>
-        ))}
+      <div className="space-y-2.5">
+        {rows.map(({ config, value }) => {
+          const dimmed = activeConfig !== null && activeConfig !== config;
+          const highlighted = activeConfig === config;
+          const relative = value / maxValue;
+
+          return (
+            <button
+              key={config}
+              type="button"
+              onMouseEnter={() => setActiveConfig(config)}
+              onMouseLeave={() => setActiveConfig(null)}
+              onFocus={() => setActiveConfig(config)}
+              onBlur={() => setActiveConfig(null)}
+              className={cn(
+                'grid w-full grid-cols-[minmax(8.5rem,10.5rem)_1fr_auto] items-center gap-3 rounded-xl border border-fd-border bg-fd-background px-3 py-2.5 text-left transition-all',
+                config === 'multilingual' && 'border-fd-primary/25 bg-fd-primary/5',
+                dimmed && 'opacity-35',
+                highlighted && 'ring-1 ring-fd-primary/20',
+              )}
+            >
+              <span className="inline-flex items-center gap-2 text-xs font-medium text-fd-foreground">
+                <span
+                  className="size-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: multilingualConfigColors[config] }}
+                />
+                {multilingualConfigLabels[config]}
+              </span>
+
+              <div className="h-2.5 overflow-hidden rounded-full bg-fd-muted">
+                <div
+                  className="h-full rounded-full transition-[width]"
+                  style={{
+                    width: `${relative * 100}%`,
+                    backgroundColor: multilingualConfigColors[config],
+                  }}
+                />
+              </div>
+
+              <div className="min-w-[5.5rem] text-right">
+                <p className="text-sm font-semibold tabular-nums text-fd-foreground">
+                  {formatScore(value)}
+                </p>
+                <p className="text-[10px] tabular-nums text-fd-foreground/55">
+                  {relative === 1 ? 'Best' : `${Math.round(relative * 100)}% of best`}
+                </p>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="w-full text-fd-foreground"
-        role="img"
-        aria-label={`Multilingual ${multilingualMetricLabels[metric]} by language`}
-      >
-        {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
-          const y = padding.top + chartHeight - tick * chartHeight;
-          return (
-            <g key={tick}>
-              <line
-                x1={padding.left}
-                x2={width - padding.right}
-                y1={y}
-                y2={y}
-                className="stroke-fd-border"
-                strokeDasharray={tick === 0 || tick === 1 ? '0' : '3 4'}
-                strokeWidth={1}
-              />
-              <text
-                x={padding.left - 8}
-                y={y + 3}
-                textAnchor="end"
-                className="fill-fd-foreground/70 text-[10px]"
-              >
-                {tick.toFixed(2)}
-              </text>
-            </g>
-          );
-        })}
-
-        {multilingualLanguages.map((language, languageIndex) => {
-          const groupX = padding.left + languageIndex * groupWidth;
-          return (
-            <g key={language}>
-              <text
-                x={groupX + groupWidth / 2}
-                y={height - 10}
-                textAnchor="middle"
-                className="fill-fd-foreground/75 text-[10px]"
-              >
-                {
-                  (
-                    {
-                      english: 'en',
-                      italian: 'it',
-                      spanish: 'es',
-                      german: 'de',
-                      french: 'fr',
-                      portuguese: 'pt',
-                      russian: 'ru',
-                      arabic: 'ar',
-                    } as Record<string, string>
-                  )[language] ?? language
-                }
-              </text>
-              {multilingualConfigs.map((config, configIndex) => {
-                const value = multilingualPerLanguage[language][config][metric];
-                const barHeight = (value / maxValue) * chartHeight;
-                const x = groupX + barWidth * (configIndex + 0.5);
-                const y = padding.top + chartHeight - barHeight;
-                const dimmed = activeConfig !== null && activeConfig !== config;
-
-                return (
-                  <rect
-                    key={config}
-                    x={x}
-                    y={y}
-                    width={barWidth}
-                    height={Math.max(barHeight, 1)}
-                    rx={2}
-                    fill={multilingualConfigColors[config]}
-                    className={cn('transition-opacity', dimmed && 'opacity-25')}
-                    onMouseEnter={() => setActiveConfig(config)}
-                    onMouseLeave={() => setActiveConfig(null)}
-                  >
-                    <title>
-                      {language} · {multilingualConfigLabels[config]} · {formatScore(value)}
-                    </title>
-                  </rect>
-                );
-              })}
-            </g>
-          );
-        })}
-      </svg>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border border-fd-border bg-fd-background px-3 py-3">
-          <p className="text-xs font-medium text-fd-foreground/70">Mixed index (all languages)</p>
-          <div className="mt-2 flex flex-wrap gap-4 text-sm">
-            <span className="tabular-nums">
-              <span className="text-fd-foreground/55">Multilingual </span>
-              <span className="font-semibold">{formatScore(multilingualMixed.multilingual[metric])}</span>
-            </span>
-            <span className="tabular-nums">
-              <span className="text-fd-foreground/55">English default </span>
-              <span className="font-semibold">
-                {formatScore(multilingualMixed['english-default'][metric])}
-              </span>
-            </span>
-          </div>
-        </div>
-        <p className="text-xs leading-relaxed text-fd-foreground/55 sm:self-center">
-          Multilingual matches per-language on exact and diacritic queries; morphology still favors
-          tuned stemmers. Non-Latin scripts collapse under the English default tokenizer.
-        </p>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs leading-relaxed text-fd-foreground/55">
+        <span>
+          {view === 'mixed'
+            ? 'All languages share one index; per-language tuning does not apply.'
+            : `${viewLabel(view)} results for the selected metric.`}
+        </span>
+        <span>
+          Multilingual handles exact forms, diacritics, and non-Latin scripts without language
+          configuration; tuned stemmers still lead on morphology.
+        </span>
       </div>
     </section>
   );
 }
 
-export function QualityCharts() {
+export function QualityCharts({ between }: { between?: ReactNode } = {}) {
   return (
     <div className="space-y-6">
       <div id="search-quality" className="scroll-mt-24">
         <SearchQualitySection />
       </div>
+      {between}
       <div id="multilingual" className="scroll-mt-24">
         <MultilingualSection />
       </div>

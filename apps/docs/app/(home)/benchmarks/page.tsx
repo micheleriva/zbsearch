@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { BenchmarkCharts } from '@/components/benchmarks/benchmark-charts';
 import { QualityCharts } from '@/components/benchmarks/quality-charts';
+import { QualitySpeedChart } from '@/components/benchmarks/quality-speed-chart';
 
 export const metadata: Metadata = {
   title: 'Benchmarks',
@@ -20,15 +21,15 @@ export default function BenchmarksPage() {
         <header className="mb-12 max-w-3xl">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Benchmarks</h1>
           <p className="mt-4 text-lg leading-relaxed text-fd-muted-foreground">
-            Search quality first — then multilingual tokenization and raw throughput. Results come
+            Results come
             from the open{' '}
             <Link
               href="https://github.com/micheleriva/zbsearch/tree/main/benchmarks"
               className="font-medium text-fd-foreground underline underline-offset-2 hover:text-fd-primary"
             >
-              benchmarks/
+              benchmarks
             </Link>{' '}
-            suite; re-run locally anytime.
+            suite. Re-run locally anytime.
           </p>
         </header>
 
@@ -38,6 +39,12 @@ export default function BenchmarksPage() {
             className="rounded-full border border-fd-border bg-fd-card px-3 py-1.5 text-fd-foreground/70 transition-colors hover:border-fd-primary/30 hover:text-fd-foreground"
           >
             Search quality
+          </a>
+          <a
+            href="#quality-speed"
+            className="rounded-full border border-fd-border bg-fd-card px-3 py-1.5 text-fd-foreground/70 transition-colors hover:border-fd-primary/30 hover:text-fd-foreground"
+          >
+            Quality vs speed
           </a>
           <a
             href="#multilingual"
@@ -53,7 +60,7 @@ export default function BenchmarksPage() {
           </a>
         </div>
 
-        <QualityCharts />
+        <QualityCharts between={<QualitySpeedChart />} />
 
         <div id="throughput" className="mt-10 scroll-mt-24">
           <BenchmarkCharts

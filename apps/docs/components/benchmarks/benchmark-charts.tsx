@@ -334,13 +334,33 @@ function RelativeTrendLines({
   );
 }
 
-export function BenchmarkCharts() {
+export function BenchmarkCharts({
+  title,
+  description,
+  className,
+}: {
+  title?: string;
+  description?: string;
+  className?: string;
+} = {}) {
   const [activeEngine, setActiveEngine] = useState<BenchmarkEngine | null>(null);
   const benchmarkDate = benchmarkSuites[0]?.date.slice(0, 10);
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-6 pb-14">
+    <section className={cn('mx-auto w-full max-w-6xl px-6 pb-14', className)}>
       <div className="rounded-2xl border border-fd-border bg-fd-card/80 p-4 sm:p-6">
+        {(title || description) && (
+          <div className="mb-5">
+            {title && (
+              <h2 className="text-xl font-semibold tracking-tight text-fd-foreground">{title}</h2>
+            )}
+            {description && (
+              <p className="mt-1 max-w-2xl text-sm leading-relaxed text-fd-foreground/65">
+                {description}
+              </p>
+            )}
+          </div>
+        )}
         <div className="mb-5 flex flex-wrap items-center justify-center gap-3">
           {benchmarkEngines.map((engine) => (
             <button

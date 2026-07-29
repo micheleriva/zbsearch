@@ -1,0 +1,365 @@
+{
+  "description": "Search quality on BEIR test collections (scifact, nfcorpus, arguana) with trec_eval-compatible metrics",
+  "notes": [
+    "Note: Fuse.js runs with threshold 0 (exact substring match). Its fuzzy mode (threshold 0.3) costs ~39 s/query on ArguAna (~15 h for the dataset) and is unusable at this scale."
+  ],
+  "datasets": {
+    "scifact": {
+      "documents": 5183,
+      "queries": 300,
+      "referenceBm25Ndcg10": 0.665,
+      "engines": {
+        "zbsearch-bm25": {
+          "label": "ZBSearch (BM25)",
+          "ndcg10": 0.671813,
+          "map100": 0.634353,
+          "recall100": 0.905778,
+          "precision10": 0.087333,
+          "mrr10": 0.636266,
+          "timing": {
+            "buildSeconds": 0.855,
+            "msPerQuery": 1.271,
+            "queries": 300,
+            "crashed": false
+          }
+        },
+        "zbsearch-qps": {
+          "label": "ZBSearch (QPS)",
+          "ndcg10": 0.128533,
+          "map100": 0.110986,
+          "recall100": 0.526667,
+          "precision10": 0.024,
+          "mrr10": 0.101183,
+          "timing": {
+            "buildSeconds": 0.657,
+            "msPerQuery": 3.373,
+            "queries": 300,
+            "crashed": false
+          }
+        },
+        "zbsearch-pt15": {
+          "label": "ZBSearch (PT15)",
+          "ndcg10": 0.254164,
+          "map100": 0.214807,
+          "recall100": 0.684444,
+          "precision10": 0.044,
+          "mrr10": 0.207022,
+          "timing": {
+            "buildSeconds": 0.974,
+            "msPerQuery": 1.042,
+            "queries": 300,
+            "crashed": false
+          }
+        },
+        "orama": {
+          "label": "Orama",
+          "ndcg10": 0.324281,
+          "map100": 0.288276,
+          "recall100": 0.704833,
+          "precision10": 0.049333,
+          "mrr10": 0.282918,
+          "timing": {
+            "buildSeconds": 1.091,
+            "msPerQuery": 4.456,
+            "queries": 300,
+            "crashed": false
+          }
+        },
+        "minisearch": {
+          "label": "MiniSearch",
+          "ndcg10": 0.623635,
+          "map100": 0.580463,
+          "recall100": 0.876389,
+          "precision10": 0.083333,
+          "mrr10": 0.587503,
+          "timing": {
+            "buildSeconds": 0.74,
+            "msPerQuery": 5.865,
+            "queries": 300,
+            "crashed": false
+          }
+        },
+        "flexsearch": {
+          "label": "FlexSearch",
+          "ndcg10": 0.254194,
+          "map100": 0.226497,
+          "recall100": 0.467889,
+          "precision10": 0.037333,
+          "mrr10": 0.224525,
+          "timing": {
+            "buildSeconds": 1.584,
+            "msPerQuery": 0.011,
+            "queries": 300,
+            "crashed": false
+          }
+        },
+        "lunr": {
+          "label": "Lunr",
+          "ndcg10": 0.615551,
+          "map100": 0.572875,
+          "recall100": 0.892,
+          "precision10": 0.084,
+          "mrr10": 0.575911,
+          "timing": {
+            "buildSeconds": 1.247,
+            "msPerQuery": 4.459,
+            "queries": 300,
+            "crashed": false
+          }
+        },
+        "fusejs": {
+          "label": "Fuse.js",
+          "ndcg10": 0.055376,
+          "map100": 0.055303,
+          "recall100": 0.063333,
+          "precision10": 0.006,
+          "mrr10": 0.054778,
+          "timing": {
+            "buildSeconds": 0.026,
+            "msPerQuery": 374.171,
+            "queries": 300,
+            "crashed": false
+          }
+        }
+      }
+    },
+    "nfcorpus": {
+      "documents": 3633,
+      "queries": 323,
+      "referenceBm25Ndcg10": 0.325,
+      "engines": {
+        "zbsearch-bm25": {
+          "label": "ZBSearch (BM25)",
+          "ndcg10": 0.306732,
+          "map100": 0.131158,
+          "recall100": 0.235289,
+          "precision10": 0.225697,
+          "mrr10": 0.502195,
+          "timing": {
+            "buildSeconds": 0.544,
+            "msPerQuery": 0.223,
+            "queries": 323,
+            "crashed": false
+          }
+        },
+        "zbsearch-qps": {
+          "label": "ZBSearch (QPS)",
+          "ndcg10": 0.207772,
+          "map100": 0.094594,
+          "recall100": 0.211359,
+          "precision10": 0.159752,
+          "mrr10": 0.347894,
+          "timing": {
+            "buildSeconds": 0.462,
+            "msPerQuery": 0.438,
+            "queries": 323,
+            "crashed": false
+          }
+        },
+        "zbsearch-pt15": {
+          "label": "ZBSearch (PT15)",
+          "ndcg10": 0.229172,
+          "map100": 0.102081,
+          "recall100": 0.218025,
+          "precision10": 0.17678,
+          "mrr10": 0.374286,
+          "timing": {
+            "buildSeconds": 0.664,
+            "msPerQuery": 0.194,
+            "queries": 323,
+            "crashed": false
+          }
+        },
+        "orama": {
+          "label": "Orama",
+          "ndcg10": 0.212183,
+          "map100": 0.098708,
+          "recall100": 0.209596,
+          "precision10": 0.153251,
+          "mrr10": 0.367673,
+          "timing": {
+            "buildSeconds": 0.859,
+            "msPerQuery": 0.667,
+            "queries": 323,
+            "crashed": false
+          }
+        },
+        "minisearch": {
+          "label": "MiniSearch",
+          "ndcg10": 0.290877,
+          "map100": 0.132285,
+          "recall100": 0.232634,
+          "precision10": 0.202477,
+          "mrr10": 0.489584,
+          "timing": {
+            "buildSeconds": 0.506,
+            "msPerQuery": 0.818,
+            "queries": 323,
+            "crashed": false
+          }
+        },
+        "flexsearch": {
+          "label": "FlexSearch",
+          "ndcg10": 0.200748,
+          "map100": 0.094481,
+          "recall100": 0.163224,
+          "precision10": 0.147678,
+          "mrr10": 0.315586,
+          "timing": {
+            "buildSeconds": 1.169,
+            "msPerQuery": 0.007,
+            "queries": 323,
+            "crashed": false
+          }
+        },
+        "lunr": {
+          "label": "Lunr",
+          "ndcg10": 0.312199,
+          "map100": 0.139042,
+          "recall100": 0.244247,
+          "precision10": 0.224768,
+          "mrr10": 0.506621,
+          "timing": {
+            "buildSeconds": 0.874,
+            "msPerQuery": 0.601,
+            "queries": 323,
+            "crashed": false
+          }
+        },
+        "fusejs": {
+          "label": "Fuse.js",
+          "ndcg10": 0.144089,
+          "map100": 0.066605,
+          "recall100": 0.084539,
+          "precision10": 0.100929,
+          "mrr10": 0.232795,
+          "timing": {
+            "buildSeconds": 0.017,
+            "msPerQuery": 88.925,
+            "queries": 323,
+            "crashed": false
+          }
+        }
+      }
+    },
+    "arguana": {
+      "documents": 8674,
+      "queries": 1406,
+      "referenceBm25Ndcg10": 0.414,
+      "engines": {
+        "zbsearch-bm25": {
+          "label": "ZBSearch (BM25)",
+          "ndcg10": 0.376616,
+          "map100": 0.260806,
+          "recall100": 0.964438,
+          "precision10": 0.077454,
+          "mrr10": 0.250346,
+          "timing": {
+            "buildSeconds": 0.944,
+            "msPerQuery": 12.632,
+            "queries": 1406,
+            "crashed": false
+          }
+        },
+        "zbsearch-qps": {
+          "label": "ZBSearch (QPS)",
+          "ndcg10": 0.001325,
+          "map100": 0.001608,
+          "recall100": 0.036984,
+          "precision10": 0.000284,
+          "mrr10": 0.00085,
+          "timing": {
+            "buildSeconds": 0.662,
+            "msPerQuery": 77.3,
+            "queries": 1406,
+            "crashed": false
+          }
+        },
+        "zbsearch-pt15": {
+          "label": "ZBSearch (PT15)",
+          "ndcg10": 0.00663,
+          "map100": 0.007361,
+          "recall100": 0.138691,
+          "precision10": 0.001565,
+          "mrr10": 0.003899,
+          "timing": {
+            "buildSeconds": 0.869,
+            "msPerQuery": 13.36,
+            "queries": 1406,
+            "crashed": false
+          }
+        },
+        "orama": {
+          "label": "Orama",
+          "ndcg10": 0.129762,
+          "map100": 0.095252,
+          "recall100": 0.566856,
+          "precision10": 0.027383,
+          "mrr10": 0.084527,
+          "timing": {
+            "buildSeconds": 1.356,
+            "msPerQuery": 41.09,
+            "queries": 1406,
+            "crashed": false
+          }
+        },
+        "minisearch": {
+          "label": "MiniSearch",
+          "ndcg10": 0,
+          "map100": 0,
+          "recall100": 0,
+          "precision10": 0,
+          "mrr10": 0,
+          "timing": {
+            "buildSeconds": 0.805,
+            "msPerQuery": null,
+            "queries": 1406,
+            "crashed": true
+          }
+        },
+        "flexsearch": {
+          "label": "FlexSearch",
+          "ndcg10": 0.05002,
+          "map100": 0.042344,
+          "recall100": 0.331437,
+          "precision10": 0.010953,
+          "mrr10": 0.032489,
+          "timing": {
+            "buildSeconds": 1.973,
+            "msPerQuery": 0.016,
+            "queries": 1406,
+            "crashed": false
+          }
+        },
+        "lunr": {
+          "label": "Lunr",
+          "ndcg10": 0.346484,
+          "map100": 0.23716,
+          "recall100": 0.953058,
+          "precision10": 0.073044,
+          "mrr10": 0.225694,
+          "timing": {
+            "buildSeconds": 1.458,
+            "msPerQuery": 32.267,
+            "queries": 1406,
+            "crashed": false
+          }
+        },
+        "fusejs": {
+          "label": "Fuse.js",
+          "ndcg10": 0,
+          "map100": 0,
+          "recall100": 0,
+          "precision10": 0,
+          "mrr10": 0,
+          "timing": {
+            "buildSeconds": 0.024,
+            "msPerQuery": null,
+            "queries": 1406,
+            "crashed": true
+          }
+        }
+      }
+    }
+  }
+}

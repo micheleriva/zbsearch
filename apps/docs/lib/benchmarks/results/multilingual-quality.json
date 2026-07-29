@@ -1,0 +1,170 @@
+{
+  "description": "Search quality of multilingual vs per-language vs english-default tokenization",
+  "perLanguage": {
+    "english": {
+      "multilingual": {
+        "precision": 0.293333,
+        "recall": 0.722222,
+        "mrr": 0.916667
+      },
+      "per-language": {
+        "precision": 0.333333,
+        "recall": 0.972222,
+        "mrr": 1
+      },
+      "english-default": {
+        "precision": 0.293333,
+        "recall": 0.722222,
+        "mrr": 0.916667
+      }
+    },
+    "italian": {
+      "multilingual": {
+        "precision": 0.29375,
+        "recall": 0.666667,
+        "mrr": 0.923077
+      },
+      "per-language": {
+        "precision": 0.35625,
+        "recall": 1,
+        "mrr": 1
+      },
+      "english-default": {
+        "precision": 0.29375,
+        "recall": 0.666667,
+        "mrr": 0.923077
+      }
+    },
+    "spanish": {
+      "multilingual": {
+        "precision": 0.28125,
+        "recall": 0.589744,
+        "mrr": 0.923077
+      },
+      "per-language": {
+        "precision": 0.35,
+        "recall": 0.961538,
+        "mrr": 0.961538
+      },
+      "english-default": {
+        "precision": 0.25625,
+        "recall": 0.435897,
+        "mrr": 0.615385
+      }
+    },
+    "german": {
+      "multilingual": {
+        "precision": 0.29375,
+        "recall": 0.717949,
+        "mrr": 1
+      },
+      "per-language": {
+        "precision": 0.3375,
+        "recall": 0.961538,
+        "mrr": 0.961538
+      },
+      "english-default": {
+        "precision": 0.2125,
+        "recall": 0.564103,
+        "mrr": 0.846154
+      }
+    },
+    "french": {
+      "multilingual": {
+        "precision": 0.26875,
+        "recall": 0.551282,
+        "mrr": 0.769231
+      },
+      "per-language": {
+        "precision": 0.35,
+        "recall": 1,
+        "mrr": 1
+      },
+      "english-default": {
+        "precision": 0.2625,
+        "recall": 0.512821,
+        "mrr": 0.692308
+      }
+    },
+    "portuguese": {
+      "multilingual": {
+        "precision": 0.28125,
+        "recall": 0.628205,
+        "mrr": 0.846154
+      },
+      "per-language": {
+        "precision": 0.3375,
+        "recall": 0.948718,
+        "mrr": 1
+      },
+      "english-default": {
+        "precision": 0.2375,
+        "recall": 0.333333,
+        "mrr": 0.461538
+      }
+    },
+    "russian": {
+      "multilingual": {
+        "precision": 0.26875,
+        "recall": 0.641026,
+        "mrr": 0.923077
+      },
+      "per-language": {
+        "precision": 0.3375,
+        "recall": 0.974359,
+        "mrr": 1
+      },
+      "english-default": {
+        "precision": 0.1875,
+        "recall": 0,
+        "mrr": 0
+      }
+    },
+    "arabic": {
+      "multilingual": {
+        "precision": 0.266667,
+        "recall": 0.486111,
+        "mrr": 0.583333
+      },
+      "per-language": {
+        "precision": 0.333333,
+        "recall": 0.875,
+        "mrr": 0.916667
+      },
+      "english-default": {
+        "precision": 0.2,
+        "recall": 0,
+        "mrr": 0
+      }
+    }
+  },
+  "macroAverage": {
+    "multilingual": {
+      "precision": 0.280938,
+      "recall": 0.625401,
+      "mrr": 0.860577
+    },
+    "per-language": {
+      "precision": 0.341927,
+      "recall": 0.961672,
+      "mrr": 0.979968
+    },
+    "english-default": {
+      "precision": 0.242917,
+      "recall": 0.40438,
+      "mrr": 0.556891
+    }
+  },
+  "mixed": {
+    "multilingual": {
+      "precision": 0.280952,
+      "recall": 0.625817,
+      "mrr": 0.857843
+    },
+    "english-default": {
+      "precision": 0.242857,
+      "recall": 0.405229,
+      "mrr": 0.553922
+    }
+  }
+}

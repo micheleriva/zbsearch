@@ -20,6 +20,11 @@ export function baseOptions(): BaseLayoutProps {
         active: 'nested-url',
       },
       {
+        text: 'Benchmarks',
+        url: '/benchmarks',
+        active: 'url',
+      },
+      {
         text: 'Blog',
         url: '/blog',
         active: 'url',

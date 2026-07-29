@@ -1,45 +1,63 @@
 {
   "name": "plain search (all terms)",
-  "date": "2026-07-15T18:54:00.276Z",
+  "date": "2026-07-29T16:59:16.659Z",
   "version": "1.0.0",
   "results": [
     {
       "name": "plain search (all terms) in Orama 3.1.18",
-      "ops": 33236,
-      "margin": 0.27,
-      "percentSlower": 57.9
+      "ops": 29281,
+      "margin": 1.76,
+      "percentSlower": 89.95
     },
     {
-      "name": "plain search (all terms) in ZBSearch 3.3.1",
-      "ops": 78943,
-      "margin": 0.22,
+      "name": "plain search (all terms) in ZBSearch (BM25) 3.3.4",
+      "ops": 68672,
+      "margin": 2.2,
+      "percentSlower": 76.42
+    },
+    {
+      "name": "plain search (all terms) in ZBSearch (QPS) 3.3.4",
+      "ops": 45616,
+      "margin": 1.11,
+      "percentSlower": 84.34
+    },
+    {
+      "name": "plain search (all terms) in ZBSearch (PT15) 3.3.4",
+      "ops": 72890,
+      "margin": 0.31,
+      "percentSlower": 74.97
+    },
+    {
+      "name": "plain search (all terms) in FlexSearch 0.8.212",
+      "ops": 291236,
+      "margin": 0.48,
       "percentSlower": 0
     },
     {
       "name": "plain search (all terms) in Fuse.js 7.5.0",
-      "ops": 38,
-      "margin": 0.3,
-      "percentSlower": 99.95
+      "ops": 30,
+      "margin": 7.63,
+      "percentSlower": 99.99
     },
     {
       "name": "plain search (all terms) in Lunr 2.3.9",
-      "ops": 11310,
-      "margin": 0.25,
-      "percentSlower": 85.67
+      "ops": 8291,
+      "margin": 5.76,
+      "percentSlower": 97.15
     },
     {
       "name": "plain search (all terms) in MiniSearch 7.2.0",
-      "ops": 44846,
-      "margin": 0.2,
-      "percentSlower": 43.19
+      "ops": 40509,
+      "margin": 1.1,
+      "percentSlower": 86.09
     }
   ],
   "fastest": {
-    "name": "plain search (all terms) in ZBSearch 3.3.1",
-    "index": 1
+    "name": "plain search (all terms) in FlexSearch 0.8.212",
+    "index": 4
   },
   "slowest": {
     "name": "plain search (all terms) in Fuse.js 7.5.0",
-    "index": 2
+    "index": 5
   }
 }

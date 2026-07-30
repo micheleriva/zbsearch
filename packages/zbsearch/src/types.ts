@@ -771,6 +771,180 @@ export type SearchParams<T extends AnyZBSearch, ResultDocument = TypedDocument<T
   | SearchParamsHybrid<T, ResultDocument>
   | SearchParamsVector<T, ResultDocument>
 
+export interface SuggestParams<T extends AnyZBSearch> {
+  /**
+   * The partial term to complete. It can contain multiple words: every word is
+   * expanded and the suggestion is the completion of the whole phrase.
+   */
+  term: string
+
+  /**
+   * The properties of the document to take the suggestions from.
+   */
+  properties?: '*' | FlattenSchemaProperty<T>[]
+
+  /**
+   * The number of suggestions to return. Defaults to 10.
+   */
+  limit?: number
+
+  /**
+   * The number of suggestions to skip. Defaults to 0.
+   */
+  offset?: number
+
+  /**
+   * Which query words are prefix-expanded (search-as-you-type).
+   *
+   * - `true` (default): every word is expanded, so "noi can" suggests "noise cancelling".
+   * - `'last'`: only the last word is expanded, the previous ones must match a whole
+   *   indexed word. This is the cheapest option and the most accurate one when the user
+   *   is typing left to right.
+   * - `false`: no expansion, only whole indexed words are matched. Useful with `tolerance`
+   *   to suggest corrections of a fully typed query.
+   */
+  prefix?: boolean | 'last'
+
+  /**
+   * The maximum [levenshtein distance](https://en.wikipedia.org/wiki/Levenshtein_distance)
+   * between each query word and the suggested word, to tolerate typos.
+   */
+  tolerance?: number
+
+  /**
+   * The BM25 parameters used to score the documents the suggestions are aggregated from.
+   *
+   * @see https://en.wikipedia.org/wiki/Okapi_BM25
+   */
+  relevance?: BM25Params
+
+  /**
+   * The boost to apply to the properties, exactly as in `search`.
+   *
+   * @example
+   * // Suggest completions found in the title before the ones found in the description.
+   * const result = suggest(db, {
+   *  term: 'head',
+   *  boost: {
+   *   title: 2
+   *  }
+   * })
+   */
+  boost?: Partial<Record<OnlyStrings<FlattenSchemaProperty<T>[]>, number>>
+
+  /**
+   * Only aggregate suggestions from the documents matching the filters.
+   *
+   * @example
+   * const result = suggest(db, {
+   *  term: 'head',
+   *  where: {
+   *    price: {
+   *      lt: 100
+   *    }
+   *  }
+   * })
+   */
+  where?: Partial<WhereCondition<T['schema']>>
+
+  /**
+   * How many of the query words a document must match to contribute a suggestion.
+   *
+   * With the default `0`, only the documents matching every word are considered.
+   * With `1`, all the partially matching documents are considered as well. Any value
+   * in between includes that percentage of the partially matching documents, ordered
+   * by relevance. Words with no match are kept verbatim in the returned suggestion.
+   */
+  threshold?: number
+}
+
+export type Suggestion = {
+  /**
+   * The suggested completion of the searched term.
+   */
+  suggestion: string
+
+  /**
+   * The indexed words the suggestion is made of, one per word of the searched term.
+   */
+  terms: string[]
+
+  /**
+   * The aggregated relevance of the documents this suggestion was found in.
+   * Suggestions are returned sorted by this value, in descending order.
+   */
+  score: number
+
+  /**
+   * How many documents this suggestion was found in.
+   */
+  count: number
+}
+
+export type SuggestResults = {
+  /**
+   * The number of all the suggestions found, ignoring `limit` and `offset`.
+   */
+  count: number
+
+  /**
+   * The suggestions, sorted by descending score, taking `limit` and `offset` into account.
+   */
+  suggestions: Suggestion[]
+
+  /**
+   * The time taken to compute the suggestions.
+   */
+  elapsed: ElapsedTime
+}
+
+/**
+ * A single word of a suggest query, with the matching strategy to use for it.
+ */
+export type SuggestionQueryToken = {
+  token: string
+  exact: boolean
+  tolerance: number
+
+  /**
+   * Whether this is the word being completed, so that every word matching it is a
+   * candidate suggestion. The other tokens are the context of the completion.
+   */
+  completion?: boolean
+}
+
+/**
+ * How a single document matches a suggest query.
+ */
+export type SuggestionDocumentMatch = {
+  /**
+   * The best matching indexed word for each query token, `undefined` when the
+   * token has no match in this document.
+   */
+  words: (string | undefined)[]
+
+  /**
+   * The score of each entry of `words`.
+   */
+  wordScores: number[]
+
+  /**
+   * How many query tokens this document matches.
+   */
+  matchedTokens: number
+
+  /**
+   * The relevance of the document for the whole query.
+   */
+  score: number
+
+  /**
+   * Every word of this document matching the completion token, with its score. Absent when
+   * the document does not match the completion token, or when no token was flagged as such.
+   */
+  completions?: Map<string, number>
+}
+
 export type Result<Document> = {
   /**
    * The id of the document.
@@ -1025,6 +1199,21 @@ export interface IIndex<I extends AnyIndexStore> {
     threshold?: number,
     prefix?: boolean
   ): TokenScore[]
+
+  /**
+   * Collects, for every document matching the given query tokens, the indexed words
+   * that matched and their relevance. Optional: index implementations that cannot
+   * expand a token into the indexed words it matches don't support `suggest`.
+   */
+  searchSuggestions?<T extends AnyZBSearch>(
+    index: AnyIndexStore,
+    queryTokens: SuggestionQueryToken[],
+    propertiesToSearch: string[],
+    boost: Partial<Record<OnlyStrings<FlattenSchemaProperty<T>[]>, number>>,
+    relevance: Required<BM25Params>,
+    docsCount: number,
+    whereFiltersIDs: Set<InternalDocumentID> | undefined
+  ): Map<InternalDocumentID, SuggestionDocumentMatch>
 
   searchByWhereClause<T extends AnyZBSearch>(
     index: AnyIndexStore,

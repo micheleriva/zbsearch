@@ -23,6 +23,8 @@ import type {
   ScalarSearchableType,
   SearchableType,
   SearchableValue,
+  SuggestionDocumentMatch,
+  SuggestionQueryToken,
   Tokenizer,
   TokenScore,
   WhereCondition
@@ -804,6 +806,98 @@ export function search(
   return results
 }
 
+export function searchSuggestions(
+  index: Index,
+  queryTokens: SuggestionQueryToken[],
+  propertiesToSearch: string[],
+  boost: Record<string, number>,
+  relevance: Required<BM25Params>,
+  docsCount: number,
+  whereFiltersIDs: Set<InternalDocumentID> | undefined
+): Map<InternalDocumentID, SuggestionDocumentMatch> {
+  const matches = new Map<InternalDocumentID, SuggestionDocumentMatch>()
+  const tokenCount = queryTokens.length
+
+  for (const prop of propertiesToSearch) {
+    if (!(prop in index.indexes)) {
+      continue
+    }
+
+    const tree = index.indexes[prop]
+    if (tree.type !== 'Radix') {
+      throw createError('WRONG_SEARCH_PROPERTY_TYPE', prop)
+    }
+
+    const boostPerProperty = boost[prop] ?? 1
+    if (boostPerProperty <= 0) {
+      throw createError('INVALID_BOOST_VALUE', boostPerProperty)
+    }
+
+    const avgFieldLength = index.avgFieldLength[prop]
+    const fieldLengths = index.fieldLengths[prop]
+    const frequencies = index.frequencies[prop]
+
+    for (let i = 0; i < tokenCount; i++) {
+      const { token, exact, tolerance, completion } = queryTokens[i]
+      const searchResult = (tree.node as RadixTree).find({ term: token, exact, tolerance })
+      const words = Object.keys(searchResult)
+      const tokenDocumentFrequency = searchResult[token]?.length
+
+      for (let j = 0; j < words.length; j++) {
+        const word = words[j]
+        const ids = searchResult[word]
+        if (!ids.length) {
+          continue
+        }
+
+        const wordBoost =
+          boostPerProperty *
+          (word === token ? 1 : prefixExpansionDemotion(tokenDocumentFrequency, ids.length, docsCount))
+        const termOccurrences = getTermDocumentFrequency(index, prop, word)
+
+        for (let k = 0; k < ids.length; k++) {
+          const internalId = ids[k]
+          if (whereFiltersIDs && !whereFiltersIDs.has(internalId)) {
+            continue
+          }
+
+          const tf = frequencies?.[internalId]?.[word] ?? 0
+          const score =
+            BM25(tf, termOccurrences, docsCount, fieldLengths[internalId]!, avgFieldLength, relevance) * wordBoost
+
+          let match = matches.get(internalId)
+          if (!match) {
+            match = {
+              words: new Array<string | undefined>(tokenCount).fill(undefined),
+              wordScores: new Array<number>(tokenCount).fill(0),
+              matchedTokens: 0,
+              score: 0
+            }
+            matches.set(internalId, match)
+          }
+
+          match.score += score
+
+          if (completion) {
+            const completions = match.completions ?? (match.completions = new Map<string, number>())
+            completions.set(word, (completions.get(word) ?? 0) + score)
+          }
+
+          if (match.words[i] === undefined || score > match.wordScores[i]) {
+            if (match.words[i] === undefined) {
+              match.matchedTokens++
+            }
+            match.words[i] = word
+            match.wordScores[i] = score
+          }
+        }
+      }
+    }
+  }
+
+  return matches
+}
+
 export function searchByWhereClause<T extends AnyZBSearch>(
   index: Index,
   tokenizer: Tokenizer,
@@ -1141,6 +1235,7 @@ export function createIndex(): IIndex<Index> {
     removeTokenScoreParameters,
     calculateResultScores,
     search,
+    searchSuggestions,
     searchByWhereClause,
     getSearchableProperties,
     getSearchablePropertiesWithTypes,

@@ -190,6 +190,24 @@ of `1` (e.g. `Chris`) in the `director` property.
 `tolerance` doesn't work together with the `exact` parameter. `exact` will have priority.
 </Callout>
 
+## Autocomplete
+
+`search` returns documents. When you need the **queries** the user could run instead — to fill an
+autocomplete dropdown as they type — use the `suggest` function, which returns ranked query
+completions built from the indexed words:
+
+```javascript copy
+import { suggest } from "zbsearch";
+
+const results = suggest(movieDB, {
+  term: "Chri",
+});
+
+// results.suggestions = [{ suggestion: 'chris', terms: ['chris'], score: 2.1, count: 3 }, ...]
+```
+
+Read the [autocomplete](/docs/zbsearch/search/autocomplete) documentation for the full API.
+
 ## Results limits
 
 The `limit` property limits the result at the specified number.

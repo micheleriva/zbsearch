@@ -934,7 +934,10 @@ export type SuggestionDocumentMatch = {
   matchedTokens: number
 
   /**
-   * The relevance of the document for the whole query.
+   * The relevance of the document for the whole query, summing the contribution of every
+   * word it matched. This is the same score `search` gives the document, so it ranks the
+   * partially matching documents consistently with it — unlike `wordScores`, which only
+   * keeps the best word per token to build the suggested phrase.
    */
   score: number
 

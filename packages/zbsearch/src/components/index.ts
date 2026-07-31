@@ -32,6 +32,7 @@ import type {
 import { convertDistanceToMeters, setDifference, setIntersection, setUnion } from '../utils.js'
 import { BM25 } from './algorithms.js'
 import { getInnerType, getVectorSize, isArrayType, isVectorType } from './defaults.js'
+import { levenshtein } from './levenshtein.js'
 import {
   DocumentID,
   getInternalDocumentId,
@@ -839,7 +840,12 @@ export function searchSuggestions(
 
     for (let i = 0; i < tokenCount; i++) {
       const { token, exact, tolerance, completion } = queryTokens[i]
-      const searchResult = (tree.node as RadixTree).find({ term: token, exact, tolerance })
+      const wholeWordWithTolerance = exact && tolerance > 0
+      const searchResult = (tree.node as RadixTree).find({
+        term: token,
+        exact: exact && !wholeWordWithTolerance,
+        tolerance
+      })
       const words = Object.keys(searchResult)
       const tokenDocumentFrequency = searchResult[token]?.length
 
@@ -847,6 +853,14 @@ export function searchSuggestions(
         const word = words[j]
         const ids = searchResult[word]
         if (!ids.length) {
+          continue
+        }
+
+        if (
+          wholeWordWithTolerance &&
+          word !== token &&
+          (Math.abs(word.length - token.length) > tolerance || levenshtein(token, word) > tolerance)
+        ) {
           continue
         }
 
@@ -1235,7 +1249,7 @@ export function createIndex(): IIndex<Index> {
     removeTokenScoreParameters,
     calculateResultScores,
     search,
-    searchSuggestions,
+    supportsSuggestions: true,
     searchByWhereClause,
     getSearchableProperties,
     getSearchablePropertiesWithTypes,

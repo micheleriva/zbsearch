@@ -903,7 +903,14 @@ export type SuggestResults = {
  */
 export type SuggestionQueryToken = {
   token: string
+
+  /**
+   * Whether to only match whole indexed words, with no prefix expansion. It composes with
+   * `tolerance`: a whole word within the tolerated edit distance still matches, so a word
+   * that merely starts with the token is not accepted just because a tolerance was set.
+   */
   exact: boolean
+
   tolerance: number
 
   /**
@@ -1204,9 +1211,17 @@ export interface IIndex<I extends AnyIndexStore> {
   ): TokenScore[]
 
   /**
+   * Whether this index can expand a query token into the indexed words it matches, which is
+   * what `suggest` is built on. The default index component declares it and lets `suggest`
+   * use its own implementation, so that bundles which never import `suggest` don't carry it.
+   * Implementations that need a different expansion provide `searchSuggestions` instead.
+   */
+  supportsSuggestions?: boolean
+
+  /**
    * Collects, for every document matching the given query tokens, the indexed words
-   * that matched and their relevance. Optional: index implementations that cannot
-   * expand a token into the indexed words it matches don't support `suggest`.
+   * that matched and their relevance. Overrides the default implementation used when
+   * `supportsSuggestions` is set; an index that declares neither doesn't support `suggest`.
    */
   searchSuggestions?<T extends AnyZBSearch>(
     index: AnyIndexStore,

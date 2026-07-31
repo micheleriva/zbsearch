@@ -1,3 +1,4 @@
+import { searchSuggestions as defaultSearchSuggestions } from '../components/index.js'
 import { InternalDocumentID } from '../components/internal-document-id-store.js'
 import { createError } from '../errors.js'
 import type {
@@ -41,7 +42,11 @@ export function suggest<T extends AnyZBSearch>(
 
   const { term, limit = 10, offset = 0, threshold = 0, prefix = true, tolerance = 0 } = params
 
-  const searchSuggestions = zbsearch.index.searchSuggestions
+  const searchSuggestions =
+    zbsearch.index.searchSuggestions ??
+    (zbsearch.index.supportsSuggestions
+      ? (defaultSearchSuggestions as unknown as NonNullable<T['index']['searchSuggestions']>)
+      : undefined)
 
   if (typeof searchSuggestions !== 'function') {
     throw createError('SUGGEST_NOT_SUPPORTED')
@@ -58,7 +63,7 @@ export function suggest<T extends AnyZBSearch>(
   const lastToken = tokens.length - 1
   const queryTokens: SuggestionQueryToken[] = tokens.map((token, i) => ({
     token,
-    exact: !tolerance && (prefix === false || (prefix === 'last' && i < lastToken)),
+    exact: prefix === false || (prefix === 'last' && i < lastToken),
     tolerance,
     completion: i === lastToken
   }))

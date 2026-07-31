@@ -126,6 +126,37 @@ t.test('suggest method', (t) => {
     t.end()
   })
 
+  t.test('should keep the context words whole when a tolerance is combined with prefix', (t) => {
+    const db = create({ schema: { title: 'string' } as const })
+
+    insertMultiple(db, [{ title: 'cancel policy' }, { title: 'cancellation policy' }])
+
+    t.strictSame(
+      suggest(db, { term: 'cancel poli', prefix: 'last', tolerance: 1 }).suggestions.map(
+        ({ suggestion }) => suggestion
+      ),
+      ['cancel policy'],
+      'a tolerance must not turn a context word into a prefix expansion'
+    )
+    t.strictSame(
+      suggest(db, { term: 'cancel poli', prefix: 'last' }).suggestions.map(({ suggestion }) => suggestion),
+      ['cancel policy'],
+      'same suggestions as without the tolerance'
+    )
+    t.strictSame(
+      suggest(db, { term: 'cancel poli', prefix: true, tolerance: 1 }).suggestions.map(({ suggestion }) => suggestion),
+      ['cancel policy', 'cancellation policy'],
+      'prefix true still expands the context words'
+    )
+    t.strictSame(
+      suggest(db, { term: 'cancl poli', prefix: 'last', tolerance: 1 }).suggestions.map(({ suggestion }) => suggestion),
+      ['cancel policy'],
+      'a whole context word within the tolerated distance still matches'
+    )
+
+    t.end()
+  })
+
   t.test('should only take the suggestions from the given properties', (t) => {
     const db = createProductsDB()
 
@@ -301,8 +332,7 @@ t.test('suggest method', (t) => {
   })
 
   t.test('should throw when the index component cannot expand a token', (t) => {
-    const index = { ...defaultIndex.createIndex() }
-    delete index.searchSuggestions
+    const { supportsSuggestions, ...index } = defaultIndex.createIndex()
 
     const db = create({
       schema: { title: 'string' } as const,
@@ -311,7 +341,35 @@ t.test('suggest method', (t) => {
 
     insertMultiple(db, [{ title: 'Noise cancelling headphones' }])
 
+    t.notOk(index.searchSuggestions, 'the default component declares the capability instead of the implementation')
     t.throws(() => suggest(db, { term: 'head' }), { code: 'SUGGEST_NOT_SUPPORTED' })
+
+    t.end()
+  })
+
+  t.test('should let an index component provide its own expansion', (t) => {
+    let calls = 0
+    const index = {
+      ...defaultIndex.createIndex(),
+      searchSuggestions() {
+        calls++
+        return new Map([[1, { words: ['custom'], wordScores: [3], matchedTokens: 1, score: 3 }]])
+      }
+    }
+
+    const db = create({
+      schema: { title: 'string' } as const,
+      components: { index }
+    })
+
+    insertMultiple(db, [{ title: 'Noise cancelling headphones' }])
+
+    t.strictSame(
+      suggest(db, { term: 'head' }).suggestions,
+      [{ suggestion: 'custom', terms: ['custom'], score: 3, count: 1 }],
+      'the component implementation wins over the default one'
+    )
+    t.equal(calls, 1)
 
     t.end()
   })

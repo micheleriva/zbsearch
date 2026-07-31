@@ -46,7 +46,8 @@ const errors = {
   ANSWER_SESSION_LAST_MESSAGE_IS_NOT_ASSISTANT: `The last message in the session is not an assistant message. Cannot regenerate non-assistant messages.`,
   PLUGIN_COMPONENT_CONFLICT: `The component "%s" is already defined. The plugin "%s" is trying to redefine it.`,
   IVF_INDEX_REQUIRES_FACTORY: `Vector index "%s" was serialized as IVF. Import ivf from "zbsearch/trees/vector-ivf" and pass indexes.%s at create().`,
-  RESERVED_SCHEMA_PROPERTY: `"%s" is a reserved property name and cannot be used in the schema.`
+  RESERVED_SCHEMA_PROPERTY: `"%s" is a reserved property name and cannot be used in the schema.`,
+  SUGGEST_NOT_SUPPORTED: `The configured index component does not support "suggest", as it cannot expand a query token into the indexed words it matches.`
 }
 
 export type ErrorCode = keyof typeof errors

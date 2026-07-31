@@ -1,0 +1,225 @@
+---
+title: Autocomplete
+description: The suggest function returns ranked query completions for a partially typed term, to power autocomplete dropdowns.
+---
+
+Autocomplete dropdowns are one of the most common search-UI needs: as the user types, you want to
+show them the queries they could run, not the documents themselves.
+
+The `suggest` function (also exported as `autoSuggest`) returns the **ranked query completions** for
+a partially typed term. It expands each word of the term into the indexed words that start with it,
+groups the results by completion, and ranks them by the aggregated relevance of the documents each
+completion was found in.
+
+## Usage
+
+```javascript
+import { create, insertMultiple, suggest } from "zbsearch";
+
+const db = create({
+  schema: {
+    title: "string",
+    description: "string",
+    price: "number",
+  },
+});
+
+insertMultiple(db, [
+  {
+    title: "Noise cancelling headphones",
+    description: "Wireless over-ear headphones",
+    price: 299,
+  },
+  {
+    title: "Noise cancelling earbuds",
+    description: "Active noise cancellation, in-ear",
+    price: 199,
+  },
+  {
+    title: "Wired headphones",
+    description: "Cheap headphones for the office",
+    price: 30,
+  },
+]);
+
+const results = suggest(db, {
+  term: "head",
+});
+
+console.log(results);
+
+// {
+//   elapsed: {
+//     raw: 404291,
+//     formatted: '404μs'
+//   },
+//   count: 1,
+//   suggestions: [
+//     {
+//       suggestion: 'headphones',
+//       terms: [ 'headphones' ],
+//       score: 1.1785686090842307,
+//       count: 2
+//     }
+//   ]
+// }
+```
+
+Every suggestion contains:
+
+| Property     | Type       | Description                                                                                  |
+| ------------ | ---------- | -------------------------------------------------------------------------------------------- |
+| `suggestion` | `string`   | The suggested completion, ready to be used as the term of a `search` call.                    |
+| `terms`      | `string[]` | The indexed words the suggestion is made of, one per word of the searched term.               |
+| `score`      | `number`   | The aggregated relevance of the documents the suggestion was found in.                        |
+| `count`      | `number`   | How many documents the suggestion was found in.                                              |
+
+The `count` at the root of the response is the total number of suggestions found, ignoring `limit`
+and `offset`.
+
+## Completing a phrase
+
+A term can contain several words. The last one is the word being completed, the previous ones are
+its context: only the completions that actually appear in the same document as that context are
+suggested.
+
+```javascript
+const results = suggest(db, {
+  term: "noise can",
+});
+
+console.log(results.suggestions);
+
+// [
+//   {
+//     suggestion: 'noise cancelling',
+//     terms: [ 'noise', 'cancelling' ],
+//     score: 2.301266980625318,
+//     count: 2
+//   },
+//   {
+//     suggestion: 'noise cancellation',
+//     terms: [ 'noise', 'cancellation' ],
+//     score: 1.80561748849886,
+//     count: 1
+//   }
+// ]
+```
+
+`"noise cancelling"` comes first because it leads to more, and more relevant, documents than
+`"noise cancellation"`. No suggestion mixes words coming from different documents, so the user never
+sees a completion that returns no result.
+
+## Parameters
+
+`suggest` accepts the same relevant options as [search](/docs/zbsearch/search):
+
+| Property     | Type                       | Default | Description                                                                     |
+| ------------ | -------------------------- | ------- | ------------------------------------------------------------------------------- |
+| `term`       | `string`                   | -       | The partially typed term to complete.                                            |
+| `properties` | `'*' \| string[]`          | `'*'`   | The properties to take the suggestions from.                                     |
+| `limit`      | `number`                   | `10`    | The number of suggestions to return.                                             |
+| `offset`     | `number`                   | `0`     | The number of suggestions to skip.                                               |
+| `prefix`     | `boolean \| 'last'`        | `true`  | Which words of the term are prefix-expanded.                                     |
+| `tolerance`  | `number`                   | `0`     | The maximum Levenshtein distance between a typed word and a suggested one.        |
+| `boost`      | `Record<string, number>`   | `{}`    | The [boost](/docs/zbsearch/search/fields-boosting) to apply to each property.     |
+| `where`      | `WhereCondition`           | -       | Only aggregate the suggestions from the documents matching these [filters](/docs/zbsearch/search/filters). |
+| `relevance`  | `BM25Params`               | -       | The [BM25](/docs/zbsearch/search/bm25) parameters used to score the documents.    |
+| `threshold`  | `number`                   | `0`     | How many words of the term a document must match to contribute a suggestion.     |
+
+### Restricting and boosting properties
+
+Suggestions can be taken from a subset of the schema, and the properties can be boosted exactly as
+in `search`, to promote the completions found in the most important ones:
+
+```javascript
+const results = suggest(db, {
+  term: "head",
+  properties: ["title"],
+  boost: {
+    title: 2,
+  },
+});
+```
+
+### Filtering
+
+Only the documents matching the `where` filters contribute their words, so the suggestions always
+lead to a result within the current filters:
+
+```javascript
+const results = suggest(db, {
+  term: "head",
+  where: {
+    price: {
+      lt: 100,
+    },
+  },
+});
+
+console.log(results.suggestions);
+
+// [
+//   {
+//     suggestion: 'headphones',
+//     terms: [ 'headphones' ],
+//     score: 0.5829198084759848,
+//     count: 1
+//   }
+// ]
+```
+
+### Prefix expansion
+
+The `prefix` property controls which words of the term are expanded:
+
+- `true` (default): every word is expanded, so `"noi can"` suggests `"noise cancelling"`.
+- `'last'`: only the last word is expanded, the previous ones must match a whole indexed word. This
+  is the cheapest option, and the most accurate one when the user is typing left to right.
+- `false`: no expansion at all, only whole indexed words are matched. Useful together with
+  `tolerance` to suggest the correction of a fully typed query.
+
+### Typo tolerance
+
+Set a `tolerance` to suggest completions for a misspelled term, as `"hedphones"` for
+`"headphones"`:
+
+```javascript
+const results = suggest(db, {
+  term: "hedphones",
+  tolerance: 1,
+});
+
+console.log(results.suggestions);
+
+// [
+//   {
+//     suggestion: 'headphones',
+//     terms: [ 'headphones' ],
+//     score: 1.1785686090842307,
+//     count: 2
+//   }
+// ]
+```
+
+The tolerance is the maximum [Levenshtein distance](https://en.wikipedia.org/wiki/Levenshtein_distance)
+between the typed word and the suggested one, exactly as in `search`.
+
+### Threshold
+
+By default a document only contributes a suggestion when it matches **every** word of the term. Set
+a [threshold](/docs/zbsearch/search/threshold) greater than `0` to also aggregate the partially
+matching documents; the words with no match are kept verbatim in the returned suggestion.
+
+## Suggestions are indexed words
+
+Suggestions come from the index, so they went through the same
+[text analysis](/docs/zbsearch/text-analysis/stemming) as the documents. With a stemmer configured,
+the suggested words are stems, and with stop words enabled the term's stop words are dropped from
+the suggestion.
+
+If you need the original text of the documents instead, run a `search` and read the `hits`.
+
+<Callout title='Custom index components'>
+`suggest` needs to expand a query word into the indexed words it matches, which the default index component does through its radix tree. A custom index component that cannot do so — like the ones shipped by the [QPS](/docs/zbsearch/plugins/plugin-qps) and [PT15](/docs/zbsearch/plugins/plugin-pt15) plugins — makes `suggest` throw a `SUGGEST_NOT_SUPPORTED` error.
+</Callout>

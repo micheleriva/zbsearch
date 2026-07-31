@@ -16,6 +16,7 @@ After [Michele's departure](https://www.micheleriva.dev/writings/my-last-day-at-
 # Highlighted features
 
 - [Full-Text search](https://zbsearch.dev/docs/zbsearch/search)
+- [Autocomplete / Autosuggest](https://zbsearch.dev/docs/zbsearch/search/autocomplete)
 - [Vector Search](https://zbsearch.dev/docs/zbsearch/search/vector-search)
 - [Hybrid Search](https://zbsearch.dev/docs/zbsearch/search/hybrid-search)
 - [Search Filters](https://zbsearch.dev/docs/zbsearch/search/filters)

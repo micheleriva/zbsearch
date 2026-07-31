@@ -6,6 +6,7 @@ export { remove, removeMultiple } from './methods/remove.js'
 export { search } from './methods/search.js'
 export { searchVector } from './methods/search-vector.js'
 export { load, save } from './methods/serialization.js'
+export { autoSuggest, suggest } from './methods/suggest.js'
 export { update, updateMultiple } from './methods/update.js'
 export { upsert, upsertMultiple } from './methods/upsert.js'
 

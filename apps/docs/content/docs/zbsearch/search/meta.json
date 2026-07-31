@@ -2,6 +2,7 @@
 	"title": "Search",
 	"pages": [
 		"index",
+		"autocomplete",
 		"changing-default-search-algorithm",
 		"vector-search",
 		"hybrid-search",

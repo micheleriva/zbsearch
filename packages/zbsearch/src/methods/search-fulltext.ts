@@ -20,19 +20,9 @@ import { getNanosecondsTime, removeVectorsFromHits, sortTokenScorePredicate } fr
 import { count } from './docs.js'
 import { fetchDocuments, fetchDocumentsWithDistinct } from './fetch-documents.js'
 
-export function innerFullTextSearch<T extends AnyZBSearch>(
-  zbsearch: T,
-  params: Pick<
-    SearchParamsFullText<T>,
-    'term' | 'properties' | 'where' | 'exact' | 'prefix' | 'tolerance' | 'boost' | 'relevance' | 'threshold'
-  >,
-  language: Language | undefined,
-  precomputedWhereFiltersIDs?: Set<number>
-) {
-  const { term, properties } = params
-
+export function getPropertiesToSearch<T extends AnyZBSearch>(zbsearch: T, properties: '*' | unknown[] | undefined) {
   const index = zbsearch.data.index
-  // Get searchable string properties
+
   let propertiesToSearch = zbsearch.caches['propertiesToSearch'] as string[]
   if (!propertiesToSearch) {
     const propertiesToSearchWithTypes = zbsearch.index.getSearchablePropertiesWithTypes(index)
@@ -54,6 +44,23 @@ export function innerFullTextSearch<T extends AnyZBSearch>(
 
     propertiesToSearch = propertiesToSearch.filter((prop: string) => (properties as string[]).includes(prop))
   }
+
+  return propertiesToSearch
+}
+
+export function innerFullTextSearch<T extends AnyZBSearch>(
+  zbsearch: T,
+  params: Pick<
+    SearchParamsFullText<T>,
+    'term' | 'properties' | 'where' | 'exact' | 'prefix' | 'tolerance' | 'boost' | 'relevance' | 'threshold'
+  >,
+  language: Language | undefined,
+  precomputedWhereFiltersIDs?: Set<number>
+) {
+  const { term, properties } = params
+
+  const index = zbsearch.data.index
+  const propertiesToSearch = getPropertiesToSearch(zbsearch, properties)
 
   // If filters are enabled, we need to get the IDs of the documents that match the filters.
   const hasFilters = Object.keys(params.where ?? {}).length > 0
@@ -254,7 +261,7 @@ export const defaultBM25Params: BM25Params = {
   b: 0.75,
   d: 0.5
 }
-function applyDefault(bm25Relevance?: BM25Params): Required<BM25Params> {
+export function applyDefault(bm25Relevance?: BM25Params): Required<BM25Params> {
   const r = bm25Relevance ?? {}
   r.k = r.k ?? defaultBM25Params.k
   r.b = r.b ?? defaultBM25Params.b

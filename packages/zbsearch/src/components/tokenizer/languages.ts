@@ -29,6 +29,7 @@ export const SUPPORTED_LANGUAGE_LOCALES: Record<string, string> = {
   romanian: 'ro',
   russian: 'ru',
   serbian: 'sr',
+  slovak: 'sk',
   slovenian: 'sl',
   spanish: 'es',
   swedish: 'sv',
@@ -73,7 +74,8 @@ export const SPLITTERS: Record<SupportedLanguage, RegExp> = {
   sanskrit: /[^a-z0-9A-Zāīūṛḷṃṁḥśṣṭḍṇṅñḻḹṝ]+/gim,
   vietnamese:
     /[^a-z0-9A-ZáàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđÁÀẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬÉÈẺẼẸÊẾỀỂỄỆÍÌỈĨỊÓÒỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÚÙỦŨỤƯỨỪỬỮỰÝỲỶỸỴĐ_]+/gim,
-  czech: /[^A-Z0-9a-zěščřžýáíéúůóťďĚŠČŘŽÝÁÍÉÓÚŮŤĎ-]+/gim
+  czech: /[^A-Z0-9a-zěščřžýáíéúůóťďĚŠČŘŽÝÁÍÉÓÚŮŤĎ-]+/gim,
+  slovak: /[^A-Z0-9a-záäčďéíĺľňóôŕšťúýžÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ-]+/gim
 }
 
 export const SUPPORTED_LANGUAGES = Object.keys(SUPPORTED_LANGUAGE_LOCALES)

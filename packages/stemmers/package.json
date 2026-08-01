@@ -122,6 +122,11 @@
       "import": "./dist/rs.js",
       "require": "./dist/rs.cjs"
     },
+    "./slovak": {
+      "types": "./dist/svk.d.ts",
+      "import": "./dist/svk.js",
+      "require": "./dist/svk.cjs"
+    },
     "./slovenian": {
       "types": "./dist/sl.d.ts",
       "import": "./dist/sl.js",

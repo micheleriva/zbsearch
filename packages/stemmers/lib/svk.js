@@ -1,11 +1,10 @@
 /**
  * Light Stemmer for Slovak.
  *
- * There is no official Snowball algorithm for Slovak, so this is an original
- * implementation following the light-stemming approach of Ljiljana Dolamic and
- * Jacques Savoy, "Indexing and stemming approaches for the Czech language",
- * Information Processing & Management 45 (2009) — the same approach the Czech
- * stemmer in this package (`cs.js`) ports from Apache Lucene.
+ * There is no official Snowball algorithm for Slovak. This implementation uses
+ * Slovak declension paradigms and selected inflection rules adapted from 
+ * the Czech stemmer in this package (`cs.js`) and fixed with gpt-5.6-terra high 
+ * for missing cases
  *
  * Slovak and Czech are closely related, but their inflectional endings diverge
  * enough that the Czech stemmer mis-stems Slovak: Slovak uses `-och`, `-iach`,
@@ -50,12 +49,84 @@ const CASE_SUFFIXES_1 = 'aeiouyáéíóúýäô'
 
 const POSSESSIVE_SUFFIXES = ['ov', 'in']
 
+// Comparative and superlative adjective inflections. Both accented and
+// ASCII-folded forms are needed because the tokenizer folds before stemming.
+const COMPARATIVE_SUFFIXES = [
+  'ejšieho',
+  'ejsieho',
+  'ejšiemu',
+  'ejsiemu',
+  'ejšími',
+  'ejsimi',
+  'ejších',
+  'ejsich',
+  'ejšia',
+  'ejsia',
+  'ejšom',
+  'ejsom',
+  'ejším',
+  'ejsim',
+  'ejšej',
+  'ejsej',
+  'ejšou',
+  'ejsou',
+  'ejšiu',
+  'ejsiu',
+  'ejšie',
+  'ejsie',
+  'ejší',
+  'ejsi'
+]
+
+// Unambiguous multi-character verb endings. Shorter endings such as folded
+// "-is" are deliberately excluded: they collide with common nouns (e.g.
+// "popis") once diacritics have been folded.
+const VERB_SUFFIXES = [
+  'ajú',
+  'aju',
+  'ujú',
+  'uju',
+  'ejú',
+  'eju',
+  'íme',
+  'ime',
+  'íte',
+  'ite',
+  'eme',
+  'ili',
+  'ila',
+  'ilo',
+  'ať',
+  'at',
+  'iť',
+  'it',
+  'íš',
+  'eš'
+]
+
 function endsWithAny(word, suffixes) {
   return suffixes.some((suffix) => word.endsWith(suffix))
 }
 
 function isVowel(character) {
   return CASE_SUFFIXES_1.includes(character)
+}
+
+function removeSuffix(word, suffixes, minimumStemLength = 3) {
+  const suffix = suffixes.find((candidate) => word.endsWith(candidate))
+  return suffix && word.length - suffix.length >= minimumStemLength ? word.slice(0, -suffix.length) : word
+}
+
+function removeSuperlativePrefix(word) {
+  return word.length > 6 && word.startsWith('naj') ? word.slice(3) : word
+}
+
+function removeComparative(word) {
+  return removeSuffix(word, COMPARATIVE_SUFFIXES)
+}
+
+function removeVerbEnding(word) {
+  return removeSuffix(word, VERB_SUFFIXES)
 }
 
 /**
@@ -111,9 +182,10 @@ function dropFleetingVowel(word) {
 }
 
 /**
- * Rewrites palatalized stem endings: "c"/"č" -> "k" ("žiaci" -> "žiak"),
- * "z"/"ž" -> "h" ("bože" -> "boh"), plus the "čt" -> "ck" and "št" -> "sk"
- * clusters shared with Czech.
+ * Rewrites Slovak palatalized stem endings: "c"/"č" -> "k"
+ * ("žiaci" -> "žiak") and terminal ľ/ň/ť to their folded equivalents.
+ * In contrast to the Czech stemmer, z/ž are not rewritten to h: that corrupts
+ * the Slovak paradigm muž/muži.
  */
 function normalize(word) {
   if (word.endsWith('čt')) {
@@ -127,20 +199,41 @@ function normalize(word) {
   if (last === 'c' || last === 'č') {
     return word.slice(0, -1) + 'k'
   }
-  if (last === 'z' || last === 'ž') {
-    return word.slice(0, -1) + 'h'
+  if (last === 'ľ') {
+    return word.slice(0, -1) + 'l'
+  }
+  if (last === 'ň') {
+    return word.slice(0, -1) + 'n'
+  }
+  if (last === 'ť') {
+    return word.slice(0, -1) + 't'
   }
 
   return word
 }
 
 export function stemmer(word) {
-  let stem = removeCase(word)
+  let stem = removeSuperlativePrefix(word)
+  const comparativeStem = removeComparative(stem)
+  const isComparative = comparativeStem !== stem
+  stem = comparativeStem
+
+  const verbStem = isComparative ? stem : removeVerbEnding(stem)
+  const isVerb = verbStem !== stem
+  stem = verbStem
+
+  if (!isComparative && !isVerb) {
+    stem = removeCase(stem)
+  }
   stem = removePossessives(stem)
 
   if (stem.length > 0) {
     stem = dropFleetingVowel(stem)
-    stem = normalize(stem)
+    // c/č -> k is useful for nominal palatalization (žiaci -> žiak), but
+    // not for verb bases such as pracovať/pracujú.
+    if (!isVerb) {
+      stem = normalize(stem)
+    }
   }
 
   return stem

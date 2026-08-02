@@ -541,6 +541,35 @@ t.test('Czech, Slovak and Slovenian stemming', async (t) => {
     }
   })
 
+  t.test('slovak superlative, comparative and verb inflections conflate', async (t) => {
+    for (const word of ['najžľaznatejšieho', 'najzlaznatejsieho']) {
+      t.equal(slovakStemmer(word), word.includes('ž') ? 'žľaznat' : 'zlaznat', `${word} stems to its adjective base`)
+    }
+
+    for (const word of ['robiť', 'robit', 'robím', 'robim', 'robíš', 'robíme', 'robime', 'robíte', 'robite', 'robili', 'robila', 'robilo']) {
+      t.equal(slovakStemmer(word), 'rob', `${word} stems to rob`)
+    }
+
+    for (const [word, expected] of [
+      ['čítajú', 'čít'],
+      ['citaju', 'cit'],
+      ['pracujú', 'prac'],
+      ['pracuju', 'prac']
+    ]) {
+      t.equal(slovakStemmer(word), expected, `${word} stems to its verb base`)
+    }
+  })
+
+  t.test('slovak z/ž endings remain stable across muž inflections', async (t) => {
+    for (const word of ['muž', 'muža', 'muži', 'mužom', 'mužoch', 'mužmi']) {
+      t.equal(slovakStemmer(word), 'muž', `${word} stems to muž`)
+    }
+
+    for (const word of ['muz', 'muza', 'muzi', 'muzom', 'muzoch', 'muzmi']) {
+      t.equal(slovakStemmer(word), 'muz', `${word} stems to muz`)
+    }
+  })
+
   t.test('slovak short words are left unchanged', async (t) => {
     t.equal(slovakStemmer('e'), 'e')
     t.equal(slovakStemmer('zi'), 'zi')

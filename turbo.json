@@ -33,6 +33,24 @@
       "dependsOn": ["zbsearch#build", "@zbsearch/plugin-match-highlight#build", "^build"],
       "outputs": ["dist/**", "!dist/node_modules/**"]
     },
+    "@zbsearch/highlight#build": {
+      "outputs": ["dist/**"]
+    },
+    "@zbsearch/searchbox-react#build": {
+      "dependsOn": ["@zbsearch/highlight#build", "^build"],
+      "outputs": ["dist/**"]
+    },
+    "@zbsearch/plugin-docusaurus#build": {
+      "dependsOn": ["zbsearch#build", "@zbsearch/searchbox-react#build", "^build"],
+      "outputs": ["lib/**"]
+    },
+    "@zbsearch/sandbox-docusaurus#build": {
+      "dependsOn": ["@zbsearch/plugin-docusaurus#build"],
+      "outputs": ["build/**", ".docusaurus/**"]
+    },
+    "@zbsearch/sandbox-docusaurus#test": {
+      "dependsOn": ["@zbsearch/plugin-docusaurus#build"]
+    },
     "@zbsearch/plugin-embeddings#build": {
       "dependsOn": ["zbsearch#build"],
       "outputs": ["dist/**", "!dist/node_modules/**"]

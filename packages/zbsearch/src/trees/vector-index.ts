@@ -12,7 +12,11 @@ function createFactory(
 }
 
 export function createFlatVectorIndexFactory(): VectorIndexFactory {
-  return createFactory('flat', (ctx) => new VectorIndex(ctx.dim), (json) => VectorIndex.fromJSON(json))
+  return createFactory(
+    'flat',
+    (ctx) => new VectorIndex(ctx.dim),
+    (json) => VectorIndex.fromJSON(json)
+  )
 }
 
 export const defaultFlatVectorIndexFactory = createFlatVectorIndexFactory()

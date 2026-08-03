@@ -1,0 +1,71 @@
+{
+  "name": "@zbsearch/searchbox-react",
+  "version": "3.3.4",
+  "description": "Accessible, unstyled-by-default React search box UI for ZBSearch",
+  "keywords": [
+    "zbsearch",
+    "search",
+    "searchbox",
+    "react",
+    "command palette",
+    "autocomplete"
+  ],
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "bugs": {
+    "url": "https://github.com/micheleriva/zbsearch/issues"
+  },
+  "homepage": "https://github.com/micheleriva/zbsearch#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/micheleriva/zbsearch.git"
+  },
+  "scripts": {
+    "build": "tsup --config tsup.lib.js && tsc -p . --emitDeclarationOnly",
+    "lint": "exit 0",
+    "test": "node --test --import tsx test/*.test.ts"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tsup": "^8.5.1",
+    "tsx": "^4.20.6",
+    "typescript": "^7.0.2"
+  },
+  "author": {
+    "name": "Michele Riva",
+    "email": "riva.michele.95@gmail.com",
+    "url": "https://github.com/MicheleRiva"
+  },
+  "dependencies": {
+    "@zbsearch/highlight": "workspace:*"
+  }
+}

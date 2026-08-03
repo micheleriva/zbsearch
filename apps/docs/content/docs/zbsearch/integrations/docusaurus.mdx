@@ -1,0 +1,191 @@
+---
+title: Docusaurus
+description: Make ZBSearch the default search engine of your Docusaurus site.
+---
+
+`@zbsearch/plugin-docusaurus` indexes your docs, blog posts and MDX pages while Docusaurus builds, and
+replaces the default search bar with a search dialog powered by ZBSearch.
+
+The index ships with your static site, so search keeps working on a CDN, behind a VPN, or offline. No
+account, no API key, no query leaving the browser.
+
+## Installation
+
+```bash
+npm install @zbsearch/plugin-docusaurus
+```
+
+Then register it in `docusaurus.config.ts`:
+
+```typescript copy
+export default {
+  plugins: ['@zbsearch/plugin-docusaurus'],
+};
+```
+
+That is the whole setup. Docusaurus renders `@theme/SearchBar` in the navbar of every page, and the plugin
+supplies it. Start the site and press `⌘K`.
+
+<Callout type='info'>
+If your navbar already contains a `{ type: 'search' }` item, the search box is rendered there instead. Both
+placements work.
+</Callout>
+
+## What gets indexed
+
+Every page is split into one record per heading, so a result lands on the exact section that matched rather
+than the top of a long page.
+
+A record carries four searchable fields:
+
+| Field | Contents |
+| --- | --- |
+| `title` | Title of the page |
+| `section` | The heading the chunk was taken from |
+| `hierarchy` | Folders the page lives in, its title, and the enclosing headings |
+| `content` | The prose beneath that heading |
+
+Front matter, fenced code, JSX and MDX imports are stripped before indexing: code blocks match poorly and
+drown prose in punctuation. Permalinks and category labels travel with each record but are deliberately
+**not** tokenized, so a query never matches a URL fragment.
+
+Headings keep the anchors Docusaurus generates for them, including explicit ones:
+
+```markdown
+## Hybrid search {#hybrid}
+```
+
+## Options
+
+```typescript copy
+import type { ZBSearchDocusaurusOptions } from '@zbsearch/plugin-docusaurus';
+
+const options: ZBSearchDocusaurusOptions = {
+  excludeRoutes: ['/docs/internal/**'],
+  maxResults: 12,
+};
+
+export default {
+  plugins: [['@zbsearch/plugin-docusaurus', options]],
+};
+```
+
+### Content
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `language` | `'english'` | Language used to tokenize and stem the index |
+| `docs` | `true` | Index every docs plugin instance |
+| `blog` | `true` | Index every blog plugin instance |
+| `pages` | `true` | Index standalone MDX pages |
+| `indexAllDocsVersions` | `false` | Index older docs versions as well as the current one |
+| `excludeRoutes` | `[]` | Routes to leave out, with `*` and `**` wildcards |
+| `categoryLabels` | `{ docs: 'Docs', blog: 'Blog', pages: 'Pages' }` | Labels used to tag results |
+
+Only the current docs version is indexed by default. Older versions of the same page are near-identical and
+would push genuinely different pages out of the result list.
+
+React pages written as `.tsx` are skipped: running a markdown parser over JSX yields prop names, not prose.
+
+### Ranking
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `maxResults` | `12` | Maximum number of hits shown at once |
+| `boost` | `{ title: 4, section: 3, hierarchy: 1.5, content: 1 }` | Per-property ranking weights |
+| `tolerance` | `1` | Edit distance tolerated per term |
+| `threshold` | `0` | Minimum share of query terms a document must match |
+| `snippetLength` | `140` | Maximum length of the excerpt under a hit |
+
+Raising `tolerance` makes the search forgiving of typos at the cost of precision. Raising `threshold`
+requires results to match more of the query, which narrows a broad search.
+
+### Interface
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `recentSearches` | `true` | Remember and replay recently opened results |
+| `hotkeys` | `true` | Bind the `⌘K` / `Ctrl+K` and `/` shortcuts |
+| `searchButtonLabel` | `'Search'` | Text of the navbar button |
+| `placeholder` | `'Search documentation…'` | Placeholder of the search input |
+| `labels` | `{}` | Copy overrides for the dialog |
+
+Every string in the dialog can be replaced through `labels`, which is how you localise it:
+
+```typescript copy
+const options = {
+  searchButtonLabel: 'Cerca',
+  labels: {
+    placeholder: 'Cerca nella documentazione…',
+    noResultsHint: 'Prova un altro termine.',
+    selectHint: 'per aprire',
+    navigateHint: 'per navigare',
+    closeHint: 'per chiudere',
+  },
+};
+```
+
+## How it works
+
+Indexing happens in `allContentLoaded`, the one Docusaurus hook that behaves identically in `docusaurus start`
+and `docusaurus build`. The dev server therefore searches the same index the production site ships, with no
+second code path to keep in sync.
+
+The finished index is serialized with ZBSearch's `save()` and written to `.docusaurus/zbsearch-index/`. The
+search bar imports it through a dynamic `import()`, so webpack emits it as its own chunk: the index — and
+ZBSearch itself — are only downloaded once a visitor shows intent to search, and never weigh on the first
+page load.
+
+<Callout type='info'>
+Changing a page in dev regenerates the index on reload. If the index ever looks stale, `npm run clear`
+removes `.docusaurus` and forces a fresh one.
+</Callout>
+
+## Styling
+
+Every colour, radius and font in the search box is a `--zbs-*` custom property, so you can re-theme it from
+`src/css/custom.css` without overriding a single rule:
+
+```css copy
+:root {
+  --zbs-accent: #0aa;
+  --zbs-radius: 8px;
+  --zbs-surface: #fff;
+}
+
+[data-theme='dark'] {
+  --zbs-accent: #5ee;
+  --zbs-surface: #16121d;
+}
+```
+
+The dialog follows your site's theme toggle rather than the operating system: it reads the `data-theme`
+attribute Docusaurus sets on `<html>`, and only falls back to `prefers-color-scheme` when a host declares no
+theme at all.
+
+The full list of properties lives in the
+[search box documentation](/docs/zbsearch/integrations/searchbox-react#theming).
+
+## Keyboard
+
+| Keys | Action |
+| --- | --- |
+| `⌘K`, `Ctrl+K`, `/` | Open the search box |
+| `↑` `↓` | Move through the results, wrapping at both ends |
+| `Home` `End` | Jump to the first or last result |
+| `Enter` | Open the selected result |
+| `⌘`-click | Open a result in a new tab |
+| `Esc` | Close |
+
+## Troubleshooting
+
+**The navbar shows no search button.** The plugin has to come after `@docusaurus/preset-classic`, which is
+the case whenever it sits in `plugins` rather than inside a preset. Check that it is registered in
+`docusaurus.config.ts` and restart the dev server.
+
+**Search finds nothing.** The plugin logs `no content was indexed` during the build when every content plugin
+came back empty. Check that `docs`, `blog` or `pages` is enabled, and that `excludeRoutes` is not broader
+than you meant.
+
+**A page is missing from the results.** Pages with no prose at all produce no records. React pages are
+skipped by design; convert one to `.md` or `.mdx` if it should be searchable.

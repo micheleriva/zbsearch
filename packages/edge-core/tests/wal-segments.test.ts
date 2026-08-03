@@ -11,12 +11,7 @@ import {
   saveBufferHead,
   WAL_SEGMENT_MAX_OPS
 } from '../src/buffer.js'
-import type {
-  WalAppendResult,
-  WalCoordinator,
-  WalFreezeResult,
-  WalRebuildResult
-} from '../src/coordinator.js'
+import type { WalAppendResult, WalCoordinator, WalFreezeResult, WalRebuildResult } from '../src/coordinator.js'
 import { decodeJson, encodeNdjsonLine } from '../src/codec.js'
 import {
   bufferSegmentKey,
@@ -111,11 +106,7 @@ class MemoryWalCoordinator implements WalCoordinator {
     })
   }
 
-  finalizeAfterRebuild(
-    indexId: string,
-    frozenSegmentKeys: string[],
-    result: WalRebuildResult
-  ): Promise<IndexMeta> {
+  finalizeAfterRebuild(indexId: string, frozenSegmentKeys: string[], result: WalRebuildResult): Promise<IndexMeta> {
     return this.enqueue(async () => {
       const head = await finalizeBufferAfterRebuild(this.storage, indexId, frozenSegmentKeys)
       const meta = await getIndexMeta(this.storage, indexId)
@@ -175,10 +166,7 @@ function op(id: string, n: number): BufferOp {
 describe('wal segments', () => {
   it('reads finalized segment objects in sequence order', async () => {
     const storage = new MemoryObjectStorage()
-    await storage.put(
-      walSegmentKey('idx', 1, 3, 'chg_a'),
-      encodeWalSegmentOps([op('1', 1), op('2', 2), op('3', 3)])
-    )
+    await storage.put(walSegmentKey('idx', 1, 3, 'chg_a'), encodeWalSegmentOps([op('1', 1), op('2', 2), op('3', 3)]))
 
     const ops = await readBufferOps(storage, 'idx')
     assert.deepEqual(
@@ -192,19 +180,10 @@ describe('wal segments', () => {
     // Oldest format: legacy buffer/ segment.
     await storage.put(bufferSegmentKey('idx', '000001.ndjson'), encodeNdjsonLine(op('legacy', 1)))
     // Migration-era per-op entries (seqs 2-3).
-    await storage.put(
-      walEntryKey('idx', walEntryFileName(2, 't2', 'chg_b')),
-      encodeNdjsonLine(op('entry-2', 2))
-    )
-    await storage.put(
-      walEntryKey('idx', walEntryFileName(3, 't3', 'chg_c')),
-      encodeNdjsonLine(op('entry-3', 3))
-    )
+    await storage.put(walEntryKey('idx', walEntryFileName(2, 't2', 'chg_b')), encodeNdjsonLine(op('entry-2', 2)))
+    await storage.put(walEntryKey('idx', walEntryFileName(3, 't3', 'chg_c')), encodeNdjsonLine(op('entry-3', 3)))
     // Coordinator-era finalized segment (seqs 4-5) plus the open segment (seq 6).
-    await storage.put(
-      walSegmentKey('idx', 4, 5, 'chg_d'),
-      encodeWalSegmentOps([op('seg-4', 4), op('seg-5', 5)])
-    )
+    await storage.put(walSegmentKey('idx', 4, 5, 'chg_d'), encodeWalSegmentOps([op('seg-4', 4), op('seg-5', 5)]))
     await storage.put(walOpenSegmentKey('idx'), encodeWalSegmentOps([op('open-6', 6)]))
 
     const ops = await readBufferOps(storage, 'idx')

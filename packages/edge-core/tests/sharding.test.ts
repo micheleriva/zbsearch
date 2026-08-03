@@ -186,14 +186,20 @@ describe('scatter-gather search', () => {
     const { storage, ids } = await populatedGroup()
 
     const calls: Array<{ shardId: string; params: Record<string, unknown> }> = []
-    const result = await runSearch(storage, new NoopShardCache(), 'g', { term: 'alpha', limit: 10 }, {
-      executeShardSearch: async (shardId, params) => {
-        calls.push({ shardId, params: params as Record<string, unknown> })
-        // In-process stand-in for a remote shard worker.
-        const { runSearch: searchShard } = await import('../src/service.js')
-        return searchShard(storage, new NoopShardCache(), shardId, params)
+    const result = await runSearch(
+      storage,
+      new NoopShardCache(),
+      'g',
+      { term: 'alpha', limit: 10 },
+      {
+        executeShardSearch: async (shardId, params) => {
+          calls.push({ shardId, params: params as Record<string, unknown> })
+          // In-process stand-in for a remote shard worker.
+          const { runSearch: searchShard } = await import('../src/service.js')
+          return searchShard(storage, new NoopShardCache(), shardId, params)
+        }
       }
-    })
+    )
 
     assert.deepEqual(new Set(calls.map((c) => c.shardId)), new Set(shardIndexIds('g', 2)))
     for (const call of calls) {

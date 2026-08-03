@@ -325,11 +325,7 @@ describe('service', () => {
 
   it('rebuildIndex resets status when the rebuild fails', async () => {
     class FailingSnapshotStorage extends MemoryObjectStorage {
-      override async put(
-        key: string,
-        body: Uint8Array,
-        opts?: { contentType?: string }
-      ): Promise<{ etag: string }> {
+      override async put(key: string, body: Uint8Array, opts?: { contentType?: string }): Promise<{ etag: string }> {
         if (key.endsWith('/snapshot.msgpack')) {
           throw new Error('simulated storage failure')
         }

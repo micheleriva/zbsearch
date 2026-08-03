@@ -15,23 +15,22 @@ const REPO_URL = 'https://github.com/micheleriva/zbsearch'
 // Every published package (kept in sync with scripts/release.mjs).
 const packages = [
   'zbsearch',
-  'plugin-astro',
+  'edge-core',
+  'edge-index-builder',
+  'runtime-cloudflare',
+  'storage-s3',
   'plugin-data-persistence',
-  'plugin-docusaurus',
-  'plugin-docusaurus-v3',
-  'plugin-vitepress',
-  'plugin-nextra',
   'plugin-parsedoc',
-  'plugin-analytics',
-  'plugin-secure-proxy',
   'plugin-embeddings',
   'plugin-match-highlight',
   'plugin-qps',
   'plugin-pt15',
+  'highlight',
+  'searchbox-react',
+  'plugin-docusaurus',
   'stemmers',
   'stopwords',
   'tokenizers',
-  'switch',
 ].filter(p => !skip.includes(p))
 
 async function updatePackage(path, version) {

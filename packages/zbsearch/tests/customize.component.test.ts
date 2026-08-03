@@ -5,7 +5,11 @@ import {
   sorter as defaultSorter
 } from '../src/components.js'
 import { DocumentsStore } from '../src/components/documents-store.js'
-import { DocumentID, InternalDocumentID, InternalDocumentIDStore } from '../src/components/internal-document-id-store.js'
+import {
+  DocumentID,
+  InternalDocumentID,
+  InternalDocumentIDStore
+} from '../src/components/internal-document-id-store.js'
 import { Sorter } from '../src/components/sorter.js'
 import {
   AnyDocument,

@@ -1,0 +1,98 @@
+---
+title: Highlight
+description: Highlight and trim search matches inside a text.
+---
+
+`@zbsearch/highlight` marks the parts of a text that match a search term, and crops a long text down to an
+excerpt around the first match.
+
+It has no dependencies and no opinion about where the text came from, so it works just as well on ZBSearch
+results as on anything else.
+
+## Installation
+
+```bash
+npm install @zbsearch/highlight
+```
+
+## Usage
+
+```typescript copy
+import { Highlight } from '@zbsearch/highlight';
+
+const result = new Highlight().highlight('The quick brown fox', 'quick');
+
+result.HTML;      // 'The <mark class="zbsearch-highlight">quick</mark> brown fox'
+result.positions; // [{ start: 4, end: 8 }]
+```
+
+`highlight` returns the instance, so calls chain. Each match is reported as a `{ start, end }` pair where
+`end` points at the **last character** of the match rather than past it.
+
+<Callout type='warn'>
+`HTML` interpolates the original text without escaping it. Render it only for content you control, or use
+`positions` to build the markup yourself — which is what the
+[React search box](/docs/zbsearch/integrations/searchbox-react) does.
+</Callout>
+
+## Excerpts
+
+`trim` crops the text around its first match, adding an ellipsis on whichever side was cut:
+
+```typescript copy
+new Highlight().highlight(article, 'vector').trim(160);
+```
+
+A text that already fits is returned whole. When nothing matched, the opening `trimLength` characters are
+kept instead. Pass `false` as the second argument to leave the ellipsis off.
+
+## Options
+
+```typescript copy
+new Highlight({
+  caseSensitive: false,
+  strategy: 'partialMatch',
+  HTMLTag: 'mark',
+  CSSClass: 'zbsearch-highlight',
+});
+```
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `caseSensitive` | `false` | Whether case has to match |
+| `strategy` | `'partialMatch'` | How a term is matched against the text |
+| `HTMLTag` | `'mark'` | Element wrapped around each match in `HTML` |
+| `CSSClass` | `'zbsearch-highlight'` | Class set on that element |
+
+## Strategies
+
+Whitespace separates terms, and each one is matched independently. Regex metacharacters in a term are treated
+literally, so a search for `a.b()` finds exactly that.
+
+| Strategy | Searching `vec` in `the vectorised store` |
+| --- | --- |
+| `wholeWordMatch` | nothing: `vec` is not a word here |
+| `partialMatch` | `vec`, the term itself |
+| `partialMatchFullWord` | `vectorised`, the whole word the term appears in |
+
+```typescript copy
+import { Highlight, highlightStrategy } from '@zbsearch/highlight';
+
+new Highlight({ strategy: highlightStrategy.PARTIAL_MATCH_FULL_WORD });
+```
+
+`partialMatchFullWord` is the one to reach for alongside ZBSearch. The engine expands prefixes, so a query
+for `vec` is what matched the whole word `vectorised`; highlighting only the typed prefix would understate
+why the result is there.
+
+## Styling
+
+The output carries a class rather than inline styles:
+
+```css copy
+.zbsearch-highlight {
+  background: transparent;
+  color: #a800e0;
+  font-weight: 700;
+}
+```

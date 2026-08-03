@@ -1,0 +1,36 @@
+---
+title: Integrations
+description: Drop ZBSearch into an existing framework or documentation site.
+---
+
+Plugins extend the ZBSearch engine. Integrations do the opposite: they take the engine as it is and wire it
+into somewhere you already work, so that adding search is a matter of installing a package rather than
+building a UI.
+
+Everything here runs entirely in the visitor's browser. There is no server to run, no index to host, and no
+query ever leaves the page.
+
+## Available integrations
+
+| Package | What it does |
+| --- | --- |
+| [`@zbsearch/plugin-docusaurus`](/docs/zbsearch/integrations/docusaurus) | Makes ZBSearch the search engine of a Docusaurus site |
+| [`@zbsearch/searchbox-react`](/docs/zbsearch/integrations/searchbox-react) | The React search dialog, usable on its own |
+| [`@zbsearch/highlight`](/docs/zbsearch/integrations/highlight) | Highlights and trims matches inside a text |
+
+The three build on each other: the Docusaurus plugin renders the search box, and the search box highlights
+matches with the highlighter. You only need to reach for the lower layers when you are assembling your own
+search experience.
+
+## Which one do I want?
+
+If you run a **Docusaurus site**, install
+[`@zbsearch/plugin-docusaurus`](/docs/zbsearch/integrations/docusaurus). It indexes your content at compile
+time and replaces the default search bar; nothing else is required.
+
+If you run **any other React application**, build an index however you like and hand the results to
+[`@zbsearch/searchbox-react`](/docs/zbsearch/integrations/searchbox-react). It is engine-agnostic: it renders
+whatever your `searcher` function resolves to.
+
+If you already have a UI and only need to **mark up matches**, use
+[`@zbsearch/highlight`](/docs/zbsearch/integrations/highlight) on its own.

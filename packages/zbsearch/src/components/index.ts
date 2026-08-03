@@ -641,7 +641,10 @@ function searchThresholdZero(
             docsCount,
             relevance,
             resultsMap,
-            boostPerProperty * (word === token ? 1 : prefixExpansionDemotion(searchResult[token]?.length, searchResult[word]!.length, docsCount)),
+            boostPerProperty *
+              (word === token
+                ? 1
+                : prefixExpansionDemotion(searchResult[token]?.length, searchResult[word]!.length, docsCount)),
             whereFiltersIDs
           )
         }
@@ -738,7 +741,8 @@ export function search(
           docsCount,
           relevance,
           resultsMap,
-          boostPerProperty * (word === token ? 1 : prefixExpansionDemotion(searchResult[token]?.length, ids!.length, docsCount)),
+          boostPerProperty *
+            (word === token ? 1 : prefixExpansionDemotion(searchResult[token]?.length, ids!.length, docsCount)),
           whereFiltersIDs,
           keywordMatchesMap
         )

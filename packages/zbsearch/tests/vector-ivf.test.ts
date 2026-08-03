@@ -42,10 +42,7 @@ t.test('IVF vector index', async (t) => {
       }
     })
 
-    const [id1, id2] = await insertMultiple(db, [
-      { embedding: [1, 0, 0, 0, 0] },
-      { embedding: [0, 1, 0, 0, 0] }
-    ])
+    const [id1, id2] = await insertMultiple(db, [{ embedding: [1, 0, 0, 0, 0] }, { embedding: [0, 1, 0, 0, 0] }])
 
     await search(db, {
       mode: 'vector',

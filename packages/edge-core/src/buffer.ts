@@ -30,11 +30,7 @@ export async function getBufferHead(storage: ObjectStorage, indexId: string): Pr
   return defaultHead()
 }
 
-export async function saveBufferHead(
-  storage: ObjectStorage,
-  indexId: string,
-  head: BufferHead
-): Promise<void> {
+export async function saveBufferHead(storage: ObjectStorage, indexId: string, head: BufferHead): Promise<void> {
   await storage.put(walHeadKey(indexId), encodeJson(head), { contentType: 'application/json' })
 }
 

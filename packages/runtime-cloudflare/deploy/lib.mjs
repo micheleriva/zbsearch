@@ -173,10 +173,7 @@ function parseSimpleYaml(text, source) {
       continue
     }
 
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
       value = value.slice(1, -1)
     } else if (value === 'true') {
       value = true
@@ -198,10 +195,7 @@ export function loadConfigFile(path) {
   }
 
   const text = readFileSync(path, 'utf8')
-  const parsed =
-    path.endsWith('.yaml') || path.endsWith('.yml')
-      ? parseSimpleYaml(text, path)
-      : parseJson(text, path)
+  const parsed = path.endsWith('.yaml') || path.endsWith('.yml') ? parseSimpleYaml(text, path) : parseJson(text, path)
 
   return normalizeConfig(parsed)
 }
@@ -260,7 +254,7 @@ export function renderWranglerToml(config, paths = getPaths()) {
   const routes =
     config.routes.length > 0
       ? `\nroutes = [\n${config.routes
-          .map(route => `  { pattern = "${route.pattern}", zone_name = "${route.zoneName}" }`)
+          .map((route) => `  { pattern = "${route.pattern}", zone_name = "${route.zoneName}" }`)
           .join(',\n')}\n]\n`
       : ''
 
@@ -375,9 +369,7 @@ export function loadEnv(path) {
 export function getR2Credentials(configOrEnv) {
   const accessKeyId = configOrEnv.r2?.accessKeyId ?? configOrEnv.R2_ACCESS_KEY_ID
   const secretAccessKey = configOrEnv.r2?.secretAccessKey ?? configOrEnv.R2_SECRET_ACCESS_KEY
-  const endpoint = configOrEnv.r2?.accountId
-    ? r2Endpoint(configOrEnv.r2.accountId)
-    : configOrEnv.R2_ENDPOINT
+  const endpoint = configOrEnv.r2?.accountId ? r2Endpoint(configOrEnv.r2.accountId) : configOrEnv.R2_ENDPOINT
 
   if (!accessKeyId || !secretAccessKey || !endpoint) {
     return null
@@ -407,7 +399,7 @@ export async function run(command, args, { allowFailure = false, dryRun = false,
       child.stdin.write(input)
       child.stdin.end()
     }
-    child.on('close', code => {
+    child.on('close', (code) => {
       if (code !== 0 && !allowFailure) {
         reject(new Error(`Command failed (${code}): ${printable}`))
         return
@@ -421,20 +413,15 @@ export async function putSecret(name, value, { dryRun = false, paths = getPaths(
   if (!value) {
     return
   }
-  await run(
-    paths.wrangler,
-    ['secret', 'put', name, '--config', paths.wranglerConfig],
-    {
-      dryRun,
-      input: value,
-      cwd: paths.projectRoot
-    }
-  )
+  await run(paths.wrangler, ['secret', 'put', name, '--config', paths.wranglerConfig], {
+    dryRun,
+    input: value,
+    cwd: paths.projectRoot
+  })
 }
 
 export async function emptyBucket({ bucket, endpoint, accessKeyId, secretAccessKey, dryRun }) {
-  const { S3Client, ListObjectsV2Command, DeleteObjectsCommand } =
-    requireFromPackage('@aws-sdk/client-s3')
+  const { S3Client, ListObjectsV2Command, DeleteObjectsCommand } = requireFromPackage('@aws-sdk/client-s3')
 
   const client = new S3Client({
     region: 'auto',
@@ -454,9 +441,7 @@ export async function emptyBucket({ bucket, endpoint, accessKeyId, secretAccessK
       })
     )
 
-    const objects = (list.Contents ?? [])
-      .filter(item => item.Key)
-      .map(item => ({ Key: item.Key }))
+    const objects = (list.Contents ?? []).filter((item) => item.Key).map((item) => ({ Key: item.Key }))
 
     if (objects.length > 0) {
       if (dryRun) {
@@ -520,4 +505,3 @@ export function resolveTeardownConfig(paths = getPaths()) {
     r2Credentials: getR2Credentials(env)
   }
 }
-

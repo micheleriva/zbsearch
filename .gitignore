@@ -6,8 +6,10 @@ dist/
 tmp/
 **/tmp/
 node_modules/
-packages/plugin-docusaurus-sandbox/build
+packages/plugin-docusaurus/lib/
+sandboxes/*/build/
 playwright-report
+test-results
 .dev
 .DS_Store
 .turbo

@@ -217,9 +217,7 @@ async function main() {
   }
 
   const dryRun = flags.has('dry-run')
-  const configPath =
-    options.config ??
-    resolveConfigFile(paths)
+  const configPath = options.config ?? resolveConfigFile(paths)
 
   let config
   if (flags.has('init')) {
@@ -238,9 +236,7 @@ async function main() {
     console.log(`Using config: ${configPath}`)
   } else {
     console.log(`No config file found. Run: npx zbsearch-edge-setup --init`)
-    console.log(
-      `Or copy ${templatePath('config.example.json')} to ${CONFIG_BASENAME} in your project directory`
-    )
+    console.log(`Or copy ${templatePath('config.example.json')} to ${CONFIG_BASENAME} in your project directory`)
     process.exit(1)
   }
 
@@ -282,7 +278,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(err instanceof Error ? err.message : err)
   process.exit(1)
 })

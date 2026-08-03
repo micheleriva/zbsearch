@@ -31,7 +31,10 @@ async function generateTestDBInstance() {
   })
 
   await insert(db, { quote: 'The only way to do great work is to love what you do.', author: 'Steve Jobs' })
-  await insert(db, { quote: 'I have not failed. I have found 10,000 ways that will not work.', author: 'Thomas A. Edison' })
+  await insert(db, {
+    quote: 'I have not failed. I have found 10,000 ways that will not work.',
+    author: 'Thomas A. Edison'
+  })
   await insert(db, { quote: 'Be yourself; everyone else is already taken.', author: 'Oscar Wilde' })
 
   return db

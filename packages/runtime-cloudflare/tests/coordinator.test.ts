@@ -42,9 +42,7 @@ describe('IndexCoordinator', () => {
   it('serializes concurrent appends without lost updates', async () => {
     const { bucket, coordinator } = makeCoordinator()
 
-    await Promise.all(
-      Array.from({ length: 20 }, (_, i) => coordinator.appendOps('idx', [op(String(i), i + 1)]))
-    )
+    await Promise.all(Array.from({ length: 20 }, (_, i) => coordinator.appendOps('idx', [op(String(i), i + 1)])))
 
     const head = await getBufferHead(storageOf(bucket), 'idx')
     assert.equal(head.opCount, 20)
@@ -86,12 +84,14 @@ describe('IndexCoordinator', () => {
     assert.ok(frozen.frozenSegmentKeys[0]!.startsWith(`${walSegmentsPrefix('idx')}0000000001-0000000002_`))
     assert.ok(!bucket.keys().includes(walOpenSegmentKey('idx')))
 
-    const meta = await coordinator.finalizeAfterRebuild('idx', frozen.frozenSegmentKeys, {
-      version: 'v1',
-      documents: 2,
-      indexSizeBytes: 100,
-      lastRebuildAt: new Date().toISOString()
-    }).catch(() => null)
+    const meta = await coordinator
+      .finalizeAfterRebuild('idx', frozen.frozenSegmentKeys, {
+        version: 'v1',
+        documents: 2,
+        indexSizeBytes: 100,
+        lastRebuildAt: new Date().toISOString()
+      })
+      .catch(() => null)
 
     assert.equal(meta, null)
     assert.equal((await readBufferOps(storageOf(bucket), 'idx')).length, 0)

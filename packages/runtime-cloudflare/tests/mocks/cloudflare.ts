@@ -32,11 +32,7 @@ export class MockR2Bucket {
     opts?: { httpMetadata?: { contentType?: string } }
   ): Promise<{ httpEtag: string }> {
     const bytes =
-      body instanceof Uint8Array
-        ? body
-        : typeof body === 'string'
-          ? new TextEncoder().encode(body)
-          : new Uint8Array()
+      body instanceof Uint8Array ? body : typeof body === 'string' ? new TextEncoder().encode(body) : new Uint8Array()
     const httpEtag = `"${crypto.randomUUID()}"`
     this.objects.set(key, { body: bytes, httpEtag })
     if (opts?.httpMetadata?.contentType) {
@@ -112,16 +108,12 @@ export class MockDurableObjectNamespace {
     const key = String(id)
     let instance = this.instances.get(key)
     if (!instance) {
-      instance = new IndexCoordinator(
-        new MockDurableObjectState() as unknown as DurableObjectState,
-        this.env
-      )
+      instance = new IndexCoordinator(new MockDurableObjectState() as unknown as DurableObjectState, this.env)
       this.instances.set(key, instance)
     }
     const coordinator = instance
     return {
-      fetch: (input: Request | string, init?: RequestInit) =>
-        coordinator.fetch(new Request(input, init))
+      fetch: (input: Request | string, init?: RequestInit) => coordinator.fetch(new Request(input, init))
     } as unknown as DurableObjectStub
   }
 }

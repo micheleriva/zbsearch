@@ -6,6 +6,8 @@ packages:
 
 allowBuilds:
   '@swc/core': true
+  # Pulled in by the Docusaurus sandbox. Its postinstall only prints a banner.
+  core-js: false
   esbuild: true
   sharp: true
   workerd: false

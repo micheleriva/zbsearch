@@ -241,16 +241,9 @@ export async function runShardedSearch(
       try {
         const result = options.executeShardSearch
           ? await options.executeShardSearch(shardId, { ...params, limit: offset + limit, offset: 0 })
-          : await runSearch(
-              storage,
-              cache,
-              shardId,
-              { ...params, limit: offset + limit, offset: 0 },
-              options
-            )
+          : await runSearch(storage, cache, shardId, { ...params, limit: offset + limit, offset: 0 }, options)
         return { indexId: shardId, result }
       } catch (err) {
-
         if (err instanceof EdgeApiError && err.status === 404) {
           return null
         }
@@ -399,7 +392,6 @@ export async function importShardedDocuments(
       name: options.create.name || logicalId,
       shards
     })
-
   } else {
     if (!isShardGroupMeta(group)) {
       throw badRequest(`Index ${logicalId} is not a shard group; import without shard routing`)

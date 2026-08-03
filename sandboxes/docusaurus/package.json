@@ -1,0 +1,49 @@
+{
+  "name": "@zbsearch/sandbox-docusaurus",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Docusaurus site used to develop and end-to-end test @zbsearch/plugin-docusaurus",
+  "scripts": {
+    "start": "docusaurus start --port 3210 --no-open",
+    "build": "docusaurus build",
+    "serve": "docusaurus serve --port 3211",
+    "clear": "docusaurus clear",
+    "lint": "exit 0",
+    "test": "playwright test && playwright test --config playwright.dev.config.ts",
+    "test:dev": "playwright test --config playwright.dev.config.ts",
+    "pretest": "playwright install --with-deps chromium",
+    "test:prod": "playwright test"
+  },
+  "dependencies": {
+    "@docusaurus/core": "^3.10.2",
+    "@docusaurus/preset-classic": "^3.10.2",
+    "@mdx-js/react": "^3.1.0",
+    "@zbsearch/plugin-docusaurus": "workspace:*",
+    "clsx": "^2.1.1",
+    "prism-react-renderer": "^2.4.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@docusaurus/module-type-aliases": "^3.10.2",
+    "@docusaurus/tsconfig": "^3.10.2",
+    "@docusaurus/types": "^3.10.2",
+    "@playwright/test": "^1.56.0",
+    "typescript": "~5.9.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.5%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 3 chrome version",
+      "last 3 firefox version",
+      "last 5 safari version"
+    ]
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

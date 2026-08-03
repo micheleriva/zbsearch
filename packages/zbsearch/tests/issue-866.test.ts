@@ -64,7 +64,7 @@ t.test('issue-866: exact search should only match exact terms', async (t) => {
     await insert(db, { name: 'apple' })
     await insert(db, { name: 'application' })
     await insert(db, { name: 'app' })
-    
+
     const noExact = await search(db, {
       term: 'app',
       prefix: true

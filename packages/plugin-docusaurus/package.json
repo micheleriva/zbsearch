@@ -1,0 +1,78 @@
+{
+  "name": "@zbsearch/plugin-docusaurus",
+  "version": "3.3.4",
+  "description": "Make ZBSearch the default search engine of your Docusaurus site",
+  "keywords": [
+    "zbsearch",
+    "docusaurus",
+    "docusaurus-plugin",
+    "docusaurus-theme",
+    "search",
+    "full-text search"
+  ],
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./lib/index.cjs",
+  "module": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "require": "./lib/index.cjs"
+    },
+    "./client": {
+      "types": "./lib/client/index.d.ts",
+      "import": "./lib/client/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "src/theme"
+  ],
+  "bugs": {
+    "url": "https://github.com/micheleriva/zbsearch/issues"
+  },
+  "homepage": "https://github.com/micheleriva/zbsearch#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/micheleriva/zbsearch.git"
+  },
+  "scripts": {
+    "build": "tsup --config tsup.lib.js && tsup --config tsup.theme.js && tsc -p . --emitDeclarationOnly",
+    "lint": "exit 0",
+    "test": "node --test --import tsx test/*.test.ts"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@docusaurus/core": "^3.0.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "dependencies": {
+    "@zbsearch/searchbox-react": "workspace:*",
+    "github-slugger": "^2.0.0",
+    "zbsearch": "workspace:*"
+  },
+  "devDependencies": {
+    "@docusaurus/core": "^3.10.2",
+    "@docusaurus/module-type-aliases": "^3.10.2",
+    "@docusaurus/types": "^3.10.2",
+    "@types/node": "^24.7.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tsup": "^8.5.1",
+    "tsx": "^4.20.6",
+    "typescript": "^7.0.2"
+  },
+  "author": {
+    "name": "Michele Riva",
+    "email": "riva.michele.95@gmail.com",
+    "url": "https://github.com/MicheleRiva"
+  }
+}

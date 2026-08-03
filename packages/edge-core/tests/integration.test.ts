@@ -57,10 +57,7 @@ describe('integration', () => {
     )
     await handleRequest(ctx, makeRequest('POST', '/v1/indexes/inventory/rebuild'))
 
-    search = await handleRequest(
-      ctx,
-      makeRequest('POST', '/v1/indexes/inventory/search', { body: { term: 'banana' } })
-    )
+    search = await handleRequest(ctx, makeRequest('POST', '/v1/indexes/inventory/search', { body: { term: 'banana' } }))
     assert.ok((search.body as { count: number }).count >= 1)
   })
 
@@ -113,10 +110,7 @@ describe('integration', () => {
     const storage = new MemoryObjectStorage()
     const ctx = { storage, cache: new NoopShardCache() }
 
-    await handleRequest(
-      ctx,
-      makeRequest('POST', '/v1/indexes', { body: { name: 'dup', schema: { x: 'string' } } })
-    )
+    await handleRequest(ctx, makeRequest('POST', '/v1/indexes', { body: { name: 'dup', schema: { x: 'string' } } }))
     const dup = await handleRequest(
       ctx,
       makeRequest('POST', '/v1/indexes', { body: { name: 'dup', schema: { x: 'string' } } })
@@ -152,10 +146,7 @@ describe('integration', () => {
       })
     )
 
-    await handleRequest(
-      routerCtx,
-      makeRequest('PUT', '/v1/indexes/auto/documents/1', { body: { title: 'Alpha' } })
-    )
+    await handleRequest(routerCtx, makeRequest('PUT', '/v1/indexes/auto/documents/1', { body: { title: 'Alpha' } }))
 
     const write = await handleRequest(
       routerCtx,
@@ -186,10 +177,13 @@ describe('registry errors', () => {
   it('getIndexMeta throws EdgeApiError for missing index', async () => {
     const { getIndexMeta } = await import('../src/registry.js')
     const storage = new MemoryObjectStorage()
-    await assert.rejects(() => getIndexMeta(storage, 'missing'), (err: unknown) => {
-      assert.ok(err instanceof EdgeApiError)
-      assert.equal((err as EdgeApiError).status, 404)
-      return true
-    })
+    await assert.rejects(
+      () => getIndexMeta(storage, 'missing'),
+      (err: unknown) => {
+        assert.ok(err instanceof EdgeApiError)
+        assert.equal((err as EdgeApiError).status, 404)
+        return true
+      }
+    )
   })
 })

@@ -90,7 +90,11 @@ export default {
           })
           if (!res.ok) {
             const body = (await res.json().catch(() => ({}))) as { error?: { code?: string; message?: string } }
-            throw new EdgeApiError(res.status, body.error?.code ?? 'SHARD_SEARCH_FAILED', body.error?.message ?? `Shard search failed with HTTP ${res.status}`)
+            throw new EdgeApiError(
+              res.status,
+              body.error?.code ?? 'SHARD_SEARCH_FAILED',
+              body.error?.message ?? `Shard search failed with HTTP ${res.status}`
+            )
           }
           return (await res.json()) as Record<string, unknown>
         }
@@ -126,7 +130,6 @@ export default {
     const indexes = await listIndexMetas(storage)
 
     for (const index of indexes) {
-
       if (isShardGroupMeta(index)) {
         continue
       }

@@ -34,10 +34,7 @@ describe('router', () => {
 
   it('enforces bearer auth when api key is set', async () => {
     const storage = new MemoryObjectStorage()
-    const unauthorized = await handleRequest(
-      ctx(storage, 'secret-key'),
-      makeRequest('GET', '/v1/indexes')
-    )
+    const unauthorized = await handleRequest(ctx(storage, 'secret-key'), makeRequest('GET', '/v1/indexes'))
     assert.equal(unauthorized.status, 401)
 
     const authorized = await handleRequest(
@@ -208,10 +205,7 @@ describe('router', () => {
     const storage = new MemoryObjectStorage()
     await createIndex(storage, { name: 'docs', schema: { title: 'string' } })
 
-    const del = await handleRequest(
-      ctx(storage),
-      makeRequest('DELETE', '/v1/indexes/docs/documents/sku-1')
-    )
+    const del = await handleRequest(ctx(storage), makeRequest('DELETE', '/v1/indexes/docs/documents/sku-1'))
     assert.equal(del.status, 202)
   })
 
@@ -243,10 +237,7 @@ describe('router', () => {
       makeRequest('PUT', '/v1/indexes/search/documents/a', { body: { title: 'Alpha Search Term' } })
     )
 
-    const rebuild = await handleRequest(
-      ctx(storage),
-      makeRequest('POST', '/v1/indexes/search/rebuild')
-    )
+    const rebuild = await handleRequest(ctx(storage), makeRequest('POST', '/v1/indexes/search/rebuild'))
     assert.equal(rebuild.status, 202)
     assert.equal((rebuild.body as { status: string }).status, 'rebuilt')
 
@@ -284,16 +275,10 @@ describe('router', () => {
       rebuildThresholdOps: 2
     }
 
-    await handleRequest(
-      routerCtx,
-      makeRequest('PUT', '/v1/indexes/auto-flush/documents/1', { body: { title: 'One' } })
-    )
+    await handleRequest(routerCtx, makeRequest('PUT', '/v1/indexes/auto-flush/documents/1', { body: { title: 'One' } }))
     assert.equal(scheduled.length, 0)
 
-    await handleRequest(
-      routerCtx,
-      makeRequest('PUT', '/v1/indexes/auto-flush/documents/2', { body: { title: 'Two' } })
-    )
+    await handleRequest(routerCtx, makeRequest('PUT', '/v1/indexes/auto-flush/documents/2', { body: { title: 'Two' } }))
     assert.equal(scheduled.length, 1)
 
     await scheduled[0]

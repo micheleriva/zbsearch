@@ -68,11 +68,14 @@ describe('registry', () => {
 
   it('throws notFound for missing index', async () => {
     const storage = new MemoryObjectStorage()
-    await assert.rejects(() => getIndexMeta(storage, 'missing'), (err: unknown) => {
-      assert.ok(err instanceof EdgeApiError)
-      assert.equal((err as EdgeApiError).status, 404)
-      return true
-    })
+    await assert.rejects(
+      () => getIndexMeta(storage, 'missing'),
+      (err: unknown) => {
+        assert.ok(err instanceof EdgeApiError)
+        assert.equal((err as EdgeApiError).status, 404)
+        return true
+      }
+    )
   })
 
   it('updates index meta timestamp on save', async () => {

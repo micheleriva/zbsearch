@@ -8,6 +8,8 @@ tmp/
 node_modules/
 packages/plugin-docusaurus/lib/
 sandboxes/*/build/
+sandboxes/*/dist/
+sandboxes/*/.astro/
 playwright-report
 test-results
 .dev

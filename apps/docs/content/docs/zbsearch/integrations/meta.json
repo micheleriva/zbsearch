@@ -1,3 +1,10 @@
 {
-  "pages": ["index", "docusaurus", "searchbox-react", "highlight"]
+  "pages": [
+    "index",
+    "docusaurus",
+    "starlight",
+    "searchbox-react",
+    "highlight",
+    "docs-index"
+  ]
 }

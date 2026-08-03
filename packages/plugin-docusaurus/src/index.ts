@@ -1,8 +1,9 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { LoadContext, Plugin } from '@docusaurus/types'
+import { buildIndex } from '@zbsearch/docs-index/node'
 import { PLUGIN_NAME, type ZBSearchGlobalData } from './shared/index.js'
-import { buildIndex, writePayload } from './node/build-index.js'
+import { writePayload } from './node/build-index.js'
 import { type AllContent, collectRecords } from './node/collect.js'
 import { resolveOptions, type ZBSearchDocusaurusOptions } from './node/options.js'
 
@@ -58,4 +59,5 @@ export default function zbsearchDocusaurus(
 }
 
 export type { ZBSearchDocusaurusOptions } from './node/options.js'
-export type { SearchRecord, ZBSearchGlobalData } from './shared/index.js'
+export type { SearchRecord } from '@zbsearch/docs-index'
+export type { ZBSearchGlobalData } from './shared/index.js'

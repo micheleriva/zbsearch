@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { HIERARCHY_SEPARATOR, type SearchRecord } from '../shared/index.js'
-import { parseMarkdown } from './markdown.js'
+import { HIERARCHY_SEPARATOR, type SearchRecord } from '@zbsearch/docs-index'
+import { parseMarkdown } from '@zbsearch/docs-index/node'
 import { createRouteFilter, type ResolvedOptions } from './options.js'
 
 const DOCS_PLUGIN = 'docusaurus-plugin-content-docs'

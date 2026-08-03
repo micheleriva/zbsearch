@@ -1,12 +1,9 @@
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import path from 'node:path'
 import { test } from 'node:test'
 import { create, load, search } from 'zbsearch'
-import { buildIndex, writePayload } from '../src/node/build-index.js'
-import { DEFAULT_BOOST, GENERATED_DIR, PAYLOAD_FILE, PAYLOAD_VERSION, RECORD_SCHEMA } from '../src/shared/index.js'
-import type { SearchIndexPayload, SearchRecord } from '../src/shared/index.js'
+import { buildIndex } from '../src/build.js'
+import { DEFAULT_BOOST, PAYLOAD_VERSION, RECORD_SCHEMA } from '../src/records.js'
+import type { SearchIndexPayload, SearchRecord } from '../src/records.js'
 
 const records: SearchRecord[] = [
   {
@@ -98,16 +95,4 @@ test('buildIndex handles a site with no content', async () => {
 
   assert.equal(payload.recordCount, 0)
   assert.equal((await search(rehydrate(JSON.parse(JSON.stringify(payload))), { term: 'anything' })).count, 0)
-})
-
-test('writePayload writes where the theme imports from', async () => {
-  const generatedFilesDir = await mkdtemp(path.join(tmpdir(), 'zbsearch-generated-'))
-  const file = await writePayload(generatedFilesDir, await buildIndex(records, 'english'))
-
-  assert.equal(file, path.join(generatedFilesDir, GENERATED_DIR, PAYLOAD_FILE))
-
-  const written: SearchIndexPayload = JSON.parse(await readFile(file, 'utf8'))
-
-  assert.equal(written.recordCount, 3)
-  assert.equal((await search(rehydrate(written), { term: 'cosine' })).count, 1)
 })

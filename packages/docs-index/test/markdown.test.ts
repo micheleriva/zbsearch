@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { parseMarkdown, stripInlineMarkup } from '../src/node/markdown.js'
+import { parseMarkdown, stripInlineMarkup } from '../src/markdown.js'
 
 test('stripInlineMarkup keeps link labels and drops targets', () => {
   assert.equal(stripInlineMarkup('See the [install guide](/docs/install) first.'), 'See the install guide first.')

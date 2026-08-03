@@ -1,0 +1,12 @@
+---
+import options from 'virtual:zbsearch-starlight/options'
+import SearchBox from './SearchBox'
+
+import '@zbsearch/searchbox-react/styles.css'
+import './search.css'
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+const indexUrl = `${base}/zbsearch-index.json`
+---
+
+<SearchBox client:load options={options} indexUrl={indexUrl} />

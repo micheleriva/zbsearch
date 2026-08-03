@@ -1,19 +1,10 @@
-import { DEFAULT_BOOST, type SearchBoost } from '@zbsearch/docs-index'
+import { DEFAULT_BOOST, type SearchBoost, type SearchRuntimeOptions } from '@zbsearch/docs-index'
 
-export interface CategoryLabels {
-  docs: string
-  blog: string
-  pages: string
-}
-
-export interface ZBSearchDocusaurusOptions {
+export interface ZBSearchStarlightOptions {
   language?: string
-  docs?: boolean
-  blog?: boolean
-  pages?: boolean
-  indexAllDocsVersions?: boolean
   excludeRoutes?: string[]
-  categoryLabels?: Partial<CategoryLabels>
+  categoryLabel?: string
+  indexDrafts?: boolean
   maxResults?: number
   boost?: Partial<SearchBoost>
   tolerance?: number
@@ -26,45 +17,36 @@ export interface ZBSearchDocusaurusOptions {
   labels?: Record<string, string>
 }
 
-export interface ResolvedOptions {
+export interface ResolvedOptions extends SearchRuntimeOptions {
   language: string
-  docs: boolean
-  blog: boolean
-  pages: boolean
-  indexAllDocsVersions: boolean
   excludeRoutes: string[]
-  categoryLabels: CategoryLabels
-  maxResults: number
-  boost: SearchBoost
-  tolerance: number
-  threshold: number
-  snippetLength: number
-  recentSearches: boolean
-  hotkeys: boolean
-  searchButtonLabel: string
-  labels: Record<string, string>
+  categoryLabel: string
+  indexDrafts: boolean
 }
 
-const DEFAULT_CATEGORY_LABELS: CategoryLabels = {
-  docs: 'Docs',
-  blog: 'Blog',
-  pages: 'Pages'
+export interface RouteOptions {
+  base: string
+  format: 'file' | 'directory' | 'preserve'
+  trailingSlash: 'always' | 'never' | 'ignore'
 }
 
-export function resolveOptions(options: ZBSearchDocusaurusOptions = {}): ResolvedOptions {
+export interface VirtualOptions {
+  runtime: ResolvedOptions
+  route: RouteOptions
+}
+
+export function resolveOptions(options: ZBSearchStarlightOptions = {}): ResolvedOptions {
   const labels = { ...options.labels }
+
   if (options.placeholder) {
     labels.placeholder = options.placeholder
   }
 
   return {
     language: options.language ?? 'english',
-    docs: options.docs ?? true,
-    blog: options.blog ?? true,
-    pages: options.pages ?? true,
-    indexAllDocsVersions: options.indexAllDocsVersions ?? false,
     excludeRoutes: options.excludeRoutes ?? [],
-    categoryLabels: { ...DEFAULT_CATEGORY_LABELS, ...options.categoryLabels },
+    categoryLabel: options.categoryLabel ?? 'Docs',
+    indexDrafts: options.indexDrafts ?? false,
     maxResults: options.maxResults ?? 12,
     boost: { ...DEFAULT_BOOST, ...options.boost },
     tolerance: options.tolerance ?? 1,

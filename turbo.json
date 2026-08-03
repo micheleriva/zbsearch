@@ -40,9 +40,23 @@
       "dependsOn": ["@zbsearch/highlight#build", "^build"],
       "outputs": ["dist/**"]
     },
-    "@zbsearch/plugin-docusaurus#build": {
+    "@zbsearch/docs-index#build": {
       "dependsOn": ["zbsearch#build", "@zbsearch/searchbox-react#build", "^build"],
+      "outputs": ["dist/**"]
+    },
+    "@zbsearch/plugin-docusaurus#build": {
+      "dependsOn": ["@zbsearch/docs-index#build", "^build"],
       "outputs": ["lib/**"]
+    },
+    "@zbsearch/plugin-starlight#build": {
+      "dependsOn": ["@zbsearch/docs-index#build", "^build"]
+    },
+    "@zbsearch/sandbox-starlight#build": {
+      "dependsOn": ["@zbsearch/plugin-starlight#build"],
+      "outputs": ["dist/**", ".astro/**"]
+    },
+    "@zbsearch/sandbox-starlight#test": {
+      "dependsOn": ["@zbsearch/plugin-starlight#build"]
     },
     "@zbsearch/sandbox-docusaurus#build": {
       "dependsOn": ["@zbsearch/plugin-docusaurus#build"],

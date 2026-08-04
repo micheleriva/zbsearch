@@ -1,5 +1,5 @@
 import { HIERARCHY_SEPARATOR, type SearchRecord } from '@zbsearch/docs-index'
-import { parseMarkdown } from '@zbsearch/docs-index/node'
+import { dialectOf, parseMarkdown } from '@zbsearch/docs-index/node'
 import { createRouteFilter, type ResolvedOptions, type RouteOptions } from './options.js'
 import { createPathFormatter, slugToPathname } from './routes.js'
 
@@ -44,7 +44,7 @@ export function collectRecords(entries: DocsEntry[], options: ResolvedOptions, r
     seen.add(pathname)
 
     const url = formatPath(pathname)
-    const parsed = parseMarkdown(entry.body ?? '')
+    const parsed = parseMarkdown(entry.body ?? '', { dialect: dialectOf(entry.filePath) })
     const title = entry.data?.title ?? parsed.title ?? pathname
     const breadcrumb = breadcrumbOf(entry.id)
 

@@ -55,7 +55,7 @@ export function collectRecords(entries: ContentEntry[], options: ResolvedOptions
 
     seen.add(entry.url)
 
-    const parsed = parseMarkdown(entry.src ?? '')
+    const parsed = parseMarkdown(entry.src ?? '', { dialect: 'md' })
     const title = typeof frontmatter.title === 'string' ? frontmatter.title : (parsed.title ?? entry.url)
     const breadcrumb = breadcrumbOf(entry.url)
     const url = withBase(entry.url, base)

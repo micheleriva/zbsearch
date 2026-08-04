@@ -13,5 +13,23 @@ export default defineConfig({
   dts: false,
   clean: true,
   bundle: true,
-  noExternal: ['github-slugger']
+  noExternal: [
+    'github-slugger',
+    /^mdast-util-/,
+    /^micromark/,
+    /^unist-util-/,
+    /^ccount$/,
+    /^devlop$/,
+    /^escape-string-regexp$/,
+    /^longest-streak$/,
+    /^markdown-table$/,
+    /^parse-entities$/,
+    /^character-entities/,
+    /^decode-named-character-reference$/,
+    /^stringify-entities$/,
+    /^zwitch$/,
+    /^trim-lines$/,
+    /^vfile-message$/,
+    /^unist-util-stringify-position$/
+  ]
 })

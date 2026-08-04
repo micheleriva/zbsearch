@@ -19,7 +19,18 @@ test('stripInlineMarkup removes html and jsx tags but keeps their text', () => {
 })
 
 test('stripInlineMarkup removes mdx and html comments', () => {
-  assert.equal(stripInlineMarkup('a {/* note */} b <!-- hidden --> c'), 'a b c')
+  assert.equal(stripInlineMarkup('a {/* note */} b <!-- hidden --> c', { dialect: 'mdx' }), 'a b c')
+})
+
+test('stripInlineMarkup keeps a comment that only looks like one inside inline code', () => {
+  assert.equal(
+    stripInlineMarkup('Write `{/* a comment */}` to hide it.', { dialect: 'mdx' }),
+    'Write {/* a comment */} to hide it.'
+  )
+})
+
+test('stripInlineMarkup leaves an mdx comment alone in the md dialect', () => {
+  assert.equal(stripInlineMarkup('a {/* note */} b'), 'a {/* note */} b')
 })
 
 test('stripInlineMarkup removes bare urls', () => {
@@ -160,7 +171,7 @@ test('parseMarkdown drops mdx import and export statements', () => {
   ].join('\n')
 
   assert.deepEqual(
-    parseMarkdown(source).sections.map((section) => section.content),
+    parseMarkdown(source, { dialect: 'mdx' }).sections.map((section) => section.content),
     ['Actual prose.']
   )
 })
@@ -271,4 +282,16 @@ test('dialectOf picks mdx only for an mdx extension', () => {
   assert.equal(dialectOf('/docs/a.mdx'), 'mdx')
   assert.equal(dialectOf('/docs/a.md'), 'md')
   assert.equal(dialectOf(undefined), 'md')
+})
+
+test('parseMarkdown defaults to the md dialect, matching dialectOf', () => {
+  const source = 'Intro.\n\n    # indented block\n\nAfter.'
+
+  assert.deepEqual(parseMarkdown(source).sections, parseMarkdown(source, { dialect: dialectOf(undefined) }).sections)
+})
+
+test('parseMarkdown keeps inline code that looks like an mdx comment', () => {
+  const source = '## A\n\nWrite `{/* a comment */}` to hide it.'
+
+  assert.equal(parseMarkdown(source, { dialect: 'mdx' }).sections[0].content, 'Write {/* a comment */} to hide it.')
 })

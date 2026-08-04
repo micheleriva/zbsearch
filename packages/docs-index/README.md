@@ -16,10 +16,11 @@ npm install @zbsearch/docs-index
 ## Building an index
 
 ```ts
-import { buildIndex, parseMarkdown } from '@zbsearch/docs-index/node'
+import { buildIndex, dialectOf, parseMarkdown } from '@zbsearch/docs-index/node'
 import { HIERARCHY_SEPARATOR, type SearchRecord } from '@zbsearch/docs-index'
 
-const parsed = parseMarkdown(await readFile('docs/intro.md', 'utf8'))
+const file = 'docs/intro.md'
+const parsed = parseMarkdown(await readFile(file, 'utf8'), { dialect: dialectOf(file) })
 
 const records: SearchRecord[] = parsed.sections.map((section) => ({
   title: parsed.title ?? 'Introduction',
@@ -37,6 +38,11 @@ const payload = await buildIndex(records, 'english')
 `parseMarkdown` splits a document into one section per heading. Front matter, fenced code, MDX imports and
 JSX are removed first; anchors follow the same rules Docusaurus and Starlight use, including explicit
 `{#custom-id}` syntax.
+
+The `dialect` option decides how the source is read. It defaults to `md`, which is plain CommonMark; pass
+`mdx` — or let `dialectOf(filePath)` pick from the extension — for files whose `import` and `export` lines
+carry their ESM meaning. Reading a `.md` file as `mdx` is not harmless: MDX disables indented code blocks, so
+an indented line can turn into a heading.
 
 `buildIndex` returns a JSON-serializable payload. Only `title`, `section`, `hierarchy` and `content` are
 tokenized — `url`, `category` and `path` ride along untouched and come back on every hit.

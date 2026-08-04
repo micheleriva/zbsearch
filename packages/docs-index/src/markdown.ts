@@ -107,7 +107,7 @@ function isSelfLabelledLink(node: Nodes): boolean {
   return child.type === 'text' && (child.value === node.url || `mailto:${child.value}` === node.url)
 }
 
-function textOf(node: Nodes): string {
+function textOf(node: Nodes, dialect: MarkdownDialect): string {
   if (node.type === 'html') {
     return htmlText(node.value)
   }
@@ -121,7 +121,13 @@ function textOf(node: Nodes): string {
   }
 
   if ('children' in node) {
-    return (node as Parents).children.map(textOf).join(BLOCK_CONTAINERS.has(node.type) ? ' ' : '')
+    return (node as Parents).children
+      .map((child) => textOf(child, dialect))
+      .join(BLOCK_CONTAINERS.has(node.type) ? ' ' : '')
+  }
+
+  if (node.type === 'text' && dialect === 'mdx') {
+    return node.value.replaceAll(MDX_COMMENT_RE, ' ')
   }
 
   return 'value' in node ? node.value : ''
@@ -172,14 +178,10 @@ function toTree(source: string, dialect: MarkdownDialect): Root {
   throw lastError
 }
 
-function prepare(source: string, dialect: MarkdownDialect): string {
-  return dialect === 'mdx' ? source.replaceAll(MDX_COMMENT_RE, ' ') : source
-}
-
 export function stripInlineMarkup(text: string, options: ParseMarkdownOptions = {}): string {
-  const dialect = options.dialect ?? 'mdx'
+  const dialect = options.dialect ?? 'md'
 
-  return normalize(textOf(toTree(prepare(text, dialect), dialect)))
+  return normalize(textOf(toTree(text, dialect), dialect))
 }
 
 function splitHeading(raw: string): { text: string; anchor?: string } {
@@ -193,8 +195,8 @@ function splitHeading(raw: string): { text: string; anchor?: string } {
 }
 
 export function parseMarkdown(source: string, options: ParseMarkdownOptions = {}): ParsedMarkdown {
-  const dialect = options.dialect ?? 'mdx'
-  const tree = toTree(prepare(source, dialect), dialect)
+  const dialect = options.dialect ?? 'md'
+  const tree = toTree(source, dialect)
   const slugger = new GithubSlugger()
 
   const sections: MarkdownSection[] = []
@@ -215,7 +217,7 @@ export function parseMarkdown(source: string, options: ParseMarkdownOptions = {}
     if (node.type !== 'heading') {
       title ??= frontMatterTitle(node)
 
-      const text = textOf(node)
+      const text = textOf(node, dialect)
 
       if (text !== '') {
         buffer.push(text)
@@ -230,7 +232,7 @@ export function parseMarkdown(source: string, options: ParseMarkdownOptions = {}
       sections.push(current)
     }
 
-    const { text, anchor } = splitHeading(textOf(node))
+    const { text, anchor } = splitHeading(textOf(node, dialect))
     firstHeading ??= node.depth === 1 ? text : undefined
 
     openHeadings.length = Math.max(0, node.depth - 1)

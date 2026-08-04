@@ -19,10 +19,11 @@ npm install @zbsearch/docs-index
 ## Building an index
 
 ```typescript copy
-import { buildIndex, parseMarkdown } from '@zbsearch/docs-index/node';
+import { buildIndex, dialectOf, parseMarkdown } from '@zbsearch/docs-index/node';
 import { HIERARCHY_SEPARATOR, type SearchRecord } from '@zbsearch/docs-index';
 
-const parsed = parseMarkdown(await readFile('docs/intro.md', 'utf8'));
+const file = 'docs/intro.md';
+const parsed = parseMarkdown(await readFile(file, 'utf8'), { dialect: dialectOf(file) });
 
 const records: SearchRecord[] = parsed.sections.map((section) => ({
   title: parsed.title ?? 'Introduction',
@@ -49,6 +50,12 @@ the rules Docusaurus, Starlight and VitePress all use, including explicit `{#cus
 de-duplication of repeated headings.
 
 Each section reports its `heading`, `anchor`, `level`, `ancestors` and plain-text `content`.
+
+The `dialect` option decides how the source is read, and defaults to `md` — plain CommonMark. Pass `mdx`, or
+let `dialectOf(filePath)` pick it from the extension, for files whose `import` and `export` lines carry their
+ESM meaning. The distinction matters in both directions: a `.md` paragraph may legitimately begin with the
+word "export", and MDX disables indented code blocks, so reading a `.md` file as `mdx` can turn an indented
+line into a heading. The built-in Docusaurus, Starlight and VitePress integrations set this for you.
 
 ### buildIndex
 

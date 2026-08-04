@@ -1,10 +1,13 @@
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { ServerCodeBlock } from 'fumadocs-ui/components/codeblock.rsc';
 import { cn } from '@/lib/cn';
 import { QualitySpeedChart } from '@/components/benchmarks/quality-speed-chart';
 import { SearchBoxDemo, type SearchBoxDemoDoc } from '@/components/searchbox-demo';
 import { CloudflareIcon } from '@/components/icons/cloudflare';
+import { DocusaurusIcon } from '@/components/icons/docusaurus';
+import { StarlightIcon } from '@/components/icons/starlight';
+import { VitePressIcon } from '@/components/icons/vitepress';
 import { source } from '@/lib/source';
 import {
   ArrowRight,
@@ -102,6 +105,8 @@ type Integration = {
   name: string;
   tag: string;
   description: string;
+  /** Brand logo; omit for an integration with no mark of its own. */
+  icon?: ComponentType<{ className?: string }>;
   /** Package to install; omit while the integration is still unreleased. */
   install?: string;
   /** Guide to link to; omit to render the cell as an unlinked "Soon" teaser. */
@@ -112,6 +117,7 @@ const integrations: Integration[] = [
   {
     name: 'Docusaurus',
     tag: 'Docusaurus v3',
+    icon: DocusaurusIcon,
     description:
       'Indexes your docs, blog posts, and MDX pages while Docusaurus builds, then replaces the default search bar with a ZBSearch dialog.',
     install: '@zbsearch/plugin-docusaurus',
@@ -120,6 +126,7 @@ const integrations: Integration[] = [
   {
     name: 'Starlight',
     tag: 'Astro Starlight',
+    icon: StarlightIcon,
     description:
       "Swaps Starlight's built-in Pagefind search for the same dialog, wired into your content collections.",
     install: '@zbsearch/plugin-starlight',
@@ -128,6 +135,7 @@ const integrations: Integration[] = [
   {
     name: 'VitePress',
     tag: 'VitePress',
+    icon: VitePressIcon,
     description:
       'Builds the index from VitePress’ own content loader, so results follow your srcDir, cleanUrls, and base exactly as the router does.',
     install: '@zbsearch/plugin-vitepress',
@@ -359,10 +367,11 @@ export default async function HomePage() {
   );
 }
 
-function IntegrationCell({ name, tag, description, install, href }: Integration) {
+function IntegrationCell({ name, tag, description, icon: Icon, install, href }: Integration) {
   const body = (
     <>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
+        {Icon && <Icon className="size-5 shrink-0 object-contain" />}
         <span className="font-mono text-[0.6875rem] uppercase tracking-[0.12em] text-fd-muted-foreground">
           {tag}
         </span>

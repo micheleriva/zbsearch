@@ -11,7 +11,7 @@
     "lint": "exit 0",
     "test": "playwright test && playwright test --config playwright.dev.config.ts",
     "test:dev": "playwright test --config playwright.dev.config.ts",
-    "pretest": "playwright install --with-deps chromium",
+    "pretest": "playwright install chromium",
     "test:prod": "playwright test"
   },
   "dependencies": {

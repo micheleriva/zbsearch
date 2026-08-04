@@ -1,5 +1,5 @@
-import type { SearchHit } from '@zbsearch/searchbox-react'
-import { snippetAround } from '@zbsearch/searchbox-react'
+import type { SearchHit } from '@zbsearch/searchbox-core'
+import { snippetAround } from '@zbsearch/searchbox-core'
 import type { AnyZBSearch } from 'zbsearch'
 import {
   HIERARCHY_SEPARATOR,

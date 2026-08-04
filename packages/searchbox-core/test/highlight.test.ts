@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { highlight, snippetAround } from '../src/utils/highlight.js'
+import { highlight, snippetAround } from '../src/highlight.js'
 
 test('highlight returns a single unmatched segment when nothing matches', () => {
   assert.deepEqual(highlight('Getting started', 'vector'), [{ text: 'Getting started', match: false }])

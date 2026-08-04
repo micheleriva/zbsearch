@@ -6,9 +6,9 @@ description: Turn markdown into a ZBSearch index, and query it in the browser.
 `@zbsearch/docs-index` is the engine-facing half of the documentation integrations: it turns markdown into
 search records, builds a ZBSearch index from them, and queries that index in the browser.
 
-It is the shared core behind the [Docusaurus](/docs/zbsearch/integrations/docusaurus) and
-[Starlight](/docs/zbsearch/integrations/starlight) plugins. Reach for it directly when you are wiring
-ZBSearch into a framework neither of those covers.
+It is the shared core behind the [Docusaurus](/docs/zbsearch/integrations/docusaurus),
+[Starlight](/docs/zbsearch/integrations/starlight) and [VitePress](/docs/zbsearch/integrations/vitepress)
+plugins. Reach for it directly when you are wiring ZBSearch into a framework none of those covers.
 
 ## Installation
 
@@ -45,8 +45,8 @@ Splits a document into one section per heading, so a hit can land on a heading r
 
 Front matter, fenced code, MDX `import`/`export` statements, JSX and HTML are removed first: code blocks
 match poorly and drown prose in punctuation, and JSX contributes prop names rather than words. Anchors follow
-the rules Docusaurus and Starlight both use, including explicit `{#custom-id}` syntax and de-duplication of
-repeated headings.
+the rules Docusaurus, Starlight and VitePress all use, including explicit `{#custom-id}` syntax and
+de-duplication of repeated headings.
 
 Each section reports its `heading`, `anchor`, `level`, `ancestors` and plain-text `content`.
 
@@ -83,7 +83,8 @@ ZBSearch itself is imported dynamically inside the loader, which keeps the engin
 until someone actually searches.
 
 The resulting `searcher` is exactly the shape
-[`@zbsearch/searchbox-react`](/docs/zbsearch/integrations/searchbox-react) expects, so the two drop together.
+[`@zbsearch/searchbox-react`](/docs/zbsearch/integrations/searchbox-react) and
+[`@zbsearch/searchbox-vue`](/docs/zbsearch/integrations/searchbox-vue) both expect, so they drop together.
 
 ## Entry points
 

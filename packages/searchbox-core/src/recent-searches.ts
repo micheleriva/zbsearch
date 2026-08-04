@@ -1,4 +1,4 @@
-import type { SearchHit } from '../types.js'
+import type { SearchHit } from './types.js'
 
 export interface RecentSearch {
   id: string

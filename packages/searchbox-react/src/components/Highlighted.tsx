@@ -1,5 +1,5 @@
 import { Fragment } from 'react'
-import { highlight } from '../utils/highlight.js'
+import { highlight } from '@zbsearch/searchbox-core'
 
 export interface HighlightedProps {
   text: string

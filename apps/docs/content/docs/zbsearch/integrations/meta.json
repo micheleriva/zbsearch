@@ -3,7 +3,9 @@
     "index",
     "docusaurus",
     "starlight",
+    "vitepress",
     "searchbox-react",
+    "searchbox-vue",
     "highlight",
     "docs-index"
   ]

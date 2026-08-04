@@ -36,20 +36,39 @@
     "@zbsearch/highlight#build": {
       "outputs": ["dist/**"]
     },
-    "@zbsearch/searchbox-react#build": {
+    "@zbsearch/searchbox-core#build": {
       "dependsOn": ["@zbsearch/highlight#build", "^build"],
       "outputs": ["dist/**"]
     },
+    "@zbsearch/searchbox-react#build": {
+      "dependsOn": ["@zbsearch/searchbox-core#build", "^build"],
+      "outputs": ["dist/**"]
+    },
     "@zbsearch/docs-index#build": {
-      "dependsOn": ["zbsearch#build", "@zbsearch/searchbox-react#build", "^build"],
+      "dependsOn": ["zbsearch#build", "@zbsearch/searchbox-core#build", "^build"],
       "outputs": ["dist/**"]
     },
     "@zbsearch/plugin-docusaurus#build": {
       "dependsOn": ["@zbsearch/docs-index#build", "^build"],
       "outputs": ["lib/**"]
     },
+    "@zbsearch/searchbox-vue#build": {
+      "dependsOn": ["@zbsearch/searchbox-core#build", "^build"],
+      "outputs": ["dist/**"]
+    },
+    "@zbsearch/plugin-vitepress#build": {
+      "dependsOn": ["@zbsearch/docs-index#build", "@zbsearch/searchbox-vue#build", "^build"],
+      "outputs": ["dist/**"]
+    },
+    "@zbsearch/sandbox-vitepress#build": {
+      "dependsOn": ["@zbsearch/plugin-vitepress#build"],
+      "outputs": [".vitepress/dist/**", ".vitepress/cache/**"]
+    },
+    "@zbsearch/sandbox-vitepress#test": {
+      "dependsOn": ["@zbsearch/plugin-vitepress#build"]
+    },
     "@zbsearch/plugin-starlight#build": {
-      "dependsOn": ["@zbsearch/docs-index#build", "^build"]
+      "dependsOn": ["@zbsearch/docs-index#build", "@zbsearch/searchbox-react#build", "^build"]
     },
     "@zbsearch/sandbox-starlight#build": {
       "dependsOn": ["@zbsearch/plugin-starlight#build"],

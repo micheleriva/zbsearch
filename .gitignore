@@ -10,6 +10,8 @@ packages/plugin-docusaurus/lib/
 sandboxes/*/build/
 sandboxes/*/dist/
 sandboxes/*/.astro/
+sandboxes/*/.vitepress/dist/
+sandboxes/*/.vitepress/cache/
 playwright-report
 test-results
 .dev

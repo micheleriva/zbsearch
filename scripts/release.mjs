@@ -16,10 +16,13 @@ const packages = [
   'plugin-qps',
   'plugin-pt15',
   'highlight',
+  'searchbox-core',
   'searchbox-react',
+  'searchbox-vue',
   'docs-index',
   'plugin-docusaurus',
   'plugin-starlight',
+  'plugin-vitepress',
   'stemmers',
   'stopwords',
   'tokenizers'

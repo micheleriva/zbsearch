@@ -1,0 +1,149 @@
+---
+title: Vue search box
+description: The ZBSearch search dialog as a standalone Vue 3 component.
+---
+
+`@zbsearch/searchbox-vue` is the search dialog the
+[VitePress integration](/docs/zbsearch/integrations/vitepress) renders, published on its own so you can use it
+anywhere Vue runs.
+
+It is the exact counterpart of the [React search box](/docs/zbsearch/integrations/searchbox-react): same
+markup, same stylesheet, same behaviour. Both are thin layers over `@zbsearch/searchbox-core`, which is why
+the two stay in step.
+
+## Installation
+
+```bash
+npm install @zbsearch/searchbox-vue
+```
+
+## Usage
+
+```vue copy
+<script setup lang="ts">
+import { SearchBox, SearchButton, useSearchHotkeys } from '@zbsearch/searchbox-vue';
+import type { SearchHit } from '@zbsearch/searchbox-vue';
+import '@zbsearch/searchbox-vue/styles.css';
+import { ref } from 'vue';
+
+const open = ref(false);
+
+useSearchHotkeys(() => {
+  open.value = true;
+});
+
+async function searcher(term: string, signal: AbortSignal): Promise<SearchHit[]> {
+  const response = await fetch(`/api/search?q=${encodeURIComponent(term)}`, { signal });
+
+  return response.json();
+}
+</script>
+
+<template>
+  <SearchButton @click="open = true" />
+  <SearchBox :open="open" :searcher="searcher" @close="open = false" />
+</template>
+```
+
+The dialog is fully controlled: it renders nothing until `open` is `true`, and emits `close` when the user
+dismisses it or picks a result.
+
+### Searching a local index
+
+Pairing it with a ZBSearch instance in the browser takes a few lines:
+
+```ts copy
+import { create, insertMultiple, search } from 'zbsearch';
+
+const db = create({ schema: { title: 'string', content: 'string' } });
+await insertMultiple(db, documents);
+
+const searcher = async (term: string) => {
+  const results = await search(db, { term, limit: 12 });
+
+  return results.hits.map((hit) => ({
+    id: String(hit.id),
+    url: hit.document.url,
+    title: hit.document.title,
+    snippet: hit.document.content,
+  }));
+};
+```
+
+## Hits
+
+```typescript
+interface SearchHit {
+  id: string;            // unique across the result set
+  url: string;           // where the hit points
+  title: string;         // title of the page it belongs to
+  section?: string;      // heading it was extracted from
+  snippet?: string;      // excerpt of the matching content
+  breadcrumb?: string[]; // ancestor headings, outermost first
+  category?: string;     // label such as 'Docs', used to tag groups
+}
+```
+
+Hits that share a page — ignoring the fragment — are grouped under one heading automatically.
+
+The `searcher` receives an `AbortSignal` that is aborted as soon as the query becomes stale. Every superseded
+request is discarded, so a slow searcher can never overwrite the results of a newer one.
+
+## Props and events
+
+| Prop | Default | Description |
+| --- | --- | --- |
+| `open` | — | Whether the dialog is visible |
+| `searcher` | — | Resolves a query to hits |
+| `onNavigate` | full page load | Opens a result; pass a router-aware function to keep client-side navigation |
+| `labels` | English defaults | Copy overrides |
+| `debounceMs` | `0` | Milliseconds to wait after the last keystroke |
+| `recentSearches` | `true` | Remember and replay opened results |
+| `recentSearchesKey` | `'zbsearch:searchbox:recent'` | `localStorage` key backing that history |
+
+`SearchBox` emits `close`; `SearchButton` emits `click`.
+
+<Callout type='info'>
+Leave `debounceMs` at `0` when searching a local index: ZBSearch answers in microseconds, and a debounce only
+adds lag. Raise it when each query is a network request.
+</Callout>
+
+## Theming
+
+Every value is a `--zbs-*` custom property. Light is the default, dark follows the operating system, and an
+explicit `data-theme` attribute on any ancestor wins over both.
+
+```css copy
+:root {
+  --zbs-accent: #0aa;
+  --zbs-radius: 8px;
+  --zbs-font-family: 'Inter', sans-serif;
+}
+```
+
+The full list of properties is the same one the
+[React search box](/docs/zbsearch/integrations/searchbox-react#theming) documents.
+
+## Accessibility
+
+The dialog implements the ARIA 1.2 combobox pattern: the input is a `combobox` that owns a `listbox` and
+reports the active row through `aria-activedescendant`. Focus is trapped while it is open and restored to
+whatever was focused before, the page behind cannot scroll, and the scrollbar width is compensated so nothing
+shifts sideways.
+
+Rows are real links, so a result shows its destination in the status bar and opens in a new tab on a
+modifier-click.
+
+## Building your own UI
+
+The pieces are exported individually if the dialog is not the shape you want:
+
+| Export | Description |
+| --- | --- |
+| `useSearch` | The query state machine: debouncing, cancellation, status |
+| `useSearchHotkeys` | Binds `⌘K` / `Ctrl+K` and `/` |
+| `useScrollLock`, `useIsMounted`, `useIsApplePlatform` | Behaviour composables |
+| `Highlighted` | Renders text with matches wrapped in `<mark>` |
+| `ZBSearchWordmark` | The ZBSearch lockup |
+
+Everything framework-neutral — helpers, labels and types — is re-exported from `@zbsearch/searchbox-core`.

@@ -1,0 +1,28 @@
+{
+  "name": "@zbsearch/sandbox-vitepress",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "vitepress dev --port 3230",
+    "build": "vitepress build",
+    "serve": "vitepress preview --port 3231",
+    "lint": "exit 0",
+    "pretest": "playwright install chromium",
+    "test": "playwright test && playwright test --config playwright.dev.config.ts",
+    "test:prod": "playwright test",
+    "test:dev": "playwright test --config playwright.dev.config.ts"
+  },
+  "dependencies": {
+    "@zbsearch/plugin-vitepress": "workspace:*",
+    "vitepress": "^1.6.4",
+    "vue": "^3.5.40"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0"
+  },
+  "description": "VitePress site used to develop and end-to-end test @zbsearch/plugin-vitepress",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

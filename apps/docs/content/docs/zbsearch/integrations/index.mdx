@@ -16,26 +16,29 @@ query ever leaves the page.
 | --- | --- |
 | [`@zbsearch/plugin-docusaurus`](/docs/zbsearch/integrations/docusaurus) | Makes ZBSearch the search engine of a Docusaurus site |
 | [`@zbsearch/plugin-starlight`](/docs/zbsearch/integrations/starlight) | Makes ZBSearch the search engine of an Astro Starlight site |
+| [`@zbsearch/plugin-vitepress`](/docs/zbsearch/integrations/vitepress) | Makes ZBSearch the search engine of a VitePress site |
 | [`@zbsearch/searchbox-react`](/docs/zbsearch/integrations/searchbox-react) | The React search dialog, usable on its own |
+| [`@zbsearch/searchbox-vue`](/docs/zbsearch/integrations/searchbox-vue) | The same dialog for Vue |
 | [`@zbsearch/docs-index`](/docs/zbsearch/integrations/docs-index) | Turns markdown into an index, and queries it |
 | [`@zbsearch/highlight`](/docs/zbsearch/integrations/highlight) | Highlights and trims matches inside a text |
 
-They build on each other. The framework plugins index your content with `docs-index` and render
-`searchbox-react`, which highlights matches with `highlight`. You only need to reach for the lower layers
-when you are assembling your own search experience.
+They build on each other. The framework plugins index your content with `docs-index` and render one of the
+search boxes, which highlight matches with `highlight`. The React and Vue boxes are thin layers over a
+shared core, so the three integrations behave identically. You only need to reach for the lower layers when
+you are assembling your own search experience.
 
 ## Which one do I want?
 
-If you run a **Docusaurus site**, install
-[`@zbsearch/plugin-docusaurus`](/docs/zbsearch/integrations/docusaurus). If you run an **Astro Starlight
-site**, install [`@zbsearch/plugin-starlight`](/docs/zbsearch/integrations/starlight). Both index your
-content at compile time and replace the built-in search; nothing else is required.
+Pick the plugin for your framework — [Docusaurus](/docs/zbsearch/integrations/docusaurus),
+[Starlight](/docs/zbsearch/integrations/starlight) or [VitePress](/docs/zbsearch/integrations/vitepress).
+Each indexes your content at build time and replaces the built-in search; nothing else is required.
 
 If you run **another documentation framework**, [`@zbsearch/docs-index`](/docs/zbsearch/integrations/docs-index)
 does the indexing and querying, leaving you to wire it into your framework's build.
 
-If you run **any other React application**, build an index however you like and hand the results to
-[`@zbsearch/searchbox-react`](/docs/zbsearch/integrations/searchbox-react). It is engine-agnostic: it renders
+If you run **any other application**, build an index however you like and hand the results to
+[`@zbsearch/searchbox-react`](/docs/zbsearch/integrations/searchbox-react) or
+[`@zbsearch/searchbox-vue`](/docs/zbsearch/integrations/searchbox-vue). Both are engine-agnostic: they render
 whatever your `searcher` function resolves to.
 
 If you already have a UI and only need to **mark up matches**, use

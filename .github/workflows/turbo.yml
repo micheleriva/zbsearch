@@ -34,8 +34,8 @@ jobs:
       - name: Build
         run: pnpm build
 
-      # Both sandboxes need chromium and its system libraries. Installed once,
-      # here, because turbo runs their test tasks in parallel and two concurrent
+      # Every sandbox needs chromium and its system libraries. Installed once,
+      # here, because turbo runs their test tasks in parallel and concurrent
       # `--with-deps` installs deadlock on the apt lock.
       - name: Install Playwright browsers
         run: pnpm --filter @zbsearch/sandbox-starlight exec playwright install --with-deps chromium

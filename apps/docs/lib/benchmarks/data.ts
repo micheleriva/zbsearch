@@ -73,13 +73,3 @@ export const benchmarkSuites: BenchmarkSuite[] = [
   parseSuite(complexFiltersJson),
 ];
 
-export const engineColors: Record<BenchmarkEngine, string> = {
-  'ZBSearch (BM25)': 'oklch(0.55 0.14 145)',
-  'ZBSearch (QPS)': 'oklch(0.58 0.12 165)',
-  'ZBSearch (PT15)': 'oklch(0.62 0.11 125)',
-  Orama: 'oklch(0.52 0.14 250)',
-  MiniSearch: 'oklch(0.62 0.16 55)',
-  FlexSearch: 'oklch(0.55 0.12 210)',
-  Lunr: 'oklch(0.52 0.10 180)',
-  'Fuse.js': 'oklch(0.58 0.14 340)',
-};

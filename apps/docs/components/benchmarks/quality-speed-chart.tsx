@@ -1,11 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/cn';
-import {
-  benchmarkSuites,
-  engineColors,
-  type BenchmarkEngine,
-} from '@/lib/benchmarks/data';
+import { benchmarkSuites, type BenchmarkEngine } from '@/lib/benchmarks/data';
 import {
   averageQualityScores,
   searchQualityDatasets,
@@ -97,7 +93,7 @@ export function QualitySpeedChart() {
   return (
     <section
       id="quality-speed"
-      className="scroll-mt-24 rounded-2xl border border-fd-border bg-fd-card/80 p-4 sm:p-6"
+      className="scroll-mt-24 rounded-2xl border border-fd-border bg-fd-card p-4 sm:p-6"
     >
       <div className="mb-5">
         <h2 className="text-xl font-semibold tracking-tight text-fd-foreground">
@@ -111,7 +107,7 @@ export function QualitySpeedChart() {
             </span>
           </a>
         </h2>
-        <p className="mt-1 text-sm leading-relaxed text-fd-foreground/65">
+        <p className="mt-1 text-sm leading-relaxed text-fd-muted-foreground">
           Macro-average BEIR nDCG@10 against Node.js throughput. Up and to the right is better;
           throughput uses a logarithmic scale.
         </p>
@@ -124,10 +120,10 @@ export function QualitySpeedChart() {
             type="button"
             onClick={() => setActiveSuiteId(suite.id)}
             className={cn(
-              'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+              'rounded-md border px-3 py-1 text-xs font-medium transition-colors',
               activeSuite.id === suite.id
                 ? 'border-fd-primary/40 bg-fd-primary/10 text-fd-foreground'
-                : 'border-fd-border bg-fd-background text-fd-foreground/70 hover:text-fd-foreground',
+                : 'border-fd-border bg-fd-background text-fd-muted-foreground hover:text-fd-foreground',
             )}
           >
             {formatTitle(suite.name)}
@@ -152,13 +148,13 @@ export function QualitySpeedChart() {
                   y1={padding.top}
                   y2={height - padding.bottom}
                   className="stroke-fd-border"
-                  strokeDasharray={tick === 0 ? '0' : '3 4'}
+                  strokeWidth={1}
                 />
                 <text
                   x={tickX}
                   y={height - padding.bottom + 22}
                   textAnchor="middle"
-                  className="fill-fd-foreground/65 text-[10px]"
+                  className="fill-fd-muted-foreground font-mono text-[10px] tabular-nums"
                 >
                   {tick.toFixed(1)}
                 </text>
@@ -176,13 +172,13 @@ export function QualitySpeedChart() {
                   y1={tickY}
                   y2={tickY}
                   className="stroke-fd-border"
-                  strokeDasharray={tick === 10 ? '0' : '3 4'}
+                  strokeWidth={1}
                 />
                 <text
                   x={padding.left - 10}
                   y={tickY + 3}
                   textAnchor="end"
-                  className="fill-fd-foreground/65 text-[10px]"
+                  className="fill-fd-muted-foreground font-mono text-[10px] tabular-nums"
                 >
                   {formatOps(tick)}
                 </text>
@@ -194,7 +190,7 @@ export function QualitySpeedChart() {
             x={padding.left + chartWidth / 2}
             y={height - 8}
             textAnchor="middle"
-            className="fill-fd-foreground/70 text-[11px] font-medium"
+            className="fill-fd-muted-foreground font-mono text-[9px] uppercase tracking-[0.12em]"
           >
             Search quality · macro nDCG@10 →
           </text>
@@ -203,7 +199,7 @@ export function QualitySpeedChart() {
             y={padding.top + chartHeight / 2}
             textAnchor="middle"
             transform={`rotate(-90 14 ${padding.top + chartHeight / 2})`}
-            className="fill-fd-foreground/70 text-[11px] font-medium"
+            className="fill-fd-muted-foreground font-mono text-[9px] uppercase tracking-[0.12em]"
           >
             Throughput · ops/s →
           </text>
@@ -212,9 +208,10 @@ export function QualitySpeedChart() {
             <path
               d={frontierPath}
               fill="none"
-              className="stroke-fd-primary/35"
+              className="stroke-chart-subject"
               strokeWidth={1.5}
               strokeDasharray="5 5"
+              opacity={0.55}
             />
           )}
 
@@ -245,8 +242,8 @@ export function QualitySpeedChart() {
                     cx={x(point.quality)}
                     cy={y(point.ops)}
                     r={isQualityWinner ? 16 : 10}
-                    fill={engineColors[point.engine]}
-                    opacity={isQualityWinner ? 0.16 : 0.08}
+                    className="fill-chart-subject"
+                    opacity={isQualityWinner ? 0.2 : 0.12}
                   />
                 )}
                 {onFrontier && (
@@ -255,25 +252,37 @@ export function QualitySpeedChart() {
                     cy={y(point.ops)}
                     r={isZbsearch ? 11 : 9}
                     fill="none"
-                    className="stroke-fd-primary/35"
-                    strokeWidth={2}
+                    className="stroke-chart-subject"
+                    strokeWidth={1.5}
+                    opacity={0.55}
                   />
                 )}
                 <circle
                   cx={x(point.quality)}
                   cy={y(point.ops)}
                   r={isZbsearch ? 6 : 5}
-                  fill={engineColors[point.engine]}
-                  className="stroke-fd-background"
+                  className={cn(
+                    'stroke-fd-card',
+                    isZbsearch ? 'fill-chart-subject' : 'fill-chart-other',
+                  )}
                   strokeWidth={2}
+                />
+                {/* Hit target: the mark itself is far below the 24px minimum. */}
+                <circle
+                  cx={x(point.quality)}
+                  cy={y(point.ops)}
+                  r={14}
+                  fill="transparent"
                 />
                 <text
                   x={x(point.quality) + offset.x + (isQualityWinner ? 15 : 0)}
                   y={y(point.ops) + offset.y}
                   textAnchor={offset.anchor}
                   className={cn(
-                    'fill-fd-foreground text-[10px]',
-                    isZbsearch && 'font-semibold',
+                    'text-[10px]',
+                    isZbsearch
+                      ? 'fill-fd-foreground font-semibold'
+                      : 'fill-fd-muted-foreground',
                   )}
                 >
                   {point.engine}
@@ -282,7 +291,7 @@ export function QualitySpeedChart() {
                   <g
                     aria-hidden
                     transform={`translate(${x(point.quality) + offset.x} ${y(point.ops) + offset.y - 10}) scale(0.11)`}
-                    fill="#facc15"
+                    className="fill-chart-subject"
                   >
                     <path d="m90.102 26.301c-4.1016 0-7.3984 3.3008-7.3984 7.3984 0 2.3008 1.1016 4.3984 2.8008 5.8008l-13.203 12.602c-2.5 2.3984-6.6016 1.6016-8-1.6016l-11-24.898c2.8984-1.3008 4.8984-4.1992 4.8984-7.6016 0-4.6016-3.6992-8.3008-8.3008-8.3008-4.6016 0-8.3008 3.6992-8.3008 8.3008 0 3.3984 2 6.3008 4.8984 7.6016l-11 24.898c-1.3984 3.1992-5.5 4-8 1.6016l-12.895-12.602c1.6992-1.3984 2.8008-3.5 2.8008-5.8008 0-4.1016-3.3008-7.3984-7.3984-7.3984-4.1016 0-7.3984 3.3008-7.3984 7.3984 0 4.1016 3.3008 7.3984 7.3984 7.3984h0.30078l7.5 31.898c0.30078 1.1992 1.3008 2 2.5 2l29.695 0.003906h29.801c1.1992 0 2.1992-0.80078 2.5-2l7.5-31.898h0.30078c4.1016 0 7.3984-3.3008 7.3984-7.3984 0-4.1016-3.3008-7.4023-7.3984-7.4023z" />
                     <path d="m79.199 80.801h-58.398c-1.3984 0-2.6016 1.1992-2.6016 2.6016v4.3008c0 1.3984 1.1992 2.6016 2.6016 2.6016l29.199-0.003907h29.199c1.3984 0 2.6016-1.1992 2.6016-2.6016v-4.3008c0-1.5-1.1016-2.5977-2.6016-2.5977z" />
@@ -295,7 +304,15 @@ export function QualitySpeedChart() {
         </svg>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-fd-foreground/55">
+      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-fd-border pt-3 text-xs text-fd-muted-foreground">
+        <span className="inline-flex items-center gap-2">
+          <span className="size-2 rounded-full bg-chart-subject" />
+          ZBSearch
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span className="size-2 rounded-full bg-chart-other" />
+          Other engines
+        </span>
         <span>Dashed line and rings mark the Pareto frontier: no other engine is both faster and better.</span>
         <span>Quality and throughput use different benchmark corpora; compare the tradeoff, not absolute latency.</span>
       </div>

@@ -77,7 +77,7 @@
       "dependsOn": ["zbsearch#build"]
     },
     "@zbsearch/docs#build": {
-      "dependsOn": ["zbsearch#build"],
+      "dependsOn": ["zbsearch#build", "^build"],
       "outputs": [".next/**", "!.next/cache/**"]
     },
     "@zbsearch/edge-core#build": {

@@ -1,4 +1,7 @@
+import { version } from 'zbsearch/package.json';
+
 export const appName = 'ZBSearch';
+export const packageVersion = version;
 export const blogRoute = '/blog';
 export const benchmarksRoute = '/benchmarks';
 export const docsRoute = '/docs';

@@ -267,17 +267,19 @@ export default async function HomePage() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Same hairline grid as the integrations band: gap-px over a
+            border-coloured backdrop draws the dividers, so the cards read as one
+            block instead of twelve floating tiles. 12 items divides evenly by
+            1, 2 and 3, so no empty cell ever exposes the backdrop. */}
+        <div className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-fd-border bg-fd-border sm:grid-cols-2 lg:grid-cols-3">
           {features.map(({ title, description, icon: Icon, href }) => (
             <Link
               key={title}
               href={href}
-              className="group rounded-2xl border bg-fd-card/30 p-5 text-left backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-fd-primary/25 hover:bg-fd-card/60 hover:shadow-md"
+              className="flex flex-col bg-fd-background p-6 text-left transition-colors hover:bg-fd-muted/60"
             >
-              <div className="mb-4 inline-flex rounded-xl border bg-fd-background p-2.5 text-fd-primary transition-colors group-hover:border-fd-primary/30 group-hover:bg-fd-primary/10">
-                <Icon className="size-5" />
-              </div>
-              <h3 className="font-semibold">{title}</h3>
+              <Icon className="size-5 shrink-0 text-fd-primary" />
+              <h3 className="mt-3 text-lg font-semibold tracking-tight">{title}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-fd-muted-foreground">
                 {description}
               </p>

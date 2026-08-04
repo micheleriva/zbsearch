@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { parseMarkdown, stripInlineMarkup } from '../src/markdown.js'
+import { dialectOf, parseMarkdown, stripInlineMarkup } from '../src/markdown.js'
 
 test('stripInlineMarkup keeps link labels and drops targets', () => {
   assert.equal(stripInlineMarkup('See the [install guide](/docs/install) first.'), 'See the install guide first.')
@@ -196,4 +196,79 @@ test('parseMarkdown strips trailing closing hashes from a heading', () => {
 
 test('parseMarkdown returns nothing for an empty document', () => {
   assert.deepEqual(parseMarkdown('---\ntitle: T\n---\n').sections, [])
+})
+
+test('stripInlineMarkup keeps generics inside inline code', () => {
+  assert.equal(
+    stripInlineMarkup('Returns `Promise<Response>` and `Array<string>`.'),
+    'Returns Promise<Response> and Array<string>.'
+  )
+})
+
+test('parseMarkdown keeps md prose that starts with an esm keyword', () => {
+  const { sections } = parseMarkdown('## Persist\n\nexport your index to disk.\nSecond line.', { dialect: 'md' })
+
+  assert.equal(sections[0].content, 'export your index to disk. Second line.')
+})
+
+test('parseMarkdown drops an mdx export whose value contains a brace', () => {
+  const source = ['## A', '', 'export const meta = {', "  title: 'a } b'", '}', '', 'Real prose.'].join('\n')
+
+  assert.equal(parseMarkdown(source, { dialect: 'mdx' }).sections[0].content, 'Real prose.')
+})
+
+test('parseMarkdown reads a front matter title written as a block scalar', () => {
+  assert.equal(parseMarkdown('---\ntitle: >-\n  Multi line title\n---\n\nBody.').title, 'Multi line title')
+})
+
+test('parseMarkdown ignores a title nested under another front matter key', () => {
+  assert.equal(parseMarkdown('---\nhero:\n  title: Nested\nname: X\n---\n\nBody.').title, undefined)
+})
+
+test('parseMarkdown drops style and script blocks', () => {
+  const { sections } = parseMarkdown('## A\n\n<style>{`.x{color:red}`}</style>\n\nProse.')
+
+  assert.equal(sections[0].content, 'Prose.')
+})
+
+test('parseMarkdown keeps prose inside a multi line jsx block', () => {
+  const source = ['## A', '', '<Tabs>', '  <TabItem value="a">Inner prose</TabItem>', '</Tabs>', '', 'After.'].join(
+    '\n'
+  )
+
+  assert.equal(parseMarkdown(source, { dialect: 'mdx' }).sections[0].content, 'Inner prose After.')
+})
+
+test('parseMarkdown falls back when mdx cannot parse an explicit anchor', () => {
+  const source = ["import Tabs from '@theme/Tabs'", '', '## Hybrid search {#hybrid}', '', 'Body.'].join('\n')
+  const [section] = parseMarkdown(source, { dialect: 'mdx' }).sections
+
+  assert.equal(section.anchor, 'hybrid')
+  assert.equal(section.heading, 'Hybrid search')
+  assert.equal(section.content, 'Body.')
+})
+
+test('parseMarkdown treats an indented block as code in md and as content in mdx', () => {
+  const source = 'Intro.\n\n    # not a heading\n\nAfter.'
+
+  assert.deepEqual(
+    parseMarkdown(source, { dialect: 'md' }).sections.map((section) => section.heading),
+    ['']
+  )
+  assert.deepEqual(
+    parseMarkdown(source, { dialect: 'mdx' }).sections.map((section) => section.heading),
+    ['', 'not a heading']
+  )
+})
+
+test('parseMarkdown keeps a table row from running its cells together', () => {
+  const source = ['## T', '', '| Option | Default |', '| --- | --- |', '| language | english |'].join('\n')
+
+  assert.equal(parseMarkdown(source).sections[0].content, 'Option Default language english')
+})
+
+test('dialectOf picks mdx only for an mdx extension', () => {
+  assert.equal(dialectOf('/docs/a.mdx'), 'mdx')
+  assert.equal(dialectOf('/docs/a.md'), 'md')
+  assert.equal(dialectOf(undefined), 'md')
 })

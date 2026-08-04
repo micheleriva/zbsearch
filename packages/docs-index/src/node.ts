@@ -1,2 +1,10 @@
 export { buildIndex } from './build.js'
-export { parseMarkdown, stripInlineMarkup, type MarkdownSection, type ParsedMarkdown } from './markdown.js'
+export {
+  dialectOf,
+  type MarkdownDialect,
+  type MarkdownSection,
+  type ParsedMarkdown,
+  type ParseMarkdownOptions,
+  parseMarkdown,
+  stripInlineMarkup
+} from './markdown.js'

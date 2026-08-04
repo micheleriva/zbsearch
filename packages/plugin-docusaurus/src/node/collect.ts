@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { HIERARCHY_SEPARATOR, type SearchRecord } from '@zbsearch/docs-index'
-import { parseMarkdown } from '@zbsearch/docs-index/node'
+import { dialectOf, parseMarkdown } from '@zbsearch/docs-index/node'
 import { createRouteFilter, type ResolvedOptions } from './options.js'
 
 const DOCS_PLUGIN = 'docusaurus-plugin-content-docs'
@@ -197,7 +197,7 @@ export function collectSourceDocuments(
 
 export async function readRecords(document: SourceDocument): Promise<SearchRecord[]> {
   const source = await readFile(document.file, 'utf8')
-  const parsed = parseMarkdown(source)
+  const parsed = parseMarkdown(source, { dialect: dialectOf(document.file) })
   const title = document.title ?? parsed.title ?? document.permalink
 
   return parsed.sections

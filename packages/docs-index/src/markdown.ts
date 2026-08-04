@@ -1,4 +1,24 @@
+import * as acorn from 'acorn'
 import GithubSlugger from 'github-slugger'
+import type { Nodes, Parents, Root, RootContent } from 'mdast'
+import { directiveFromMarkdown } from 'mdast-util-directive'
+import { fromMarkdown } from 'mdast-util-from-markdown'
+import { frontmatterFromMarkdown } from 'mdast-util-frontmatter'
+import { gfmFromMarkdown } from 'mdast-util-gfm'
+import { mdxFromMarkdown } from 'mdast-util-mdx'
+import { mdxjsEsmFromMarkdown } from 'mdast-util-mdxjs-esm'
+import { directive } from 'micromark-extension-directive'
+import { frontmatter } from 'micromark-extension-frontmatter'
+import { gfm } from 'micromark-extension-gfm'
+import { mdxjs } from 'micromark-extension-mdxjs'
+import { mdxjsEsm } from 'micromark-extension-mdxjs-esm'
+import { parse as parseYaml } from 'yaml'
+
+export type MarkdownDialect = 'md' | 'mdx'
+
+export interface ParseMarkdownOptions {
+  dialect?: MarkdownDialect
+}
 
 export interface MarkdownSection {
   heading: string
@@ -13,89 +33,169 @@ export interface ParsedMarkdown {
   sections: MarkdownSection[]
 }
 
-const FRONT_MATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/
-const FRONT_MATTER_TITLE_RE = /^title:[ \t]*(.+?)[ \t]*$/m
-const FENCE_RE = /^([ \t]*)(`{3,}|~{3,})/
-const HEADING_RE = /^ {0,3}(#{1,6})[ \t]+(.*?)[ \t]*#*[ \t]*$/
-const SETEXT_RE = /^ {0,3}(=+|-+)[ \t]*$/
+export function dialectOf(filePath: string | undefined): MarkdownDialect {
+  return filePath !== undefined && /\.mdx$/i.test(filePath) ? 'mdx' : 'md'
+}
+
 const EXPLICIT_ANCHOR_RE = /\{#([^}]+)\}[ \t]*$/
-const ESM_RE = /^[ \t]*(?:import|export)\b/
-const ESM_CONTINUES_RE = /[{,][ \t]*$/
-const ADMONITION_RE = /^[ \t]*:::[a-z]*(?:\[[^\]]*\])?[ \t]*(.*)$/i
+const MDX_COMMENT_RE = /\{\s*\/\*[\s\S]*?\*\/\s*\}/g
+const HTML_TAG_RE = /<[^>]*>/g
+const HTML_EMBEDDED_RE = /^[ \t]*<(?:style|script)\b/i
+const ENTITY_RE = /&(?:nbsp|amp|lt|gt|quot|#39);/gi
 
-function countBraces(line: string): number {
-  let depth = 0
+const ENTITIES: Record<string, string> = {
+  '&nbsp;': ' ',
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'"
+}
 
-  for (const character of line) {
-    if (character === '{') {
-      depth++
-    } else if (character === '}') {
-      depth--
+const BLOCK_CONTAINERS = new Set([
+  'root',
+  'blockquote',
+  'list',
+  'listItem',
+  'containerDirective',
+  'footnoteDefinition',
+  'table',
+  'tableRow'
+])
+
+const IGNORED = new Set([
+  'code',
+  'definition',
+  'footnoteReference',
+  'image',
+  'imageReference',
+  'mdxFlowExpression',
+  'mdxTextExpression',
+  'mdxjsEsm',
+  'thematicBreak',
+  'toml',
+  'yaml'
+])
+
+function decodeEntities(value: string): string {
+  return value.replaceAll(ENTITY_RE, (entity) => ENTITIES[entity.toLowerCase()] ?? entity)
+}
+
+function normalize(value: string): string {
+  return value.replaceAll(/\s+/g, ' ').trim()
+}
+
+function htmlText(value: string): string {
+  if (HTML_EMBEDDED_RE.test(value)) {
+    return ''
+  }
+
+  return decodeEntities(value.replaceAll(HTML_TAG_RE, ' '))
+}
+
+function isEmbeddedElement(name: string | null | undefined): boolean {
+  return name === 'style' || name === 'script'
+}
+
+function isSelfLabelledLink(node: Nodes): boolean {
+  if (node.type !== 'link' || node.children.length !== 1) {
+    return false
+  }
+
+  const [child] = node.children
+
+  return child.type === 'text' && (child.value === node.url || `mailto:${child.value}` === node.url)
+}
+
+function textOf(node: Nodes): string {
+  if (node.type === 'html') {
+    return htmlText(node.value)
+  }
+
+  if (IGNORED.has(node.type) || isSelfLabelledLink(node)) {
+    return ''
+  }
+
+  if ((node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement') && isEmbeddedElement(node.name)) {
+    return ''
+  }
+
+  if ('children' in node) {
+    return (node as Parents).children.map(textOf).join(BLOCK_CONTAINERS.has(node.type) ? ' ' : '')
+  }
+
+  return 'value' in node ? node.value : ''
+}
+
+function frontMatterTitle(node: RootContent): string | undefined {
+  if (node.type !== 'yaml') {
+    return undefined
+  }
+
+  try {
+    const data: unknown = parseYaml(node.value)
+    const title = (data as Record<string, unknown> | null)?.title
+
+    return typeof title === 'string' && title !== '' ? normalize(title) : undefined
+  } catch {
+    return undefined
+  }
+}
+
+const BASE_EXTENSIONS = [frontmatter(['yaml']), gfm(), directive()]
+const BASE_MDAST_EXTENSIONS = [frontmatterFromMarkdown(['yaml']), gfmFromMarkdown(), directiveFromMarkdown()]
+
+const esmOnly = mdxjsEsm({ acorn: acorn as never, acornOptions: { ecmaVersion: 2024, sourceType: 'module' } })
+
+const MDX_ATTEMPTS = [
+  { extensions: [mdxjs()], mdastExtensions: [mdxFromMarkdown()] },
+  { extensions: [esmOnly], mdastExtensions: [mdxjsEsmFromMarkdown()] },
+  { extensions: [], mdastExtensions: [] }
+]
+
+const MD_ATTEMPTS = [{ extensions: [], mdastExtensions: [] }]
+
+function toTree(source: string, dialect: MarkdownDialect): Root {
+  let lastError: unknown
+
+  for (const attempt of dialect === 'mdx' ? MDX_ATTEMPTS : MD_ATTEMPTS) {
+    try {
+      return fromMarkdown(source, {
+        extensions: [...BASE_EXTENSIONS, ...attempt.extensions],
+        mdastExtensions: [...BASE_MDAST_EXTENSIONS, ...attempt.mdastExtensions]
+      })
+    } catch (error) {
+      lastError = error
     }
   }
 
-  return depth
+  throw lastError
 }
 
-function splitFrontMatter(source: string): { frontMatter: string; body: string } {
-  const match = FRONT_MATTER_RE.exec(source)
-
-  if (!match) {
-    return { frontMatter: '', body: source }
-  }
-  return { frontMatter: match[1], body: source.slice(match[0].length) }
+function prepare(source: string, dialect: MarkdownDialect): string {
+  return dialect === 'mdx' ? source.replaceAll(MDX_COMMENT_RE, ' ') : source
 }
 
-export function stripInlineMarkup(text: string): string {
-  return text
+export function stripInlineMarkup(text: string, options: ParseMarkdownOptions = {}): string {
+  const dialect = options.dialect ?? 'mdx'
 
-    .replaceAll(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, ' ')
-    .replaceAll(/<!--[\s\S]*?-->/g, ' ')
-
-    .replaceAll(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-
-    .replaceAll(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replaceAll(/\[([^\]]*)\]\[[^\]]*\]/g, '$1')
-
-    .replaceAll(/<\/?[A-Za-z][^>]*\/?>/g, ' ')
-
-    .replaceAll(/<https?:\/\/[^>]*>/g, ' ')
-    .replaceAll(/\bhttps?:\/\/\S+/g, ' ')
-
-    .replaceAll(/`+/g, '')
-    .replaceAll(/(\*\*|__|~~)/g, '')
-    .replaceAll(/(^|[\s(])[*_]([^*_\n]+)[*_](?=[\s).,;:!?]|$)/g, '$1$2')
-
-    .replaceAll(/^[ \t]*\|?[ \t]*:?-{2,}:?[ \t]*(\|[ \t]*:?-{2,}:?[ \t]*)*\|?[ \t]*$/gm, ' ')
-    .replaceAll(/\|/g, ' ')
-
-    .replaceAll(/^[ \t]*>[ \t]?/gm, '')
-    .replaceAll(/^[ \t]*(?:[-*+]|\d+[.)])[ \t]+/gm, '')
-    .replaceAll(/^[ \t]*(?:-{3,}|\*{3,}|_{3,})[ \t]*$/gm, ' ')
-    .replaceAll(/&nbsp;|&#160;/gi, ' ')
-    .replaceAll(/&amp;/gi, '&')
-    .replaceAll(/&lt;/gi, '<')
-    .replaceAll(/&gt;/gi, '>')
-    .replaceAll(/&quot;/gi, '"')
-    .replaceAll(/\s+/g, ' ')
-    .trim()
+  return normalize(textOf(toTree(prepare(text, dialect), dialect)))
 }
 
 function splitHeading(raw: string): { text: string; anchor?: string } {
   const match = EXPLICIT_ANCHOR_RE.exec(raw)
 
   if (!match) {
-    return { text: stripInlineMarkup(raw) }
+    return { text: normalize(raw) }
   }
-  return { text: stripInlineMarkup(raw.slice(0, match.index)), anchor: match[1].trim() }
+
+  return { text: normalize(raw.slice(0, match.index)), anchor: match[1].trim() }
 }
 
-export function parseMarkdown(source: string): ParsedMarkdown {
-  const { frontMatter, body } = splitFrontMatter(source)
+export function parseMarkdown(source: string, options: ParseMarkdownOptions = {}): ParsedMarkdown {
+  const dialect = options.dialect ?? 'mdx'
+  const tree = toTree(prepare(source, dialect), dialect)
   const slugger = new GithubSlugger()
-
-  const frontMatterTitle = FRONT_MATTER_TITLE_RE.exec(frontMatter)?.[1]
-  const title = frontMatterTitle ? stripInlineMarkup(frontMatterTitle.replace(/^['"]|['"]$/g, '')) : undefined
 
   const sections: MarkdownSection[] = []
   const intro: MarkdownSection = { heading: '', anchor: '', level: 0, ancestors: [], content: '' }
@@ -103,79 +203,25 @@ export function parseMarkdown(source: string): ParsedMarkdown {
   let buffer: string[] = []
 
   const openHeadings: string[] = []
+  let title: string | undefined
   let firstHeading: string | undefined
 
-  let fence: string | undefined
-  let skippingEsm = false
-  let esmDepth = 0
-
   const flush = () => {
-    current.content = stripInlineMarkup(buffer.join('\n'))
+    current.content = normalize(buffer.join(' '))
     buffer = []
   }
 
-  const lines = body.split(/\r?\n/)
+  for (const node of tree.children) {
+    if (node.type !== 'heading') {
+      title ??= frontMatterTitle(node)
 
-  for (let index = 0; index < lines.length; index++) {
-    const line = lines[index]
+      const text = textOf(node)
 
-    if (fence !== undefined) {
-      if (line.trimStart().startsWith(fence)) {
-        fence = undefined
-      }
-      continue
-    }
-
-    const fenceMatch = FENCE_RE.exec(line)
-
-    if (fenceMatch) {
-      fence = fenceMatch[2]
-      continue
-    }
-
-    if (skippingEsm || ESM_RE.test(line)) {
-      esmDepth += countBraces(line)
-      skippingEsm = esmDepth > 0 || ESM_CONTINUES_RE.test(line)
-
-      if (!skippingEsm) {
-        esmDepth = 0
+      if (text !== '') {
+        buffer.push(text)
       }
 
       continue
-    }
-
-    const admonition = ADMONITION_RE.exec(line)
-
-    if (admonition) {
-      if (admonition[1]) {
-        buffer.push(admonition[1])
-      }
-      continue
-    }
-
-    const headingMatch = HEADING_RE.exec(line)
-    const setextLevel =
-      !headingMatch && SETEXT_RE.test(line) && buffer.length > 0 && buffer[buffer.length - 1].trim() !== ''
-        ? line.trim().startsWith('=')
-          ? 1
-          : 2
-        : 0
-
-    if (!headingMatch && setextLevel === 0) {
-      buffer.push(line)
-      continue
-    }
-
-    let level: number
-    let rawHeading: string
-
-    if (headingMatch) {
-      level = headingMatch[1].length
-      rawHeading = headingMatch[2]
-    } else {
-      level = setextLevel
-
-      rawHeading = buffer.pop() as string
     }
 
     flush()
@@ -183,17 +229,18 @@ export function parseMarkdown(source: string): ParsedMarkdown {
     if (current === intro ? intro.content !== '' : true) {
       sections.push(current)
     }
-    const { text, anchor } = splitHeading(rawHeading)
-    firstHeading ??= level === 1 ? text : undefined
 
-    openHeadings.length = Math.max(0, level - 1)
+    const { text, anchor } = splitHeading(textOf(node))
+    firstHeading ??= node.depth === 1 ? text : undefined
+
+    openHeadings.length = Math.max(0, node.depth - 1)
     const ancestors = openHeadings.filter((heading) => heading !== undefined && heading !== '')
-    openHeadings[level - 1] = text
+    openHeadings[node.depth - 1] = text
 
     current = {
       heading: text,
       anchor: anchor ?? slugger.slug(text),
-      level,
+      level: node.depth,
       ancestors,
       content: ''
     }
@@ -204,5 +251,6 @@ export function parseMarkdown(source: string): ParsedMarkdown {
   if (current === intro ? intro.content !== '' : true) {
     sections.push(current)
   }
+
   return { title: title ?? firstHeading, sections }
 }

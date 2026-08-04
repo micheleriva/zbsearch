@@ -8,7 +8,7 @@ import {
   readRecentSearches,
   type RecentSearchStorage,
   removeRecentSearch
-} from '../src/utils/recent-searches.js'
+} from '../src/recent-searches.js'
 
 const KEY = 'test-key'
 

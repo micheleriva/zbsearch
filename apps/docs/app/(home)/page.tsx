@@ -129,7 +129,9 @@ const integrations: Integration[] = [
     name: 'VitePress',
     tag: 'VitePress',
     description:
-      'The same drop-in treatment for VitePress sites. Being built now.',
+      'Builds the index from VitePress’ own content loader, so results follow your srcDir, cleanUrls, and base exactly as the router does.',
+    install: '@zbsearch/plugin-vitepress',
+    href: '/docs/zbsearch/integrations/vitepress',
   },
 ];
 
@@ -350,7 +352,7 @@ export default async function HomePage() {
           >
             See all integrations
           </Link>{' '}
-          — including the standalone React search box and the markdown indexer they share.
+          — including the standalone React and Vue search boxes, and the markdown indexer they share.
         </p>
       </Band>
     </div>

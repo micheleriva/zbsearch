@@ -48,7 +48,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@zbsearch/searchbox-react": "workspace:*",
+    "@zbsearch/searchbox-core": "workspace:*",
     "github-slugger": "^2.0.0",
     "zbsearch": "workspace:*"
   },

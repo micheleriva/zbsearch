@@ -2,9 +2,9 @@ import { type KeyboardEvent, type MouseEvent, useCallback, useEffect, useId, use
 import { createPortal } from 'react-dom'
 import { useIsMounted, useScrollLock } from '../hooks/useHotkeys.js'
 import { useSearch } from '../hooks/useSearch.js'
-import { resolveLabels } from '../labels.js'
-import type { SearchBoxLabels, SearchHit, Searcher } from '../types.js'
-import { flattenGroups, groupHits, wrapIndex } from '../utils/group.js'
+import { resolveLabels } from '@zbsearch/searchbox-core'
+import type { SearchBoxLabels, SearchHit, Searcher } from '@zbsearch/searchbox-core'
+import { flattenGroups, groupHits, wrapIndex } from '@zbsearch/searchbox-core'
 
 import {
   addRecentSearch,
@@ -12,7 +12,7 @@ import {
   type RecentSearch,
   readRecentSearches,
   removeRecentSearch
-} from '../utils/recent-searches.js'
+} from '@zbsearch/searchbox-core'
 
 import { Highlighted } from './Highlighted.js'
 

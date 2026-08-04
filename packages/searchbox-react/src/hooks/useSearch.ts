@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { SearchHit, Searcher } from '../types.js'
+import type { SearchHit, Searcher } from '@zbsearch/searchbox-core'
 
 export type SearchStatus = 'idle' | 'loading' | 'ready' | 'error'
 

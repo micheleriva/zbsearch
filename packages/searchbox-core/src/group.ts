@@ -1,4 +1,4 @@
-import type { SearchHit, SearchHitGroup } from '../types.js'
+import type { SearchHit, SearchHitGroup } from './types.js'
 
 function pageOf(hit: SearchHit): string {
   const hash = hit.url.indexOf('#')

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { SearchHit } from '../src/types.js'
-import { flattenGroups, groupHits, wrapIndex } from '../src/utils/group.js'
+import { flattenGroups, groupHits, wrapIndex } from '../src/group.js'
 
 function hit(id: string, url: string, title: string, category?: string): SearchHit {
   return { id, url, title, category }

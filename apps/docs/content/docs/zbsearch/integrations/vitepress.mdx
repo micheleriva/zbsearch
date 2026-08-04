@@ -1,0 +1,172 @@
+---
+title: VitePress
+description: Make ZBSearch the search engine of your VitePress site.
+---
+
+`@zbsearch/plugin-vitepress` adds a ZBSearch-powered search dialog to a [VitePress](https://vitepress.dev)
+site.
+
+The index is built from VitePress's own content loader, so routes honour `srcDir`, `cleanUrls` and `base`
+exactly as the router does. Everything runs in the visitor's browser: no service, no API key, no query
+leaving the page.
+
+## Installation
+
+```bash
+npm install @zbsearch/plugin-vitepress
+```
+
+The integration has two halves, and both are required: a Vite plugin that builds the index, and a theme that
+renders the search box.
+
+Add the plugin in `.vitepress/config.ts`:
+
+```typescript copy
+import zbsearch from '@zbsearch/plugin-vitepress';
+import { defineConfig } from 'vitepress';
+
+export default defineConfig({
+  title: 'My docs',
+  vite: {
+    plugins: [zbsearch()],
+  },
+});
+```
+
+Then use the theme in `.vitepress/theme/index.ts`:
+
+```typescript copy
+export { default } from '@zbsearch/plugin-vitepress/theme';
+```
+
+Start the site and press `⌘K`.
+
+### Keeping your own theme
+
+If you already extend the default theme, render the search box yourself instead of replacing your entry
+point:
+
+```typescript copy
+import DefaultTheme from 'vitepress/theme';
+import { ZBSearchBox } from '@zbsearch/plugin-vitepress/theme';
+import { h } from 'vue';
+
+export default {
+  extends: DefaultTheme,
+  Layout: () =>
+    h(DefaultTheme.Layout, null, {
+      'nav-bar-content-before': () => h(ZBSearchBox),
+    }),
+};
+```
+
+<Callout type='info'>
+Leave VitePress's own `themeConfig.search` unset. The ZBSearch box occupies the same navbar slot, and running
+both would show two search fields.
+</Callout>
+
+## What gets indexed
+
+Every markdown page is split into one record per heading, so a result lands on the exact section that matched
+rather than the top of a long page.
+
+A record carries four searchable fields:
+
+| Field | Contents |
+| --- | --- |
+| `title` | Title of the page, from front matter or its first heading |
+| `section` | The heading the chunk was taken from |
+| `hierarchy` | Folders the page lives in, its title, and the enclosing headings |
+| `content` | The prose beneath that heading |
+
+Front matter, fenced code, JSX and imports are stripped before indexing. Permalinks and category labels
+travel with each record but are deliberately **not** tokenized, so a query never matches a URL fragment.
+
+Two kinds of page are skipped: those whose front matter sets `search: false`, and landing pages
+(`layout: home`), which are navigation rather than prose.
+
+## Options
+
+```typescript copy
+zbsearch({
+  excludeRoutes: ['/internal/**'],
+  maxResults: 12,
+});
+```
+
+### Content
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `language` | `'english'` | Language used to tokenize and stem the index |
+| `excludeRoutes` | `[]` | Routes to leave out, with `*` and `**` wildcards |
+| `categoryLabel` | `'Docs'` | Label shown next to a result's page title |
+| `indexDrafts` | `false` | Index pages marked `draft: true` |
+
+### Ranking
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `maxResults` | `12` | Maximum number of hits shown at once |
+| `boost` | `{ title: 4, section: 3, hierarchy: 1.5, content: 1 }` | Per-property ranking weights |
+| `tolerance` | `1` | Edit distance tolerated per term |
+| `threshold` | `0` | Minimum share of query terms a document must match |
+| `snippetLength` | `140` | Maximum length of the excerpt under a hit |
+
+### Interface
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `recentSearches` | `true` | Remember and replay recently opened results |
+| `hotkeys` | `true` | Bind the `⌘K` / `Ctrl+K` and `/` shortcuts |
+| `searchButtonLabel` | `'Search'` | Text of the navbar button |
+| `placeholder` | `'Search documentation…'` | Placeholder of the search input |
+| `labels` | `{}` | Copy overrides for the dialog |
+
+## How it works
+
+The plugin serves the index at `/zbsearch-index.json`. In development that is a middleware which rebuilds the
+index on every request, so an edit appears in search on reload; in a production build the same payload is
+emitted as a static asset next to your pages.
+
+The search box fetches it the first time a visitor shows intent to search, so neither the index nor ZBSearch
+itself weighs on the initial page load.
+
+## Styling
+
+Every colour, radius and font in the search box is a `--zbs-*` custom property, so you can re-theme it from
+your own CSS without overriding a single rule:
+
+```css copy
+:root {
+  --zbs-accent: #0aa;
+  --zbs-radius: 8px;
+}
+```
+
+VitePress signals dark mode with a `dark` class on `<html>`, while the search box reads `data-theme`. The
+theme component mirrors one onto the other, so the dialog follows VitePress's appearance toggle — including
+the setting it restores at boot. `data-theme` is otherwise unused by VitePress.
+
+## Keyboard
+
+| Keys | Action |
+| --- | --- |
+| `⌘K`, `Ctrl+K`, `/` | Open the search box |
+| `↑` `↓` | Move through the results, wrapping at both ends |
+| `Home` `End` | Jump to the first or last result |
+| `Enter` | Open the selected result |
+| `⌘`-click | Open a result in a new tab |
+| `Esc` | Close |
+
+## Troubleshooting
+
+**The navbar shows no search button.** The theme half is what renders it. Check that
+`.vitepress/theme/index.ts` re-exports the ZBSearch theme, or that your own theme renders `ZBSearchBox` in
+the `nav-bar-content-before` slot.
+
+**Search finds nothing.** Open `/zbsearch-index.json` directly: it should list your pages. If it is empty,
+check that `srcDir` points where you expect and that `excludeRoutes` is not broader than you meant.
+
+**Two search fields appear.** VitePress's own search is still configured; remove `themeConfig.search` from
+your config.

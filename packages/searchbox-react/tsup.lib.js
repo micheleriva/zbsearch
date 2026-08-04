@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup'
 
 const entry = new URL('src/index.ts', import.meta.url).pathname
 const outDir = new URL('dist', import.meta.url).pathname
-const styles = new URL('src/styles.css', import.meta.url).pathname
+const styles = new URL('../searchbox-core/src/styles.css', import.meta.url).pathname
 
 export default defineConfig({
   entry: [entry],

@@ -31,17 +31,17 @@ export function normalizeToken(this: DefaultTokenizer, prop: string, token: stri
     return this.normalizationCache.get(key)!
   }
 
+  // Fold diacritics BEFORE stopword lookup and stemming, so that accented and unaccented surface forms of the same word converge (e.g. Portuguese "pão"/"pao" must neither stem differently nor be treated as a stopword only in one of its two spellings, depending on how the user typed it). `stopWordsSet` is folded to match, see `createTokenizer`.
+  if (!LANGUAGES_WITH_SIGNIFICANT_DIACRITICS.has(this.language)) {
+    token = replaceDiacritics(token)
+  }
+
   // Remove stopwords if enabled
   if (this.stopWordsSet?.has(token)) {
     if (withCache) {
       this.normalizationCache.set(key, '')
     }
     return ''
-  }
-
-  // Fold diacritics BEFORE stemming, so that accented and unaccented surface forms of the same word converge to the same stem (e.g. Portuguese "pão"/"pao" must not stem differently depending on how the user typed it).
-  if (!LANGUAGES_WITH_SIGNIFICANT_DIACRITICS.has(this.language)) {
-    token = replaceDiacritics(token)
   }
 
   // Apply stemming if enabled
@@ -89,6 +89,18 @@ function splitMultilingual(input: string): string[] {
   return input.toLowerCase().match(UNICODE_WORD) ?? []
 }
 
+// Each language's splitter whitelists only the letters of its own alphabet and treats every other
+// character as a separator, so an accent it does not know about does not merely survive into the
+// token — it cuts the word in half ("gâteau" -> "g", "teau" under the English splitter). Folding
+// therefore has to happen here, before the split: `normalizeToken` only ever sees the already
+// shredded pieces. This is safe with respect to word boundaries, since folding can only map a
+// character to a plain ASCII letter, which every splitter whitelists.
+function splitByLanguage(input: string, language: SupportedLanguage): string[] {
+  const lowered = input.toLowerCase()
+  const folded = LANGUAGES_WITH_SIGNIFICANT_DIACRITICS.has(language) ? lowered : replaceDiacritics(lowered)
+  return folded.split(SPLITTERS[language])
+}
+
 function tokenize(
   this: DefaultTokenizer,
   input: string,
@@ -115,7 +127,7 @@ function tokenize(
   const parts =
     this.language === MULTILINGUAL_LANGUAGE
       ? splitMultilingual(input)
-      : input.toLowerCase().split(SPLITTERS[this.language as SupportedLanguage])
+      : splitByLanguage(input, this.language as SupportedLanguage)
   const tokens: string[] = []
   const partsLength = parts.length
 
@@ -197,7 +209,11 @@ export function createTokenizer(config: DefaultTokenizerConfig = {}): DefaultTok
     stemmerSkipProperties: new Set(config.stemmerSkipProperties ? [config.stemmerSkipProperties].flat() : []),
     tokenizeSkipProperties: new Set(config.tokenizeSkipProperties ? [config.tokenizeSkipProperties].flat() : []),
     stopWords,
-    stopWordsSet: stopWords ? new Set(stopWords) : undefined,
+    stopWordsSet: stopWords
+      ? new Set(
+          LANGUAGES_WITH_SIGNIFICANT_DIACRITICS.has(config.language) ? stopWords : stopWords.map(replaceDiacritics)
+        )
+      : undefined,
     allowDuplicates: Boolean(config.allowDuplicates),
     normalizeToken,
     normalizationCache: new Map()

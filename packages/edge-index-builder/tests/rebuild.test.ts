@@ -1,12 +1,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 
-import {
-  createIndex,
-  listIndexMetas,
-  rebuildIndex,
-  bufferUpsert
-} from '@zbsearch/edge-core'
+import { createIndex, listIndexMetas, rebuildIndex, bufferUpsert } from '@zbsearch/edge-core'
 import { MemoryObjectStorage } from './helpers/memory-storage.js'
 
 async function rebuildAll(storage: MemoryObjectStorage): Promise<void> {

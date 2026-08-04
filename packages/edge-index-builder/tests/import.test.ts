@@ -12,11 +12,7 @@ describe('import-documents', () => {
   })
 
   it('assigns unique ids for duplicate names', () => {
-    const docs = assignDocIds([
-      { company_name: 'Acme' },
-      { company_name: 'Acme' },
-      { company_name: 'Beta' }
-    ])
+    const docs = assignDocIds([{ company_name: 'Acme' }, { company_name: 'Acme' }, { company_name: 'Beta' }])
     assert.deepEqual(
       docs.map((doc) => doc.id),
       ['acme', 'acme-2', 'beta']

@@ -142,11 +142,7 @@ function aggregateSuggestions(
   )
 }
 
-function addSuggestions(
-  suggestions: Map<string, Suggestion>,
-  match: SuggestionDocumentMatch,
-  tokens: string[]
-): void {
+function addSuggestions(suggestions: Map<string, Suggestion>, match: SuggestionDocumentMatch, tokens: string[]): void {
   const completionIndex = tokens.length - 1
   const context = match.words.map((word, i) => word ?? tokens[i])
   let contextScore = 0

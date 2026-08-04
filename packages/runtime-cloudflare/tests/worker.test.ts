@@ -20,12 +20,7 @@ function makeEnv(overrides?: Partial<Env>): Env {
   }
 }
 
-async function fetchWorker(
-  path: string,
-  env: Env,
-  init?: RequestInit,
-  execCtx?: ExecutionContext
-): Promise<Response> {
+async function fetchWorker(path: string, env: Env, init?: RequestInit, execCtx?: ExecutionContext): Promise<Response> {
   const request = new Request(`http://localhost${path}`, init)
   const waitUntilTasks: Promise<unknown>[] = []
   const context =
@@ -182,7 +177,10 @@ describe('worker fetch', () => {
 
     const res = await fetchWorker('/v1/indexes', env)
     const body = (await res.json()) as { indexes: Array<{ id: string }> }
-    assert.equal(body.indexes.some((i) => i.id === 'listed'), true)
+    assert.equal(
+      body.indexes.some((i) => i.id === 'listed'),
+      true
+    )
   })
 
   it('returns status and manifest endpoints', async () => {

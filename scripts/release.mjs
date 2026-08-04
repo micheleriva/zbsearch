@@ -15,6 +15,14 @@ const packages = [
   'plugin-match-highlight',
   'plugin-qps',
   'plugin-pt15',
+  'highlight',
+  'searchbox-core',
+  'searchbox-react',
+  'searchbox-vue',
+  'docs-index',
+  'plugin-docusaurus',
+  'plugin-starlight',
+  'plugin-vitepress',
   'stemmers',
   'stopwords',
   'tokenizers'
@@ -43,7 +51,7 @@ async function execute(command, args, cwd) {
 
   const childProcess = spawn(command, args, { cwd, stdio: 'inherit' })
 
-  childProcess.on('close', code => {
+  childProcess.on('close', (code) => {
     if (code !== 0) {
       fail(new Error(`Process failed with status code ${code}.`))
     }

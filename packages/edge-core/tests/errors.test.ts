@@ -1,13 +1,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 
-import {
-  EdgeApiError,
-  badRequest,
-  conflict,
-  notFound,
-  unauthorized
-} from '../src/errors.js'
+import { EdgeApiError, badRequest, conflict, notFound, unauthorized } from '../src/errors.js'
 
 describe('errors', () => {
   it('EdgeApiError exposes status and code', () => {

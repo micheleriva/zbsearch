@@ -1,0 +1,96 @@
+---
+title: Docs index
+description: Turn markdown into a ZBSearch index, and query it in the browser.
+---
+
+`@zbsearch/docs-index` is the engine-facing half of the documentation integrations: it turns markdown into
+search records, builds a ZBSearch index from them, and queries that index in the browser.
+
+It is the shared core behind the [Docusaurus](/docs/zbsearch/integrations/docusaurus),
+[Starlight](/docs/zbsearch/integrations/starlight) and [VitePress](/docs/zbsearch/integrations/vitepress)
+plugins. Reach for it directly when you are wiring ZBSearch into a framework none of those covers.
+
+## Installation
+
+```bash
+npm install @zbsearch/docs-index
+```
+
+## Building an index
+
+```typescript copy
+import { buildIndex, parseMarkdown } from '@zbsearch/docs-index/node';
+import { HIERARCHY_SEPARATOR, type SearchRecord } from '@zbsearch/docs-index';
+
+const parsed = parseMarkdown(await readFile('docs/intro.md', 'utf8'));
+
+const records: SearchRecord[] = parsed.sections.map((section) => ({
+  title: parsed.title ?? 'Introduction',
+  section: section.heading,
+  hierarchy: ['Guides', 'Introduction', ...section.ancestors].join(HIERARCHY_SEPARATOR),
+  content: section.content,
+  url: section.anchor ? `/docs/intro#${section.anchor}` : '/docs/intro',
+  category: 'Docs',
+  path: section.ancestors.join(HIERARCHY_SEPARATOR),
+}));
+
+const payload = await buildIndex(records, 'english');
+```
+
+Serialize `payload` to JSON and ship it with your site.
+
+### parseMarkdown
+
+Splits a document into one section per heading, so a hit can land on a heading rather than a whole page.
+
+Front matter, fenced code, MDX `import`/`export` statements, JSX and HTML are removed first: code blocks
+match poorly and drown prose in punctuation, and JSX contributes prop names rather than words. Anchors follow
+the rules Docusaurus, Starlight and VitePress all use, including explicit `{#custom-id}` syntax and
+de-duplication of repeated headings.
+
+Each section reports its `heading`, `anchor`, `level`, `ancestors` and plain-text `content`.
+
+### buildIndex
+
+Returns a JSON-serializable payload carrying the index, the language it was tokenized with, and a version
+stamp the client checks before loading.
+
+Only `title`, `section`, `hierarchy` and `content` are tokenized. `url`, `category` and `path` ride along
+untouched and come back on every hit — which keeps permalinks out of the inverted index, where they would add
+weight and noise without ever improving a match.
+
+## Searching in the browser
+
+```typescript copy
+import { createIndexLoader, createSearcher } from '@zbsearch/docs-index';
+
+const loadIndex = createIndexLoader(async () => (await fetch('/zbsearch-index.json')).json());
+
+const searcher = createSearcher(loadIndex, {
+  boost: { title: 4, section: 3, hierarchy: 1.5, content: 1 },
+  maxResults: 12,
+  tolerance: 1,
+  threshold: 0,
+  snippetLength: 140,
+});
+```
+
+`createIndexLoader` fetches and rehydrates at most once per page session. Concurrent callers share one
+promise, so prefetching on hover and then opening the dialog does not fetch twice, and a failed attempt is
+forgotten so the next one retries.
+
+ZBSearch itself is imported dynamically inside the loader, which keeps the engine out of your main bundle
+until someone actually searches.
+
+The resulting `searcher` is exactly the shape
+[`@zbsearch/searchbox-react`](/docs/zbsearch/integrations/searchbox-react) and
+[`@zbsearch/searchbox-vue`](/docs/zbsearch/integrations/searchbox-vue) both expect, so they drop together.
+
+## Entry points
+
+| Entry point | Contents |
+| --- | --- |
+| `@zbsearch/docs-index` | Record shape, schema, defaults, and the browser-side loader and searcher |
+| `@zbsearch/docs-index/node` | `parseMarkdown`, `stripInlineMarkup` and `buildIndex` |
+
+The split matters: the `node` entry point pulls in a markdown parser you do not want in a browser bundle.

@@ -2,6 +2,109 @@
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
 
+/*
+ * ZBSearch design tokens, in the vite/void(0) idiom:
+ *
+ * - Geometry is tight. The whole radius scale is pulled down so corners read as
+ *   cut rather than melted; `rounded-full` is reserved for things that are
+ *   genuinely circular (dots, swatches, the theme knob).
+ * - Neutrals carry a slight violet cast rather than being flat gray, and text
+ *   runs to pure white / near-black instead of stopping short. Hairline rules
+ *   are strong enough to actually divide the layout.
+ * - One accent, taken from the logo gradient (#FD00EF -> #B500F1 -> #690C70).
+ */
+@theme {
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+  --radius-2xl: 8px;
+  --radius-3xl: 10px;
+  --radius-4xl: 12px;
+
+  --color-brand: hsl(286, 96%, 44%);
+  --color-brand-bright: hsl(295, 100%, 50%);
+
+  /*
+   * Chart marks. Two slots: the subject (ZBSearch) and everything else folded to
+   * a neutral, because a scatter is judged on all pairs and no eight-hue palette
+   * clears that gate. Stepped per mode against the card surface, not flipped.
+   * Validated all-pairs -- normal-vision dE 23.1 light / 18.3 dark, CVD 16.1 /
+   * 12.2 (>= 15 and >= 8 respectively). Every point is direct-labelled, so
+   * identity never rests on colour alone.
+   */
+  --color-chart-subject: #a423d4;
+  --color-chart-other: #736f7c;
+
+  --color-fd-primary: hsl(286, 96%, 44%);
+  --color-fd-ring: hsl(286, 96%, 44%);
+  --color-fd-background: hsl(0, 0%, 100%);
+  --color-fd-foreground: hsl(255, 15%, 8%);
+  --color-fd-muted-foreground: hsl(255, 6%, 40%);
+  --color-fd-card: hsl(255, 25%, 98%);
+  --color-fd-card-foreground: hsl(255, 15%, 8%);
+  --color-fd-muted: hsl(255, 18%, 95%);
+  --color-fd-secondary: hsl(255, 18%, 95%);
+  --color-fd-secondary-foreground: hsl(255, 15%, 8%);
+  --color-fd-accent: hsl(255, 18%, 92%);
+  --color-fd-accent-foreground: hsl(255, 15%, 8%);
+  --color-fd-popover: hsl(0, 0%, 100%);
+  --color-fd-popover-foreground: hsl(255, 15%, 8%);
+  --color-fd-border: hsl(255, 12%, 88%);
+}
+
+.dark {
+  --color-brand: hsl(285, 100%, 74%);
+  --color-brand-bright: hsl(295, 100%, 70%);
+
+  --color-chart-subject: #ba61e2;
+  --color-chart-other: #888491;
+
+  --color-fd-primary: hsl(285, 100%, 74%);
+  --color-fd-primary-foreground: hsl(255, 15%, 7%);
+  --color-fd-ring: hsl(285, 100%, 74%);
+  --color-fd-background: hsl(255, 10%, 6%);
+  --color-fd-foreground: hsl(0, 0%, 100%);
+  --color-fd-muted-foreground: hsl(255, 7%, 66%);
+  --color-fd-card: hsl(255, 10%, 9%);
+  --color-fd-card-foreground: hsl(0, 0%, 100%);
+  --color-fd-muted: hsl(255, 9%, 12%);
+  --color-fd-secondary: hsl(255, 9%, 12%);
+  --color-fd-secondary-foreground: hsl(0, 0%, 100%);
+  --color-fd-accent: hsl(255, 9%, 17%);
+  --color-fd-accent-foreground: hsl(0, 0%, 100%);
+  --color-fd-popover: hsl(255, 10%, 8%);
+  --color-fd-popover-foreground: hsl(0, 0%, 100%);
+  --color-fd-border: hsl(255, 9%, 18%);
+}
+
+/* neutral.css scopes its own surfaces to the sidebar; keep them on-system. */
+.dark #nd-sidebar {
+  --color-fd-muted: hsl(255, 9%, 12%);
+  --color-fd-secondary: hsl(255, 9%, 12%);
+  --color-fd-muted-foreground: hsl(255, 7%, 66%);
+}
+
+/* Inline copy of the search panel: no modal shell, so it needs its own box. */
+.zbs-demo-panel {
+  max-width: none;
+  height: 26rem;
+  animation: none;
+}
+
+.zbs-demo-panel .zbs-searchbox__body {
+  min-height: 0;
+}
+
+/* Search trigger: shortcut hints are plain muted glyphs, not chips. */
+#nd-nav button[data-search-full] kbd {
+  border: none;
+  background: transparent;
+  padding-inline: 1px;
+  font-size: 0.8125rem;
+}
+
 html {
   scrollbar-gutter: stable;
 }

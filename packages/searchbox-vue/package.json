@@ -1,0 +1,69 @@
+{
+  "name": "@zbsearch/searchbox-vue",
+  "version": "3.3.4",
+  "description": "Accessible Vue 3 search box UI for ZBSearch",
+  "keywords": [
+    "zbsearch",
+    "search",
+    "searchbox",
+    "vue",
+    "command palette",
+    "autocomplete"
+  ],
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "bugs": {
+    "url": "https://github.com/micheleriva/zbsearch/issues"
+  },
+  "homepage": "https://github.com/micheleriva/zbsearch#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/micheleriva/zbsearch.git"
+  },
+  "scripts": {
+    "build": "vite build && vue-tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "lint": "exit 0",
+    "test": "node --test --import tsx test/*.test.ts"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "vue": "^3.4.0"
+  },
+  "dependencies": {
+    "@zbsearch/searchbox-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.0",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "~5.9.0",
+    "vite": "^7.0.0",
+    "vue": "^3.5.40",
+    "vue-tsc": "^3.0.0"
+  },
+  "author": {
+    "name": "Michele Riva",
+    "email": "riva.michele.95@gmail.com",
+    "url": "https://github.com/MicheleRiva"
+  }
+}

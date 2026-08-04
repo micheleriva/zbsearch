@@ -3,7 +3,6 @@ import { EdgeApiError, runSearch, type ObjectStorage, type SearchInput, type Sha
 import { R2ObjectStorage, WorkersShardCache } from './storage.js'
 import type { Env } from './worker.js'
 
-
 // One Durable Object per physical shard. Group searches fan out here (one stub per shard) so every shard search runs in its own isolate with its own
 // 128MB: the total index size is not capped by a single isolate. The DO isolate also keeps edge-core's in-isolate snapshot cache warm across
 // requests, so repeat searches skip the snapshot reload entirely.

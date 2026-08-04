@@ -91,25 +91,17 @@ async function main() {
 
   step(`Deleting Worker "${workerName}"`)
   for (const secret of SECRET_NAMES) {
-    await run(
-      paths.wrangler,
-      ['secret', 'delete', secret, '--config', paths.wranglerConfig],
-      {
-        allowFailure: true,
-        dryRun,
-        cwd: paths.projectRoot
-      }
-    )
-  }
-  await run(
-    paths.wrangler,
-    ['delete', workerName, '--config', paths.wranglerConfig, '--force'],
-    {
+    await run(paths.wrangler, ['secret', 'delete', secret, '--config', paths.wranglerConfig], {
       allowFailure: true,
       dryRun,
       cwd: paths.projectRoot
-    }
-  )
+    })
+  }
+  await run(paths.wrangler, ['delete', workerName, '--config', paths.wranglerConfig, '--force'], {
+    allowFailure: true,
+    dryRun,
+    cwd: paths.projectRoot
+  })
 
   if (keepBuckets) {
     console.log('\nDone. R2 buckets were left intact (--keep-buckets).')
@@ -117,9 +109,7 @@ async function main() {
   }
 
   if (!r2Credentials) {
-    console.log(
-      `\nNote: R2 API credentials are missing from config or .env. Object deletion will be skipped.`
-    )
+    console.log(`\nNote: R2 API credentials are missing from config or .env. Object deletion will be skipped.`)
     console.log('Fill zbsearch.edge.config.json or .env and rerun,')
     console.log('or empty buckets manually in the Cloudflare dashboard.\n')
   }
@@ -149,7 +139,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(err instanceof Error ? err.message : err)
   process.exit(1)
 })

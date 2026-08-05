@@ -89,18 +89,6 @@ function splitMultilingual(input: string): string[] {
   return input.toLowerCase().match(UNICODE_WORD) ?? []
 }
 
-// Each language's splitter whitelists only the letters of its own alphabet and treats every other
-// character as a separator, so an accent it does not know about does not merely survive into the
-// token — it cuts the word in half ("gâteau" -> "g", "teau" under the English splitter). Folding
-// therefore has to happen here, before the split: `normalizeToken` only ever sees the already
-// shredded pieces. This is safe with respect to word boundaries, since folding can only map a
-// character to a plain ASCII letter, which every splitter whitelists.
-function splitByLanguage(input: string, language: SupportedLanguage): string[] {
-  const lowered = input.toLowerCase()
-  const folded = LANGUAGES_WITH_SIGNIFICANT_DIACRITICS.has(language) ? lowered : replaceDiacritics(lowered)
-  return folded.split(SPLITTERS[language])
-}
-
 function tokenize(
   this: DefaultTokenizer,
   input: string,
@@ -127,7 +115,7 @@ function tokenize(
   const parts =
     this.language === MULTILINGUAL_LANGUAGE
       ? splitMultilingual(input)
-      : splitByLanguage(input, this.language as SupportedLanguage)
+      : input.toLowerCase().split(SPLITTERS[this.language as SupportedLanguage])
   const tokens: string[] = []
   const partsLength = parts.length
 

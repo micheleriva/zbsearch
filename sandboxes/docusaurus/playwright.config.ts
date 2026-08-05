@@ -17,7 +17,7 @@ export default defineConfig({
   },
   projects: [{ name: 'production', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: `pnpm build && pnpm exec docusaurus serve --port ${PORT}`,
+    command: `pnpm build && pnpm exec docusaurus serve --port ${PORT} --no-open`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 300_000,

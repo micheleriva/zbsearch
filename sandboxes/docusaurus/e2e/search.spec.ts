@@ -224,6 +224,7 @@ test('an opened result comes back as a recent search', async ({ page }) => {
   await query(box, 'embeddings')
   await box.hits.first().click()
   await expect(box.dialog).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Embeddings' })).toBeVisible()
 
   await openSearch(page)
 
@@ -237,6 +238,8 @@ test('a recent search can be removed', async ({ page }) => {
 
   await query(box, 'embeddings')
   await box.hits.first().click()
+  await expect(box.dialog).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Embeddings' })).toBeVisible()
 
   await openSearch(page)
   await expect(box.hits).toHaveCount(1)

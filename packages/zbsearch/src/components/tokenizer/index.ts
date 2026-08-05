@@ -31,17 +31,17 @@ export function normalizeToken(this: DefaultTokenizer, prop: string, token: stri
     return this.normalizationCache.get(key)!
   }
 
+  // Fold diacritics BEFORE stopword lookup and stemming, so that accented and unaccented surface forms of the same word converge (e.g. Portuguese "pão"/"pao" must neither stem differently nor be treated as a stopword only in one of its two spellings, depending on how the user typed it). `stopWordsSet` is folded to match, see `createTokenizer`.
+  if (!LANGUAGES_WITH_SIGNIFICANT_DIACRITICS.has(this.language)) {
+    token = replaceDiacritics(token)
+  }
+
   // Remove stopwords if enabled
   if (this.stopWordsSet?.has(token)) {
     if (withCache) {
       this.normalizationCache.set(key, '')
     }
     return ''
-  }
-
-  // Fold diacritics BEFORE stemming, so that accented and unaccented surface forms of the same word converge to the same stem (e.g. Portuguese "pão"/"pao" must not stem differently depending on how the user typed it).
-  if (!LANGUAGES_WITH_SIGNIFICANT_DIACRITICS.has(this.language)) {
-    token = replaceDiacritics(token)
   }
 
   // Apply stemming if enabled
@@ -197,7 +197,11 @@ export function createTokenizer(config: DefaultTokenizerConfig = {}): DefaultTok
     stemmerSkipProperties: new Set(config.stemmerSkipProperties ? [config.stemmerSkipProperties].flat() : []),
     tokenizeSkipProperties: new Set(config.tokenizeSkipProperties ? [config.tokenizeSkipProperties].flat() : []),
     stopWords,
-    stopWordsSet: stopWords ? new Set(stopWords) : undefined,
+    stopWordsSet: stopWords
+      ? new Set(
+          LANGUAGES_WITH_SIGNIFICANT_DIACRITICS.has(config.language) ? stopWords : stopWords.map(replaceDiacritics)
+        )
+      : undefined,
     allowDuplicates: Boolean(config.allowDuplicates),
     normalizeToken,
     normalizationCache: new Map()

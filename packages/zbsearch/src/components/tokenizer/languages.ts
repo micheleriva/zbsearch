@@ -41,40 +41,59 @@ export const SUPPORTED_LANGUAGE_LOCALES: Record<string, string> = {
 
 export const MULTILINGUAL_LANGUAGE = 'multilingual' as const
 
-export const SPLITTERS: Record<SupportedLanguage, RegExp> = {
-  dutch: /[^A-Za-zàèéìòóù0-9_'-]+/gim,
-  english: /[^A-Za-zàèéìòóù0-9_'-]+/gim,
-  french: /[^a-z0-9äâàéèëêïîöôùüûœç-]+/gim,
-  italian: /[^A-Za-zàèéìòóù0-9_'-]+/gim,
-  norwegian: /[^a-z0-9_æøåÆØÅäÄöÖüÜ]+/gim,
-  portuguese: /[^a-z0-9à-úÀ-Ú]/gim,
-  russian: /[^a-z0-9а-яА-ЯёЁ]+/gim,
-  spanish: /[^a-z0-9A-Zá-úÁ-ÚñÑüÜ]+/gim,
-  swedish: /[^a-z0-9_åÅäÄöÖüÜ-]+/gim,
-  german: /[^a-z0-9A-ZäöüÄÖÜß]+/gim,
-  finnish: /[^a-z0-9äöÄÖ]+/gim,
-  danish: /[^a-z0-9æøåÆØÅ]+/gim,
-  hungarian: /[^a-z0-9áéíóöőúüűÁÉÍÓÖŐÚÜŰ]+/gim,
-  romanian: /[^a-z0-9ăâîșțĂÂÎȘȚ]+/gim,
-  serbian: /[^a-z0-9čćžšđČĆŽŠĐ]+/gim,
-  turkish: /[^a-z0-9çÇğĞıİöÖşŞüÜ]+/gim,
-  lithuanian: /[^a-z0-9ąčęėįšųūžĄČĘĖĮŠŲŪŽ]+/gim,
-  arabic: /[^a-z0-9ء-ي]+/gim,
-  nepali: /[^a-z0-9अ-ह]+/gim,
-  irish: /[^a-z0-9áéíóúÁÉÍÓÚ]+/gim,
-  indian: /[^a-z0-9अ-ह]+/gim,
-  armenian: /[^a-z0-9ա-ֆ]+/gim,
-  greek: /[^a-z0-9α-ωά-ώ]+/gim,
-  indonesian: /[^a-z0-9]+/gim,
-  ukrainian: /[^a-z0-9а-яА-ЯіїєІЇЄ]+/gim,
-  slovenian: /[^a-z0-9čžšČŽŠ]+/gim,
-  bulgarian: /[^a-z0-9а-яА-Я]+/gim,
-  tamil: /[^a-z0-9அ-ஹ]+/gim,
-  sanskrit: /[^a-z0-9A-Zāīūṛḷṃṁḥśṣṭḍṇṅñḻḹṝ]+/gim,
+// The letters `replaceDiacritics` can fold to plain ASCII: the Latin-1 Supplement and Latin
+// Extended-A blocks (U+00C0–U+017F), minus the × (U+00D7) and ÷ (U+00F7) math symbols that sit
+// inside them and must keep splitting words. Every splitter has to accept these as word
+// characters, including the ones for languages that do not use them: a splitter only whitelists
+// its own alphabet, so an unlisted accent does not merely survive into the token, it cuts the
+// word in half ("gâteau" -> "g", "teau" under the English splitter) during the split — long
+// before `normalizeToken` gets a chance to fold it. Keep in sync with the tables in
+// `diacritics.ts`.
+const FOLDABLE_LETTERS = '\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u017F'
+
+// Per-language alphabets, as character-class bodies. `FOLDABLE_LETTERS` is *prepended* to each one rather than appended, because several of them end in a literal `-` that would otherwise be read as the start of a range.
+const SPLITTER_ALPHABETS: Record<SupportedLanguage, string> = {
+  dutch: "A-Za-zàèéìòóù0-9_'-",
+  english: "A-Za-zàèéìòóù0-9_'-",
+  french: 'a-z0-9äâàéèëêïîöôùüûœç-',
+  italian: "A-Za-zàèéìòóù0-9_'-",
+  norwegian: 'a-z0-9_æøåÆØÅäÄöÖüÜ',
+  portuguese: 'a-z0-9à-úÀ-Ú',
+  russian: 'a-z0-9а-яА-ЯёЁ',
+  spanish: 'a-z0-9A-Zá-úÁ-ÚñÑüÜ',
+  swedish: 'a-z0-9_åÅäÄöÖüÜ-',
+  german: 'a-z0-9A-ZäöüÄÖÜß',
+  finnish: 'a-z0-9äöÄÖ',
+  danish: 'a-z0-9æøåÆØÅ',
+  hungarian: 'a-z0-9áéíóöőúüűÁÉÍÓÖŐÚÜŰ',
+  romanian: 'a-z0-9ăâîșțĂÂÎȘȚ',
+  serbian: 'a-z0-9čćžšđČĆŽŠĐ',
+  turkish: 'a-z0-9çÇğĞıİöÖşŞüÜ',
+  lithuanian: 'a-z0-9ąčęėįšųūžĄČĘĖĮŠŲŪŽ',
+  // U+0671 (ٱ) sits outside the ء-ي range but is folded by `EXTRA_FOLDINGS`, so it belongs here.
+  arabic: 'a-z0-9ء-ي\\u0671',
+  nepali: 'a-z0-9अ-ह',
+  irish: 'a-z0-9áéíóúÁÉÍÓÚ',
+  indian: 'a-z0-9अ-ह',
+  armenian: 'a-z0-9ա-ֆ',
+  greek: 'a-z0-9α-ωά-ώ',
+  indonesian: 'a-z0-9',
+  ukrainian: 'a-z0-9а-яА-ЯіїєІЇЄ',
+  slovenian: 'a-z0-9čžšČŽŠ',
+  bulgarian: 'a-z0-9а-яА-Я',
+  tamil: 'a-z0-9அ-ஹ',
+  sanskrit: 'a-z0-9A-Zāīūṛḷṃṁḥśṣṭḍṇṅñḻḹṝ',
   vietnamese:
-    /[^a-z0-9A-ZáàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđÁÀẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬÉÈẺẼẸÊẾỀỂỄỆÍÌỈĨỊÓÒỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÚÙỦŨỤƯỨỪỬỮỰÝỲỶỸỴĐ_]+/gim,
-  czech: /[^A-Z0-9a-zěščřžýáíéúůóťďĚŠČŘŽÝÁÍÉÓÚŮŤĎ-]+/gim
+    'a-z0-9A-ZáàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđÁÀẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬÉÈẺẼẸÊẾỀỂỄỆÍÌỈĨỊÓÒỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÚÙỦŨỤƯỨỪỬỮỰÝỲỶỸỴĐ_',
+  czech: 'A-Z0-9a-zěščřžýáíéúůóťďĚŠČŘŽÝÁÍÉÓÚŮŤĎ-'
 }
+
+export const SPLITTERS: Record<SupportedLanguage, RegExp> = Object.fromEntries(
+  Object.entries(SPLITTER_ALPHABETS).map(([language, alphabet]) => [
+    language,
+    new RegExp(`[^${FOLDABLE_LETTERS}${alphabet}]+`, 'gim')
+  ])
+)
 
 export const SUPPORTED_LANGUAGES = Object.keys(SUPPORTED_LANGUAGE_LOCALES)
 

@@ -1,0 +1,92 @@
+[
+  {
+    "term": "i can't log in",
+    "expect": ["atl-001", "atl-003", "atl-011", "atl-015", "atl-002"],
+    "note": "Nothing in the corpus says \"log in\" — the articles all say \"sign in\"."
+  },
+  {
+    "term": "my card keeps getting declined",
+    "expect": ["atl-017", "atl-018", "atl-024"],
+    "note": "The article is titled \"Payment authorization failures\"."
+  },
+  {
+    "term": "the app is draining my battery",
+    "expect": ["atl-103"],
+    "note": "The article calls it \"background activity\" and never says battery in the title."
+  },
+  {
+    "term": "everything got slow after the update",
+    "expect": ["atl-116", "atl-115"],
+    "note": "A symptom, not a term: the article is about a first-launch migration."
+  },
+  {
+    "term": "i need a receipt for accounting",
+    "expect": ["atl-019", "atl-020", "atl-026"],
+    "note": "\"Receipt\" appears in the article; \"accounting\" does not."
+  },
+  {
+    "term": "deleted a page by mistake",
+    "expect": ["atl-047", "atl-048", "atl-147"],
+    "note": "The product calls them documents, not pages."
+  },
+  {
+    "term": "a colleague is leaving the company",
+    "expect": ["atl-035", "atl-036", "atl-145", "atl-013"],
+    "note": "Three different articles cover one real-world situation."
+  },
+  {
+    "term": "how do I get all our data out",
+    "expect": ["atl-141", "atl-142", "atl-148"],
+    "note": "Plain words for something the docs call an export."
+  },
+  {
+    "term": "two people editing the same thing",
+    "expect": ["atl-049"],
+    "note": "The article is titled with \"paragraph\", not \"thing\"."
+  },
+  {
+    "term": "force everyone to turn on 2fa",
+    "expect": ["atl-138"],
+    "note": "Mixes an exact token, 2fa, with a paraphrased intent."
+  },
+  {
+    "term": "ERR_TLS_HANDSHAKE",
+    "expect": ["atl-127"],
+    "note": "A rare literal token: exactly what an inverted index is for."
+  },
+  {
+    "term": "0x80070005",
+    "expect": ["atl-119"],
+    "note": "An error code carries no meaning for an encoder to work with."
+  },
+  {
+    "term": "X-Atlas-Signature",
+    "expect": ["atl-074"],
+    "note": "A header name. Keyword search finds it; the vector space does not."
+  },
+  {
+    "term": "429",
+    "expect": ["atl-088"],
+    "note": "A bare status code, and a hard case for embeddings."
+  },
+  {
+    "term": "SCIM",
+    "expect": ["atl-130"],
+    "note": "An acronym that appears in exactly one article."
+  },
+  {
+    "term": "429 errors during a bulk import",
+    "expect": ["atl-088", "atl-090", "atl-091"],
+    "note": "One exact token plus a described situation — the case hybrid exists for."
+  },
+  {
+    "term": "saml certificate expired and nobody can sign in",
+    "expect": ["atl-129", "atl-128"],
+    "note": "Exact terms and a symptom in the same sentence."
+  },
+  {
+    "term": "webhook signature mismatch",
+    "expect": ["atl-074", "atl-083", "atl-073"],
+    "note": "\"Mismatch\" appears nowhere; \"webhook\" and \"signature\" appear often."
+  }
+]

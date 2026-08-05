@@ -325,7 +325,7 @@ export default async function HomePage() {
           </h2>
           <p className="mx-auto mt-2 max-w-2xl text-fd-muted-foreground">
             <code className="font-mono text-[0.9em]">@zbsearch/searchbox-react</code> ships the
-            behaviour — searching, grouping, keyboard nav, a11y. The look is a handful of CSS
+            behaviour - searching, grouping, keyboard nav, a11y. The look is a handful of CSS
             variables. Switch themes and type; the index is running in your browser.
           </p>
         </div>
@@ -362,7 +362,7 @@ export default async function HomePage() {
           >
             See all integrations
           </Link>{' '}
-          — including the standalone React and Vue search boxes, and the markdown indexer they share.
+          - including the standalone React and Vue search boxes, and the markdown indexer they share.
         </p>
       </Band>
     </div>

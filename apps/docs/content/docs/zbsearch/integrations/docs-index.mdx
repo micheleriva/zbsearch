@@ -51,7 +51,7 @@ de-duplication of repeated headings.
 
 Each section reports its `heading`, `anchor`, `level`, `ancestors` and plain-text `content`.
 
-The `dialect` option decides how the source is read, and defaults to `md` — plain CommonMark. Pass `mdx`, or
+The `dialect` option decides how the source is read, and defaults to `md` - plain CommonMark. Pass `mdx`, or
 let `dialectOf(filePath)` pick it from the extension, for files whose `import` and `export` lines carry their
 ESM meaning. The distinction matters in both directions: a `.md` paragraph may legitimately begin with the
 word "export", and MDX disables indented code blocks, so reading a `.md` file as `mdx` can turn an indented
@@ -63,7 +63,7 @@ Returns a JSON-serializable payload carrying the index, the language it was toke
 stamp the client checks before loading.
 
 Only `title`, `section`, `hierarchy` and `content` are tokenized. `url`, `category` and `path` ride along
-untouched and come back on every hit — which keeps permalinks out of the inverted index, where they would add
+untouched and come back on every hit - which keeps permalinks out of the inverted index, where they would add
 weight and noise without ever improving a match.
 
 ## Searching in the browser

@@ -132,8 +132,8 @@ and `docusaurus build`. The dev server therefore searches the same index the pro
 second code path to keep in sync.
 
 The finished index is serialized with ZBSearch's `save()` and written to `.docusaurus/zbsearch-index/`. The
-search bar imports it through a dynamic `import()`, so webpack emits it as its own chunk: the index — and
-ZBSearch itself — are only downloaded once a visitor shows intent to search, and never weigh on the first
+search bar imports it through a dynamic `import()`, so webpack emits it as its own chunk: the index - and
+ZBSearch itself - are only downloaded once a visitor shows intent to search, and never weigh on the first
 page load.
 
 <Callout type='info'>

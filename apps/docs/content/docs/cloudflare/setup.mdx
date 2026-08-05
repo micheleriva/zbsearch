@@ -196,7 +196,7 @@ See [Indexing & rebuilds](/docs/cloudflare/indexing-and-rebuilds#bulk-import) fo
 
 ## 4. Optional: protect the API with keys
 
-By default, the API is open. For anything beyond local testing, set two keys — a write key with full access, and a read-only key for search traffic (safe to embed in public clients):
+By default, the API is open. For anything beyond local testing, set two keys - a write key with full access, and a read-only key for search traffic (safe to embed in public clients):
 
 ```bash
 npx wrangler secret put WRITE_API_KEY
@@ -209,7 +209,7 @@ When prompted, enter a strong random string for each. Authenticated requests mus
 Authorization: Bearer YOUR_API_KEY
 ```
 
-The write key can do everything (index management, document writes, rebuilds, searches). The read key only covers searches and index/metadata reads — it gets `401` on any write route. If you only set `READ_API_KEY`, writes are closed entirely. `/health` and `/v1/info` remain public so load balancers and uptime checks can probe the Worker without credentials.
+The write key can do everything (index management, document writes, rebuilds, searches). The read key only covers searches and index/metadata reads - it gets `401` on any write route. If you only set `READ_API_KEY`, writes are closed entirely. `/health` and `/v1/info` remain public so load balancers and uptime checks can probe the Worker without credentials.
 
 The legacy single `API_KEY` secret still works as a full-access key, but prefer the split above.
 

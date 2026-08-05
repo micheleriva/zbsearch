@@ -86,7 +86,7 @@ interface SearchHit {
 }
 ```
 
-Hits that share a page — ignoring the fragment — are grouped under one heading automatically, so five matches
+Hits that share a page - ignoring the fragment - are grouped under one heading automatically, so five matches
 in one document read as one entry with five sections rather than five unrelated results.
 
 The `searcher` receives an `AbortSignal` that is aborted as soon as the query becomes stale. Every superseded
@@ -96,15 +96,15 @@ request is discarded, so a slow searcher can never overwrite the results of a ne
 
 | Prop | Default | Description |
 | --- | --- | --- |
-| `open` | — | Whether the dialog is visible |
-| `onClose` | — | Called on dismissal, and after a result is opened |
-| `searcher` | — | Resolves a query to hits |
+| `open` | - | Whether the dialog is visible |
+| `onClose` | - | Called on dismissal, and after a result is opened |
+| `searcher` | - | Resolves a query to hits |
 | `onNavigate` | full page load | Opens a result; pass a router-aware function to keep client-side navigation |
 | `labels` | English defaults | Copy overrides |
 | `debounceMs` | `0` | Milliseconds to wait after the last keystroke |
 | `recentSearches` | `true` | Remember and replay opened results |
 | `recentSearchesKey` | `'zbsearch:searchbox:recent'` | `localStorage` key backing that history |
-| `className` | — | Extra class on the dialog |
+| `className` | - | Extra class on the dialog |
 | `container` | `document.body` | Where the dialog is portalled |
 
 <Callout type='info'>

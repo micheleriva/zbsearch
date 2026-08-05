@@ -84,7 +84,7 @@ interface SearchHit {
 }
 ```
 
-Hits that share a page — ignoring the fragment — are grouped under one heading automatically.
+Hits that share a page - ignoring the fragment - are grouped under one heading automatically.
 
 The `searcher` receives an `AbortSignal` that is aborted as soon as the query becomes stale. Every superseded
 request is discarded, so a slow searcher can never overwrite the results of a newer one.
@@ -93,8 +93,8 @@ request is discarded, so a slow searcher can never overwrite the results of a ne
 
 | Prop | Default | Description |
 | --- | --- | --- |
-| `open` | — | Whether the dialog is visible |
-| `searcher` | — | Resolves a query to hits |
+| `open` | - | Whether the dialog is visible |
+| `searcher` | - | Resolves a query to hits |
 | `onNavigate` | full page load | Opens a result; pass a router-aware function to keep client-side navigation |
 | `labels` | English defaults | Copy overrides |
 | `debounceMs` | `0` | Milliseconds to wait after the last keystroke |
@@ -146,4 +146,4 @@ The pieces are exported individually if the dialog is not the shape you want:
 | `Highlighted` | Renders text with matches wrapped in `<mark>` |
 | `ZBSearchWordmark` | The ZBSearch lockup |
 
-Everything framework-neutral — helpers, labels and types — is re-exported from `@zbsearch/searchbox-core`.
+Everything framework-neutral - helpers, labels and types - is re-exported from `@zbsearch/searchbox-core`.

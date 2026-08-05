@@ -109,7 +109,7 @@ The plugin injects a prerendered route at `/zbsearch-index.json`. That endpoint 
 with `getCollection`, splits each page into records, builds a ZBSearch index and serializes it.
 
 Because it is a real Astro route, the dev server answers it on demand and the production build writes it to
-`dist/` as a static file — the same index in both, with no second code path to keep in sync.
+`dist/` as a static file - the same index in both, with no second code path to keep in sync.
 
 The search box fetches it the first time a visitor shows intent to search. Neither the index nor ZBSearch
 itself weighs on the initial page load.

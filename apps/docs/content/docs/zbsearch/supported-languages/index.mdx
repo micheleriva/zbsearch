@@ -31,7 +31,7 @@ In this mode ZBSearch tokenizes with [`Intl.Segmenter`](https://developer.mozill
 
 Trade-offs compared to a per-language configuration:
 
-- **No stemming and no stop-words by default.** Queries for inflected forms (`running` vs. `run`) won't match unless you pass a custom `stemmer` function. Per-language installs with `@zbsearch/stemmers` remain the quality ceiling for single-language content: in the quality benchmark that ships with the repo (`benchmarks/`, `npm run benchmark:multilingual-quality`), the multilingual mode reaches ~0.70 recall@10 vs ~0.98 for tuned per-language installs, with most of the gap on inflection queries — while non-Latin scripts go from 0 (English default) to fully searchable.
+- **No stemming and no stop-words by default.** Queries for inflected forms (`running` vs. `run`) won't match unless you pass a custom `stemmer` function. Per-language installs with `@zbsearch/stemmers` remain the quality ceiling for single-language content: in the quality benchmark that ships with the repo (`benchmarks/`, `npm run benchmark:multilingual-quality`), the multilingual mode reaches ~0.70 recall@10 vs ~0.98 for tuned per-language installs, with most of the gap on inflection queries - while non-Latin scripts go from 0 (English default) to fully searchable.
 - **CJK segmentation is script-based, not dictionary-based.** It works well with prefix search, but for production Japanese or Chinese search prefer the [dedicated tokenizers](/docs/zbsearch/supported-languages/using-japanese-with-zbsearch).
 - Sorting falls back to the runtime's default collation, since there is no single locale.
 

@@ -215,7 +215,7 @@ function SearchQualitySection() {
 
               <div className="min-w-[5.5rem] text-right">
                 <p className="text-sm font-semibold tabular-nums text-fd-foreground">
-                  {row.timing.crashed && row.value === 0 ? '—' : formatScore(row.value)}
+                  {row.timing.crashed && row.value === 0 ? '-' : formatScore(row.value)}
                 </p>
                 <p className="text-[10px] tabular-nums text-fd-muted-foreground">
                   {formatMs(row.timing.msPerQuery, row.timing.crashed)}

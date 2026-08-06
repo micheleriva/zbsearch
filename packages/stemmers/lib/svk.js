@@ -1,22 +1,26 @@
 /**
  * Light Stemmer for Slovak.
  *
- * There is no official Snowball algorithm for Slovak. This implementation uses
- * Slovak declension paradigms and selected inflection rules adapted from 
- * the Czech stemmer in this package (`cs.js`) and fixed with gpt-5.6-terra high 
- * for missing cases
+ * There is no official Snowball algorithm for Slovak, and the Czech stemmer in
+ * this package is not a usable stand-in: the two languages share much of their
+ * declension but not the endings that matter here. Slovak has `-och`, `-iach`
+ * and `-om` where Czech has `-ech`, `-ích` and `-ům`; Slovak has no `ě`, `ř` or
+ * `ů`, and adds `ä`, `ĺ`, `ľ`, `ŕ` and `ô`. This stemmer follows the shape of
+ * `cs.js` - the same length-tiered suffix tables and palatalization pass - but
+ * the tables themselves hold Slovak endings, and Slovak verb, comparative and
+ * superlative inflections are handled here, which `cs.js` does not attempt.
  *
- * Slovak and Czech are closely related, but their inflectional endings diverge
- * enough that the Czech stemmer mis-stems Slovak: Slovak uses `-och`, `-iach`,
- * `-ám`, `-ami` where Czech uses `-ech`, `-ích`, `-ům`, `-ami`; Slovak has no
- * `ě`, `ř` or `ů`; and Slovak adds `ä`, `ĺ`, `ľ`, `ŕ`, `ô`. The tables below are
- * built from the Slovak declension paradigms rather than adapted from Czech.
+ * Strips the `naj-` superlative prefix, then a comparative, verb or case
+ * ending, then possessives, and finally normalizes the stem so inflectional
+ * variants conflate. Input is expected to be lowercase.
  *
- * Removes case endings and possessive suffixes from nouns and adjectives, then
- * normalizes the stem so inflectional variants conflate. Input is expected to
- * be lowercase. Both the diacritic form ("knihách") and the ASCII-folded form
- * ("knihach") are accepted, because the ZBSearch tokenizer folds diacritics
- * before stemming while direct callers generally do not.
+ * Both the diacritic form ("knihách") and the ASCII-folded form ("knihach") are
+ * accepted, because the ZBSearch tokenizer folds diacritics before stemming
+ * while direct callers generally do not. The forms of a word conflate within
+ * each of those two paths, but the paths need not agree with each other:
+ * folding erases vowel length and the `ť`/`t` distinction, which Slovak uses to
+ * keep infinitives ("robiť") apart from nouns ("zošit", "internát"), so the
+ * folded path has to stem more aggressively than the accented one.
  */
 
 const CASE_SUFFIXES_4 = ['ieho', 'iemu', 'iach', 'iami', 'ovia']
@@ -78,9 +82,20 @@ const COMPARATIVE_SUFFIXES = [
   'ejsi'
 ]
 
-// Unambiguous multi-character verb endings. Shorter endings such as folded
-// "-is" are deliberately excluded: they collide with common nouns (e.g.
-// "popis") once diacritics have been folded.
+// Verb endings, longest match first. Folded "-is" is deliberately excluded:
+// it collides with common nouns ("popis") without folding buying it back.
+//
+// The folded infinitive endings "-at"/"-it" are kept even though they collide
+// with nouns in "-át" ("internat") and "-it" ("zosit"), because the tokenizer
+// folds before stemming, so dropping them would leave every infinitive in
+// every real search unstemmed. The collision is absorbed instead: stemmer()
+// re-runs this table after case removal, so such nouns lose the ending in all
+// their forms ("internat"/"internaty" -> "intern") and still conflate.
+//
+// The "-ieť" class ("vidieť") is folded in via "ieť"/"iet", but its past tense
+// "-eli"/"-ela"/"-elo" is not: those collide with the locative of nouns in
+// "-el" ("hoteli"), which no later pass can absorb. "videli" therefore keeps a
+// separate stem from "vidieť" - a known gap, not an oversight.
 const VERB_SUFFIXES = [
   'ajú',
   'aju',
@@ -96,6 +111,8 @@ const VERB_SUFFIXES = [
   'ili',
   'ila',
   'ilo',
+  'ieť',
+  'iet',
   'ať',
   'at',
   'iť',
@@ -161,15 +178,26 @@ function removePossessives(word) {
 
 /**
  * Drops a fleeting vowel from the stem so that alternating forms conflate:
- * the Slovak fleeting "ie" ("okien" -> "okn", "oviec" -> "ovc"), a fleeting
- * "e" ("otec" -> "otc") and the "ô"/"o" alternation ("stôl" -> "stol").
- * Runs before palatalization so that e.g. "chlapec" and "chlapci" meet.
+ * the Slovak fleeting "ie" ("okien" -> "okn", "oviec" -> "ovc", which
+ * palatalization then rewrites to "ovk"), a fleeting "e" ("otec" -> "otc") and
+ * the "ô"/"o" alternation ("stôl" -> "stol"). Runs before palatalization so
+ * that e.g. "chlapec" and "chlapci" meet.
+ *
+ * The "ie" branch requires more than four characters so that the result keeps
+ * at least three, the same minimum-stem policy `removeSuffix` enforces; below
+ * that, dropping two characters yields a degenerate stem ("dieťa" -> "dť")
+ * that invites false matches. The "e" branch skips an "e" that belongs to such
+ * an "ie" so the length guard is not silently undone by the weaker rule.
+ *
+ * Note that a surface "ie" is ambiguous: it marks both an inserted fleeting
+ * vowel ("okno"/"okien") and a lengthened root vowel ("žena"/"žien"). Only the
+ * first is handled, so "žien" does not reach "žen".
  */
 function dropFleetingVowel(word) {
   const last = word[word.length - 1]
 
-  if (word.length > 3 && !isVowel(last) && word.slice(-3, -1) === 'ie') {
-    return word.slice(0, -3) + last
+  if (!isVowel(last) && word.slice(-3, -1) === 'ie') {
+    return word.length > 4 ? word.slice(0, -3) + last : word
   }
   if (word.length > 3 && word[word.length - 2] === 'e' && !isVowel(last)) {
     return word.slice(0, -2) + last
@@ -224,6 +252,11 @@ export function stemmer(word) {
 
   if (!isComparative && !isVerb) {
     stem = removeCase(stem)
+    // Case removal can expose an ASCII-folded ending that also reads as an
+    // infinitive ("internaty" -> "internat"). Stripping it here keeps such
+    // nouns aligned with their bare form, which the verb pass above already
+    // shortened.
+    stem = removeVerbEnding(stem)
   }
   stem = removePossessives(stem)
 

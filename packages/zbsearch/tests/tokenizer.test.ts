@@ -546,9 +546,30 @@ t.test('Czech, Slovak and Slovenian stemming', async (t) => {
       t.equal(slovakStemmer(word), word.includes('ž') ? 'žľaznat' : 'zlaznat', `${word} stems to its adjective base`)
     }
 
-    for (const word of ['robiť', 'robit', 'robím', 'robim', 'robíš', 'robíme', 'robime', 'robíte', 'robite', 'robili', 'robila', 'robilo']) {
+    for (const word of [
+      'robiť',
+      'robit',
+      'robím',
+      'robim',
+      'robíš',
+      'robíme',
+      'robime',
+      'robíte',
+      'robite',
+      'robili',
+      'robila',
+      'robilo'
+    ]) {
       t.equal(slovakStemmer(word), 'rob', `${word} stems to rob`)
     }
+
+    // The -ieť class ("vidieť", "sedieť", "musieť"): the infinitive and present
+    // tense join, but the past tense stays out because "-eli" collides with the
+    // locative of nouns in "-el" ("hoteli"). See the note in svk.js.
+    for (const word of ['vidieť', 'vidiet', 'vidím', 'vidim']) {
+      t.equal(slovakStemmer(word), 'vid', `${word} stems to vid`)
+    }
+    t.equal(slovakStemmer('videli'), 'vidl', 'past tense of the -ieť class keeps a separate stem')
 
     for (const [word, expected] of [
       ['čítajú', 'čít'],
@@ -574,6 +595,53 @@ t.test('Czech, Slovak and Slovenian stemming', async (t) => {
     t.equal(slovakStemmer('e'), 'e')
     t.equal(slovakStemmer('zi'), 'zi')
     t.equal(slovakStemmer('dom'), 'dom')
+  })
+
+  t.test('slovak folded infinitive endings conflate nouns as well as verbs', async (t) => {
+    // The tokenizer folds accents before stemming, so folded "-at"/"-it" is
+    // ambiguous between an infinitive ("robit") and a noun ("internát",
+    // "zošit"). The ending is stripped in both cases and stripped again after
+    // case removal, so the nouns lose it across their whole paradigm instead of
+    // splitting singular from plural.
+    for (const word of ['internat', 'internaty']) {
+      t.equal(slovakStemmer(word), 'intern', `${word} stems to intern`)
+    }
+    for (const word of ['zosit', 'zosity']) {
+      t.equal(slovakStemmer(word), 'zos', `${word} stems to zos`)
+    }
+    for (const word of ['citat', 'citam', 'citaju']) {
+      t.equal(slovakStemmer(word), 'cit', `${word} stems to cit`)
+    }
+    for (const word of ['pracovat', 'pracuju']) {
+      t.equal(slovakStemmer(word), 'prac', `${word} stems to prac`)
+    }
+    // Too short to strip: the minimum-stem guard keeps these intact.
+    for (const word of ['plat', 'platy']) {
+      t.equal(slovakStemmer(word), 'plat', `${word} stems to plat`)
+    }
+  })
+
+  t.test('slovak fleeting ie keeps a minimum stem length', async (t) => {
+    // Dropping "ie" costs two characters, so it only applies when at least
+    // three remain. Below that the word is left for palatalization alone,
+    // rather than falling through to the weaker fleeting-e rule.
+    t.equal(slovakStemmer('okien'), 'okn')
+    t.equal(slovakStemmer('oviec'), 'ovk')
+    t.equal(slovakStemmer('dieťa'), 'diet')
+    t.equal(slovakStemmer('dieta'), 'diet')
+    // A surface "ie" also marks a lengthened root vowel ("žena"/"žien"), which
+    // this rule cannot undo, so the genitive plural stays separate.
+    t.equal(slovakStemmer('žien'), 'žien')
+    t.not(slovakStemmer('žien'), slovakStemmer('žena'))
+  })
+
+  t.test('slovak sieť and diel paradigms conflate', async (t) => {
+    for (const word of ['sieť', 'siet', 'siete', 'sietami']) {
+      t.equal(slovakStemmer(word), 'siet', `${word} stems to siet`)
+    }
+    for (const word of ['diel', 'dielo', 'dielom']) {
+      t.equal(slovakStemmer(word), 'diel', `${word} stems to diel`)
+    }
   })
 
   t.test('slovak stemming keeps distinct words distinct', async (t) => {

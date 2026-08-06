@@ -6,8 +6,14 @@ dist/
 tmp/
 **/tmp/
 node_modules/
-packages/plugin-docusaurus-sandbox/build
+packages/plugin-docusaurus/lib/
+sandboxes/*/build/
+sandboxes/*/dist/
+sandboxes/*/.astro/
+sandboxes/*/.vitepress/dist/
+sandboxes/*/.vitepress/cache/
 playwright-report
+test-results
 .dev
 .DS_Store
 .turbo

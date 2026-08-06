@@ -1,11 +1,8 @@
 'use client';
 
 import { cn } from '@/lib/cn';
-import {
-  benchmarkSuites,
-  engineColors,
-  type BenchmarkEngine,
-} from '@/lib/benchmarks/data';
+import { benchmarkSuites, type BenchmarkEngine } from '@/lib/benchmarks/data';
+import { ChartLegend } from './legend';
 import { useState } from 'react';
 
 function formatOps(value: number): string {
@@ -62,7 +59,7 @@ export function BenchmarkCharts({
 
   return (
     <section className={cn('mx-auto w-full max-w-6xl px-6 pb-14', className)}>
-      <div className="rounded-2xl border border-fd-border bg-fd-card/80 p-4 sm:p-6">
+      <div className="rounded-2xl border border-fd-border bg-fd-card p-4 sm:p-6">
         {(title || description) && (
           <div className="mb-5">
             {title && (
@@ -79,7 +76,7 @@ export function BenchmarkCharts({
               </h2>
             )}
             {description && (
-              <p className="mt-1 text-sm leading-relaxed text-fd-foreground/65">
+              <p className="mt-1 text-sm leading-relaxed text-fd-muted-foreground">
                 {description}
               </p>
             )}
@@ -92,10 +89,10 @@ export function BenchmarkCharts({
               type="button"
               onClick={() => setActiveSuiteId(suite.id)}
               className={cn(
-                'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                'rounded-md border px-3 py-1 text-xs font-medium transition-colors',
                 activeSuite.id === suite.id
                   ? 'border-fd-primary/40 bg-fd-primary/10 text-fd-foreground'
-                  : 'border-fd-border bg-fd-background text-fd-foreground/70 hover:text-fd-foreground',
+                  : 'border-fd-border bg-fd-background text-fd-muted-foreground hover:text-fd-foreground',
               )}
             >
               {formatTitle(suite.name)}
@@ -128,30 +125,33 @@ export function BenchmarkCharts({
               >
                 <span className="inline-flex items-center gap-2 text-xs font-medium text-fd-foreground">
                   <span
-                    className="size-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: engineColors[result.engine] }}
+                    aria-hidden
+                    className={cn(
+                      'size-2 shrink-0 rounded-full',
+                      isZbsearch ? 'bg-chart-subject' : 'bg-chart-other',
+                    )}
                   />
                   {result.engine}
                 </span>
 
-                <div className="h-2.5 overflow-hidden rounded-full bg-fd-muted">
+                <div className="h-2.5 overflow-hidden rounded-xs bg-fd-muted">
                   <div
-                    className="h-full rounded-full transition-[width]"
-                    style={{
-                      width: `${(result.ops / fastestOps) * 100}%`,
-                      backgroundColor: engineColors[result.engine],
-                    }}
+                    className={cn(
+                      'h-full rounded-xs transition-[width]',
+                      isZbsearch ? 'bg-chart-subject' : 'bg-chart-other',
+                    )}
+                    style={{ width: `${(result.ops / fastestOps) * 100}%` }}
                   />
                 </div>
 
                 <div className="min-w-[6.5rem] text-right">
                   <p className="text-sm font-semibold tabular-nums text-fd-foreground">
                     {formatOps(result.ops)}
-                    <span className="ml-1 text-[10px] font-normal text-fd-foreground/55">
+                    <span className="ml-1 text-[10px] font-normal text-fd-muted-foreground">
                       ops/s
                     </span>
                   </p>
-                  <p className="text-[10px] tabular-nums text-fd-foreground/55">
+                  <p className="text-[10px] tabular-nums text-fd-muted-foreground">
                     {formatSpeedRatio(result.ops, fastestOps)}
                   </p>
                 </div>
@@ -160,7 +160,9 @@ export function BenchmarkCharts({
           })}
         </div>
 
-        <p className="mt-5 text-xs leading-relaxed text-fd-foreground/65">
+        <ChartLegend className="mt-4 border-t border-fd-border pt-3" />
+
+        <p className="mt-3 text-xs leading-relaxed text-fd-muted-foreground">
           Measured {benchmarkDate} with benny on Node.js. Bars and speed ratios are relative to the
           fastest engine in the selected workload.{' '}
           <a

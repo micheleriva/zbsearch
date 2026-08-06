@@ -1,0 +1,162 @@
+---
+title: Starlight
+description: Make ZBSearch the search engine of your Astro Starlight site.
+---
+
+`@zbsearch/plugin-starlight` replaces [Starlight](https://starlight.astro.build)'s built-in Pagefind search
+with a dialog powered by ZBSearch.
+
+The index is built from Starlight's own content collection, so slugs, drafts and front matter come from
+Starlight rather than from a second interpretation of your files. Everything runs in the visitor's browser:
+no service, no API key, no query leaving the page.
+
+## Installation
+
+The search box is a React island, so the site needs Astro's React renderer alongside the plugin:
+
+```bash
+npm install @zbsearch/plugin-starlight @astrojs/react react react-dom
+```
+
+<Callout type='info'>
+Starlight itself is framework-agnostic, but this integration reuses the same React search box the Docusaurus
+plugin renders, so the two behave identically. The plugin registers `@astrojs/react` for you if your site has
+not already.
+</Callout>
+
+Then add the plugin to Starlight:
+
+```js copy
+import starlight from '@astrojs/starlight';
+import zbsearch from '@zbsearch/plugin-starlight';
+import { defineConfig } from 'astro/config';
+
+export default defineConfig({
+  integrations: [
+    starlight({
+      title: 'My docs',
+      plugins: [zbsearch()],
+    }),
+  ],
+});
+```
+
+That is the whole setup. Pagefind is disabled automatically, and Starlight's `Search` component is taken
+over. Start the site and press `⌘K`.
+
+## What gets indexed
+
+Every page in the `docs` collection is split into one record per heading, so a result lands on the exact
+section that matched rather than the top of a long page.
+
+A record carries four searchable fields:
+
+| Field | Contents |
+| --- | --- |
+| `title` | Title of the page, from front matter |
+| `section` | The heading the chunk was taken from |
+| `hierarchy` | Folders the page lives in, its title, and the enclosing headings |
+| `content` | The prose beneath that heading |
+
+Front matter, fenced code, JSX and MDX imports are stripped before indexing. Permalinks and category labels
+travel with each record but are deliberately **not** tokenized, so a query never matches a URL fragment.
+
+Pages marked `draft: true` are skipped unless you ask for them.
+
+## Options
+
+```js copy
+zbsearch({
+  excludeRoutes: ['/internal/**'],
+  maxResults: 12,
+});
+```
+
+### Content
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `language` | `'english'` | Language used to tokenize and stem the index |
+| `excludeRoutes` | `[]` | Routes to leave out, with `*` and `**` wildcards |
+| `categoryLabel` | `'Docs'` | Label shown next to a result's page title |
+| `indexDrafts` | `false` | Index pages marked `draft: true` |
+
+### Ranking
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `maxResults` | `12` | Maximum number of hits shown at once |
+| `boost` | `{ title: 4, section: 3, hierarchy: 1.5, content: 1 }` | Per-property ranking weights |
+| `tolerance` | `1` | Edit distance tolerated per term |
+| `threshold` | `0` | Minimum share of query terms a document must match |
+| `snippetLength` | `140` | Maximum length of the excerpt under a hit |
+
+### Interface
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `recentSearches` | `true` | Remember and replay recently opened results |
+| `hotkeys` | `true` | Bind the `⌘K` / `Ctrl+K` and `/` shortcuts |
+| `searchButtonLabel` | `'Search'` | Text of the header button |
+| `placeholder` | `'Search documentation…'` | Placeholder of the search input |
+| `labels` | `{}` | Copy overrides for the dialog |
+
+Every string in the dialog can be replaced through `labels`, which is how you localise it.
+
+## How it works
+
+The plugin injects a prerendered route at `/zbsearch-index.json`. That endpoint reads the `docs` collection
+with `getCollection`, splits each page into records, builds a ZBSearch index and serializes it.
+
+Because it is a real Astro route, the dev server answers it on demand and the production build writes it to
+`dist/` as a static file — the same index in both, with no second code path to keep in sync.
+
+The search box fetches it the first time a visitor shows intent to search. Neither the index nor ZBSearch
+itself weighs on the initial page load.
+
+<Callout type='info'>
+The route respects your `base`, `build.format` and `trailingSlash` settings, so result links match the URLs
+Starlight actually generates.
+</Callout>
+
+## Styling
+
+Every colour, radius and font in the search box is a `--zbs-*` custom property, so you can re-theme it from
+your own CSS without overriding a single rule:
+
+```css copy
+:root {
+  --zbs-accent: #0aa;
+  --zbs-radius: 8px;
+}
+```
+
+The dialog follows Starlight's theme switcher, including its `auto` setting, by reading the `data-theme`
+attribute Starlight sets on `<html>`.
+
+The full list of properties lives in the
+[search box documentation](/docs/zbsearch/integrations/searchbox-react#theming).
+
+## Keyboard
+
+| Keys | Action |
+| --- | --- |
+| `⌘K`, `Ctrl+K`, `/` | Open the search box |
+| `↑` `↓` | Move through the results, wrapping at both ends |
+| `Home` `End` | Jump to the first or last result |
+| `Enter` | Open the selected result |
+| `⌘`-click | Open a result in a new tab |
+| `Esc` | Close |
+
+## Troubleshooting
+
+**The header shows no search button.** Starlight only renders a search component when Pagefind is enabled or
+the `Search` component has been overridden. Check that the plugin is inside Starlight's `plugins` array
+rather than Astro's `integrations`.
+
+**The build fails resolving `@astrojs/react`.** The React renderer has to be installed in the site itself,
+not only as a transitive dependency. Run
+`npm install @astrojs/react react react-dom`.
+
+**Search finds nothing.** Open `/zbsearch-index.json` directly: it should list your pages. If it is empty,
+check that your pages live in the `docs` collection and are not all marked `draft`.

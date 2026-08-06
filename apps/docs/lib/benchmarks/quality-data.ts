@@ -63,17 +63,6 @@ export const qualityEngineOrder: QualityEngineKey[] = [
   'fusejs',
 ];
 
-export const qualityEngineColors: Record<QualityEngineKey, string> = {
-  'zbsearch-bm25': 'oklch(0.55 0.14 145)',
-  'zbsearch-qps': 'oklch(0.58 0.12 165)',
-  'zbsearch-pt15': 'oklch(0.62 0.11 125)',
-  orama: 'oklch(0.52 0.14 250)',
-  minisearch: 'oklch(0.62 0.16 55)',
-  flexsearch: 'oklch(0.55 0.12 210)',
-  lunr: 'oklch(0.52 0.10 180)',
-  fusejs: 'oklch(0.58 0.14 340)',
-};
-
 export const multilingualConfigs: MultilingualConfigKey[] = [
   'multilingual',
   'per-language',
@@ -84,12 +73,6 @@ export const multilingualConfigLabels: Record<MultilingualConfigKey, string> = {
   multilingual: 'Multilingual',
   'per-language': 'Per-language',
   'english-default': 'English default',
-};
-
-export const multilingualConfigColors: Record<MultilingualConfigKey, string> = {
-  multilingual: 'oklch(0.55 0.14 145)',
-  'per-language': 'oklch(0.52 0.14 250)',
-  'english-default': 'oklch(0.58 0.14 340)',
 };
 
 export const multilingualMetricLabels: Record<MultilingualMetricKey, string> = {

@@ -1,0 +1,74 @@
+{
+  "name": "@zbsearch/plugin-vitepress",
+  "version": "3.3.4",
+  "description": "Make ZBSearch the search engine of your VitePress site",
+  "keywords": [
+    "zbsearch",
+    "vitepress",
+    "vite",
+    "vue",
+    "search",
+    "full-text search"
+  ],
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./theme": "./src/theme/index.ts",
+    "./SearchBox.vue": "./src/theme/SearchBox.vue",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src/theme",
+    "src/options.ts",
+    "src/virtual.d.ts"
+  ],
+  "bugs": {
+    "url": "https://github.com/micheleriva/zbsearch/issues"
+  },
+  "homepage": "https://github.com/micheleriva/zbsearch#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/micheleriva/zbsearch.git"
+  },
+  "scripts": {
+    "build": "tsup --config tsup.lib.js && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "lint": "exit 0",
+    "test": "node --test --import tsx test/*.test.ts"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "vitepress": ">=1.0.0",
+    "vue": "^3.4.0"
+  },
+  "dependencies": {
+    "@zbsearch/docs-index": "workspace:*",
+    "@zbsearch/searchbox-core": "workspace:*",
+    "@zbsearch/searchbox-vue": "workspace:*",
+    "zbsearch": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.20.6",
+    "typescript": "~5.9.0",
+    "vite": "^7.0.0",
+    "vitepress": "^1.6.4",
+    "vue": "^3.5.40"
+  },
+  "author": {
+    "name": "Michele Riva",
+    "email": "riva.michele.95@gmail.com",
+    "url": "https://github.com/MicheleRiva"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts"
+}

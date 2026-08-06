@@ -21,11 +21,7 @@ export interface WalRebuildResult {
 export interface WalCoordinator {
   appendOps(indexId: string, ops: BufferOp[]): Promise<WalAppendResult>
   freezeForRebuild(indexId: string): Promise<WalFreezeResult>
-  finalizeAfterRebuild(
-    indexId: string,
-    frozenSegmentKeys: string[],
-    result: WalRebuildResult
-  ): Promise<IndexMeta>
+  finalizeAfterRebuild(indexId: string, frozenSegmentKeys: string[], result: WalRebuildResult): Promise<IndexMeta>
   acquireRebuildLock(indexId: string): Promise<boolean>
   releaseRebuildLock(indexId: string): Promise<void>
   clearBuffer(indexId: string): Promise<void>

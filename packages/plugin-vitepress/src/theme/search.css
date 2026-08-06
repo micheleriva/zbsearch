@@ -1,0 +1,31 @@
+:root {
+  --zbs-font-family: var(--vp-font-family-base);
+}
+
+.zbs-vitepress-search {
+  display: flex;
+  align-items: center;
+}
+
+.zbs-vitepress-search .zbs-search-button {
+  min-width: 12rem;
+  justify-content: flex-start;
+}
+
+.zbs-vitepress-search .zbs-search-button__keys {
+  margin-left: auto;
+}
+
+@media (width <= 768px) {
+  .zbs-vitepress-search .zbs-search-button__label,
+  .zbs-vitepress-search .zbs-search-button__keys {
+    display: none;
+  }
+
+  .zbs-vitepress-search .zbs-search-button {
+    width: 2.25rem;
+    min-width: 0;
+    padding: 0;
+    justify-content: center;
+  }
+}

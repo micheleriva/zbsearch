@@ -72,11 +72,7 @@ const UNICODE_WORD = /[\p{L}\p{N}]+/gu
 let multilingualSegmenter: Intl.Segmenter | undefined
 
 function splitMultilingual(input: string): string[] {
-  if (
-    multilingualSegmenter === undefined &&
-    typeof Intl !== 'undefined' &&
-    typeof Intl.Segmenter === 'function'
-  ) {
+  if (multilingualSegmenter === undefined && typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
     multilingualSegmenter = new Intl.Segmenter(undefined, { granularity: 'word' })
   }
 

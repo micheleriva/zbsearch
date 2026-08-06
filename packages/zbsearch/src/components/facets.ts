@@ -117,7 +117,9 @@ function prepareFacet<T extends AnyZBSearch>(
   propertyType: string,
   pathParts: string[] | null
 ): PreparedFacet {
-  const getFacetValue = pathParts ? (doc: AnyDocument) => getValueAtPath(doc, pathParts) : (doc: AnyDocument) => doc[facet]
+  const getFacetValue = pathParts
+    ? (doc: AnyDocument) => getValueAtPath(doc, pathParts)
+    : (doc: AnyDocument) => doc[facet]
 
   let values: Record<string, number> = {}
   let process: (doc: AnyDocument) => void

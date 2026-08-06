@@ -49,12 +49,7 @@ export function walSegmentFileName(firstSeq: number, lastSeq: number, changeId: 
   return `${String(firstSeq).padStart(10, '0')}-${String(lastSeq).padStart(10, '0')}_${changeId}.ndjson`
 }
 
-export function walSegmentKey(
-  indexId: string,
-  firstSeq: number,
-  lastSeq: number,
-  changeId: string
-): string {
+export function walSegmentKey(indexId: string, firstSeq: number, lastSeq: number, changeId: string): string {
   return `${walSegmentsPrefix(indexId)}${walSegmentFileName(firstSeq, lastSeq, changeId)}`
 }
 

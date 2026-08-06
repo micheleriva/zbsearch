@@ -1,0 +1,34 @@
+:root {
+  --zbs-font-family: var(--sl-font);
+}
+
+.zbs-starlight-search {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  justify-content: flex-end;
+}
+
+.zbs-starlight-search .zbs-search-button {
+  width: 100%;
+  max-width: 22rem;
+  justify-content: flex-start;
+}
+
+.zbs-starlight-search .zbs-search-button__keys {
+  margin-left: auto;
+}
+
+@media (width <= 50rem) {
+  .zbs-starlight-search .zbs-search-button__label,
+  .zbs-starlight-search .zbs-search-button__keys {
+    display: none;
+  }
+
+  .zbs-starlight-search .zbs-search-button {
+    width: 2.25rem;
+    max-width: none;
+    padding: 0;
+    justify-content: center;
+  }
+}

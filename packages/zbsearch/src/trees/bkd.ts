@@ -279,8 +279,7 @@ export class BKDTree {
     const sortedEntries: Array<[number, GeoSearchResult]> = []
     const isAsc = sort == null || sort.toLowerCase() === 'asc'
     const centroid = sort ? BKDTree.calculatePolygonCentroid(polygon) : null
-    const distanceFn =
-      sort != null ? (highPrecision ? BKDTree.vincentyDistance : BKDTree.haversineDistance) : null
+    const distanceFn = sort != null ? (highPrecision ? BKDTree.vincentyDistance : BKDTree.haversineDistance) : null
 
     if (inclusive) {
       const stack: BKDNode[] = [root]

@@ -22,12 +22,16 @@ export function innerHybridSearch<T extends AnyZBSearch, ResultDocument = TypedD
   params: SearchParamsHybrid<T, ResultDocument>,
   language?: string
 ) {
-
   const hasFilters = Object.keys(params.where ?? {}).length > 0
   let whereFiltersIDs: Set<InternalDocumentID> | undefined
 
   if (hasFilters) {
-    whereFiltersIDs = zbsearch.index.searchByWhereClause(zbsearch.data.index, zbsearch.tokenizer, params.where!, language)
+    whereFiltersIDs = zbsearch.index.searchByWhereClause(
+      zbsearch.data.index,
+      zbsearch.tokenizer,
+      params.where!,
+      language
+    )
   }
 
   const hasFullTextInput = Boolean(params.term) || Boolean(params.properties)

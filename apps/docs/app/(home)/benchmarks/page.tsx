@@ -36,25 +36,25 @@ export default function BenchmarksPage() {
         <div className="mb-10 flex flex-wrap gap-2 text-xs">
           <a
             href="#search-quality"
-            className="rounded-full border border-fd-border bg-fd-card px-3 py-1.5 text-fd-foreground/70 transition-colors hover:border-fd-primary/30 hover:text-fd-foreground"
+            className="rounded-md border border-fd-border bg-fd-card px-3 py-1.5 text-fd-foreground/70 transition-colors hover:border-fd-primary/30 hover:text-fd-foreground"
           >
             Search quality
           </a>
           <a
             href="#quality-speed"
-            className="rounded-full border border-fd-border bg-fd-card px-3 py-1.5 text-fd-foreground/70 transition-colors hover:border-fd-primary/30 hover:text-fd-foreground"
+            className="rounded-md border border-fd-border bg-fd-card px-3 py-1.5 text-fd-foreground/70 transition-colors hover:border-fd-primary/30 hover:text-fd-foreground"
           >
             Quality vs speed
           </a>
           <a
             href="#multilingual"
-            className="rounded-full border border-fd-border bg-fd-card px-3 py-1.5 text-fd-foreground/70 transition-colors hover:border-fd-primary/30 hover:text-fd-foreground"
+            className="rounded-md border border-fd-border bg-fd-card px-3 py-1.5 text-fd-foreground/70 transition-colors hover:border-fd-primary/30 hover:text-fd-foreground"
           >
             Multilingual
           </a>
           <a
             href="#throughput"
-            className="rounded-full border border-fd-border bg-fd-card px-3 py-1.5 text-fd-foreground/70 transition-colors hover:border-fd-primary/30 hover:text-fd-foreground"
+            className="rounded-md border border-fd-border bg-fd-card px-3 py-1.5 text-fd-foreground/70 transition-colors hover:border-fd-primary/30 hover:text-fd-foreground"
           >
             Throughput
           </a>

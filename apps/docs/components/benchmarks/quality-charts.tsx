@@ -3,7 +3,6 @@
 import { cn } from '@/lib/cn';
 import {
   averageQualityScores,
-  multilingualConfigColors,
   multilingualConfigLabels,
   multilingualConfigs,
   multilingualLanguages,
@@ -11,7 +10,6 @@ import {
   multilingualMetricLabels,
   multilingualMixed,
   multilingualPerLanguage,
-  qualityEngineColors,
   qualityEngineOrder,
   qualityMetricLabels,
   searchQualityDatasets,
@@ -21,6 +19,7 @@ import {
   type QualityEngineKey,
   type QualityMetricKey,
 } from '@/lib/benchmarks/quality-data';
+import { ChartLegend } from './legend';
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -87,7 +86,7 @@ function SearchQualitySection() {
       : searchQualityDatasets.find((entry) => entry.id === dataset);
 
   return (
-    <section className="rounded-2xl border border-fd-border bg-fd-card/80 p-4 sm:p-6">
+    <section className="rounded-2xl border border-fd-border bg-fd-card p-4 sm:p-6">
       <div className="mb-5">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <h2 className="text-xl font-semibold tracking-tight text-fd-foreground">
@@ -102,13 +101,13 @@ function SearchQualitySection() {
             </a>
           </h2>
           {datasetMeta && (
-            <p className="shrink-0 text-xs tabular-nums text-fd-foreground/55">
+            <p className="shrink-0 text-xs tabular-nums text-fd-muted-foreground">
               {datasetMeta.documents.toLocaleString('en-US')} docs ·{' '}
               {datasetMeta.queries.toLocaleString('en-US')} queries
             </p>
           )}
         </div>
-        <p className="mt-1 text-sm leading-relaxed text-fd-foreground/65">
+        <p className="mt-1 text-sm leading-relaxed text-fd-muted-foreground">
           Ranking quality on official BEIR collections with trec_eval-compatible metrics. Higher is
           better. Primary metric is nDCG@10.
         </p>
@@ -122,10 +121,10 @@ function SearchQualitySection() {
               type="button"
               onClick={() => setDataset(id)}
               className={cn(
-                'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                'rounded-md border px-3 py-1 text-xs font-medium transition-colors',
                 dataset === id
                   ? 'border-fd-primary/40 bg-fd-primary/10 text-fd-foreground'
-                  : 'border-fd-border bg-fd-background text-fd-foreground/70 hover:text-fd-foreground',
+                  : 'border-fd-border bg-fd-background text-fd-muted-foreground hover:text-fd-foreground',
               )}
             >
               {datasetTitle(id)}
@@ -144,7 +143,7 @@ function SearchQualitySection() {
               'rounded-lg border px-2.5 py-1 text-xs tabular-nums transition-colors',
               metric === key
                 ? 'border-fd-primary/40 bg-fd-primary/10 font-semibold text-fd-foreground'
-                : 'border-fd-border bg-fd-background text-fd-foreground/65 hover:text-fd-foreground',
+                : 'border-fd-border bg-fd-background text-fd-muted-foreground hover:text-fd-foreground',
             )}
           >
             {qualityMetricLabels[key]}
@@ -154,9 +153,9 @@ function SearchQualitySection() {
 
       <div className="space-y-2.5">
         {metric === 'ndcg10' && reference != null && (
-          <div className="mb-3 flex items-center gap-2 text-xs text-fd-foreground/60">
+          <div className="mb-3 flex items-center gap-2 text-xs text-fd-muted-foreground">
             <span
-              className="inline-block h-px w-6 border-t border-dashed border-fd-foreground/40"
+              className="inline-block h-px w-6 border-t border-dashed border-fd-muted-foreground"
               aria-hidden
             />
             Lucene BM25 reference: {formatScore(reference)}
@@ -188,26 +187,29 @@ function SearchQualitySection() {
             >
               <span className="inline-flex items-center gap-2 text-xs font-medium text-fd-foreground">
                 <span
-                  className="size-2 shrink-0 rounded-full"
-                  style={{ backgroundColor: qualityEngineColors[row.key] }}
+                  aria-hidden
+                  className={cn(
+                    'size-2 shrink-0 rounded-full',
+                    isZbsearch ? 'bg-chart-subject' : 'bg-chart-other',
+                  )}
                 />
                 {row.label}
               </span>
 
-              <div className="relative h-2.5 overflow-hidden rounded-full bg-fd-muted">
+              <div className="relative h-2.5 overflow-hidden rounded-xs bg-fd-muted">
                 {referenceWidth != null && (
                   <div
                     aria-hidden
-                    className="absolute inset-y-0 w-px border-l border-dashed border-fd-foreground/35"
+                    className="absolute inset-y-0 w-px border-l border-dashed border-fd-muted-foreground"
                     style={{ left: `${referenceWidth}%` }}
                   />
                 )}
                 <div
-                  className="h-full rounded-full transition-[width]"
-                  style={{
-                    width: `${width}%`,
-                    backgroundColor: qualityEngineColors[row.key],
-                  }}
+                  className={cn(
+                    'h-full rounded-xs transition-[width]',
+                    isZbsearch ? 'bg-chart-subject' : 'bg-chart-other',
+                  )}
+                  style={{ width: `${width}%` }}
                 />
               </div>
 
@@ -215,7 +217,7 @@ function SearchQualitySection() {
                 <p className="text-sm font-semibold tabular-nums text-fd-foreground">
                   {row.timing.crashed && row.value === 0 ? '—' : formatScore(row.value)}
                 </p>
-                <p className="text-[10px] tabular-nums text-fd-foreground/55">
+                <p className="text-[10px] tabular-nums text-fd-muted-foreground">
                   {formatMs(row.timing.msPerQuery, row.timing.crashed)}
                 </p>
               </div>
@@ -224,8 +226,10 @@ function SearchQualitySection() {
         })}
       </div>
 
+      <ChartLegend className="mt-4 border-t border-fd-border pt-3" />
+
       {searchQualityNotes[0] && (
-        <p className="mt-4 text-xs leading-relaxed text-fd-foreground/55">{searchQualityNotes[0]}</p>
+        <p className="mt-3 text-xs leading-relaxed text-fd-muted-foreground">{searchQualityNotes[0]}</p>
       )}
     </section>
   );
@@ -255,7 +259,7 @@ function MultilingualSection() {
   };
 
   return (
-    <section className="rounded-2xl border border-fd-border bg-fd-card/80 p-4 sm:p-6">
+    <section className="rounded-2xl border border-fd-border bg-fd-card p-4 sm:p-6">
       <div className="mb-5">
         <h2 className="text-xl font-semibold tracking-tight text-fd-foreground">
           <a href="#multilingual" className="group">
@@ -268,7 +272,7 @@ function MultilingualSection() {
             </span>
           </a>
         </h2>
-        <p className="mt-1 text-sm leading-relaxed text-fd-foreground/65">
+        <p className="mt-1 text-sm leading-relaxed text-fd-muted-foreground">
           Zero-config <code className="text-xs">language: &apos;multilingual&apos;</code> vs
           per-language stemmers/stopwords vs the English default tokenizer.
         </p>
@@ -281,10 +285,10 @@ function MultilingualSection() {
             type="button"
             onClick={() => setView(id)}
             className={cn(
-              'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+              'rounded-md border px-3 py-1 text-xs font-medium transition-colors',
               view === id
                 ? 'border-fd-primary/40 bg-fd-primary/10 text-fd-foreground'
-                : 'border-fd-border bg-fd-background text-fd-foreground/65 hover:text-fd-foreground',
+                : 'border-fd-border bg-fd-background text-fd-muted-foreground hover:text-fd-foreground',
             )}
           >
             {viewLabel(id)}
@@ -302,7 +306,7 @@ function MultilingualSection() {
               'rounded-lg border px-2.5 py-1 text-xs transition-colors',
               metric === key
                 ? 'border-fd-primary/40 bg-fd-primary/10 font-semibold text-fd-foreground'
-                : 'border-fd-border bg-fd-background text-fd-foreground/65 hover:text-fd-foreground',
+                : 'border-fd-border bg-fd-background text-fd-muted-foreground hover:text-fd-foreground',
             )}
           >
             {multilingualMetricLabels[key]}
@@ -314,6 +318,7 @@ function MultilingualSection() {
         {rows.map(({ config, value }) => {
           const dimmed = activeConfig !== null && activeConfig !== config;
           const highlighted = activeConfig === config;
+          const isSubject = config === 'multilingual';
           const relative = value / maxValue;
 
           return (
@@ -326,26 +331,29 @@ function MultilingualSection() {
               onBlur={() => setActiveConfig(null)}
               className={cn(
                 'grid w-full grid-cols-[minmax(8.5rem,10.5rem)_1fr_auto] items-center gap-3 rounded-xl border border-fd-border bg-fd-background px-3 py-2.5 text-left transition-all',
-                config === 'multilingual' && 'border-fd-primary/25 bg-fd-primary/5',
+                isSubject && 'border-fd-primary/25 bg-fd-primary/5',
                 dimmed && 'opacity-35',
                 highlighted && 'ring-1 ring-fd-primary/20',
               )}
             >
               <span className="inline-flex items-center gap-2 text-xs font-medium text-fd-foreground">
                 <span
-                  className="size-2 shrink-0 rounded-full"
-                  style={{ backgroundColor: multilingualConfigColors[config] }}
+                  aria-hidden
+                  className={cn(
+                    'size-2 shrink-0 rounded-full',
+                    isSubject ? 'bg-chart-subject' : 'bg-chart-other',
+                  )}
                 />
                 {multilingualConfigLabels[config]}
               </span>
 
-              <div className="h-2.5 overflow-hidden rounded-full bg-fd-muted">
+              <div className="h-2.5 overflow-hidden rounded-xs bg-fd-muted">
                 <div
-                  className="h-full rounded-full transition-[width]"
-                  style={{
-                    width: `${relative * 100}%`,
-                    backgroundColor: multilingualConfigColors[config],
-                  }}
+                  className={cn(
+                    'h-full rounded-xs transition-[width]',
+                    isSubject ? 'bg-chart-subject' : 'bg-chart-other',
+                  )}
+                  style={{ width: `${relative * 100}%` }}
                 />
               </div>
 
@@ -353,7 +361,7 @@ function MultilingualSection() {
                 <p className="text-sm font-semibold tabular-nums text-fd-foreground">
                   {formatScore(value)}
                 </p>
-                <p className="text-[10px] tabular-nums text-fd-foreground/55">
+                <p className="text-[10px] tabular-nums text-fd-muted-foreground">
                   {relative === 1 ? 'Best' : `${Math.round(relative * 100)}% of best`}
                 </p>
               </div>
@@ -362,7 +370,13 @@ function MultilingualSection() {
         })}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs leading-relaxed text-fd-foreground/55">
+      <ChartLegend
+        subject="Zero-config multilingual"
+        other="Other configurations"
+        className="mt-4 border-t border-fd-border pt-3"
+      />
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs leading-relaxed text-fd-muted-foreground">
         <span>
           {view === 'mixed'
             ? 'All languages share one index; per-language tuning does not apply.'

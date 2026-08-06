@@ -8,37 +8,41 @@ const zbsearchPackage = JSON.parse(readFileSync('../packages/zbsearch/package.js
 
 const dryRun = process.env.DRY_RUN === 'true'
 const skipGit = process.env.SKIP_GIT === 'true'
-const skip = (process.env.SKIP ?? '').split(/\s*,\s*/).map(s => s.trim())
+const skip = (process.env.SKIP ?? '').split(/\s*,\s*/).map((s) => s.trim())
 
 const REPO_URL = 'https://github.com/micheleriva/zbsearch'
 
 // Every published package (kept in sync with scripts/release.mjs).
 const packages = [
   'zbsearch',
-  'plugin-astro',
+  'edge-core',
+  'edge-index-builder',
+  'runtime-cloudflare',
+  'storage-s3',
   'plugin-data-persistence',
-  'plugin-docusaurus',
-  'plugin-docusaurus-v3',
-  'plugin-vitepress',
-  'plugin-nextra',
   'plugin-parsedoc',
-  'plugin-analytics',
-  'plugin-secure-proxy',
   'plugin-embeddings',
   'plugin-match-highlight',
   'plugin-qps',
   'plugin-pt15',
+  'highlight',
+  'searchbox-core',
+  'searchbox-react',
+  'searchbox-vue',
+  'docs-index',
+  'plugin-docusaurus',
+  'plugin-starlight',
+  'plugin-vitepress',
   'stemmers',
   'stopwords',
-  'tokenizers',
-  'switch',
-].filter(p => !skip.includes(p))
+  'tokenizers'
+].filter((p) => !skip.includes(p))
 
 async function updatePackage(path, version) {
   const packageJson = JSON.parse(await readFile(path))
 
   console.log(
-    `\x1b[32mUpdating package \x1b[1m${packageJson.name}\x1b[22m from \x1b[1m${packageJson.version}\x1b[22m to version \x1b[1m${version}\x1b[22m ...\x1b[0m`,
+    `\x1b[32mUpdating package \x1b[1m${packageJson.name}\x1b[22m from \x1b[1m${packageJson.version}\x1b[22m to version \x1b[1m${version}\x1b[22m ...\x1b[0m`
   )
   packageJson.version = version
 
@@ -84,14 +88,14 @@ async function updateChangelog(newVersion, prevVersion, date) {
   // Add the new version's compare link right below the [Unreleased] line.
   content = content.replace(
     /^(\[Unreleased\]:.*\n)/m,
-    `$1[${newVersion}]: ${REPO_URL}/compare/v${prevVersion}...v${newVersion}\n`,
+    `$1[${newVersion}]: ${REPO_URL}/compare/v${prevVersion}...v${newVersion}\n`
   )
 
   if (!dryRun) {
     await writeFile(path, content, 'utf-8')
   }
   console.log(
-    `\x1b[32mUpdated \x1b[1mCHANGELOG.md\x1b[22m: released Unreleased as \x1b[1m${newVersion}\x1b[22m (${date}).\x1b[0m`,
+    `\x1b[32mUpdated \x1b[1mCHANGELOG.md\x1b[22m: released Unreleased as \x1b[1m${newVersion}\x1b[22m (${date}).\x1b[0m`
   )
   return true
 }
@@ -113,7 +117,7 @@ async function main() {
 
   if (!valid(version)) {
     console.error(
-      `\x1b[31mCannot increase version \x1b[1m${zbsearchPackage.version}\x1b[22m using operator \x1b[1m${process.argv[2]}\x1b[22m.\x1b[0m`,
+      `\x1b[31mCannot increase version \x1b[1m${zbsearchPackage.version}\x1b[22m using operator \x1b[1m${process.argv[2]}\x1b[22m.\x1b[0m`
     )
     process.exit(1)
   }
@@ -135,7 +139,7 @@ async function main() {
     const git = simpleGit({ baseDir: fileURLToPath(new URL('..', import.meta.url)) })
     console.log(`\x1b[32mCommitting changes and creating a tag (pushing is left to you) ...\x1b[0m`)
 
-    const files = ['package.json', ...packages.map(p => `packages/${p}/package.json`)]
+    const files = ['package.json', ...packages.map((p) => `packages/${p}/package.json`)]
     if (changelogUpdated) {
       files.push('CHANGELOG.md')
     }

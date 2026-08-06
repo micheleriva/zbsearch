@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/cn';
+import { TriangleAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 /**
@@ -38,17 +39,6 @@ const MODEL = {
   walReadsPerRebuild: 10,
   metaGetsPerSearchUncached: 1, // per shard (+1 for the group)
   metaCacheHitRatio: 0.99, // with in-isolate meta cache enabled
-} as const;
-
-const COLORS = {
-  base: 'oklch(0.60 0 0)',
-  requests: 'oklch(0.65 0.15 250)',
-  cpu: 'oklch(0.62 0.18 300)',
-  storage: 'oklch(0.68 0.14 180)',
-  classA: 'oklch(0.72 0.15 85)',
-  classB: 'oklch(0.65 0.17 45)',
-  durable: 'oklch(0.65 0.16 340)',
-  total: 'oklch(0.62 0.17 155)',
 } as const;
 
 interface Inputs {
@@ -128,44 +118,37 @@ function compute(inputs: Inputs) {
     breakdown: [
       {
         label: 'Workers base plan',
-        color: COLORS.base,
         cost: PRICING.workersBaseUsd,
         usage: 'includes 10M req + 30M CPU-ms',
       },
       {
         label: 'Workers requests',
-        color: COLORS.requests,
         cost: requestsCost,
         usage: `${formatCompact(workerRequests)} req`,
       },
       {
         label: 'Workers CPU',
-        color: COLORS.cpu,
         cost: cpuCost,
         usage: `${formatCompact(totalCpuMs)} CPU-ms`,
       },
       {
         label: 'R2 storage',
-        color: COLORS.storage,
         cost: r2StorageCost,
         usage:
           storageGb < 1 ? `${(storageGb * 1000).toFixed(0)} MB` : `${storageGb.toFixed(2)} GB`,
       },
       {
         label: 'R2 Class A (writes)',
-        color: COLORS.classA,
         cost: r2ClassACost,
         usage: `${formatCompact(classA)} ops`,
       },
       {
         label: 'R2 Class B (reads)',
-        color: COLORS.classB,
         cost: r2ClassBCost,
         usage: `${formatCompact(classB)} ops`,
       },
       {
         label: 'Durable Objects',
-        color: COLORS.durable,
         cost: doCost,
         usage: `${formatCompact(doRequests)} req`,
       },
@@ -266,18 +249,9 @@ export function CostCalculator() {
 
   return (
     <div className="not-prose overflow-hidden rounded-2xl border border-fd-border bg-fd-card">
-      <div
-        className="flex items-center gap-2 border-b border-fd-border px-4 py-2.5 sm:px-6"
-        style={{
-          background:
-            'linear-gradient(90deg, oklch(0.72 0.15 85 / 0.14), oklch(0.65 0.17 45 / 0.10))',
-        }}
-      >
-        <span
-          className="inline-block size-2 shrink-0 rounded-full"
-          style={{ background: COLORS.classA }}
-        />
-        <p className="text-xs leading-relaxed text-fd-foreground/80">
+      <div className="flex items-center gap-2 border-b border-fd-border bg-fd-warning/10 px-4 py-2.5 sm:px-6">
+        <TriangleAlert aria-hidden className="size-3.5 shrink-0 text-fd-warning" />
+        <p className="text-xs leading-relaxed text-fd-foreground">
           ZBSearch Edge is unoptimized right now. Real-world costs are higher than they should be, and we&apos;re actively
           working to make it <strong className="font-semibold">way cheaper</strong>.
         </p>
@@ -356,18 +330,12 @@ export function CostCalculator() {
               <div className="text-xs font-medium text-fd-muted-foreground">
                 Estimated monthly cost
               </div>
-              <div
-                className="text-3xl font-bold tabular-nums tracking-tight"
-                style={{ color: COLORS.total }}
-              >
+              <div className="text-3xl font-bold tabular-nums tracking-tight text-fd-primary">
                 {formatUsd(result.total)}
                 <span className="ml-1 text-sm font-normal text-fd-muted-foreground">/mo</span>
               </div>
             </div>
-            <div
-              className="rounded-full px-3 py-1 text-xs font-semibold tabular-nums"
-              style={{ background: 'oklch(0.62 0.17 155 / 0.12)', color: COLORS.total }}
-            >
+            <div className="rounded-md bg-fd-primary/10 px-3 py-1 text-xs font-semibold tabular-nums text-fd-primary">
               {formatUsd(result.perMillionSearches)} per 1M searches
             </div>
           </div>
@@ -378,8 +346,8 @@ export function CostCalculator() {
                 <div className="flex items-baseline justify-between gap-2 text-xs">
                   <span className="inline-flex items-center gap-1.5 text-fd-muted-foreground">
                     <span
-                      className="inline-block size-2 shrink-0 rounded-full"
-                      style={{ background: row.color }}
+                      aria-hidden
+                      className="inline-block size-2 shrink-0 rounded-full bg-chart-subject"
                     />
                     {row.label}
                   </span>
@@ -390,11 +358,10 @@ export function CostCalculator() {
                     <span className="ml-2 text-fd-muted-foreground/70">{row.usage}</span>
                   </span>
                 </div>
-                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-fd-muted">
+                <div className="mt-1 h-1.5 overflow-hidden rounded-xs bg-fd-muted">
                   <div
-                    className="h-full rounded-full"
+                    className="h-full rounded-xs bg-chart-subject"
                     style={{
-                      background: row.color,
                       width: `${maxRowCost > 0 ? Math.max(1.5, (row.cost / maxRowCost) * 100) : 1.5}%`,
                     }}
                   />
@@ -405,27 +372,18 @@ export function CostCalculator() {
 
           <div className="mt-5 flex flex-col gap-1.5 text-xs leading-relaxed text-fd-muted-foreground">
             {result.fitsFreePlan ? (
-              <p
-                className="rounded-lg px-3 py-2"
-                style={{ background: 'oklch(0.65 0.15 250 / 0.10)' }}
-              >
+              <p className="rounded-lg bg-fd-info/10 px-3 py-2">
                 Fits the Workers Free plan for requests, but note the free plan caps CPU at
                 10ms per invocation - searches on larger corpora will fail there.
               </p>
             ) : (
-              <p
-                className="rounded-lg px-3 py-2"
-                style={{ background: 'oklch(0.65 0.15 250 / 0.10)' }}
-              >
+              <p className="rounded-lg bg-fd-info/10 px-3 py-2">
                 Requires Workers Paid ($5/mo base, included above). The free plan caps CPU at
                 10ms per invocation, which search workloads exceed.
               </p>
             )}
             {result.exceedsCpuLimit ? (
-              <p
-                className="rounded-lg px-3 py-2"
-                style={{ background: 'oklch(0.72 0.15 85 / 0.12)' }}
-              >
+              <p className="rounded-lg bg-fd-warning/10 px-3 py-2 text-fd-foreground">
                 Warning: cold-start CPU ({formatCompact(result.warmCpuMs + result.coldExtraCpuMs)}
                 ms) exceeds the 300s <code>cpu_ms</code> limit - use more, smaller shards.
               </p>

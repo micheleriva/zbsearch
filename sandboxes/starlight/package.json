@@ -1,0 +1,33 @@
+{
+  "name": "@zbsearch/sandbox-starlight",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Astro Starlight site used to develop and end-to-end test @zbsearch/plugin-starlight",
+  "type": "module",
+  "scripts": {
+    "start": "astro dev --port 3220",
+    "build": "astro build",
+    "serve": "astro preview --port 3221",
+    "lint": "exit 0",
+    "pretest": "playwright install chromium",
+    "test": "playwright test && playwright test --config playwright.dev.config.ts",
+    "test:prod": "playwright test",
+    "test:dev": "playwright test --config playwright.dev.config.ts"
+  },
+  "dependencies": {
+    "@astrojs/react": "^5.0.0",
+    "@astrojs/starlight": "^0.41.6",
+    "@zbsearch/plugin-starlight": "workspace:*",
+    "astro": "^7.1.6",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "typescript": "~5.9.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

@@ -71,11 +71,7 @@ export class IndexCoordinator {
         return jsonResponse(await this.freezeForRebuild(indexId))
       case '/finalize':
         return jsonResponse(
-          await this.finalizeAfterRebuild(
-            indexId,
-            body.frozenSegmentKeys as string[],
-            body.result as WalRebuildResult
-          )
+          await this.finalizeAfterRebuild(indexId, body.frozenSegmentKeys as string[], body.result as WalRebuildResult)
         )
       case '/acquire-rebuild-lock':
         return jsonResponse(await this.acquireRebuildLock(indexId))
@@ -107,8 +103,7 @@ export class IndexCoordinator {
 
       if (
         open &&
-        (open.ops.length + ops.length > WAL_SEGMENT_MAX_OPS ||
-          open.bytes + incomingBytes > WAL_SEGMENT_MAX_BYTES)
+        (open.ops.length + ops.length > WAL_SEGMENT_MAX_OPS || open.bytes + incomingBytes > WAL_SEGMENT_MAX_BYTES)
       ) {
         await this.flushOpenSegment(indexId, open)
         open = null
@@ -139,9 +134,9 @@ export class IndexCoordinator {
       if (!head.oldestOpAt) {
         head.oldestOpAt = ops[0]!.ts
       }
- 
+
       await saveBufferHead(storage, indexId, head)
- 
+
       const metaObj = await storage.get(indexMetaKey(indexId))
 
       if (metaObj) {
@@ -241,9 +236,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   })
 }
 
-export function createWalCoordinator(
-  namespace: DurableObjectNamespace | undefined
-): WalCoordinator | undefined {
+export function createWalCoordinator(namespace: DurableObjectNamespace | undefined): WalCoordinator | undefined {
   if (!namespace) {
     return undefined
   }

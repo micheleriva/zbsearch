@@ -1,8 +1,8 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { search, insertMultiple, create } from '../src/index.js'
 
-t.test('hybrid search', async (t) => {
-  t.test('should return results', async (t) => {
+describe('hybrid search', () => {
+  it('should return results', async () => {
     const db = await create({
       schema: {
         text: 'string',
@@ -26,10 +26,10 @@ t.test('hybrid search', async (t) => {
       similarity: 1
     })
 
-    t.equal(results.count, 2)
+    expect(results.count).toBe(2)
   })
 
-  t.test('should return results with filters', async (t) => {
+  it('should return results with filters', async () => {
     const db = await create({
       schema: {
         text: 'string',
@@ -74,11 +74,11 @@ t.test('hybrid search', async (t) => {
       }
     })
 
-    t.equal(results1.count, 1)
-    t.equal(results2.count, 0)
+    expect(results1.count).toBe(1)
+    expect(results2.count).toBe(0)
   })
 
-  t.test('should correctly paginate the results', async (t) => {
+  it('should correctly paginate the results', async () => {
     const db = await create({
       schema: {
         text: 'string',
@@ -146,25 +146,25 @@ t.test('hybrid search', async (t) => {
       offset: 2
     })
 
-    t.equal(page1.count, 20)
-    t.equal(page2.count, 20)
-    t.equal(page3.count, 20)
-    t.equal(page1.hits.length, 2)
-    t.equal(page2.hits.length, 2)
-    t.equal(page3.hits.length, 2)
+    expect(page1.count).toBe(20)
+    expect(page2.count).toBe(20)
+    expect(page3.count).toBe(20)
+    expect(page1.hits.length).toBe(2)
+    expect(page2.hits.length).toBe(2)
+    expect(page3.hits.length).toBe(2)
 
     // Result with number 1 is skipped since it's not similar enough
-    t.equal(page1.hits[0].document.number, 2)
-    t.equal(page1.hits[1].document.number, 3)
+    expect(page1.hits[0].document.number).toBe(2)
+    expect(page1.hits[1].document.number).toBe(3)
 
-    t.equal(page2.hits[0].document.number, 3)
-    t.equal(page2.hits[1].document.number, 4)
+    expect(page2.hits[0].document.number).toBe(3)
+    expect(page2.hits[1].document.number).toBe(4)
 
-    t.equal(page3.hits[0].document.number, 4)
-    t.equal(page3.hits[1].document.number, 5)
+    expect(page3.hits[0].document.number).toBe(4)
+    expect(page3.hits[1].document.number).toBe(5)
   })
 
-  t.test('should use custom weights correctly', async (t) => {
+  it('should use custom weights correctly', async () => {
     const db = await create({
       schema: {
         text: 'string',
@@ -192,12 +192,12 @@ t.test('hybrid search', async (t) => {
       }
     })
 
-    t.equal(results.count, 2)
-    t.equal(results.hits[0].score, 1)
-    t.equal(results.hits[1].score, 1)
+    expect(results.count).toBe(2)
+    expect(results.hits[0].score).toBe(1)
+    expect(results.hits[1].score).toBe(1)
   })
 
-  t.test('should work without a term (vector-only input)', async (t) => {
+  it('should work without a term (vector-only input)', async () => {
     const db = await create({
       schema: {
         text: 'string',
@@ -221,16 +221,16 @@ t.test('hybrid search', async (t) => {
       similarity: 0.95
     })
 
-    t.equal(results.count, 2)
+    expect(results.count).toBe(2)
     for (const hit of results.hits) {
-      t.ok(Number.isFinite(hit.score), 'score should never be NaN')
+      expect(Number.isFinite(hit.score), 'score should never be NaN').toBeTruthy()
     }
     // Pure vector contribution: 0.5 * normalized similarity
-    t.equal(results.hits[0].score, 0.5)
-    t.equal(results.hits[0].document.number, 1)
+    expect(results.hits[0].score).toBe(0.5)
+    expect(results.hits[0].document.number).toBe(1)
   })
 
-  t.test('should honor a zero weight in hybridWeights', async (t) => {
+  it('should honor a zero weight in hybridWeights', async () => {
     const db = await create({
       schema: {
         text: 'string',
@@ -260,15 +260,15 @@ t.test('hybrid search', async (t) => {
     })
 
     // The best vector match ranks first with its normalized similarity as the score
-    t.equal(results.hits[0].document.number, 1)
-    t.equal(results.hits[0].score, 1)
+    expect(results.hits[0].document.number).toBe(1)
+    expect(results.hits[0].score).toBe(1)
     for (const hit of results.hits) {
-      t.ok(Number.isFinite(hit.score), 'score should never be NaN')
+      expect(Number.isFinite(hit.score), 'score should never be NaN').toBeTruthy()
     }
   })
 })
 
-t.test('should correctly paginate the results with a where clause', async (t) => {
+it('should correctly paginate the results with a where clause', async () => {
   const db = await create({
     schema: {
       text: 'string',
@@ -359,22 +359,22 @@ t.test('should correctly paginate the results with a where clause', async (t) =>
     limit: 10,
     offset: 5
   })
-  t.equal(page1.hits.length, 2)
-  t.equal(page2.hits.length, 2)
-  t.equal(page3.hits.length, 2)
-  t.equal(page4.hits.length, 10)
+  expect(page1.hits.length).toBe(2)
+  expect(page2.hits.length).toBe(2)
+  expect(page3.hits.length).toBe(2)
+  expect(page4.hits.length).toBe(10)
 
-  t.equal(page1.hits[0].document.number, 2)
-  t.equal(page1.hits[1].document.number, 3)
+  expect(page1.hits[0].document.number).toBe(2)
+  expect(page1.hits[1].document.number).toBe(3)
 
-  t.equal(page2.hits[0].document.number, 3)
-  t.equal(page2.hits[1].document.number, 4)
+  expect(page2.hits[0].document.number).toBe(3)
+  expect(page2.hits[1].document.number).toBe(4)
 
-  t.equal(page3.hits[0].document.number, 4)
-  t.equal(page3.hits[1].document.number, 5)
+  expect(page3.hits[0].document.number).toBe(4)
+  expect(page3.hits[1].document.number).toBe(5)
 
-  t.equal(page1.count, 20)
-  t.equal(page2.count, 20)
-  t.equal(page3.count, 20)
-  t.equal(page4.count, 20)
+  expect(page1.count).toBe(20)
+  expect(page2.count).toBe(20)
+  expect(page3.count).toBe(20)
+  expect(page4.count).toBe(20)
 })

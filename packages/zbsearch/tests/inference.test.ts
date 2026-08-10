@@ -1,8 +1,8 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { create, insert, insertMultiple, load, save, search, update, upsert } from '../src/index.js'
 
-t.test('schema inference', async (t) => {
-  t.test('infers scalar, array, and nested types from inserted documents', async (t) => {
+describe('schema inference', () => {
+  it('infers scalar, array, and nested types from inserted documents', async () => {
     const db = create({})
 
     await insert(db, {
@@ -22,7 +22,7 @@ t.test('schema inference', async (t) => {
       meta: { author: 'jane' }
     })
 
-    t.strictSame(db.schema, {
+    expect(db.schema).toStrictEqual({
       title: 'string',
       year: 'number',
       active: 'boolean',
@@ -32,23 +32,23 @@ t.test('schema inference', async (t) => {
     })
 
     const fulltext = await search(db, { term: 'fox' })
-    t.equal(fulltext.count, 1)
-    t.equal((fulltext.hits[0].document as any).title, 'The quick brown fox')
+    expect(fulltext.count).toBe(1)
+    expect((fulltext.hits[0].document as any).title).toBe('The quick brown fox')
 
     const filtered = await search(db, { term: '', where: { year: { gt: 2021 } } })
-    t.equal(filtered.count, 1)
+    expect(filtered.count).toBe(1)
 
     const boolFiltered = await search(db, { term: '', where: { active: true } })
-    t.equal(boolFiltered.count, 1)
+    expect(boolFiltered.count).toBe(1)
 
     const arrFiltered = await search(db, { term: '', where: { tags: 'fox' } })
-    t.equal(arrFiltered.count, 1)
+    expect(arrFiltered.count).toBe(1)
 
     const nestedFiltered = await search(db, { term: '', where: { 'meta.author': 'john' } })
-    t.equal(nestedFiltered.count, 1)
+    expect(nestedFiltered.count).toBe(1)
   })
 
-  t.test('supports sortBy, facets, and groupBy on inferred fields', async (t) => {
+  it('supports sortBy, facets, and groupBy on inferred fields', async () => {
     const db = create({})
 
     await insertMultiple(db, [
@@ -58,16 +58,10 @@ t.test('schema inference', async (t) => {
     ])
 
     const sorted = await search(db, { term: '', sortBy: { property: 'year', order: 'ASC' } })
-    t.strictSame(
-      sorted.hits.map((h) => (h.document as any).year),
-      [2020, 2021, 2022]
-    )
+    expect(sorted.hits.map((h) => (h.document as any).year)).toStrictEqual([2020, 2021, 2022])
 
     const sortedStr = await search(db, { term: '', sortBy: { property: 'title', order: 'ASC' } })
-    t.strictSame(
-      sortedStr.hits.map((h) => (h.document as any).title),
-      ['a doc', 'b doc', 'c doc']
-    )
+    expect(sortedStr.hits.map((h) => (h.document as any).title)).toStrictEqual(['a doc', 'b doc', 'c doc'])
 
     const faceted = await search(db, {
       term: 'doc',
@@ -80,88 +74,85 @@ t.test('schema inference', async (t) => {
         }
       }
     })
-    t.ok(faceted.facets)
+    expect(faceted.facets).toBeTruthy()
     const bucketCounts = Object.values(faceted.facets!.year.values) as number[]
-    t.equal(bucketCounts.length, 2)
-    t.equal(
-      bucketCounts.reduce((a, b) => a + b, 0),
-      3
-    )
+    expect(bucketCounts.length).toBe(2)
+    expect(bucketCounts.reduce((a, b) => a + b, 0)).toBe(3)
 
     const grouped = await search(db, { term: 'doc', groupBy: { properties: ['year'] } })
-    t.equal(grouped.groups!.length, 3)
+    expect(grouped.groups!.length).toBe(3)
   })
 
-  t.test('defers inference for empty arrays and null/undefined values', async (t) => {
+  it('defers inference for empty arrays and null/undefined values', async () => {
     const db = create({})
 
     await insert(db, { title: 'first', tags: [], note: null })
-    t.strictSame(db.schema, { title: 'string' })
+    expect(db.schema).toStrictEqual({ title: 'string' })
 
     const before = await search(db, { term: 'first' })
-    t.equal(before.count, 1)
+    expect(before.count).toBe(1)
 
     // Filtering on a not-yet-inferred property throws, as with any unknown property
     try {
       await search(db, { term: '', where: { tags: 'x' } })
-      t.fail('Should have thrown an error')
+      expect.fail('Should have thrown an error')
     } catch (e) {
-      t.equal((e as any).code, 'UNKNOWN_FILTER_PROPERTY')
+      expect((e as any).code).toBe('UNKNOWN_FILTER_PROPERTY')
     }
 
     await insert(db, { title: 'second', tags: ['x'], note: 'now a string' })
-    t.strictSame(db.schema, { title: 'string', tags: 'string[]', note: 'string' })
+    expect(db.schema).toStrictEqual({ title: 'string', tags: 'string[]', note: 'string' })
 
     const after = await search(db, { term: '', where: { tags: 'x' } })
-    t.equal(after.count, 1)
+    expect(after.count).toBe(1)
   })
 
-  t.test('infers {lat, lon} objects as geopoints', async (t) => {
+  it('infers {lat, lon} objects as geopoints', async () => {
     const db = create({})
 
     await insert(db, { name: 'rome', location: { lat: 41.9028, lon: 12.4964 } })
     await insert(db, { name: 'milan', location: { lat: 45.4642, lon: 9.19 } })
-    t.strictSame(db.schema, { name: 'string', location: 'geopoint' })
+    expect(db.schema).toStrictEqual({ name: 'string', location: 'geopoint' })
 
     const result = await search(db, {
       term: '',
       where: { location: { radius: { coordinates: { lat: 41.9, lon: 12.5 }, value: 50, unit: 'km' } } }
     })
-    t.equal(result.count, 1)
-    t.equal((result.hits[0].document as any).name, 'rome')
+    expect(result.count).toBe(1)
+    expect((result.hits[0].document as any).name).toBe('rome')
   })
 
-  t.test('locks the type on first sight and rejects conflicting types', async (t) => {
+  it('locks the type on first sight and rejects conflicting types', async () => {
     const db = create({})
 
     await insert(db, { title: 'first', year: 2023 })
 
     try {
       await insert(db, { title: 'second', year: 'not a number' })
-      t.fail('Should have thrown an error')
+      expect.fail('Should have thrown an error')
     } catch (e) {
-      t.equal((e as any).code, 'SCHEMA_VALIDATION_FAILURE')
+      expect((e as any).code).toBe('SCHEMA_VALIDATION_FAILURE')
     }
 
     // The first document is still searchable, and the type is still number
     const result = await search(db, { term: '', where: { year: { gt: 2000 } } })
-    t.equal(result.count, 1)
-    t.equal((db.schema as any).year, 'number')
+    expect(result.count).toBe(1)
+    expect((db.schema as any).year).toBe('number')
   })
 
-  t.test('infers new fields appearing mid-batch in insertMultiple', async (t) => {
+  it('infers new fields appearing mid-batch in insertMultiple', async () => {
     const db = create({})
 
     await insertMultiple(db, [{ a: 'first' }, { a: 'second', b: 42 }, { a: 'third', b: 7 }])
 
-    t.strictSame(db.schema, { a: 'string', b: 'number' })
+    expect(db.schema).toStrictEqual({ a: 'string', b: 'number' })
 
     const result = await search(db, { term: '', where: { b: { gt: 10 } } })
-    t.equal(result.count, 1)
-    t.equal((result.hits[0].document as any).a, 'second')
+    expect(result.count).toBe(1)
+    expect((result.hits[0].document as any).a).toBe('second')
   })
 
-  t.test('combines a declared vector field with inferred text fields', async (t) => {
+  it('combines a declared vector field with inferred text fields', async () => {
     const db = create({
       schema: { embedding: 'vector[3]' },
       inferSchema: true
@@ -170,52 +161,52 @@ t.test('schema inference', async (t) => {
     await insert(db, { title: 'vector document', embedding: [1, 0, 0] })
     await insert(db, { title: 'another document', embedding: [0, 1, 0] })
 
-    t.strictSame(db.schema, { embedding: 'vector[3]', title: 'string' })
+    expect(db.schema).toStrictEqual({ embedding: 'vector[3]', title: 'string' })
 
     const vectorResult = await search(db, {
       mode: 'vector',
       vector: { property: 'embedding', value: [1, 0, 0] }
     })
     // The orthogonal vector is below the default similarity threshold
-    t.equal(vectorResult.hits.length, 1)
+    expect(vectorResult.hits.length).toBe(1)
 
     const fulltextResult = await search(db, { term: 'vector' })
-    t.equal(fulltextResult.count, 1)
+    expect(fulltextResult.count).toBe(1)
 
     const hybridResult = await search(db, {
       mode: 'hybrid',
       term: 'vector',
       vector: { property: 'embedding', value: [1, 0, 0] }
     })
-    t.ok(hybridResult.hits.length >= 1)
+    expect(hybridResult.hits.length >= 1).toBeTruthy()
   })
 
-  t.test('keeps strict behavior when a schema is provided', async (t) => {
+  it('keeps strict behavior when a schema is provided', async () => {
     const db = create({
       schema: { title: 'string' } as const
     })
 
     await insert(db, { title: 'hello world', extra: 'ignored' })
 
-    t.strictSame(db.schema, { title: 'string' })
-    t.notOk((db.data.index as any).indexes.extra)
+    expect(db.schema).toStrictEqual({ title: 'string' })
+    expect((db.data.index as any).indexes.extra).toBeFalsy()
 
     const result = await search(db, { term: 'hello' })
-    t.equal(result.count, 1)
+    expect(result.count).toBe(1)
   })
 
-  t.test('indexes nothing when inference is disabled and no schema is given', async (t) => {
+  it('indexes nothing when inference is disabled and no schema is given', async () => {
     const db = create({ inferSchema: false })
 
     await insert(db, { title: 'nothing indexed' })
 
-    t.strictSame(db.schema, {})
+    expect(db.schema).toStrictEqual({})
 
     const result = await search(db, { term: 'nothing' })
-    t.equal(result.count, 0)
+    expect(result.count).toBe(0)
   })
 
-  t.test('preserves inferred fields across save/load and keeps inferring', async (t) => {
+  it('preserves inferred fields across save/load and keeps inferring', async () => {
     const db = create({})
     await insert(db, { a: 'first', b: 42 })
     await insert(db, { a: 'second', b: 7 })
@@ -226,93 +217,93 @@ t.test('schema inference', async (t) => {
     await load(restored, raw)
 
     const result = await search(restored, { term: '', where: { b: { gt: 10 } } })
-    t.equal(result.count, 1)
+    expect(result.count).toBe(1)
 
     // Inference keeps working on the restored instance
     await insert(restored, { a: 'third', c: true })
     // Known fields are backfilled into the schema lazily, as documents
     // carrying them arrive: "b" is only recorded once a doc contains it.
-    t.strictSame(restored.schema, { a: 'string', c: 'boolean' })
+    expect(restored.schema).toStrictEqual({ a: 'string', c: 'boolean' })
 
     const newField = await search(restored, { term: '', where: { c: true } })
-    t.equal(newField.count, 1)
+    expect(newField.count).toBe(1)
 
     // Type conflicts are still rejected after a restore
     try {
       await insert(restored, { a: 'fourth', b: 'not a number' })
-      t.fail('Should have thrown an error')
+      expect.fail('Should have thrown an error')
     } catch (e) {
-      t.equal((e as any).code, 'SCHEMA_VALIDATION_FAILURE')
+      expect((e as any).code).toBe('SCHEMA_VALIDATION_FAILURE')
     }
-    t.equal((restored.schema as any).b, 'number')
+    expect((restored.schema as any).b).toBe('number')
   })
 
-  t.test('infers new fields through update and upsert', async (t) => {
+  it('infers new fields through update and upsert', async () => {
     const db = create({})
 
     const id = await insert(db, { title: 'original' })
     await update(db, id, { title: 'updated', views: 10 })
 
-    t.strictSame(db.schema, { title: 'string', views: 'number' })
+    expect(db.schema).toStrictEqual({ title: 'string', views: 'number' })
     const afterUpdate = await search(db, { term: '', where: { views: { gte: 10 } } })
-    t.equal(afterUpdate.count, 1)
+    expect(afterUpdate.count).toBe(1)
 
     await upsert(db, { title: 'upserted', fresh: true })
-    t.strictSame(db.schema, { title: 'string', views: 'number', fresh: 'boolean' })
+    expect(db.schema).toStrictEqual({ title: 'string', views: 'number', fresh: 'boolean' })
 
     const afterUpsert = await search(db, { term: '', where: { fresh: true } })
-    t.equal(afterUpsert.count, 1)
+    expect(afterUpsert.count).toBe(1)
   })
 
-  t.test('skips the reserved __vector key and the document id', async (t) => {
+  it('skips the reserved __vector key and the document id', async () => {
     const db = create({})
 
     await insert(db, { id: 'doc-1', __vector: [1, 2, 3], title: 'hello' } as any)
 
-    t.strictSame(db.schema, { title: 'string' })
+    expect(db.schema).toStrictEqual({ title: 'string' })
   })
 
-  t.test('rejects documents whose shape conflicts with a locked property path', async (t) => {
-    t.test('scalar first, then nested object at the same path', async (t) => {
+  describe('rejects documents whose shape conflicts with a locked property path', () => {
+    it('scalar first, then nested object at the same path', async () => {
       const db = create({})
 
       await insert(db, { a: 'scalar', keep: true })
 
       try {
         await insert(db, { a: { b: 1 } })
-        t.fail('Should have thrown an error')
+        expect.fail('Should have thrown an error')
       } catch (e) {
-        t.equal((e as any).code, 'SCHEMA_VALIDATION_FAILURE')
+        expect((e as any).code).toBe('SCHEMA_VALIDATION_FAILURE')
       }
 
       // The schema is not corrupted by the rejected document
-      t.strictSame(db.schema, { a: 'string', keep: 'boolean' })
-      t.notOk((db.data.index as any).indexes['a.b'])
+      expect(db.schema).toStrictEqual({ a: 'string', keep: 'boolean' })
+      expect((db.data.index as any).indexes['a.b']).toBeFalsy()
 
       const result = await search(db, { term: 'scalar' })
-      t.equal(result.count, 1)
+      expect(result.count).toBe(1)
     })
 
-    t.test('nested object first, then scalar at the parent path', async (t) => {
+    it('nested object first, then scalar at the parent path', async () => {
       const db = create({})
 
       await insert(db, { a: { b: 1 } })
 
       try {
         await insert(db, { a: 'scalar' })
-        t.fail('Should have thrown an error')
+        expect.fail('Should have thrown an error')
       } catch (e) {
-        t.equal((e as any).code, 'SCHEMA_VALIDATION_FAILURE')
+        expect((e as any).code).toBe('SCHEMA_VALIDATION_FAILURE')
       }
 
-      t.strictSame(db.schema, { a: { b: 'number' } })
+      expect(db.schema).toStrictEqual({ a: { b: 'number' } })
 
       const result = await search(db, { term: '', where: { 'a.b': { eq: 1 } } })
-      t.equal(result.count, 1)
+      expect(result.count).toBe(1)
     })
   })
 
-  t.test('respects unsortableProperties for inferred fields, across save/load', async (t) => {
+  it('respects unsortableProperties for inferred fields, across save/load', async () => {
     const db = create({
       sort: { unsortableProperties: ['b'] }
     })
@@ -320,8 +311,8 @@ t.test('schema inference', async (t) => {
     await insert(db, { a: 'first', b: 42 })
 
     // "b" was inferred and indexed, but not made sortable
-    t.ok((db.data.index as any).indexes.b)
-    t.notOk((db.data.sorting as any).sorts.b)
+    expect((db.data.index as any).indexes.b).toBeTruthy()
+    expect((db.data.sorting as any).sorts.b).toBeFalsy()
 
     const raw = await save(db)
     const restored = create({})
@@ -329,19 +320,16 @@ t.test('schema inference', async (t) => {
 
     // The deny list survives the round trip: new docs still can't sort by "b"
     await insert(restored, { a: 'second', b: 7 })
-    t.notOk((restored.data.sorting as any).sorts.b)
+    expect((restored.data.sorting as any).sorts.b).toBeFalsy()
 
     try {
       await search(restored, { term: '', sortBy: { property: 'b', order: 'ASC' } })
-      t.fail('Should have thrown an error')
+      expect.fail('Should have thrown an error')
     } catch (e) {
-      t.equal((e as any).code, 'UNABLE_TO_SORT_ON_UNKNOWN_FIELD')
+      expect((e as any).code).toBe('UNABLE_TO_SORT_ON_UNKNOWN_FIELD')
     }
 
     const result = await search(restored, { term: '', sortBy: { property: 'a', order: 'DESC' } })
-    t.strictSame(
-      result.hits.map((h) => (h.document as any).a),
-      ['second', 'first']
-    )
+    expect(result.hits.map((h) => (h.document as any).a)).toStrictEqual(['second', 'first'])
   })
 })

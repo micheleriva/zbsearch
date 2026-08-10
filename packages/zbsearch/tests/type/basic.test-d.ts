@@ -1,5 +1,6 @@
+import { expectTypeOf } from 'vitest'
+
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { expectType } from 'tsd'
 import type { ZBSearch, Results, SearchParams, TypedDocument } from '../../src/types.d.ts'
 import { create, insert, search } from '../../src/index.js'
 
@@ -15,7 +16,7 @@ type MovieDocument = TypedDocument<ZBSearch<typeof movieSchema>>
 const movieDBP = create({
   schema: movieSchema
 })
-expectType<ZBSearch<typeof movieSchema>>(movieDBP)
+expectTypeOf(movieDBP).toEqualTypeOf<ZBSearch<typeof movieSchema>>()
 const movieDB = movieDBP
 
 const idP = insert(movieDB, {
@@ -24,13 +25,13 @@ const idP = insert(movieDB, {
   actors: ['Marlon Brando', 'Al Pacino'],
   isFavorite: true
 })
-expectType<string | Promise<string>>(idP)
+expectTypeOf(idP).toEqualTypeOf<string | Promise<string>>()
 
 const searchParams: SearchParams<ZBSearch<typeof movieSchema>> = {
   term: 'godfather'
 }
 
 const resultP = search(movieDB, searchParams)
-expectType<Results<MovieDocument> | Promise<Results<MovieDocument>>>(resultP)
+expectTypeOf(resultP).toEqualTypeOf<Results<MovieDocument> | Promise<Results<MovieDocument>>>()
 const result = resultP instanceof Promise ? await resultP : resultP
-expectType<string>(result.hits[0].document.title)
+expectTypeOf(result.hits[0].document.title).toEqualTypeOf<string>()

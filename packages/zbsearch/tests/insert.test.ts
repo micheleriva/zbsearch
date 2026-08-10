@@ -1,4 +1,4 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { DocumentsStore } from '../src/components/documents-store.js'
 import { Index } from '../src/components/index.js'
@@ -8,8 +8,8 @@ import { BKDTree } from '../src/trees/bkd.js'
 
 const dataset = JSON.parse(readFileSync(new URL('./datasets/events.json', import.meta.url), 'utf-8')) as DataSet
 
-t.test('insert method', async (t) => {
-  t.test('should correctly insert and retrieve data', async (t) => {
+describe('insert method', async () => {
+  it('should correctly insert and retrieve data', async () => {
     const db = await create({
       schema: {
         example: 'string'
@@ -21,13 +21,13 @@ t.test('insert method', async (t) => {
       term: 'quick',
       properties: ['example']
     })
-    t.ok(ex1Insert)
-    t.equal(ex1Search.count, 1)
-    t.type(ex1Search.elapsed.raw, 'number')
-    t.equal(ex1Search.hits[0].document.example, 'The quick, brown, fox')
+    expect(ex1Insert).toBeTruthy()
+    expect(ex1Search.count).toBe(1)
+    expect(typeof ex1Search.elapsed.raw).toBe('number')
+    expect(ex1Search.hits[0].document.example).toBe('The quick, brown, fox')
   })
 
-  t.test('should be able to insert documens with non-searchable fields', async (t) => {
+  it('should be able to insert documens with non-searchable fields', async () => {
     const db = create({
       schema: {
         quote: 'string',
@@ -55,11 +55,11 @@ t.test('insert method', async (t) => {
       term: 'frank'
     })
 
-    t.equal(searchResult.count, 1)
-    t.equal(searchResult.hits[0].document.author, 'Frank Zappa')
+    expect(searchResult.count).toBe(1)
+    expect(searchResult.hits[0].document.author).toBe('Frank Zappa')
   })
 
-  t.test("should use the 'id' field found in the document as index id", async (t) => {
+  it("should use the 'id' field found in the document as index id", async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -77,11 +77,11 @@ t.test('insert method', async (t) => {
       name: 'Doe'
     })
 
-    t.equal(i1, 'john-01')
-    t.equal(i2, 'doe-02')
+    expect(i1).toBe('john-01')
+    expect(i2).toBe('doe-02')
   })
 
-  t.test("should use the custom 'id' function passed in the configuration object", async (t) => {
+  it("should use the custom 'id' function passed in the configuration object", async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -104,11 +104,11 @@ t.test('insert method', async (t) => {
       name: 'Doe'
     })
 
-    t.equal(i1, 'john-foo-bar-baz')
-    t.equal(i2, 'doe-foo-bar-baz')
+    expect(i1).toBe('john-foo-bar-baz')
+    expect(i2).toBe('doe-foo-bar-baz')
   })
 
-  t.test("should throw an error if the 'id' field is not a string", async (t) => {
+  it("should throw an error if the 'id' field is not a string", async () => {
     const db = create({
       schema: {
         name: 'string'
@@ -121,11 +121,11 @@ t.test('insert method', async (t) => {
         name: 'John'
       })
     } catch (e) {
-      t.equal(e.code, 'DOCUMENT_ID_MUST_BE_STRING')
+      expect(e.code).toBe('DOCUMENT_ID_MUST_BE_STRING')
     }
   })
 
-  t.test("should throw an error if the 'id' field is already taken", async (t) => {
+  it("should throw an error if the 'id' field is already taken", async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -144,11 +144,11 @@ t.test('insert method', async (t) => {
         name: 'John'
       })
     } catch (e) {
-      t.equal(e.code, 'DOCUMENT_ALREADY_EXISTS')
+      expect(e.code).toBe('DOCUMENT_ALREADY_EXISTS')
     }
   })
 
-  t.test('should use the ID field as index id even if not specified in the schema', async (t) => {
+  it('should use the ID field as index id even if not specified in the schema', async () => {
     const db = create({
       schema: {
         name: 'string'
@@ -160,10 +160,10 @@ t.test('insert method', async (t) => {
       name: 'John'
     })
 
-    t.equal(i1, 'john-01')
+    expect(i1).toBe('john-01')
   })
 
-  t.test('should allow doc with missing schema keys to be inserted without indexing those keys', async (t) => {
+  it('should allow doc with missing schema keys to be inserted without indexing those keys', async () => {
     const db = create({
       schema: {
         quote: 'string',
@@ -175,7 +175,7 @@ t.test('insert method', async (t) => {
       author: 'author should be singular'
     })
 
-    t.equal(Object.keys(db.data.docs.docs).length, 1)
+    expect(Object.keys(db.data.docs.docs).length).toBe(1)
 
     const docWithExtraKey = {
       quote: 'hello, world!',
@@ -185,73 +185,70 @@ t.test('insert method', async (t) => {
 
     const insertedInfo = await insert(db, docWithExtraKey)
 
-    t.ok(insertedInfo)
-    t.equal(Object.keys(db.data.docs.docs).length, 2)
+    expect(insertedInfo).toBeTruthy()
+    expect(Object.keys(db.data.docs.docs).length).toBe(2)
 
-    t.ok('foo' in db.data.docs.docs[getInternalDocumentId(db.internalDocumentIDStore, insertedInfo)]!)
-    t.same(docWithExtraKey.foo, db.data.docs.docs[getInternalDocumentId(db.internalDocumentIDStore, insertedInfo)]!.foo)
-    t.notOk('foo' in (db.data.index as unknown as Index).indexes)
+    expect('foo' in db.data.docs.docs[getInternalDocumentId(db.internalDocumentIDStore, insertedInfo)]!).toBeTruthy()
+    expect(docWithExtraKey.foo).toEqual(
+      db.data.docs.docs[getInternalDocumentId(db.internalDocumentIDStore, insertedInfo)]!.foo
+    )
+    expect('foo' in (db.data.index as unknown as Index).indexes).toBeFalsy()
   })
 
-  await t.test(
-    'should allow doc with missing schema keys to be inserted without indexing those keys - nested schema version',
-    async (t) => {
-      const db = create({
-        schema: {
-          quote: 'string',
-          author: {
-            name: 'string',
-            surname: 'string'
-          },
-          tag: {
-            name: 'string',
-            description: 'string'
-          },
-          isFavorite: 'boolean',
-          rating: 'number'
-        } as const
-      })
-      const nestedExtraKeyDoc = {
-        quote: 'So many books, so little time.',
+  it('should allow doc with missing schema keys to be inserted without indexing those keys - nested schema version', async () => {
+    const db = create({
+      schema: {
+        quote: 'string',
         author: {
-          name: 'Frank',
-          surname: 'Zappa'
+          name: 'string',
+          surname: 'string'
         },
         tag: {
-          name: 'books',
-          description: 'Quotes about books',
-          unexpectedNestedProperty: 'amazing'
+          name: 'string',
+          description: 'string'
         },
-        isFavorite: false,
-        rating: 5,
-        unexpectedProperty: 'wow'
-      }
-      const insertedInfo = await insert(db, nestedExtraKeyDoc)
-
-      t.ok(insertedInfo)
-      t.equal(Object.keys((db.data.docs as DocumentsStore).docs).length, 1)
-
-      t.same(
-        nestedExtraKeyDoc.unexpectedProperty,
-        (db.data.docs as DocumentsStore).docs[getInternalDocumentId(db.internalDocumentIDStore, insertedInfo)]!
-          .unexpectedProperty
-      )
-
-      t.same(
-        nestedExtraKeyDoc.tag.unexpectedNestedProperty,
-        (
-          (db.data.docs as DocumentsStore).docs[getInternalDocumentId(db.internalDocumentIDStore, insertedInfo)]!
-            .tag as unknown as Record<string, string>
-        ).unexpectedNestedProperty
-      )
-
-      t.notOk('unexpectedProperty' in (db.data.index as Index).indexes)
-      t.notOk('tag.unexpectedProperty' in (db.data.index as Index).indexes)
+        isFavorite: 'boolean',
+        rating: 'number'
+      } as const
+    })
+    const nestedExtraKeyDoc = {
+      quote: 'So many books, so little time.',
+      author: {
+        name: 'Frank',
+        surname: 'Zappa'
+      },
+      tag: {
+        name: 'books',
+        description: 'Quotes about books',
+        unexpectedNestedProperty: 'amazing'
+      },
+      isFavorite: false,
+      rating: 5,
+      unexpectedProperty: 'wow'
     }
-  )
+    const insertedInfo = await insert(db, nestedExtraKeyDoc)
 
-  t.test('should validate', async (t) => {
-    t.test('the properties are not mandatory', async (t) => {
+    expect(insertedInfo).toBeTruthy()
+    expect(Object.keys((db.data.docs as DocumentsStore).docs).length).toBe(1)
+
+    expect(nestedExtraKeyDoc.unexpectedProperty).toEqual(
+      (db.data.docs as DocumentsStore).docs[getInternalDocumentId(db.internalDocumentIDStore, insertedInfo)]!
+        .unexpectedProperty
+    )
+
+    expect(nestedExtraKeyDoc.tag.unexpectedNestedProperty).toEqual(
+      (
+        (db.data.docs as DocumentsStore).docs[getInternalDocumentId(db.internalDocumentIDStore, insertedInfo)]!
+          .tag as unknown as Record<string, string>
+      ).unexpectedNestedProperty
+    )
+
+    expect('unexpectedProperty' in (db.data.index as Index).indexes).toBeFalsy()
+    expect('tag.unexpectedProperty' in (db.data.index as Index).indexes).toBeFalsy()
+  })
+
+  describe('should validate', async () => {
+    it('the properties are not mandatory', async () => {
       const db = create({
         schema: {
           id: 'string',
@@ -268,12 +265,10 @@ t.test('insert method', async (t) => {
       insert(db, { name: 'bar' })
       insert(db, { inner: {} })
 
-      t.equal(count(db), 4)
-
-      t.end()
+      expect(count(db)).toBe(4)
     })
 
-    await t.test('invalid document', async (t) => {
+    it('invalid document', async () => {
       const db = create({
         schema: {
           string: 'string',
@@ -311,13 +306,13 @@ t.test('insert method', async (t) => {
         try {
           insert(db, doc)
         } catch (e) {
-          t.equal(e.code, 'SCHEMA_VALIDATION_FAILURE')
+          expect(e.code).toBe('SCHEMA_VALIDATION_FAILURE')
         }
       }
     })
   })
 
-  await t.test('should insert Geopoints', async (t) => {
+  it('should insert Geopoints', async () => {
     const db = create({
       schema: {
         name: 'string',
@@ -325,7 +320,7 @@ t.test('insert method', async (t) => {
       } as const
     })
 
-    t.ok(
+    expect(
       insert(db, {
         name: 't1',
         location: {
@@ -333,15 +328,15 @@ t.test('insert method', async (t) => {
           lon: 9.261266
         }
       })
-    )
+    ).toBeTruthy()
     const index = db.data.index.indexes.location.node as BKDTree
-    t.equal(index.root?.point.lat, 45.5771622)
-    t.equal(index.root?.point.lon, 9.261266)
+    expect(index.root?.point.lat).toBe(45.5771622)
+    expect(index.root?.point.lon).toBe(9.261266)
   })
 })
 
-t.test('insert short prefixes, as in #327 and #328', async (t) => {
-  await t.test('example 1', async (t) => {
+describe('insert short prefixes, as in #327 and #328', async () => {
+  it('example 1', async () => {
     const db = await create({
       schema: {
         id: 'string',
@@ -373,18 +368,18 @@ t.test('insert short prefixes, as in #327 and #328', async (t) => {
       prefix: true
     })
 
-    t.same(exactResults.count, 1)
-    t.same(exactResults.hits[0].id, '2')
-    t.same(exactResults.hits[0].document.abbrv, 'RD')
+    expect(exactResults.count).toEqual(1)
+    expect(exactResults.hits[0].id).toEqual('2')
+    expect(exactResults.hits[0].document.abbrv).toEqual('RD')
 
-    t.same(prefixResults.count, 2)
-    t.same(prefixResults.hits[0].id, '2')
-    t.same(prefixResults.hits[0].document.abbrv, 'RD')
-    t.same(prefixResults.hits[1].id, '1')
-    t.same(prefixResults.hits[1].document.abbrv, 'RDGE')
+    expect(prefixResults.count).toEqual(2)
+    expect(prefixResults.hits[0].id).toEqual('2')
+    expect(prefixResults.hits[0].document.abbrv).toEqual('RD')
+    expect(prefixResults.hits[1].id).toEqual('1')
+    expect(prefixResults.hits[1].document.abbrv).toEqual('RDGE')
   })
 
-  await t.test('example 2', async (t) => {
+  it('example 2', async () => {
     const db = await create({
       schema: {
         id: 'string',
@@ -404,16 +399,16 @@ t.test('insert short prefixes, as in #327 and #328', async (t) => {
       exact: true
     })
 
-    t.same(exactResults.count, 2)
-    t.same(exactResults.hits[0].id, '1')
-    t.same(exactResults.hits[0].document.quote, 'AB')
-    t.same(exactResults.hits[1].id, '4')
-    t.same(exactResults.hits[1].document.quote, 'AB')
+    expect(exactResults.count).toEqual(2)
+    expect(exactResults.hits[0].id).toEqual('1')
+    expect(exactResults.hits[0].document.quote).toEqual('AB')
+    expect(exactResults.hits[1].id).toEqual('4')
+    expect(exactResults.hits[1].document.quote).toEqual('AB')
   })
 })
 
-t.test('insertMultiple method', async (t) => {
-  t.test("should use the custom 'id' function passed in the configuration object", async (t) => {
+describe('insertMultiple method', async () => {
+  it("should use the custom 'id' function passed in the configuration object", async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -431,10 +426,10 @@ t.test('insertMultiple method', async (t) => {
       { id: '02', name: 'Doe' }
     ])
 
-    t.strictSame(ids, ['john-01', 'doe-02'])
+    expect(ids).toStrictEqual(['john-01', 'doe-02'])
   })
 
-  t.test("should use the 'id' field as index id if found in the document", async (t) => {
+  it("should use the 'id' field as index id if found in the document", async () => {
     const db = create({
       schema: {
         name: 'string'
@@ -449,10 +444,10 @@ t.test('insertMultiple method', async (t) => {
       }
     ])
 
-    t.ok(ids.includes('02'))
+    expect(ids.includes('02')).toBeTruthy()
   })
 
-  await t.test('should support batch insert of documents', async (t) => {
+  it('should support batch insert of documents', async () => {
     const db = create({
       schema: {
         date: 'string',
@@ -472,16 +467,16 @@ t.test('insertMultiple method', async (t) => {
     }))
 
     insertMultiple(db, docs)
-    t.equal(Object.keys((db.data.docs as DocumentsStore).docs).length, 2000)
+    expect(Object.keys((db.data.docs as DocumentsStore).docs).length).toBe(2000)
 
     try {
       insertMultiple(db, wrongSchemaDocs as unknown as DataEvent[])
     } catch (e) {
-      t.equal(e.code, 'SCHEMA_VALIDATION_FAILURE')
+      expect(e.code).toBe('SCHEMA_VALIDATION_FAILURE')
     }
   })
 
-  t.test('should support `timeout` parameter', async (t) => {
+  it('should support `timeout` parameter', async () => {
     const db = create({
       schema: {
         description: 'string'
@@ -498,13 +493,13 @@ t.test('insertMultiple method', async (t) => {
     insertMultiple(db, docs, batchSize, undefined, false, timeout)
     const after = Date.now()
 
-    t.equal(count(db), docs.length)
+    expect(count(db)).toBe(docs.length)
     const batchNumber = Math.ceil(docs.length / batchSize)
     const expectedTime = (batchNumber - 1) * timeout
-    t.equal(after - before >= expectedTime, true)
+    expect(after - before >= expectedTime).toBe(true)
   })
 
-  t.test('should correctly rebalance AVL tree once the threshold is reached', async (t) => {
+  it('should correctly rebalance AVL tree once the threshold is reached', async () => {
     const db = await create({
       schema: {
         id: 'string',
@@ -556,15 +551,15 @@ t.test('insertMultiple method', async (t) => {
       }
     })
 
-    t.equal(results25.count, 1)
-    t.equal(results25.hits[0].document.id, '25')
+    expect(results25.count).toBe(1)
+    expect(results25.hits[0].document.id).toBe('25')
 
-    t.equal(results250.count, 1)
-    t.equal(results250.hits[0].document.id, '250')
+    expect(results250.count).toBe(1)
+    expect(results250.hits[0].document.id).toBe('250')
   })
 })
 
-t.test("insert shouldn't use tokenizer cache", async (t) => {
+it("insert shouldn't use tokenizer cache", async () => {
   const db = await create({
     schema: {
       name: 'string'
@@ -576,7 +571,7 @@ t.test("insert shouldn't use tokenizer cache", async (t) => {
   })
 
   // Empty map
-  t.strictSame(db.tokenizer.normalizationCache, new Map())
+  expect(db.tokenizer.normalizationCache).toStrictEqual(new Map())
 })
 
 interface BaseDataEvent extends AnyDocument {

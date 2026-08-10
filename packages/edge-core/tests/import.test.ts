@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { describe, it } from 'node:test'
+import { describe, it } from 'vitest'
 
 import { createIndex, importDocuments, runSearch } from '../src/service.js'
 import { NoopShardCache } from '../src/storage.js'

@@ -1,22 +1,20 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { create, insertMultiple, search } from '../src/index.js'
 
-t.test('search with distinct', async (t) => {
+describe('search with distinct', async () => {
   const [db, ids] = await createDb()
 
-  t.test('should return distinct values', async (t) => {
+  it('should return distinct values', async () => {
     const results = await search(db, {
       distinctOn: 'design'
     })
 
     const foundIds = results.hits.map((hit) => hit.id)
 
-    t.strictSame(foundIds, [ids[0], ids[3], ids[5], ids[6]])
-
-    t.end()
+    expect(foundIds).toStrictEqual([ids[0], ids[3], ids[5], ids[6]])
   })
 
-  t.test('should return distinct values with limit', async (t) => {
+  it('should return distinct values with limit', async () => {
     const results = await search(db, {
       distinctOn: 'design',
       limit: 1
@@ -24,12 +22,10 @@ t.test('search with distinct', async (t) => {
 
     const foundIds = results.hits.map((hit) => hit.id)
 
-    t.strictSame(foundIds, [ids[0]])
-
-    t.end()
+    expect(foundIds).toStrictEqual([ids[0]])
   })
 
-  t.test('should return distinct values with offset', async (t) => {
+  it('should return distinct values with offset', async () => {
     const results = await search(db, {
       distinctOn: 'design',
       offset: 1
@@ -37,12 +33,10 @@ t.test('search with distinct', async (t) => {
 
     const foundIds = results.hits.map((hit) => hit.id)
 
-    t.strictSame(foundIds, [ids[3], ids[5], ids[6]])
-
-    t.end()
+    expect(foundIds).toStrictEqual([ids[3], ids[5], ids[6]])
   })
 
-  t.test('should return distinct values with limit and offset', async (t) => {
+  it('should return distinct values with limit and offset', async () => {
     const results = await search(db, {
       distinctOn: 'design',
       limit: 1,
@@ -51,12 +45,10 @@ t.test('search with distinct', async (t) => {
 
     const foundIds = results.hits.map((hit) => hit.id)
 
-    t.strictSame(foundIds, [ids[3]])
-
-    t.end()
+    expect(foundIds).toStrictEqual([ids[3]])
   })
 
-  t.test('should return distinct values with limit and offset and sortBy', async (t) => {
+  it('should return distinct values with limit and offset and sortBy', async () => {
     const results = await search(db, {
       distinctOn: 'design',
       limit: 1,
@@ -69,10 +61,8 @@ t.test('search with distinct', async (t) => {
 
     const foundIds = results.hits.map((hit) => hit.id)
 
-    t.strictSame(foundIds, [ids[5]])
+    expect(foundIds).toStrictEqual([ids[5]])
   })
-
-  t.end()
 })
 
 async function createDb() {

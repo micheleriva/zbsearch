@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { test } from 'node:test'
+import { test } from 'vitest'
 import { create, load, search } from 'zbsearch'
 import { buildIndex } from '../src/build.js'
 import { DEFAULT_BOOST, PAYLOAD_VERSION, RECORD_SCHEMA } from '../src/records.js'

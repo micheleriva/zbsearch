@@ -1,56 +1,54 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { create, insert, search, remove, insertMultiple, AnyZBSearch } from '../src/index.js'
 
-t.test('filters', async (t) => {
-  t.test('should throw on unknown field', async (t) => {
+describe('filters', () => {
+  it('should throw on unknown field', async () => {
     const [db] = await createSimpleDB()
 
-    t.throws(
-      () =>
-        search(db, {
-          term: 'coffee',
-          where: {
-            unknownField: '5'
-          }
-        }),
-      {
-        message: 'Unknown filter property "unknownField"',
+    expect(() =>
+      search(db, {
+        term: 'coffee',
+        where: {
+          unknownField: '5'
+        }
+      })
+    ).toThrow(
+      expect.objectContaining({
+        message: expect.stringContaining('Unknown filter property "unknownField"'),
         code: 'UNKNOWN_FILTER_PROPERTY'
-      }
+      })
     )
 
-    t.throws(
-      () =>
-        search(db, {
-          term: 'coffee',
-          where: {
-            unknownField: { gt: '5' } as unknown as string
-          }
-        }),
-      {
-        message: 'Unknown filter property "unknownField"',
+    expect(() =>
+      search(db, {
+        term: 'coffee',
+        where: {
+          unknownField: { gt: '5' } as unknown as string
+        }
+      })
+    ).toThrow(
+      expect.objectContaining({
+        message: expect.stringContaining('Unknown filter property "unknownField"'),
         code: 'UNKNOWN_FILTER_PROPERTY'
-      }
+      })
     )
 
-    t.throws(
-      () =>
-        search(db, {
-          term: 'coffee',
-          where: {
-            unknownField: true as unknown as string
-          }
-        }),
-      {
-        message: 'Unknown filter property "unknownField"',
+    expect(() =>
+      search(db, {
+        term: 'coffee',
+        where: {
+          unknownField: true as unknown as string
+        }
+      })
+    ).toThrow(
+      expect.objectContaining({
+        message: expect.stringContaining('Unknown filter property "unknownField"'),
         code: 'UNKNOWN_FILTER_PROPERTY'
-      }
+      })
     )
-
-    t.end()
   })
 
-  t.test('greater than', async (t) => {
+  it('greater than', async () => {
     const [db, [id1]] = await createSimpleDB()
 
     const r1_gt = await search(db, {
@@ -62,11 +60,11 @@ t.test('filters', async (t) => {
       }
     })
 
-    t.equal(r1_gt.count, 1)
-    t.equal(r1_gt.hits[0].id, id1)
+    expect(r1_gt.count).toBe(1)
+    expect(r1_gt.hits[0].id).toBe(id1)
   })
 
-  t.test('greater than or equal to', async (t) => {
+  it('greater than or equal to', async () => {
     const [db, [id1, , id3]] = await createSimpleDB()
 
     const r1_gte = await search(db, {
@@ -78,12 +76,12 @@ t.test('filters', async (t) => {
       }
     })
 
-    t.equal(r1_gte.count, 2)
-    t.equal(r1_gte.hits[0].id, id3)
-    t.equal(r1_gte.hits[1].id, id1)
+    expect(r1_gte.count).toBe(2)
+    expect(r1_gte.hits[0].id).toBe(id3)
+    expect(r1_gte.hits[1].id).toBe(id1)
   })
 
-  t.test('less than', async (t) => {
+  it('less than', async () => {
     const [db, [, , id3]] = await createSimpleDB()
 
     const r1_lt = await search(db, {
@@ -95,11 +93,11 @@ t.test('filters', async (t) => {
       }
     })
 
-    t.equal(r1_lt.count, 1)
-    t.equal(r1_lt.hits[0].id, id3)
+    expect(r1_lt.count).toBe(1)
+    expect(r1_lt.hits[0].id).toBe(id3)
   })
 
-  t.test('less than or equal to', async (t) => {
+  it('less than or equal to', async () => {
     const [db, [, , id3]] = await createSimpleDB()
 
     const r1_lte = await search(db, {
@@ -111,11 +109,11 @@ t.test('filters', async (t) => {
       }
     })
 
-    t.equal(r1_lte.count, 1)
-    t.equal(r1_lte.hits[0].id, id3)
+    expect(r1_lte.count).toBe(1)
+    expect(r1_lte.hits[0].id).toBe(id3)
   })
 
-  t.test('equal', async (t) => {
+  it('equal', async () => {
     const [db, [, , id3]] = await createSimpleDB()
 
     const r1_lte = await search(db, {
@@ -127,11 +125,11 @@ t.test('filters', async (t) => {
       }
     })
 
-    t.equal(r1_lte.count, 1)
-    t.equal(r1_lte.hits[0].id, id3)
+    expect(r1_lte.count).toBe(1)
+    expect(r1_lte.hits[0].id).toBe(id3)
   })
 
-  t.test('between', async (t) => {
+  it('between', async () => {
     const [db, [, , id3]] = await createSimpleDB()
 
     const r1_lte = await search(db, {
@@ -143,11 +141,11 @@ t.test('filters', async (t) => {
       }
     })
 
-    t.equal(r1_lte.count, 1)
-    t.equal(r1_lte.hits[0].id, id3)
+    expect(r1_lte.count).toBe(1)
+    expect(r1_lte.hits[0].id).toBe(id3)
   })
 
-  t.test('multiple filters', async (t) => {
+  it('multiple filters', async () => {
     const [db, [, , id3]] = await createSimpleDB()
 
     const r1_lte = await search(db, {
@@ -162,11 +160,11 @@ t.test('filters', async (t) => {
       }
     })
 
-    t.equal(r1_lte.count, 1)
-    t.equal(r1_lte.hits[0].id, id3)
+    expect(r1_lte.count).toBe(1)
+    expect(r1_lte.hits[0].id).toBe(id3)
   })
 
-  t.test('multiple filters, and operation', async (t) => {
+  it('multiple filters, and operation', async () => {
     const [db, [, , id3]] = await createSimpleDB()
 
     const r1_lte = await search(db, {
@@ -184,11 +182,11 @@ t.test('filters', async (t) => {
       }
     })
 
-    t.equal(r1_lte.count, 1)
-    t.equal(r1_lte.hits[0].id, id3)
+    expect(r1_lte.count).toBe(1)
+    expect(r1_lte.hits[0].id).toBe(id3)
   })
 
-  t.test('explicit and operator', async (t) => {
+  it('explicit and operator', async () => {
     const [db, [, , id3]] = await createSimpleDB()
 
     const r1_lte = await search(db, {
@@ -198,11 +196,11 @@ t.test('filters', async (t) => {
       }
     })
 
-    t.equal(r1_lte.count, 1)
-    t.equal(r1_lte.hits[0].id, id3)
+    expect(r1_lte.count).toBe(1)
+    expect(r1_lte.hits[0].id).toBe(id3)
   })
 
-  t.test('or operator', async (t) => {
+  it('or operator', async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [db, [id1, id2, id3]] = await createSimpleDB()
 
@@ -213,12 +211,12 @@ t.test('filters', async (t) => {
       }
     })
 
-    t.equal(r1_or.count, 1)
+    expect(r1_or.count).toBe(1)
     const resultIds = r1_or.hits.map((hit) => hit.id).sort()
-    t.strictSame(resultIds, [id1].sort())
+    expect(resultIds).toStrictEqual([id1].sort())
   })
 
-  t.test('not operator', async (t) => {
+  it('not operator', async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [db, [id1, id2, id3]] = await createSimpleDB()
 
@@ -229,12 +227,12 @@ t.test('filters', async (t) => {
       }
     })
 
-    t.equal(r1_not.count, 1)
+    expect(r1_not.count).toBe(1)
     const resultIds = r1_not.hits.map((hit) => hit.id).sort()
-    t.strictSame(resultIds, [id3].sort())
+    expect(resultIds).toStrictEqual([id3].sort())
   })
 
-  t.test('nested logical operators', async (t) => {
+  it('nested logical operators', async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [db, [id1, id2, id3]] = await createSimpleDB()
 
@@ -252,11 +250,11 @@ t.test('filters', async (t) => {
       }
     })
 
-    t.equal(r1_nested.count, 1)
-    t.equal(r1_nested.hits[0].id, id1)
+    expect(r1_nested.count).toBe(1)
+    expect(r1_nested.hits[0].id).toBe(id1)
   })
 
-  t.test('empty and array', async (t) => {
+  it('empty and array', async () => {
     const [db] = await createSimpleDB()
 
     const r1_empty = await search(db, {
@@ -266,10 +264,10 @@ t.test('filters', async (t) => {
       }
     })
 
-    t.equal(r1_empty.count, 0)
+    expect(r1_empty.count).toBe(0)
   })
 
-  t.test('empty or array', async (t) => {
+  it('empty or array', async () => {
     const [db] = await createSimpleDB()
 
     const r1_empty = await search(db, {
@@ -279,29 +277,27 @@ t.test('filters', async (t) => {
       }
     })
 
-    t.equal(r1_empty.count, 0)
+    expect(r1_empty.count).toBe(0)
   })
 })
 
-t.test('should throw when using multiple operators', async (t) => {
+it('should throw when using multiple operators', async () => {
   const [db] = await createSimpleDB()
 
-  t.throws(
-    () =>
-      search(db, {
-        term: 'coffee',
-        where: {
-          rating: {
-            gt: 4,
-            lte: 10
-          }
+  expect(() =>
+    search(db, {
+      term: 'coffee',
+      where: {
+        rating: {
+          gt: 4,
+          lte: 10
         }
-      }),
-    { code: 'INVALID_FILTER_OPERATION' }
-  )
+      }
+    })
+  ).toThrow(expect.objectContaining({ code: 'INVALID_FILTER_OPERATION' }))
 })
 
-t.test('boolean filters', async (t) => {
+it('boolean filters', async () => {
   const db = create({
     schema: {
       id: 'string',
@@ -335,9 +331,9 @@ t.test('boolean filters', async (t) => {
     }
   })
 
-  t.equal(r1.count, 2)
-  t.equal(r1.hits[0].id, '1')
-  t.equal(r1.hits[1].id, '2')
+  expect(r1.count).toBe(2)
+  expect(r1.hits[0].id).toBe('1')
+  expect(r1.hits[1].id).toBe('2')
 
   const r2 = await search(db, {
     term: 'coffee',
@@ -346,8 +342,8 @@ t.test('boolean filters', async (t) => {
     }
   })
 
-  t.equal(r2.count, 1)
-  t.equal(r2.hits[0].id, '3')
+  expect(r2.count).toBe(1)
+  expect(r2.hits[0].id).toBe('3')
 
   await remove(db, '2')
 
@@ -358,11 +354,11 @@ t.test('boolean filters', async (t) => {
     }
   })
 
-  t.equal(r3.count, 1)
-  t.equal(r3.hits[0].id, '1')
+  expect(r3.count).toBe(1)
+  expect(r3.hits[0].id).toBe('1')
 })
 
-t.test('string filters', async (t) => {
+it('string filters', async () => {
   const db = await create({
     schema: {
       id: 'string',
@@ -409,11 +405,11 @@ t.test('string filters', async (t) => {
     }
   })
 
-  t.equal(r1.count, 4)
-  t.equal(r1.hits[0].id, '1')
-  t.equal(r1.hits[1].id, '2')
-  t.equal(r1.hits[2].id, '3')
-  t.equal(r1.hits[3].id, '4')
+  expect(r1.count).toBe(4)
+  expect(r1.hits[0].id).toBe('1')
+  expect(r1.hits[1].id).toBe('2')
+  expect(r1.hits[2].id).toBe('3')
+  expect(r1.hits[3].id).toBe('4')
 
   const r2 = await search(db, {
     term: 'coffee',
@@ -423,9 +419,9 @@ t.test('string filters', async (t) => {
     }
   })
 
-  t.equal(r2.count, 2)
-  t.equal(r2.hits[0].id, '2')
-  t.equal(r2.hits[1].id, '3')
+  expect(r2.count).toBe(2)
+  expect(r2.hits[0].id).toBe('2')
+  expect(r2.hits[1].id).toBe('3')
 
   const r3 = await search(db, {
     term: 'another',
@@ -435,7 +431,7 @@ t.test('string filters', async (t) => {
     }
   })
 
-  t.equal(r3.count, 0)
+  expect(r3.count).toBe(0)
 
   const r4 = await search(db, {
     term: '',
@@ -444,10 +440,10 @@ t.test('string filters', async (t) => {
     }
   })
 
-  t.equal(r4.count, 0)
+  expect(r4.count).toBe(0)
 })
 
-t.test('string filters with stemming', async (t) => {
+it('string filters with stemming', async () => {
   const db = await create({
     schema: {
       id: 'string',
@@ -481,9 +477,9 @@ t.test('string filters with stemming', async (t) => {
     }
   })
 
-  t.equal(r1.count, 2)
-  t.equal(r1.hits[0].id, '1')
-  t.equal(r1.hits[1].id, '2')
+  expect(r1.count).toBe(2)
+  expect(r1.hits[0].id).toBe('1')
+  expect(r1.hits[1].id).toBe('2')
 
   const r2 = await search(db, {
     term: 'coffee',
@@ -493,9 +489,9 @@ t.test('string filters with stemming', async (t) => {
     }
   })
 
-  t.equal(r2.count, 2)
-  t.equal(r2.hits[0].id, '1')
-  t.equal(r2.hits[1].id, '2')
+  expect(r2.count).toBe(2)
+  expect(r2.hits[0].id).toBe('1')
+  expect(r2.hits[1].id).toBe('2')
 })
 
 async function createSimpleDB(): Promise<[AnyZBSearch, string[]]> {

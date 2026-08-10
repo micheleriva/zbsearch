@@ -1,9 +1,0 @@
----
-jobs: 5
-timeout: 120
-reporter: base
-typecheck: false
-disable-coverage: false
-allow-incomplete-coverage: true
-node-arg:
-  - --no-warnings=loader

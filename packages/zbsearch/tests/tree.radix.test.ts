@@ -1,4 +1,4 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { RadixTree } from '../src/trees/radix.js'
 import { levenshtein } from '../src/components/levenshtein.js'
 
@@ -15,21 +15,19 @@ const phrases = [
   { id: 10, doc: 'prova' }
 ]
 
-t.test('radix tree', (t) => {
-  t.test('should correctly find an element by prefix', (t) => {
-    t.plan(1)
+describe('radix tree', () => {
+  it('should correctly find an element by prefix', () => {
     const tree = new RadixTree()
     for (const { doc, id } of phrases) {
       tree.insert(doc, id)
     }
     const result = tree.find({ term: phrases[5].doc.slice(0, 5) })
-    t.strictSame(result, {
+    expect(result).toStrictEqual({
       [phrases[5].doc]: [phrases[5].id]
     })
   })
 
-  t.test('should correctly find a complete sentence', (t) => {
-    t.plan(phrases.length)
+  it('should correctly find a complete sentence', () => {
     const tree = new RadixTree()
     for (const { doc, id } of phrases) {
       tree.insert(doc, id)
@@ -37,28 +35,25 @@ t.test('radix tree', (t) => {
 
     for (const phrase of phrases) {
       const result = tree.find({ term: phrase.doc })
-      t.strictSame(result, {
+      expect(result).toStrictEqual({
         [phrase.doc]: [phrase.id]
       })
     }
   })
 
-  t.test('exact works correctly', (t) => {
-    t.plan(2)
+  it('exact works correctly', () => {
     const tree = new RadixTree()
     for (const { doc, id } of phrases) {
       tree.insert(doc, id)
     }
     const exactResult = tree.find({ term: phrases[5].doc.slice(0, 5), exact: true })
-    t.strictSame(exactResult, {})
+    expect(exactResult).toStrictEqual({})
 
     const result = tree.find({ term: phrases[5].doc, exact: true })
-    t.strictSame(result, { [phrases[5].doc]: [phrases[5].id] })
+    expect(result).toStrictEqual({ [phrases[5].doc]: [phrases[5].id] })
   })
 
-  t.test('should correctly index phrases into a prefix tree', (t) => {
-    t.plan(phrases.length + 1)
-
+  it('should correctly index phrases into a prefix tree', () => {
     const tree = new RadixTree()
 
     for (const { doc, id } of phrases) {
@@ -66,15 +61,13 @@ t.test('radix tree', (t) => {
     }
 
     for (const phrase of phrases) {
-      t.equal(tree.contains(phrase.doc), true)
+      expect(tree.contains(phrase.doc)).toBe(true)
     }
 
-    t.equal(tree.contains('thought it was saturday'), false)
+    expect(tree.contains('thought it was saturday')).toBe(false)
   })
 
-  t.test('should correctly delete a word from the tree', (t) => {
-    t.plan(phrases.length + 2)
-
+  it('should correctly delete a word from the tree', () => {
     const tree = new RadixTree()
 
     for (const { doc, id } of phrases) {
@@ -83,26 +76,24 @@ t.test('radix tree', (t) => {
 
     const removedIndex = 0
     const removal = tree.removeWord(phrases[removedIndex].doc)
-    t.ok(removal)
+    expect(removal).toBeTruthy()
 
     const invalidRemoval = tree.removeWord('xyz')
-    t.notOk(invalidRemoval)
+    expect(invalidRemoval).toBeFalsy()
 
     for (let i = 0; i < phrases.length; i++) {
       if (i === removedIndex) {
-        t.notOk(tree.contains(phrases[removedIndex].doc))
+        expect(tree.contains(phrases[removedIndex].doc)).toBeFalsy()
       } else {
         const result = tree.find({ term: phrases[i].doc })
-        t.strictSame(result, {
+        expect(result).toStrictEqual({
           [phrases[i].doc]: [phrases[i].id]
         })
       }
     }
   })
 
-  t.test('should correctly delete a id from the tree with exact=true', (t) => {
-    t.plan(2)
-
+  it('should correctly delete a id from the tree with exact=true', () => {
     const tree = new RadixTree()
 
     for (const { doc, id } of phrases) {
@@ -113,19 +104,17 @@ t.test('radix tree', (t) => {
 
     const resultFullSearch = tree.find({ term: phrases[0].doc })
 
-    t.strictSame(resultFullSearch, {
+    expect(resultFullSearch).toStrictEqual({
       [phrases[0].doc]: []
     })
 
     const resultHalfSearch = tree.find({ term: 'the' })
-    t.has(resultHalfSearch, {
+    expect(resultHalfSearch).toMatchObject({
       [phrases[0].doc]: []
     })
   })
 
-  t.test('should correctly delete a id from the tree', (t) => {
-    t.plan(2)
-
+  it('should correctly delete a id from the tree', () => {
     const tree = new RadixTree()
 
     for (const { doc, id } of phrases) {
@@ -135,12 +124,12 @@ t.test('radix tree', (t) => {
     tree.removeDocumentByWord(phrases[0].doc, phrases[0].id, false)
 
     const resultFullSearch = tree.find({ term: phrases[0].doc })
-    t.strictSame(resultFullSearch, {
+    expect(resultFullSearch).toStrictEqual({
       [phrases[0].doc]: []
     })
 
     const resultHalfSearch = tree.find({ term: phrases[0].doc.slice(0, 5) })
-    t.strictSame(resultHalfSearch, {
+    expect(resultHalfSearch).toStrictEqual({
       [phrases[0].doc]: []
     })
   })
@@ -155,7 +144,7 @@ t.test('radix tree', (t) => {
     { id: 5, word: 'about' },
     { id: 6, word: 'again' }
   ]
-  t.test('test search with tolerance. should match all with prefix.', (t) => {
+  it('test search with tolerance. should match all with prefix.', () => {
     const tree = new RadixTree()
 
     for (const { word, id } of words) {
@@ -163,28 +152,20 @@ t.test('radix tree', (t) => {
     }
     const result1 = tree.find({ term: 'app' })
     const expected1 = { apple: [0], app: [1], apply: [2] }
-    t.strictSame(result1, expected1)
+    expect(result1).toStrictEqual(expected1)
 
     const result2 = tree.find({ term: 'app', exact: false, tolerance: 1 })
     const expected2 = { apple: [0], app: [1], apply: [2], apt: [3] }
-    t.strictSame(result2, expected2)
+    expect(result2).toStrictEqual(expected2)
 
     const result3 = tree.find({ term: 'app', exact: false, tolerance: 2 })
     const expected3 = { apple: [0], app: [1], apply: [2], apt: [3], apex: [4] }
-    t.strictSame(result3, expected3)
-
-    t.end()
+    expect(result3).toStrictEqual(expected3)
   })
-
-  t.end()
 })
 
-t.test('test from trie for compatibility', (t) => {
-  t.plan(3)
-
-  t.test('should correctly index phrases into a prefix tree', (t) => {
-    t.plan(phrases.length)
-
+describe('test from trie for compatibility', () => {
+  it('should correctly index phrases into a prefix tree', () => {
     const tree = new RadixTree()
 
     for (const { doc, id } of phrases) {
@@ -192,21 +173,19 @@ t.test('test from trie for compatibility', (t) => {
     }
 
     for (const phrase of phrases) {
-      t.ok(tree.contains(phrase.doc))
+      expect(tree.contains(phrase.doc)).toBeTruthy()
     }
   })
 
-  t.test('should correctly find an element by prefix', (t) => {
-    t.plan(2)
-
+  it('should correctly find an element by prefix', () => {
     const tree = new RadixTree()
 
     for (const { doc, id } of phrases) {
       tree.insert(doc, id)
     }
 
-    t.strictSame(tree.find({ term: phrases[5].doc.slice(0, 5) }), { [phrases[5].doc]: [phrases[5].id] })
-    t.strictSame(tree.find({ term: 'th' }), {
+    expect(tree.find({ term: phrases[5].doc.slice(0, 5) })).toStrictEqual({ [phrases[5].doc]: [phrases[5].id] })
+    expect(tree.find({ term: 'th' })).toStrictEqual({
       [phrases[0].doc]: [phrases[0].id],
       [phrases[3].doc]: [phrases[3].id],
       [phrases[4].doc]: [phrases[4].id],
@@ -214,9 +193,7 @@ t.test('test from trie for compatibility', (t) => {
     })
   })
 
-  t.test('should correctly delete a word from the trie', (t) => {
-    t.plan(2)
-
+  it('should correctly delete a word from the trie', () => {
     const tree = new RadixTree()
 
     for (const { doc, id } of phrases) {
@@ -225,15 +202,13 @@ t.test('test from trie for compatibility', (t) => {
 
     tree.removeWord(phrases[0].doc)
 
-    t.notOk(tree.contains(phrases[0].doc))
-    t.strictSame(tree.find({ term: phrases[0].doc }), {})
+    expect(tree.contains(phrases[0].doc)).toBeFalsy()
+    expect(tree.find({ term: phrases[0].doc })).toStrictEqual({})
   })
 })
 
-t.test('find with tolerance on compressed edges', (t) => {
-  t.test('should not miss genuine matches hidden behind compressed edges', (t) => {
-    t.plan(3)
-
+describe('find with tolerance on compressed edges', () => {
+  it('should not miss genuine matches hidden behind compressed edges', () => {
     const tree = new RadixTree()
     tree.insert('boosting', 1)
     tree.insert('boasting', 2)
@@ -241,14 +216,14 @@ t.test('find with tolerance on compressed edges', (t) => {
 
     // lev("boosting", "boasting") is 1, but the paths diverge right before a
     // multi-character edge: "bo" + "osting" vs "bo" + "a" + "sting".
-    t.strictSame(tree.find({ term: 'boosting', tolerance: 1 }), { boosting: [1], boasting: [2] })
-    t.strictSame(tree.find({ term: 'boasting', tolerance: 1 }), { boasting: [2], boosting: [1] })
+    expect(tree.find({ term: 'boosting', tolerance: 1 })).toStrictEqual({ boosting: [1], boasting: [2] })
+    expect(tree.find({ term: 'boasting', tolerance: 1 })).toStrictEqual({ boasting: [2], boosting: [1] })
 
     tree.insert('reinforcements', 4)
-    t.strictSame(tree.find({ term: 'renforcements', tolerance: 1 }), { reinforcements: [4] })
+    expect(tree.find({ term: 'renforcements', tolerance: 1 })).toStrictEqual({ reinforcements: [4] })
   })
 
-  t.test('should match brute-force Levenshtein distance plus the prefix rule', (t) => {
+  it('should match brute-force Levenshtein distance plus the prefix rule', () => {
     const words = [
       'boosting',
       'boasting',
@@ -306,9 +281,6 @@ t.test('find with tolerance on compressed edges', (t) => {
       ['christopher', 1],
       ['xylo', 2]
     ]
-
-    t.plan(queries.length)
-
     for (const [term, tolerance] of queries) {
       const expected: Record<string, number[]> = {}
       for (let id = 0; id < words.length; id++) {
@@ -317,9 +289,7 @@ t.test('find with tolerance on compressed edges', (t) => {
           expected[w] = [id]
         }
       }
-      t.strictSame(tree.find({ term, tolerance }), expected, `term "${term}" with tolerance ${tolerance}`)
+      expect(tree.find({ term, tolerance }), `term "${term}" with tolerance ${tolerance}`).toStrictEqual(expected)
     }
   })
-
-  t.end()
 })

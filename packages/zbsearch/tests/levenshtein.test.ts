@@ -1,58 +1,51 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { boundedLevenshtein, levenshtein, syncBoundedLevenshtein } from '../src/components/levenshtein.js'
 import { create } from '../src/methods/create.js'
 import { insertMultiple } from '../src/methods/insert.js'
 import { search } from '../src/methods/search.js'
 
-t.test('syncBoundedLevenshtein', async (t) => {
+it('syncBoundedLevenshtein', async () => {
   // Test exact match
-  t.same(
+  expect(
     syncBoundedLevenshtein('hello', 'hello', 3),
-    { distance: 0, isBounded: true },
     'Exact match should return distance 0 and isBounded true'
-  )
+  ).toEqual({ distance: 0, isBounded: true })
 
   // Test within tolerance
-  t.same(
+  expect(
     syncBoundedLevenshtein('hello', 'helo', 2),
-    { distance: 1, isBounded: true },
     'Strings within tolerance should return correct distance and isBounded true'
-  )
+  ).toEqual({ distance: 1, isBounded: true })
 
   // Test at tolerance limit
-  t.same(
+  expect(
     syncBoundedLevenshtein('hello', 'hllo', 1),
-    { distance: 1, isBounded: true },
     'Strings at tolerance limit should return correct distance and isBounded true'
-  )
+  ).toEqual({ distance: 1, isBounded: true })
 
   // Test beyond tolerance
-  t.same(
+  expect(
     syncBoundedLevenshtein('hello', 'hi', 1),
-    { distance: -1, isBounded: false },
     'Strings beyond tolerance should return distance -1 and isBounded false'
-  )
+  ).toEqual({ distance: -1, isBounded: false })
 
   // Test empty string
-  t.same(
+  expect(
     syncBoundedLevenshtein('', 'hello', 5),
-    { distance: 5, isBounded: true },
     'Empty string should return correct distance and isBounded true if within tolerance'
-  )
+  ).toEqual({ distance: 5, isBounded: true })
 
   // Test prefix
-  t.same(
-    syncBoundedLevenshtein('hel', 'hello', 5),
-    { distance: 0, isBounded: true },
-    'Prefix should return distance 0 and isBounded true'
-  )
+  expect(syncBoundedLevenshtein('hel', 'hello', 5), 'Prefix should return distance 0 and isBounded true').toEqual({
+    distance: 0,
+    isBounded: true
+  })
 
   // Test suffix
-  t.same(
+  expect(
     syncBoundedLevenshtein('llo', 'hello', 5),
-    { distance: 2, isBounded: true },
     'Suffix should return correct distance and isBounded true if within tolerance'
-  )
+  ).toEqual({ distance: 2, isBounded: true })
 
   // This never happens in the real world: the function accepts tokenized strings
   // so, the stings are always the same case
@@ -63,130 +56,124 @@ t.test('syncBoundedLevenshtein', async (t) => {
   // )
 
   // Test with tolerance 0
-  t.same(
+  expect(
     syncBoundedLevenshtein('hello', 'helo', 0),
-    { distance: -1, isBounded: false },
     'Any difference should return distance -1 and isBounded false when tolerance is 0'
-  )
+  ).toEqual({ distance: -1, isBounded: false })
 
   // Test with very large tolerance
-  t.same(
+  expect(
     syncBoundedLevenshtein('short', 'very long string', 100),
-    { distance: 14, isBounded: true },
     'Large tolerance should allow for big differences'
-  )
-
-  t.end()
+  ).toEqual({ distance: 14, isBounded: true })
 })
 
-t.test('levenshtein', async (t) => {
-  t.test('should be 0 when both inputs are empty', async (t) => {
-    t.equal(levenshtein('', ''), 0)
+describe('levenshtein', () => {
+  it('should be 0 when both inputs are empty', async () => {
+    expect(levenshtein('', '')).toBe(0)
   })
 
-  t.test('should be the max input length when either strings are empty', async (t) => {
-    t.equal(levenshtein('', 'some'), 4)
-    t.equal(levenshtein('body', ''), 4)
+  it('should be the max input length when either strings are empty', async () => {
+    expect(levenshtein('', 'some')).toBe(4)
+    expect(levenshtein('body', '')).toBe(4)
   })
 
-  t.test('some examples', async (t) => {
-    t.equal(levenshtein('aa', 'b'), 2)
-    t.equal(levenshtein('b', 'aa'), 2)
-    t.equal(levenshtein('somebody once', 'told me'), 9)
-    t.equal(levenshtein('the world is gonna', 'roll me'), 15)
-    t.equal(levenshtein('kaushuk chadhui', 'caushik chakrabar'), 8)
-  })
-})
-
-t.test('boundedLevenshtein', async (t) => {
-  t.test('should be 0 when both inputs are empty', async (t) => {
-    t.match(boundedLevenshtein('', '', 0), { distance: 0, isBounded: true })
-    t.match(boundedLevenshtein('', '', 1), { distance: 0, isBounded: true })
-  })
-
-  t.test('should be the max input length when either strings are empty', async (t) => {
-    t.match(boundedLevenshtein('', 'some', 0), { distance: -1, isBounded: false })
-
-    t.match(boundedLevenshtein('', 'some', 4), { distance: 4, isBounded: true })
-    t.match(boundedLevenshtein('body', '', 4), { distance: 4, isBounded: true })
-  })
-
-  t.test('should tell whether the Levenshtein distance is upperbounded by a given tolerance', async (t) => {
-    t.match(boundedLevenshtein('somebody once', 'told me', 9), { isBounded: true })
-    t.match(boundedLevenshtein('somebody once', 'told me', 8), { isBounded: false })
+  it('some examples', async () => {
+    expect(levenshtein('aa', 'b')).toBe(2)
+    expect(levenshtein('b', 'aa')).toBe(2)
+    expect(levenshtein('somebody once', 'told me')).toBe(9)
+    expect(levenshtein('the world is gonna', 'roll me')).toBe(15)
+    expect(levenshtein('kaushuk chadhui', 'caushik chakrabar')).toBe(8)
   })
 })
 
-t.test('syncBoundedLevenshtein substrings are ok even if with tolerance pppppp', async (t) => {
-  t.match(boundedLevenshtein('Dhris', 'Chris', 0), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Dhris', 'Chris', 1), { isBounded: true, distance: 1 })
-  t.match(boundedLevenshtein('Dhris', 'Cgris', 1), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Dhris', 'Cgris', 2), { isBounded: true, distance: 2 })
-  t.match(boundedLevenshtein('Dhris', 'Cgris', 3), { isBounded: true, distance: 2 })
+describe('boundedLevenshtein', () => {
+  it('should be 0 when both inputs are empty', async () => {
+    expect(boundedLevenshtein('', '', 0)).toMatchObject({ distance: 0, isBounded: true })
+    expect(boundedLevenshtein('', '', 1)).toMatchObject({ distance: 0, isBounded: true })
+  })
 
-  t.match(boundedLevenshtein('Dhris', 'Cris', 0), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Dhris', 'Cris', 1), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Dhris', 'Cris', 2), { isBounded: true, distance: 2 })
+  it('should be the max input length when either strings are empty', async () => {
+    expect(boundedLevenshtein('', 'some', 0)).toMatchObject({ distance: -1, isBounded: false })
 
-  t.match(boundedLevenshtein('Dhris', 'Caig', 0), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Dhris', 'Caig', 1), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Dhris', 'Caig', 2), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Dhris', 'Caig', 3), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Dhris', 'Caig', 4), { isBounded: true, distance: 4 })
+    expect(boundedLevenshtein('', 'some', 4)).toMatchObject({ distance: 4, isBounded: true })
+    expect(boundedLevenshtein('body', '', 4)).toMatchObject({ distance: 4, isBounded: true })
+  })
 
-  t.match(boundedLevenshtein('Chris', 'Chris', 0), { isBounded: true, distance: 0 })
-  t.match(boundedLevenshtein('Chris', 'Chris', 1), { isBounded: true, distance: 0 })
-  t.match(boundedLevenshtein('Chris', 'Chris', 2), { isBounded: true, distance: 0 })
+  it('should tell whether the Levenshtein distance is upperbounded by a given tolerance', async () => {
+    expect(boundedLevenshtein('somebody once', 'told me', 9)).toMatchObject({ isBounded: true })
+    expect(boundedLevenshtein('somebody once', 'told me', 8)).toMatchObject({ isBounded: false })
+  })
+})
 
-  t.match(boundedLevenshtein('Chris', 'Cris', 0), { isBounded: false, distance: -1 })
+it('syncBoundedLevenshtein substrings are ok even if with tolerance pppppp', async () => {
+  expect(boundedLevenshtein('Dhris', 'Chris', 0)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Dhris', 'Chris', 1)).toMatchObject({ isBounded: true, distance: 1 })
+  expect(boundedLevenshtein('Dhris', 'Cgris', 1)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Dhris', 'Cgris', 2)).toMatchObject({ isBounded: true, distance: 2 })
+  expect(boundedLevenshtein('Dhris', 'Cgris', 3)).toMatchObject({ isBounded: true, distance: 2 })
 
-  t.match(boundedLevenshtein('Chris', 'Cris', 1), { isBounded: true, distance: 1 })
-  t.match(boundedLevenshtein('Chris', 'Cris', 2), { isBounded: true, distance: 1 })
+  expect(boundedLevenshtein('Dhris', 'Cris', 0)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Dhris', 'Cris', 1)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Dhris', 'Cris', 2)).toMatchObject({ isBounded: true, distance: 2 })
 
-  t.match(boundedLevenshtein('Chris', 'Caig', 0), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Chris', 'Caig', 1), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Chris', 'Caig', 2), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Chris', 'Caig', 3), { isBounded: true, distance: 3 })
+  expect(boundedLevenshtein('Dhris', 'Caig', 0)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Dhris', 'Caig', 1)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Dhris', 'Caig', 2)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Dhris', 'Caig', 3)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Dhris', 'Caig', 4)).toMatchObject({ isBounded: true, distance: 4 })
 
-  t.match(boundedLevenshtein('Craig', 'Caig', 0), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Craig', 'Caig', 1), { isBounded: true, distance: 1 })
-  t.match(boundedLevenshtein('Craig', 'Caig', 2), { isBounded: true, distance: 1 })
+  expect(boundedLevenshtein('Chris', 'Chris', 0)).toMatchObject({ isBounded: true, distance: 0 })
+  expect(boundedLevenshtein('Chris', 'Chris', 1)).toMatchObject({ isBounded: true, distance: 0 })
+  expect(boundedLevenshtein('Chris', 'Chris', 2)).toMatchObject({ isBounded: true, distance: 0 })
 
-  t.match(boundedLevenshtein('Chxy', 'Cris', 0), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Chxy', 'Cris', 1), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Chxy', 'Cris', 2), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Chxy', 'Cris', 3), { isBounded: true, distance: 3 })
+  expect(boundedLevenshtein('Chris', 'Cris', 0)).toMatchObject({ isBounded: false, distance: -1 })
 
-  t.match(boundedLevenshtein('Chxy', 'Caig', 0), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Chxy', 'Caig', 1), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Chxy', 'Caig', 2), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Chxy', 'Caig', 3), { isBounded: true, distance: 3 })
+  expect(boundedLevenshtein('Chris', 'Cris', 1)).toMatchObject({ isBounded: true, distance: 1 })
+  expect(boundedLevenshtein('Chris', 'Cris', 2)).toMatchObject({ isBounded: true, distance: 1 })
 
-  t.match(boundedLevenshtein('Crxy', 'Cris', 0), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Crxy', 'Cris', 1), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Crxy', 'Cris', 2), { isBounded: true, distance: 2 })
+  expect(boundedLevenshtein('Chris', 'Caig', 0)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Chris', 'Caig', 1)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Chris', 'Caig', 2)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Chris', 'Caig', 3)).toMatchObject({ isBounded: true, distance: 3 })
 
-  t.match(boundedLevenshtein('Crxy', 'Caig', 0), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Crxy', 'Caig', 1), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Crxy', 'Caig', 2), { isBounded: false, distance: -1 })
-  t.match(boundedLevenshtein('Crxy', 'Caig', 3), { isBounded: true, distance: 3 })
+  expect(boundedLevenshtein('Craig', 'Caig', 0)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Craig', 'Caig', 1)).toMatchObject({ isBounded: true, distance: 1 })
+  expect(boundedLevenshtein('Craig', 'Caig', 2)).toMatchObject({ isBounded: true, distance: 1 })
 
-  t.match(boundedLevenshtein('Crxy', 'Caig', 3), { isBounded: true, distance: 3 })
+  expect(boundedLevenshtein('Chxy', 'Cris', 0)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Chxy', 'Cris', 1)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Chxy', 'Cris', 2)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Chxy', 'Cris', 3)).toMatchObject({ isBounded: true, distance: 3 })
 
-  t.match(boundedLevenshtein('Christopher', 'Chris', 0), { isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Chxy', 'Caig', 0)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Chxy', 'Caig', 1)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Chxy', 'Caig', 2)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Chxy', 'Caig', 3)).toMatchObject({ isBounded: true, distance: 3 })
 
-  t.match(boundedLevenshtein('Christopher', 'Chris', 1), { isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Crxy', 'Cris', 0)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Crxy', 'Cris', 1)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Crxy', 'Cris', 2)).toMatchObject({ isBounded: true, distance: 2 })
+
+  expect(boundedLevenshtein('Crxy', 'Caig', 0)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Crxy', 'Caig', 1)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Crxy', 'Caig', 2)).toMatchObject({ isBounded: false, distance: -1 })
+  expect(boundedLevenshtein('Crxy', 'Caig', 3)).toMatchObject({ isBounded: true, distance: 3 })
+
+  expect(boundedLevenshtein('Crxy', 'Caig', 3)).toMatchObject({ isBounded: true, distance: 3 })
+
+  expect(boundedLevenshtein('Christopher', 'Chris', 0)).toMatchObject({ isBounded: false, distance: -1 })
+
+  expect(boundedLevenshtein('Christopher', 'Chris', 1)).toMatchObject({ isBounded: false, distance: -1 })
   // To return true, the prefix must be within tolerance
-  t.match(boundedLevenshtein('Christopher', 'Chris', 'Christopher'.length - 'Chris'.length), {
+  expect(boundedLevenshtein('Christopher', 'Chris', 'Christopher'.length - 'Chris'.length)).toMatchObject({
     isBounded: true,
     distance: 6
   })
-
-  t.end()
 })
 
 // Test cases for https://github.com/oramasearch/orama/issues/744
-t.test('Issue #744', async (t) => {
+it('Issue #744', async () => {
   const index = await create({
     schema: {
       libelle: 'string'
@@ -204,59 +191,47 @@ t.test('Issue #744', async (t) => {
   const searchTerm = 'moelleux'
 
   // doc1 and doc2 match searchTerm exactly
-  t.equal(syncBoundedLevenshtein(searchTerm, searchTerm, 0).isBounded, true)
+  expect(syncBoundedLevenshtein(searchTerm, searchTerm, 0).isBounded).toBe(true)
   // doc3 don't match searchTerm with tolerance 1
-  t.equal(syncBoundedLevenshtein(searchTerm, 'moelleuse', 1).isBounded, false)
+  expect(syncBoundedLevenshtein(searchTerm, 'moelleuse', 1).isBounded).toBe(false)
   // but doc3 match searchTerm with tolerance 2 ("x" => "se" are 2 operations)
-  t.equal(syncBoundedLevenshtein(searchTerm, 'moelleuse', 2).isBounded, true)
+  expect(syncBoundedLevenshtein(searchTerm, 'moelleuse', 2).isBounded).toBe(true)
   // doc4 don't match searchTerm with tolerance 1
-  t.equal(syncBoundedLevenshtein(searchTerm, 'moelle', 1).isBounded, false)
+  expect(syncBoundedLevenshtein(searchTerm, 'moelle', 1).isBounded).toBe(false)
   // but doc4 match searchTerm with tolerance 2 ("ux" => "" are 2 operation)
-  t.equal(syncBoundedLevenshtein('moelle', searchTerm, 2).isBounded, true)
+  expect(syncBoundedLevenshtein('moelle', searchTerm, 2).isBounded).toBe(true)
 
   const s1 = await search(index, {
     term: searchTerm
   })
-  t.equal(s1.count, 2)
-  t.strictSame(
-    s1.hits.map((h) => h.id),
-    ['1', '2']
-  )
+  expect(s1.count).toBe(2)
+  expect(s1.hits.map((h) => h.id)).toStrictEqual(['1', '2'])
 
   const s2 = await search(index, {
     term: searchTerm,
     tolerance: 0
   })
-  t.equal(s2.count, 2)
-  t.strictSame(
-    s2.hits.map((h) => h.id),
-    ['1', '2']
-  )
+  expect(s2.count).toBe(2)
+  expect(s2.hits.map((h) => h.id)).toStrictEqual(['1', '2'])
 
   const s3 = await search(index, {
     term: searchTerm,
     tolerance: 1
   })
-  t.equal(s3.count, 2)
-  t.strictSame(
-    s3.hits.map((h) => h.id),
-    ['1', '2']
-  )
+  expect(s3.count).toBe(2)
+  expect(s3.hits.map((h) => h.id)).toStrictEqual(['1', '2'])
 
   const s4 = await search(index, {
     term: searchTerm,
     tolerance: 2
   })
-  t.equal(s4.count, 4)
+  expect(s4.count).toBe(4)
   // Exact matches (docs 1-2 contain 'moelleux') outrank fuzzy tolerance-2 matches (docs 3-4): full-token matches always score above expansions.
-  t.strictSame(
-    s4.hits.map((h) => h.id),
-    ['1', '2', '3', '4']
-  )
+  expect(s4.hits.map((h) => h.id)).toStrictEqual(['1', '2', '3', '4'])
 })
 
 // https://github.com/oramasearch/orama/issues/797
-t.test('Issue #797', async (t) => {
+it('Issue #797', async () => {
   const db = await create({
     schema: {
       name: 'string'
@@ -272,11 +247,11 @@ t.test('Issue #797', async (t) => {
     tolerance: 1
   })
 
-  t.equal(res.count, 1)
-  t.equal(res.hits[0].id, '2')
+  expect(res.count).toBe(1)
+  expect(res.hits[0].id).toBe('2')
 })
 
-t.test('typo tolerance finds matches hidden behind compressed radix edges', async (t) => {
+it('typo tolerance finds matches hidden behind compressed radix edges', async () => {
   const db = await create({
     schema: {
       name: 'string'
@@ -293,6 +268,6 @@ t.test('typo tolerance finds matches hidden behind compressed radix edges', asyn
     tolerance: 1
   })
 
-  t.equal(res.count, 2)
-  t.strictSame(res.hits.map((h) => h.id).sort(), ['1', '2'])
+  expect(res.count).toBe(2)
+  expect(res.hits.map((h) => h.id).sort()).toStrictEqual(['1', '2'])
 })

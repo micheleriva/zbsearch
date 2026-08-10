@@ -1,8 +1,8 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { create, insert, search } from '../src/index.js'
 
-t.test('issue-866: exact search should only match exact terms', async (t) => {
-  t.test('should not match partial words when exact is true', async (t) => {
+describe('issue-866: exact search should only match exact terms', () => {
+  it('should not match partial words when exact is true', async () => {
     const db = create({
       schema: {
         path: 'string',
@@ -26,11 +26,11 @@ t.test('issue-866: exact search should only match exact terms', async (t) => {
       exact: true
     })
 
-    t.ok(noExact.count >= 1, 'Without exact, should find results with prefix match')
-    t.equal(withExact.count, 0, 'With exact: true, should not match "first" with "First"')
+    expect(noExact.count >= 1, 'Without exact, should find results with prefix match').toBeTruthy()
+    expect(withExact.count, 'With exact: true, should not match "first" with "First"').toBe(0)
   })
 
-  t.test('should match exact terms when exact is true', async (t) => {
+  it('should match exact terms when exact is true', async () => {
     const db = create({
       schema: {
         path: 'string',
@@ -49,12 +49,12 @@ t.test('issue-866: exact search should only match exact terms', async (t) => {
       exact: true
     })
 
-    t.equal(result.count, 2, 'Should match exactly two documents with lowercase "first"')
+    expect(result.count, 'Should match exactly two documents with lowercase "first"').toBe(2)
     const paths = result.hits.map((h) => h.document.path).sort()
-    t.strictSame(paths, ['another first file.md', 'first note.md'], 'Should match only lowercase versions')
+    expect(paths, 'Should match only lowercase versions').toStrictEqual(['another first file.md', 'first note.md'])
   })
 
-  t.test('should not match prefix when exact is true', async (t) => {
+  it('should not match prefix when exact is true', async () => {
     const db = create({
       schema: {
         name: 'string'
@@ -76,12 +76,12 @@ t.test('issue-866: exact search should only match exact terms', async (t) => {
       exact: true
     })
 
-    t.equal(noExact.count, 3, 'With prefix: true, should match all prefix matches')
-    t.equal(withExact.count, 1, 'With exact: true, should only match exact term')
-    t.equal(withExact.hits[0].document.name, 'app', 'Should match only "app"')
+    expect(noExact.count, 'With prefix: true, should match all prefix matches').toBe(3)
+    expect(withExact.count, 'With exact: true, should only match exact term').toBe(1)
+    expect(withExact.hits[0].document.name, 'Should match only "app"').toBe('app')
   })
 
-  t.test('should handle case sensitivity with exact match', async (t) => {
+  it('should handle case sensitivity with exact match', async () => {
     const db = create({
       schema: {
         name: 'string'
@@ -99,8 +99,8 @@ t.test('issue-866: exact search should only match exact terms', async (t) => {
       exact: true
     })
 
-    t.equal(result.count, 2, 'Should match two documents with lowercase "test"')
+    expect(result.count, 'Should match two documents with lowercase "test"').toBe(2)
     const names = result.hits.map((h) => h.document.name).sort()
-    t.strictSame(names, ['test', 'test again'], 'Should match only lowercase versions')
+    expect(names, 'Should match only lowercase versions').toStrictEqual(['test', 'test again'])
   })
 })

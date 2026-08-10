@@ -1,16 +1,15 @@
-import t from 'tap'
-
+import { describe, expect, it } from 'vitest'
 import { AVLTree } from '../src/trees/avl.js'
 
-t.test('AVL Tree', async (t) => {
-  t.test('create', async (t) => {
+describe('AVL Tree', () => {
+  it('create', async () => {
     const tree = new AVLTree<number, string>(1, ['foo'])
-    t.equal(tree.getSize(), 1)
-    t.strictSame(tree.find(1), new Set(['foo']))
-    t.equal(tree.find(4), null)
+    expect(tree.getSize()).toBe(1)
+    expect(tree.find(1)).toStrictEqual(new Set(['foo']))
+    expect(tree.find(4)).toBe(null)
   })
 
-  t.test('insert', async (t) => {
+  it('insert', async () => {
     const tree = new AVLTree(1, ['foo'])
 
     tree.insert(2, 'bar')
@@ -20,10 +19,10 @@ t.test('AVL Tree', async (t) => {
     tree.insert(20, 'quuz')
     tree.insert(12, 'corge')
 
-    t.equal(tree.getSize(), 7)
+    expect(tree.getSize()).toBe(7)
   })
 
-  t.test('find', async (t) => {
+  it('find', async () => {
     const tree = new AVLTree(1, [1, 2, 3])
 
     tree.insertMultiple(2, [4, 5, 6])
@@ -33,11 +32,11 @@ t.test('AVL Tree', async (t) => {
     tree.insertMultiple(20, [16, 17, 18])
     tree.insertMultiple(12, [19, 20, 21])
 
-    t.same(tree.contains(20), true)
-    t.strictSame(tree.find(20), new Set([16, 17, 18]))
+    expect(tree.contains(20)).toEqual(true)
+    expect(tree.find(20)).toStrictEqual(new Set([16, 17, 18]))
   })
 
-  t.test('remove', async (t) => {
+  it('remove', async () => {
     const tree = new AVLTree(1, ['foo'])
 
     tree.insert(2, 'bar')
@@ -49,11 +48,11 @@ t.test('AVL Tree', async (t) => {
 
     tree.remove(20)
 
-    t.equal(tree.getSize(), 6)
-    t.equal(tree.contains(20), false)
+    expect(tree.getSize()).toBe(6)
+    expect(tree.contains(20)).toBe(false)
   })
 
-  t.test('rangeSearch', async (t) => {
+  it('rangeSearch', async () => {
     const tree = new AVLTree(1, ['foo'])
 
     tree.insertMultiple(2, ['bar'])
@@ -63,10 +62,10 @@ t.test('AVL Tree', async (t) => {
     tree.insertMultiple(20, ['quuz'])
     tree.insertMultiple(12, ['corge'])
 
-    t.strictSame(tree.rangeSearch(5, 20), new Set(['quux', 'baz', 'corge', 'quuz']))
+    expect(tree.rangeSearch(5, 20)).toStrictEqual(new Set(['quux', 'baz', 'corge', 'quuz']))
   })
 
-  t.test('greaterThan', async (t) => {
+  it('greaterThan', async () => {
     const tree = new AVLTree(1, ['foo'])
 
     tree.insertMultiple(2, ['bar'])
@@ -76,10 +75,10 @@ t.test('AVL Tree', async (t) => {
     tree.insertMultiple(20, ['quuz'])
     tree.insertMultiple(12, ['corge'])
 
-    t.strictSame(tree.greaterThan(10), new Set(['qux', 'quuz', 'corge']))
+    expect(tree.greaterThan(10)).toStrictEqual(new Set(['qux', 'quuz', 'corge']))
   })
 
-  t.test('lessThan', async (t) => {
+  it('lessThan', async () => {
     const tree = new AVLTree(1, ['foo'])
 
     tree.insertMultiple(2, ['bar'])
@@ -89,6 +88,6 @@ t.test('AVL Tree', async (t) => {
     tree.insertMultiple(20, ['quuz'])
     tree.insertMultiple(12, ['corge'])
 
-    t.strictSame(tree.lessThan(10), new Set(['foo', 'bar', 'quux']))
+    expect(tree.lessThan(10)).toStrictEqual(new Set(['foo', 'bar', 'quux']))
   })
 })

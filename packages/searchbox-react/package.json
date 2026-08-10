@@ -41,7 +41,7 @@
   "scripts": {
     "build": "tsup --config tsup.lib.js && tsc -p . --emitDeclarationOnly",
     "lint": "exit 0",
-    "test": "node --test --import tsx test/*.test.tsx"
+    "test": "vitest run"
   },
   "publishConfig": {
     "access": "public"

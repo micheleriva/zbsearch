@@ -28,7 +28,7 @@
     "build": "wrangler deploy --config deploy/wrangler.monorepo.toml --dry-run --outdir=dist",
     "dev": "wrangler dev --config deploy/wrangler.monorepo.toml",
     "deploy": "wrangler deploy --config deploy/wrangler.monorepo.toml",
-    "test": "node --import tsx --test tests/**/*.test.ts"
+    "test": "vitest run"
   },
   "license": "Apache-2.0",
   "dependencies": {

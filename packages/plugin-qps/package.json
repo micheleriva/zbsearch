@@ -35,14 +35,13 @@
   "scripts": {
     "build": "tsup --config tsup.lib.js && tsc -p . --emitDeclarationOnly",
     "lint": "exit 0",
-    "test": "node --test --import tsx test/*.test.ts"
+    "test": "vitest run"
   },
   "publishConfig": {
     "access": "public"
   },
   "devDependencies": {
     "@types/node": "^20.9.0",
-    "tap": "^21.0.1",
     "tsup": "^8.5.1",
     "tsx": "^4.19.1",
     "typescript": "^7.0.2"

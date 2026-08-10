@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { test } from 'node:test'
+import { test } from 'vitest'
 import { dialectOf, parseMarkdown, stripInlineMarkup } from '../src/markdown.js'
 
 test('stripInlineMarkup keeps link labels and drops targets', () => {

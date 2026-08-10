@@ -1,8 +1,8 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { create, insert, search } from '../src/index.js'
 
-t.test('geosearch', async (t) => {
-  t.test('should find geopoints inside a radius', async (t) => {
+describe('geosearch', () => {
+  it('should find geopoints inside a radius', async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -42,16 +42,13 @@ t.test('geosearch', async (t) => {
       }
     })
 
-    t.same(results.count, 2)
+    expect(results.count).toEqual(2)
     // Results should be sorted by distance (closer first)
     // Point 2 (9.0979028, 45.1995182) is closer to search center (9.1418481, 45.2324096) than Point 1 (9.0814233, 45.2623823)
-    t.same(
-      results.hits.map(({ id }) => id),
-      ['2', '1']
-    )
+    expect(results.hits.map(({ id }) => id)).toEqual(['2', '1'])
   })
 
-  t.test('should find geopoints outside a radius', async (t) => {
+  it('should find geopoints outside a radius', async () => {
     const db = await create({
       schema: {
         id: 'string',
@@ -82,12 +79,12 @@ t.test('geosearch', async (t) => {
       }
     })
 
-    t.same(results.count, 5)
+    expect(results.count).toEqual(5)
     const resultIds = results.hits.map(({ id }) => id).sort()
-    t.same(resultIds, ['1', '2', '3', '4', '5'])
+    expect(resultIds).toEqual(['1', '2', '3', '4', '5'])
   })
 
-  t.test('should find geopoints inside a polygon', async (t) => {
+  it('should find geopoints inside a polygon', async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -117,14 +114,14 @@ t.test('geosearch', async (t) => {
       }
     })
 
-    t.same(results.count, 5)
+    expect(results.count).toEqual(5)
     // Results should be sorted by distance from polygon centroid
     // Just verify we get the right count and all expected documents, order may vary by distance
     const resultIds = results.hits.map(({ id }) => id).sort()
-    t.same(resultIds, ['1', '2', '3', '4', '5'])
+    expect(resultIds).toEqual(['1', '2', '3', '4', '5'])
   })
 
-  t.test('should find geopoints outside a polygon', async (t) => {
+  it('should find geopoints outside a polygon', async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -155,12 +152,12 @@ t.test('geosearch', async (t) => {
       }
     })
 
-    t.same(results.count, 5)
+    expect(results.count).toEqual(5)
     const resultIds = results.hits.map(({ id }) => id).sort()
-    t.same(resultIds, ['1', '2', '3', '4', '5'])
+    expect(resultIds).toEqual(['1', '2', '3', '4', '5'])
   })
 
-  t.test('should run in high-precision mode', async (t) => {
+  it('should run in high-precision mode', async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -209,21 +206,18 @@ t.test('geosearch', async (t) => {
       }
     })
 
-    t.same(polygonResults.count, 5)
+    expect(polygonResults.count).toEqual(5)
     const polygonResultIds = polygonResults.hits.map(({ id }) => id).sort()
-    t.same(polygonResultIds, ['1', '2', '3', '4', '5'])
+    expect(polygonResultIds).toEqual(['1', '2', '3', '4', '5'])
 
-    t.same(radiusResults.count, 2)
-    t.same(
-      radiusResults.hits.map(({ id }) => id),
-      ['2', '1']
-    )
+    expect(radiusResults.count).toEqual(2)
+    expect(radiusResults.hits.map(({ id }) => id)).toEqual(['2', '1'])
   })
 
   // Test cases to verify that issue #547 is fixed
   // https://github.com/oramasearch/orama/issues/547
-  t.test('should fix issue #547 - geosearch results should be sorted by distance', async (t) => {
-    t.test('should sort radius search results by distance without search terms', async (t) => {
+  describe('should fix issue #547 - geosearch results should be sorted by distance', () => {
+    it('should sort radius search results by distance without search terms', async () => {
       const db = create({
         schema: {
           id: 'string',
@@ -264,20 +258,17 @@ t.test('geosearch', async (t) => {
         }
       })
 
-      t.same(results.count, 3)
+      expect(results.count).toEqual(3)
       // Results should be sorted by distance: close, medium, far
-      t.same(
-        results.hits.map(({ id }) => id),
-        ['close', 'medium', 'far']
-      )
+      expect(results.hits.map(({ id }) => id)).toEqual(['close', 'medium', 'far'])
 
       // Verify scores are based on distance (closer = higher score)
       const scores = results.hits.map((hit) => hit.score)
-      t.ok(scores[0] > scores[1], 'Closest point should have highest score')
-      t.ok(scores[1] > scores[2], 'Medium point should have higher score than farthest')
+      expect(scores[0] > scores[1], 'Closest point should have highest score').toBeTruthy()
+      expect(scores[1] > scores[2], 'Medium point should have higher score than farthest').toBeTruthy()
     })
 
-    t.test('should sort polygon search results by distance from centroid without search terms', async (t) => {
+    it('should sort polygon search results by distance from centroid without search terms', async () => {
       const db = create({
         schema: {
           id: 'string',
@@ -324,20 +315,17 @@ t.test('geosearch', async (t) => {
         }
       })
 
-      t.same(results.count, 3)
+      expect(results.count).toEqual(3)
       // Results should be sorted by distance from centroid: center, edge, corner
-      t.same(
-        results.hits.map(({ id }) => id),
-        ['center', 'edge', 'corner']
-      )
+      expect(results.hits.map(({ id }) => id)).toEqual(['center', 'edge', 'corner'])
 
       // Verify scores are distance-based
       const scores = results.hits.map((hit) => hit.score)
-      t.ok(scores[0] > scores[1], 'Center point should have highest score')
-      t.ok(scores[1] > scores[2], 'Edge point should have higher score than corner')
+      expect(scores[0] > scores[1], 'Center point should have highest score').toBeTruthy()
+      expect(scores[1] > scores[2], 'Edge point should have higher score than corner').toBeTruthy()
     })
 
-    t.test('should maintain distance sorting when combined with text search', async (t) => {
+    it('should maintain distance sorting when combined with text search', async () => {
       const db = create({
         schema: {
           id: 'string',
@@ -372,9 +360,9 @@ t.test('geosearch', async (t) => {
         }
       })
 
-      t.same(results.count, 2)
+      expect(results.count).toEqual(2)
       // Should still consider distance in scoring
-      t.ok(results.hits.length === 2, 'Should find both pizza places')
+      expect(results.hits.length === 2, 'Should find both pizza places').toBeTruthy()
     })
   })
 })

@@ -1,10 +1,10 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { create, insertMultiple, search, save, load, remove, update } from '../src/index.js'
 import { RESERVED_VECTOR_INDEX_KEY } from '../src/constants.js'
 import { ivf } from '../src/trees/vector-ivf.js'
 
-t.test('IVF vector index', async (t) => {
-  t.test('should return similar vectors using IVF', async (t) => {
+describe('IVF vector index', () => {
+  it('should return similar vectors using IVF', async () => {
     const db = create({
       schema: {
         embedding: 'vector[5]'
@@ -29,10 +29,10 @@ t.test('IVF vector index', async (t) => {
       similarity: 0.8
     })
 
-    t.same(results.count, 2)
+    expect(results.count).toEqual(2)
   })
 
-  t.test('should support update and remove with IVF', async (t) => {
+  it('should support update and remove with IVF', async () => {
     const db = create({
       schema: {
         embedding: 'vector[5]'
@@ -56,8 +56,8 @@ t.test('IVF vector index', async (t) => {
       vector: { value: [1, 0, 0, 0, 0], property: 'embedding' },
       similarity: 0
     })
-    t.same(afterRemove.count, 1)
-    t.same(afterRemove.hits[0].id, id2)
+    expect(afterRemove.count).toEqual(1)
+    expect(afterRemove.hits[0].id).toEqual(id2)
 
     const newId = await update(db, id2, { embedding: [1, 0, 0, 0, 0] })
     const afterUpdate = await search(db, {
@@ -65,11 +65,11 @@ t.test('IVF vector index', async (t) => {
       vector: { value: [1, 0, 0, 0, 0], property: 'embedding' },
       similarity: 0.99
     })
-    t.same(afterUpdate.count, 1)
-    t.same(afterUpdate.hits[0].id, newId)
+    expect(afterUpdate.count).toEqual(1)
+    expect(afterUpdate.hits[0].id).toEqual(newId)
   })
 
-  t.test('should serialize and restore IVF indexes', async (t) => {
+  it('should serialize and restore IVF indexes', async () => {
     const db = create({
       schema: {
         embedding: 'vector[5]'
@@ -92,7 +92,7 @@ t.test('IVF vector index', async (t) => {
     })
 
     const serialized = save(db)
-    t.same(serialized.index.vectorIndexes.embedding.kind, 'ivf')
+    expect(serialized.index.vectorIndexes.embedding.kind).toEqual('ivf')
 
     const restored = create({
       schema: {
@@ -111,10 +111,10 @@ t.test('IVF vector index', async (t) => {
       similarity: 0.8
     })
 
-    t.same(results.count, 2)
+    expect(results.count).toEqual(2)
   })
 
-  t.test('should fail to load IVF data without indexes config', async (t) => {
+  it('should fail to load IVF data without indexes config', async () => {
     const db = create({
       schema: {
         embedding: 'vector[5]'
@@ -135,22 +135,22 @@ t.test('IVF vector index', async (t) => {
 
     try {
       load(restored, serialized)
-      t.fail('should throw when IVF snapshot is loaded without indexes config')
+      expect.fail('should throw when IVF snapshot is loaded without indexes config')
     } catch (err: any) {
-      t.ok(err.code === 'IVF_INDEX_REQUIRES_FACTORY')
+      expect(err.code === 'IVF_INDEX_REQUIRES_FACTORY').toBeTruthy()
     }
   })
 
-  t.test('should reject reserved schema property names', async (t) => {
+  it('should reject reserved schema property names', async () => {
     try {
       create({
         schema: {
           [RESERVED_VECTOR_INDEX_KEY]: 'vector[5]'
         } as const
       })
-      t.fail('should throw for reserved schema property')
+      expect.fail('should throw for reserved schema property')
     } catch (err: any) {
-      t.ok(err.code === 'RESERVED_SCHEMA_PROPERTY')
+      expect(err.code === 'RESERVED_SCHEMA_PROPERTY').toBeTruthy()
     }
 
     try {
@@ -161,9 +161,9 @@ t.test('IVF vector index', async (t) => {
           }
         } as const
       })
-      t.fail('should throw for nested reserved schema property')
+      expect.fail('should throw for nested reserved schema property')
     } catch (err: any) {
-      t.ok(err.code === 'RESERVED_SCHEMA_PROPERTY')
+      expect(err.code === 'RESERVED_SCHEMA_PROPERTY').toBeTruthy()
     }
   })
 })

@@ -1,5 +1,5 @@
+import { describe, expect, it } from 'vitest'
 import { create, insert, search } from 'zbsearch'
-import t from 'tap'
 import { persistToStorage, restoreFromStorage } from '../src/storage.js'
 import type { PersistenceStorage } from '../src/storage.js'
 import { IndexedDBStorage } from '../src/indexeddb.js'
@@ -42,34 +42,29 @@ async function generateTestDBInstance() {
 
 const formats: PersistenceFormat[] = ['json', 'dpack', 'binary', 'seqproto']
 
-t.test('persistToStorage / restoreFromStorage', async (t) => {
-  t.plan(formats.length + 3)
-
+describe('persistToStorage / restoreFromStorage', () => {
   for (const format of formats) {
-    t.test(`round-trips through a storage backend (${format})`, async (t) => {
-      t.plan(3)
+    it(`round-trips through a storage backend (${format})`, async () => {
       const db = await generateTestDBInstance()
       const original = await search(db, { mode: 'fulltext', term: 'way' })
 
       const storage = new MemoryStorage()
       await persistToStorage(db, storage, 'my-index', { format })
 
-      t.ok(storage.store.has('my-index'), 'wrote a payload under the key')
+      expect(storage.store.has('my-index'), 'wrote a payload under the key').toBeTruthy()
 
       const restored = await restoreFromStorage(storage, 'my-index', { format })
       const restoredResults = await search(restored, { mode: 'fulltext', term: 'way' })
 
-      t.equal(restoredResults.count, original.count, 'same hit count after restore')
-      t.same(
+      expect(restoredResults.count, 'same hit count after restore').toBe(original.count)
+      expect(
         restoredResults.hits.map((h) => h.id),
-        original.hits.map((h) => h.id),
         'same hit ids after restore'
-      )
+      ).toEqual(original.hits.map((h) => h.id))
     })
   }
 
-  t.test('defaults to the compact binary format (no hex doubling)', async (t) => {
-    t.plan(1)
+  it('defaults to the compact binary format (no hex doubling)', async () => {
     const db = await generateTestDBInstance()
     const storage = new MemoryStorage()
     await persistToStorage(db, storage, 'default-format')
@@ -79,27 +74,27 @@ t.test('persistToStorage / restoreFromStorage', async (t) => {
     await persistToStorage(db, jsonStorage, 'as-json', { format: 'json' })
     const binarySize = storage.store.get('default-format')!.byteLength
     const jsonSize = jsonStorage.store.get('as-json')!.byteLength
-    t.ok(binarySize < jsonSize, `binary (${binarySize}B) should be smaller than json (${jsonSize}B)`)
+    expect(binarySize < jsonSize, `binary (${binarySize}B) should be smaller than json (${jsonSize}B)`).toBeTruthy()
   })
 
-  t.test('throws a clear error when the key is missing', async (t) => {
-    t.plan(1)
+  it('throws a clear error when the key is missing', async () => {
     const storage = new MemoryStorage()
-    await t.rejects(restoreFromStorage(storage, 'nope'), new Error(STORAGE_KEY_NOT_FOUND('nope')))
+    await expect(restoreFromStorage(storage, 'nope'), undefined).rejects.toThrow(
+      new Error(STORAGE_KEY_NOT_FOUND('nope'))
+    )
   })
 
-  t.test('restore respects a non-default format', async (t) => {
-    t.plan(1)
+  it('restore respects a non-default format', async () => {
     const db = await generateTestDBInstance()
     const storage = new MemoryStorage()
     await persistToStorage(db, storage, 'k', { format: 'json' })
     const restored = await restoreFromStorage(storage, 'k', { format: 'json' })
     const results = await search(restored, { mode: 'fulltext', term: 'yourself' })
-    t.equal(results.count, 1, 'restored index is queryable')
+    expect(results.count, 'restored index is queryable').toBe(1)
   })
 })
 
-t.test('IndexedDBStorage', async (t) => {
+describe('IndexedDBStorage', async () => {
   let fakeFactory: IDBFactory | undefined
   try {
     // fake-indexeddb ships an IDBFactory we can inject without touching globals.
@@ -109,25 +104,21 @@ t.test('IndexedDBStorage', async (t) => {
     fakeFactory = undefined
   }
 
-  t.test('throws when IndexedDB is unavailable and no factory is given', async (t) => {
-    t.plan(1)
+  it('throws when IndexedDB is unavailable and no factory is given', async () => {
     const savedGlobal = (globalThis as any).indexedDB
     // Ensure no ambient indexedDB leaks into the constructor.
     delete (globalThis as any).indexedDB
-    t.throws(() => new IndexedDBStorage(), new Error(INDEXEDDB_NOT_AVAILABLE()))
+    expect(() => new IndexedDBStorage()).toThrow(new Error(INDEXEDDB_NOT_AVAILABLE()))
     if (savedGlobal !== undefined) {
       ;(globalThis as any).indexedDB = savedGlobal
     }
   })
 
   if (!fakeFactory) {
-    t.comment('fake-indexeddb not installed — skipping IndexedDB round-trip test')
     return
   }
 
-  t.test('recovers after an open failure instead of bricking', async (t) => {
-    t.plan(2)
-
+  it('recovers after an open failure instead of bricking', async () => {
     // A factory whose first open() fails, then delegates to the real one.
     let failedOnce = false
     const flakyFactory = {
@@ -145,20 +136,19 @@ t.test('IndexedDBStorage', async (t) => {
     const storage = new IndexedDBStorage({ indexedDB: flakyFactory })
 
     // First operation fails because the initial open() errors...
-    await t.rejects(storage.get('anything'), 'first open rejects')
+    await expect(storage.get('anything'), 'first open rejects').rejects.toThrow()
 
     // ...but the instance must not be permanently bricked: a retry re-opens.
     const db = await generateTestDBInstance()
     await persistToStorage(db, storage, 'after-recovery')
     const restored = await restoreFromStorage(storage, 'after-recovery')
     const results = await search(restored, { mode: 'fulltext', term: 'yourself' })
-    t.equal(results.count, 1, 'instance recovered and round-trips after the failure')
+    expect(results.count, 'instance recovered and round-trips after the failure').toBe(1)
 
     await storage.close()
   })
 
-  t.test('round-trips a database through IndexedDB', async (t) => {
-    t.plan(3)
+  it('round-trips a database through IndexedDB', async () => {
     const db = await generateTestDBInstance()
     const original = await search(db, { mode: 'fulltext', term: 'way' })
 
@@ -168,14 +158,16 @@ t.test('IndexedDBStorage', async (t) => {
     const restored = await restoreFromStorage(storage, 'idb-index')
     const restoredResults = await search(restored, { mode: 'fulltext', term: 'way' })
 
-    t.equal(restoredResults.count, original.count, 'same hit count after restore')
+    expect(restoredResults.count, 'same hit count after restore').toBe(original.count)
 
     // get on a missing key returns null (surfaced as a clear restore error)
-    await t.rejects(restoreFromStorage(storage, 'missing'), new Error(STORAGE_KEY_NOT_FOUND('missing')))
+    await expect(restoreFromStorage(storage, 'missing'), undefined).rejects.toThrow(
+      new Error(STORAGE_KEY_NOT_FOUND('missing'))
+    )
 
     await storage.delete('idb-index')
     const afterDelete = await storage.get('idb-index')
-    t.equal(afterDelete, null, 'delete removes the snapshot')
+    expect(afterDelete, 'delete removes the snapshot').toBe(null)
 
     await storage.close()
   })

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { test } from 'node:test'
+import { test } from 'vitest'
 import { Highlight, highlightStrategy } from '../src/index.js'
 
 const TEXT = 'The quick brown fox jumps over the lazy dog'

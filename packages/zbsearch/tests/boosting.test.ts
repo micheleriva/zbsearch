@@ -1,8 +1,8 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { create, insert, search } from '../src/index.js'
 
-t.test('boosting', async (t) => {
-  t.test('field boosting', async (t) => {
+describe('boosting', () => {
+  it('field boosting', async () => {
     const db = await create({
       schema: {
         id: 'string',
@@ -43,9 +43,9 @@ t.test('boosting', async (t) => {
         }
       })
     } catch (err) {
-      t.same(err.message, `Boost value must be a number greater than, or less than 0.`)
+      expect(err.message).toEqual(`Boost value must be a number greater than, or less than 0.`)
     }
 
-    t.equal(hits1[0].score < hits2[0].score, true)
+    expect(hits1[0].score < hits2[0].score).toBe(true)
   })
 })

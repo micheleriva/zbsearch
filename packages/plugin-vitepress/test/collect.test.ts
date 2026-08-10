@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { test } from 'node:test'
+import { test } from 'vitest'
 import { collectRecords, type ContentEntry, withBase } from '../src/collect.js'
 import { resolveOptions } from '../src/options.js'
 

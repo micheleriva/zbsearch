@@ -1,8 +1,8 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { create, insertMultiple, search } from '../src/index.js'
 
-t.test('create', async (t) => {
-  t.test('should create a vector instance', async (t) => {
+describe('create', () => {
+  it('should create a vector instance', async () => {
     const db = await create({
       schema: {
         title: 'string',
@@ -11,10 +11,10 @@ t.test('create', async (t) => {
       } as const
     })
 
-    t.ok(db, 'db instance created')
+    expect(db, 'db instance created').toBeTruthy()
   })
 
-  t.test('should throw an error if no vector size is provided', async (t) => {
+  it('should throw an error if no vector size is provided', async () => {
     try {
       await create({
         schema: {
@@ -24,11 +24,11 @@ t.test('create', async (t) => {
         } as const
       })
     } catch (err) {
-      t.ok(err, 'error thrown')
+      expect(err, 'error thrown').toBeTruthy()
     }
   })
 
-  t.test('should throw an error if vector size is not a number', async (t) => {
+  it('should throw an error if vector size is not a number', async () => {
     try {
       await create({
         schema: {
@@ -38,13 +38,13 @@ t.test('create', async (t) => {
         } as const
       })
     } catch (err) {
-      t.ok(err, 'error thrown')
+      expect(err, 'error thrown').toBeTruthy()
     }
   })
 })
 
-t.test('search', async (t) => {
-  t.test('should return the most similar vectors', async (t) => {
+describe('search', () => {
+  it('should return the most similar vectors', async () => {
     const db = await create({
       schema: {
         vector: 'vector[5]'
@@ -62,12 +62,12 @@ t.test('search', async (t) => {
       includeVectors: true
     })
 
-    t.same(results.count, 2)
-    t.same(results.hits[0].document.vector, [1, 1, 1, 1, 1])
-    t.same(results.hits[1].document.vector, [0, 1, 1, 1, 1])
+    expect(results.count).toEqual(2)
+    expect(results.hits[0].document.vector).toEqual([1, 1, 1, 1, 1])
+    expect(results.hits[1].document.vector).toEqual([0, 1, 1, 1, 1])
   })
 
-  t.test('should search through nested properties', async (t) => {
+  it('should search through nested properties', async () => {
     const db = await create({
       schema: {
         title: 'string',
@@ -92,12 +92,12 @@ t.test('search', async (t) => {
       includeVectors: true
     })
 
-    t.same(results.count, 2)
-    t.same((results.hits[0].document as any).vectors.embedding, [1, 1, 1, 1, 1])
-    t.same((results.hits[1].document as any).vectors.embedding, [0, 1, 1, 1, 1])
+    expect(results.count).toEqual(2)
+    expect((results.hits[0].document as any).vectors.embedding).toEqual([1, 1, 1, 1, 1])
+    expect((results.hits[1].document as any).vectors.embedding).toEqual([0, 1, 1, 1, 1])
   })
 
-  t.test('should search through deeply nested properties', async (t) => {
+  it('should search through deeply nested properties', async () => {
     const db = await create({
       schema: {
         title: 'string',
@@ -124,12 +124,12 @@ t.test('search', async (t) => {
       includeVectors: true
     })
 
-    t.same(results.count, 2)
-    t.same((results.hits[0].document as any).deeply.nested.vectors, [1, 1, 1, 1, 1])
-    t.same((results.hits[1].document as any).deeply.nested.vectors, [0, 1, 1, 1, 1])
+    expect(results.count).toEqual(2)
+    expect((results.hits[0].document as any).deeply.nested.vectors).toEqual([1, 1, 1, 1, 1])
+    expect((results.hits[1].document as any).deeply.nested.vectors).toEqual([0, 1, 1, 1, 1])
   })
 
-  t.test('should be able to work on multiple vector properties at creation time', async (t) => {
+  it('should be able to work on multiple vector properties at creation time', async () => {
     const db = await create({
       schema: {
         title: 'string',
@@ -164,17 +164,17 @@ t.test('search', async (t) => {
       includeVectors: true
     })
 
-    t.same(results1.count, 2)
-    t.same((results1.hits[0].document as any).vectors.embedding, [1, 1, 1, 1, 1])
-    t.same((results1.hits[1].document as any).vectors.embedding, [0, 1, 1, 1, 1])
+    expect(results1.count).toEqual(2)
+    expect((results1.hits[0].document as any).vectors.embedding).toEqual([1, 1, 1, 1, 1])
+    expect((results1.hits[1].document as any).vectors.embedding).toEqual([0, 1, 1, 1, 1])
 
-    t.same(results2.count, 3)
-    t.same((results2.hits[0].document as any).vectors.embedding_2, [0.2, 0.2, 0.2, 0.2, 0.2, 0.2])
-    t.same((results2.hits[1].document as any).vectors.embedding_2, [0.2, 0.2, 0.21, 0.21, 0.21, 0.21])
-    t.same((results2.hits[2].document as any).vectors.embedding_2, [0.2, 0.02, 0.1, 0.1, 0.1, 0.1])
+    expect(results2.count).toEqual(3)
+    expect((results2.hits[0].document as any).vectors.embedding_2).toEqual([0.2, 0.2, 0.2, 0.2, 0.2, 0.2])
+    expect((results2.hits[1].document as any).vectors.embedding_2).toEqual([0.2, 0.2, 0.21, 0.21, 0.21, 0.21])
+    expect((results2.hits[2].document as any).vectors.embedding_2).toEqual([0.2, 0.02, 0.1, 0.1, 0.1, 0.1])
   })
 
-  t.test('should throw an error when using unknown vector property', async (t) => {
+  it('should throw an error when using unknown vector property', async () => {
     const db = await create({
       schema: {
         title: 'string',
@@ -192,15 +192,18 @@ t.test('search', async (t) => {
           property: 'nonexistent_vector'
         }
       })
-      t.fail('Should have thrown an error')
+      expect.fail('Should have thrown an error')
     } catch (err: any) {
-      t.ok(err.message.includes('Unknown vector property "nonexistent_vector"'), 'error message contains property name')
-      t.same(err.code, 'UNKNOWN_VECTOR_PROPERTY', 'correct error code')
+      expect(
+        err.message.includes('Unknown vector property "nonexistent_vector"'),
+        'error message contains property name'
+      ).toBeTruthy()
+      expect(err.code, 'correct error code').toEqual('UNKNOWN_VECTOR_PROPERTY')
     }
   })
 })
 
-t.test('vector search with where clause', async (t) => {
+it('vector search with where clause', async () => {
   const db = await create({
     schema: {
       embedding: 'vector[5]',
@@ -227,11 +230,11 @@ t.test('vector search with where clause', async (t) => {
     }
   })
 
-  t.same(results.count, 1)
-  t.same(results.hits[0].id, id2)
+  expect(results.count).toEqual(1)
+  expect(results.hits[0].id).toEqual(id2)
 })
 
-t.test('vector search with facets', async (t) => {
+it('vector search with facets', async () => {
   const db = await create({
     schema: {
       embedding: 'vector[5]',
@@ -263,8 +266,8 @@ t.test('vector search with facets', async (t) => {
     }
   })
 
-  t.same(results.count, 3)
-  t.same(results.facets?.rating.values['0-1'], 1)
-  t.same(results.facets?.rating.values['1-3'], 2)
-  t.same(results.facets?.rating.values['3-5'], 1)
+  expect(results.count).toEqual(3)
+  expect(results.facets?.rating.values['0-1']).toEqual(1)
+  expect(results.facets?.rating.values['1-3']).toEqual(2)
+  expect(results.facets?.rating.values['3-5']).toEqual(1)
 })

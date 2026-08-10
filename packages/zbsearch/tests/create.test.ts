@@ -1,65 +1,59 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { create } from '../src/methods/create.js'
 
-t.test('create method', (t) => {
-  t.test('should provide an unique ID for the instance', async (t) => {
+describe('create method', () => {
+  it('should provide an unique ID for the instance', async () => {
     const zbsearch1 = create({ schema: {} })
     const zbsearch2 = create({ schema: {} })
 
-    t.hasProp(zbsearch1, 'id')
-    t.hasProp(zbsearch2, 'id')
+    expect(zbsearch1).toHaveProperty('id')
+    expect(zbsearch2).toHaveProperty('id')
 
-    t.equal(zbsearch1.id === zbsearch2.id, false)
+    expect(zbsearch1.id === zbsearch2.id).toBe(false)
   })
 
-  t.test('should accept an "id" property and set is as instance ID', async (t) => {
+  it('should accept an "id" property and set is as instance ID', async () => {
     const zbsearch = create({ schema: {}, id: 'my-instance-id' })
 
-    t.hasProp(zbsearch, 'id')
-    t.same(zbsearch.id, 'my-instance-id')
+    expect(zbsearch).toHaveProperty('id')
+    expect(zbsearch.id).toEqual('my-instance-id')
   })
 
-  t.test('should throw if custom tokenizer and language are specified together', async (t) => {
-    t.throws(() =>
+  it('should throw if custom tokenizer and language are specified together', async () => {
+    expect(() =>
       create({
         schema: {},
         language: 'en'
       })
-    )
-
-    t.end()
+    ).toThrow()
   })
 
-  t.test('should allow creation of an index with a geopoint property', async (t) => {
-    t.ok(
+  it('should allow creation of an index with a geopoint property', async () => {
+    expect(
       create({
         schema: {
           name: 'string',
           location: 'geopoint'
         }
       })
-    )
+    ).toBeTruthy()
   })
 
-  t.test('should accept "multilingual" as language', async (t) => {
+  it('should accept "multilingual" as language', async () => {
     const zbsearch = create({
       schema: { text: 'string' },
       language: 'multilingual'
     })
 
-    t.equal(zbsearch.tokenizer.language, 'multilingual')
+    expect(zbsearch.tokenizer.language).toBe('multilingual')
   })
 
-  t.test('should throw when multilingual stemming is enabled without a custom stemmer', async (t) => {
-    t.throws(
-      () =>
-        create({
-          schema: { text: 'string' },
-          components: { tokenizer: { language: 'multilingual', stemming: true } }
-        }),
-      { code: 'MISSING_STEMMER' }
-    )
+  it('should throw when multilingual stemming is enabled without a custom stemmer', async () => {
+    expect(() =>
+      create({
+        schema: { text: 'string' },
+        components: { tokenizer: { language: 'multilingual', stemming: true } }
+      })
+    ).toThrow(expect.objectContaining({ code: 'MISSING_STEMMER' }))
   })
-
-  t.end()
 })

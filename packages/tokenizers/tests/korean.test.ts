@@ -1,4 +1,4 @@
-import t from 'tap'
+import { expect, it } from "vitest";
 import { create, insert, search } from 'zbsearch'
 import { createTokenizer } from '../src/korean.js'
 
@@ -15,7 +15,7 @@ function getHitsNames(hits) {
   return hits.map((hit) => hit.document.name)
 }
 
-t.test('Korean tokenizer', async (t) => {
+it('Korean tokenizer', async () => {
   await insert(db, { name: '서울' }) // Seoul
   await insert(db, { name: '부산' }) // Busan
   await insert(db, { name: '대구' }) // Daegu
@@ -36,28 +36,28 @@ t.test('Korean tokenizer', async (t) => {
   // (default exact: false): '서울' is a prefix of the '서울대학교' token.
   const resultsSeoul = await search(db, { term: '서울', threshold: 0 })
 
-  t.equal(resultsSeoul.count, 2)
-  t.equal(getHitsNames(resultsSeoul.hits).join(', '), '서울, 서울대학교')
+  expect(resultsSeoul.count).toBe(2)
+  expect(getHitsNames(resultsSeoul.hits).join(', ')).toBe('서울, 서울대학교')
 
   const resultsBusan = await search(db, { term: '부산', threshold: 0 })
 
-  t.equal(resultsBusan.count, 2)
-  t.equal(getHitsNames(resultsBusan.hits).join(', '), '부산, 부산대학교')
+  expect(resultsBusan.count).toBe(2)
+  expect(getHitsNames(resultsBusan.hits).join(', ')).toBe('부산, 부산대학교')
 
   const resultsGwangju = await search(db, { term: '광주', threshold: 0 })
 
-  t.equal(resultsGwangju.count, 1)
-  t.equal(getHitsNames(resultsGwangju.hits).join(', '), '광주')
+  expect(resultsGwangju.count).toBe(1)
+  expect(getHitsNames(resultsGwangju.hits).join(', ')).toBe('광주')
 
   const resultsIncheon = await search(db, { term: '인천', threshold: 0 })
 
-  t.equal(resultsIncheon.count, 1)
-  t.equal(getHitsNames(resultsIncheon.hits).join(', '), '인천')
+  expect(resultsIncheon.count).toBe(1)
+  expect(getHitsNames(resultsIncheon.hits).join(', ')).toBe('인천')
 
   const resultsPohang = await search(db, { term: '포항', threshold: 0 })
 
-  t.equal(resultsPohang.count, 2)
-  t.equal(getHitsNames(resultsPohang.hits).join(', '), '포항, 포항공과대학교')
+  expect(resultsPohang.count).toBe(2)
+  expect(getHitsNames(resultsPohang.hits).join(', ')).toBe('포항, 포항공과대학교')
 
   // Searching the shared suffix '대학교' (university) returns nothing: the compounds are indexed as
   // whole tokens ('서울대학교', '부산대학교', '포항공과대학교'), so the suffix is not a prefix of any token.
@@ -65,12 +65,12 @@ t.test('Korean tokenizer', async (t) => {
   // tokenizer dictionary-splits the compounds. This assertion locks in the no-segmentation behavior.
   const resultsUniversity = await search(db, { term: '대학교', threshold: 0 })
 
-  t.equal(resultsUniversity.count, 0)
+  expect(resultsUniversity.count).toBe(0)
 
   // Whitespace word segmentation works: the space-separated '대전 울산 세종' is tokenized into
   // '대전' / '울산' / '세종', so searching the middle word finds that document.
   const resultsUlsan = await search(db, { term: '울산', threshold: 0 })
 
-  t.equal(resultsUlsan.count, 1)
-  t.equal(getHitsNames(resultsUlsan.hits).join(', '), '대전 울산 세종')
+  expect(resultsUlsan.count).toBe(1)
+  expect(getHitsNames(resultsUlsan.hits).join(', ')).toBe('대전 울산 세종')
 })

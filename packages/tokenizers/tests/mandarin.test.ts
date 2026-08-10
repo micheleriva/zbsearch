@@ -1,5 +1,5 @@
+import { expect, it } from "vitest";
 import fs from 'fs'
-import t from 'tap'
 import { create, insert, search } from 'zbsearch'
 import { createTokenizer } from '../src/mandarin.js'
 
@@ -16,7 +16,7 @@ function getHitsNames(hits) {
   return hits.map((hit) => hit.document.name)
 }
 
-t.test('Mandarin tokenizer', async (t) => {
+it('Mandarin tokenizer', async () => {
   await insert(db, { name: '北京' }) // Beijing
   await insert(db, { name: '上海' }) // Shanghai
   await insert(db, { name: '广州' }) // Guangzhou
@@ -30,40 +30,40 @@ t.test('Mandarin tokenizer', async (t) => {
 
   const resultsBeijing = await search(db, { term: '北京', threshold: 0 })
 
-  t.equal(resultsBeijing.count, 2)
-  t.equal(getHitsNames(resultsBeijing.hits).join(', '), '北京, 北京大学')
+  expect(resultsBeijing.count).toBe(2)
+  expect(getHitsNames(resultsBeijing.hits).join(', ')).toBe('北京, 北京大学')
 
   const resultsShanghai = await search(db, { term: '上海', threshold: 0 })
 
-  t.equal(resultsShanghai.count, 2)
-  t.equal(getHitsNames(resultsShanghai.hits).join(', '), '上海, 上海交通大学')
+  expect(resultsShanghai.count).toBe(2)
+  expect(getHitsNames(resultsShanghai.hits).join(', ')).toBe('上海, 上海交通大学')
 
   const resultsGuangzhou = await search(db, { term: '广州', threshold: 0 })
 
-  t.equal(resultsGuangzhou.count, 2)
-  t.equal(getHitsNames(resultsGuangzhou.hits).join(', '), '广州, 广州中医药大学')
+  expect(resultsGuangzhou.count).toBe(2)
+  expect(getHitsNames(resultsGuangzhou.hits).join(', ')).toBe('广州, 广州中医药大学')
 
   const resultsShenzhen = await search(db, { term: '深圳', threshold: 0 })
 
-  t.equal(resultsShenzhen.count, 1)
-  t.equal(getHitsNames(resultsShenzhen.hits).join(', '), '深圳')
+  expect(resultsShenzhen.count).toBe(1)
+  expect(getHitsNames(resultsShenzhen.hits).join(', ')).toBe('深圳')
 
   const resultsChengdu = await search(db, { term: '成都', threshold: 0 })
 
-  t.equal(resultsChengdu.count, 1)
-  t.equal(getHitsNames(resultsChengdu.hits).join(', '), '成都')
+  expect(resultsChengdu.count).toBe(1)
+  expect(getHitsNames(resultsChengdu.hits).join(', ')).toBe('成都')
 
   const resultsNan = await search(db, { term: '南', threshold: 0 })
 
-  t.equal(resultsNan.count, 1)
-  t.equal(getHitsNames(resultsNan.hits).join(', '), '南京')
+  expect(resultsNan.count).toBe(1)
+  expect(getHitsNames(resultsNan.hits).join(', ')).toBe('南京')
 
   const resultsHangzhou = await search(db, { term: '杭州', threshold: 0 })
 
-  t.equal(resultsHangzhou.count, 1)
-  t.equal(getHitsNames(resultsHangzhou.hits).join(', '), '杭州')
+  expect(resultsHangzhou.count).toBe(1)
+  expect(getHitsNames(resultsHangzhou.hits).join(', ')).toBe('杭州')
 
   const resultsUniversity = await search(db, { term: '大学', threshold: 0 })
 
-  t.equal(resultsUniversity.count, 3)
+  expect(resultsUniversity.count).toBe(3)
 })

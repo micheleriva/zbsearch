@@ -1,5 +1,4 @@
-import t from 'tap'
-
+import { describe, expect, it, onTestFinished } from 'vitest'
 import { stemmer as bulgarianStemmer, language as bulgarianLanguage } from '@zbsearch/stemmers/bulgarian'
 import { stemmer as czechStemmer, language as czechLanguage } from '@zbsearch/stemmers/czech'
 import { stemmer as danishStemmer, language as danishLanguage } from '@zbsearch/stemmers/danish'
@@ -40,8 +39,8 @@ import { stopwords as vietnameseStopwords } from '@zbsearch/stopwords/vietnamese
 
 import { createTokenizer } from '../src/components/tokenizer/index.js'
 
-t.test('Tokenizer', async (t) => {
-  t.test('should tokenize and stem correctly in english', async (t) => {
+describe('Tokenizer', () => {
+  it('should tokenize and stem correctly in english', async () => {
     const tokenizer = await createTokenizer({ language: 'english', stopWords: false, stemming: true })
 
     const I1 = 'the quick brown fox jumps over the lazy dog'
@@ -50,11 +49,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1, 'english')
     const O2 = tokenizer.tokenize(I2, 'english')
 
-    t.strictSame(O1, ['the', 'quick', 'brown', 'fox', 'jump', 'over', 'lazi', 'dog'])
-    t.strictSame(O2, ['i', 'bake', 'some', 'cake'])
+    expect(O1).toStrictEqual(['the', 'quick', 'brown', 'fox', 'jump', 'over', 'lazi', 'dog'])
+    expect(O2).toStrictEqual(['i', 'bake', 'some', 'cake'])
   })
 
-  t.test('should tokenize and stem correctly in english and allow duplicates', async (t) => {
+  it('should tokenize and stem correctly in english and allow duplicates', async () => {
     const tokenizer = await createTokenizer({
       language: 'english',
       allowDuplicates: true,
@@ -68,11 +67,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1, 'english')
     const O2 = tokenizer.tokenize(I2, 'english')
 
-    t.strictSame(O1, ['thi', 'is', 'a', 'test', 'with', 'test', 'duplic'])
-    t.strictSame(O2, ["it'", 'aliv', "it'", 'aliv'])
+    expect(O1).toStrictEqual(['thi', 'is', 'a', 'test', 'with', 'test', 'duplic'])
+    expect(O2).toStrictEqual(["it'", 'aliv', "it'", 'aliv'])
   })
 
-  t.test('should tokenize and stem correctly in english skipping appropriate properties (single)', async (t) => {
+  it('should tokenize and stem correctly in english skipping appropriate properties (single)', async () => {
     const tokenizer = await createTokenizer({
       language: 'english',
       stemming: true,
@@ -85,11 +84,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1, 'english')
     const O2 = tokenizer.tokenize(I1, 'english', 'notToStem')
 
-    t.strictSame(O1, ['quick', 'brown', 'fox', 'jump', 'lazi', 'dog'])
-    t.strictSame(O2, ['quick', 'brown', 'fox', 'jumps', 'lazy', 'dog'])
+    expect(O1).toStrictEqual(['quick', 'brown', 'fox', 'jump', 'lazi', 'dog'])
+    expect(O2).toStrictEqual(['quick', 'brown', 'fox', 'jumps', 'lazy', 'dog'])
   })
 
-  t.test('should tokenize and stem correctly in english skipping appropriate properties (multiple)', async (t) => {
+  it('should tokenize and stem correctly in english skipping appropriate properties (multiple)', async () => {
     const tokenizer = await createTokenizer({
       language: 'english',
       stemming: true,
@@ -103,12 +102,12 @@ t.test('Tokenizer', async (t) => {
     const O2 = tokenizer.tokenize(I1, 'english', 'notToStem')
     const O3 = tokenizer.tokenize(I1, 'english', 'another')
 
-    t.strictSame(O1, ['quick', 'brown', 'fox', 'jump', 'lazi', 'dog'])
-    t.strictSame(O2, ['quick', 'brown', 'fox', 'jumps', 'lazy', 'dog'])
-    t.strictSame(O3, ['quick', 'brown', 'fox', 'jumps', 'lazy', 'dog'])
+    expect(O1).toStrictEqual(['quick', 'brown', 'fox', 'jump', 'lazi', 'dog'])
+    expect(O2).toStrictEqual(['quick', 'brown', 'fox', 'jumps', 'lazy', 'dog'])
+    expect(O3).toStrictEqual(['quick', 'brown', 'fox', 'jumps', 'lazy', 'dog'])
   })
 
-  t.test('should tokenize and stem correctly in english skipping appropriate properties (invalid)', async (t) => {
+  it('should tokenize and stem correctly in english skipping appropriate properties (invalid)', async () => {
     const tokenizer = await createTokenizer({
       language: 'english',
       stemming: true,
@@ -122,11 +121,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1, 'english')
     const O2 = tokenizer.tokenize(I1, 'english', 'notToStem')
 
-    t.strictSame(O1, ['quick', 'brown', 'fox', 'jump', 'lazi', 'dog'])
-    t.strictSame(O2, ['quick', 'brown', 'fox', 'jump', 'lazi', 'dog'])
+    expect(O1).toStrictEqual(['quick', 'brown', 'fox', 'jump', 'lazi', 'dog'])
+    expect(O2).toStrictEqual(['quick', 'brown', 'fox', 'jump', 'lazi', 'dog'])
   })
 
-  t.test('should tokenize and stem correctly in french', async (t) => {
+  it('should tokenize and stem correctly in french', async () => {
     const tokenizer = await createTokenizer({
       language: frenchLanguage,
       stemmer: frenchStemmer,
@@ -139,11 +138,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.strictSame(O1, ['voyon', 'temp', 'fait', 'dehor'])
-    t.strictSame(O2, ['fait', 'gateau'])
+    expect(O1).toStrictEqual(['voyon', 'temp', 'fait', 'dehor'])
+    expect(O2).toStrictEqual(['fait', 'gateau'])
   })
 
-  t.test('should tokenize and stem correctly in italian', async (t) => {
+  it('should tokenize and stem correctly in italian', async () => {
     const tokenizer = await createTokenizer({
       language: italianLanguage,
       stemmer: italianStemmer,
@@ -156,11 +155,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.strictSame(O1, ['cucin', 'tort'])
-    t.strictSame(O2, ['dorm', 'cos', 'difficil', 'quand', 'test', 'pass'])
+    expect(O1).toStrictEqual(['cucin', 'tort'])
+    expect(O2).toStrictEqual(['dorm', 'cos', 'difficil', 'quand', 'test', 'pass'])
   })
 
-  t.test('should tokenize and stem correctly in norwegian', async (t) => {
+  it('should tokenize and stem correctly in norwegian', async () => {
     const tokenizer = await createTokenizer({
       language: norwegianLanguage,
       stemmer: norwegianStemmer,
@@ -172,11 +171,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.strictSame(O1, ['kokt', 'kak'])
-    t.strictSame(O2, ['sov', 'vansk', 'ting', 'test', 'mislykk'])
+    expect(O1).toStrictEqual(['kokt', 'kak'])
+    expect(O2).toStrictEqual(['sov', 'vansk', 'ting', 'test', 'mislykk'])
   })
 
-  t.test('should tokenize and stem correctly in portuguese', async (t) => {
+  it('should tokenize and stem correctly in portuguese', async () => {
     const tokenizer = await createTokenizer({
       language: portugueseLanguage,
       stemmer: portugueseStemmer,
@@ -189,11 +188,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.strictSame(O1, ['cozinh', 'alguns', 'bol'])
-    t.strictSame(O2, ['dorm', 'cois', 'dificil', 'test', 'falh'])
+    expect(O1).toStrictEqual(['cozinh', 'alguns', 'bol'])
+    expect(O2).toStrictEqual(['dorm', 'cois', 'dificil', 'test', 'falh'])
   })
 
-  t.test('should tokenize and stem correctly in russian', async (t) => {
+  it('should tokenize and stem correctly in russian', async () => {
     const tokenizer = await createTokenizer({
       language: russianLanguage,
       stemmer: russianStemmer,
@@ -206,11 +205,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.strictSame(O1, ['приготов', 'пирожн'])
-    t.strictSame(O2, ['спат', 'трудн', 'тест', 'срабатыва'])
+    expect(O1).toStrictEqual(['приготов', 'пирожн'])
+    expect(O2).toStrictEqual(['спат', 'трудн', 'тест', 'срабатыва'])
   })
 
-  t.test('should tokenize and stem correctly in swedish', async (t) => {
+  it('should tokenize and stem correctly in swedish', async () => {
     const tokenizer = await createTokenizer({
       language: swedishLanguage,
       stemmer: swedishStemmer,
@@ -222,11 +221,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.strictSame(O1, ['lag', 'kak'])
-    t.strictSame(O2, ['sov', 'svar', 'sak', 'test', 'misslyck'])
+    expect(O1).toStrictEqual(['lag', 'kak'])
+    expect(O2).toStrictEqual(['sov', 'svar', 'sak', 'test', 'misslyck'])
   })
 
-  t.test('should tokenize and stem correctly in spanish', async (t) => {
+  it('should tokenize and stem correctly in spanish', async () => {
     const tokenizer = await createTokenizer({
       language: spanishLanguage,
       stemmer: spanishStemmer,
@@ -239,11 +238,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.strictSame(O1, ['cocin', 'pastel'])
-    t.strictSame(O2, ['dorm', 'dificil', 'prueb', 'fall'])
+    expect(O1).toStrictEqual(['cocin', 'pastel'])
+    expect(O2).toStrictEqual(['dorm', 'dificil', 'prueb', 'fall'])
   })
 
-  t.test('should tokenize and stem correctly in dutch', async (t) => {
+  it('should tokenize and stem correctly in dutch', async () => {
     const tokenizer = await createTokenizer({
       language: dutchLanguage,
       stemmer: dutchStemmer,
@@ -255,11 +254,11 @@ t.test('Tokenizer', async (t) => {
     const O2 = tokenizer.tokenize(I2)
     const O1 = tokenizer.tokenize(I1)
 
-    t.strictSame(O1, ['klein', 'koei'])
-    t.strictSame(O2, ['taart', 'gemaakt'])
+    expect(O1).toStrictEqual(['klein', 'koei'])
+    expect(O2).toStrictEqual(['taart', 'gemaakt'])
   })
 
-  t.test('should tokenize and stem correctly in german', async (t) => {
+  it('should tokenize and stem correctly in german', async () => {
     const tokenizer = await createTokenizer({
       language: germanLanguage,
       stemmer: germanStemmer,
@@ -272,11 +271,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.strictSame(O1, ['schlaf', 'hart', 'sach', 'test', 'fehlschlag'])
-    t.strictSame(O2, ['paar', 'keks', 'geback'])
+    expect(O1).toStrictEqual(['schlaf', 'hart', 'sach', 'test', 'fehlschlag'])
+    expect(O2).toStrictEqual(['paar', 'keks', 'geback'])
   })
 
-  t.test('should tokenize and stem correctly in finnish', async (t) => {
+  it('should tokenize and stem correctly in finnish', async () => {
     const tokenizer = await createTokenizer({
       language: finnishLanguage,
       stemmer: finnishStemmer,
@@ -289,11 +288,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.strictSame(O1, ['uni', 'vaike', 'as', 'test', 'epaonnistuv'])
-    t.strictSame(O2, ['leivo', 'keksej'])
+    expect(O1).toStrictEqual(['uni', 'vaike', 'as', 'test', 'epaonnistuv'])
+    expect(O2).toStrictEqual(['leivo', 'keksej'])
   })
 
-  t.test('should tokenize and stem correctly in danish', async (t) => {
+  it('should tokenize and stem correctly in danish', async () => {
     const tokenizer = await createTokenizer({
       language: danishLanguage,
       stemmer: danishStemmer,
@@ -306,11 +305,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.strictSame(O1, ['sovn', 'svar', 'ting', 'prov', 'mislyk'])
-    t.strictSame(O2, ['bagt', 'smakag'])
+    expect(O1).toStrictEqual(['sovn', 'svar', 'ting', 'prov', 'mislyk'])
+    expect(O2).toStrictEqual(['bagt', 'smakag'])
   })
 
-  t.test('should tokenize and stem correctly in tamil', async (t) => {
+  it('should tokenize and stem correctly in tamil', async () => {
     const tokenizer = await createTokenizer({
       language: tamilLanguage,
       stemmer: tamilStemmer,
@@ -323,11 +322,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.strictSame(O1, ['கத'])
-    t.strictSame(O2, ['அவன', 'ல'])
+    expect(O1).toStrictEqual(['கத'])
+    expect(O2).toStrictEqual(['அவன', 'ல'])
   })
 
-  t.test('should tokenize and stem correctly in ukrainian', async (t) => {
+  it('should tokenize and stem correctly in ukrainian', async () => {
     const tokenizer = await createTokenizer({
       language: ukrainianLanguage,
       stemmer: ukrainianStemmer,
@@ -340,11 +339,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.strictSame(O1, ['тест', 'не', 'проход', 'спат', 'важк'])
-    t.strictSame(O2, ['я', 'приготувал', 'тістечк'])
+    expect(O1).toStrictEqual(['тест', 'не', 'проход', 'спат', 'важк'])
+    expect(O2).toStrictEqual(['я', 'приготувал', 'тістечк'])
   })
 
-  t.test('should tokenize and stem correctly in vietnamese', async (t) => {
+  it('should tokenize and stem correctly in vietnamese', async () => {
     const tokenizer = await createTokenizer({
       language: vietnameseLanguage,
       stemmer: vietnameseStemmer,
@@ -357,11 +356,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.strictSame(O1, ['tìm', 'kiếm', 'tài', 'liệu', 'thư', 'viện'])
-    t.strictSame(O2, ['học', 'lập', 'trình', 'thú', 'vị'])
+    expect(O1).toStrictEqual(['tìm', 'kiếm', 'tài', 'liệu', 'thư', 'viện'])
+    expect(O2).toStrictEqual(['học', 'lập', 'trình', 'thú', 'vị'])
   })
 
-  t.test('should tokenize and stem correctly in bulgarian', async (t) => {
+  it('should tokenize and stem correctly in bulgarian', async () => {
     const tokenizer = await createTokenizer({ language: bulgarianLanguage, stemmer: bulgarianStemmer, stopWords: [] })
 
     const I1 = 'Кокошката е малка крава която не може да се събере с теста'
@@ -370,11 +369,23 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.strictSame(O1, ['кокошк', 'е', 'малк', 'крав', 'коят', 'не', 'мож', 'да', 'се', 'събер', 'с', 'тест'])
-    t.strictSame(O2, ['има', 'първ', 'вероятност', 'да', 'се', 'случ', 'нещ', 'неочакван', 'док', 'изпълняват', 'тест'])
+    expect(O1).toStrictEqual(['кокошк', 'е', 'малк', 'крав', 'коят', 'не', 'мож', 'да', 'се', 'събер', 'с', 'тест'])
+    expect(O2).toStrictEqual([
+      'има',
+      'първ',
+      'вероятност',
+      'да',
+      'се',
+      'случ',
+      'нещ',
+      'неочакван',
+      'док',
+      'изпълняват',
+      'тест'
+    ])
   })
 
-  t.test('should tokenize and stem correctly in czech', async (t) => {
+  it('should tokenize and stem correctly in czech', async () => {
     const tokenizer = await createTokenizer({
       language: czechLanguage,
       stemmer: czechStemmer,
@@ -387,11 +398,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.strictSame(O1, ['upekl', 'nejak', 'kolak'])
-    t.strictSame(O2, ['zak', 'cetl', 'knih', 'skol'])
+    expect(O1).toStrictEqual(['upekl', 'nejak', 'kolak'])
+    expect(O2).toStrictEqual(['zak', 'cetl', 'knih', 'skol'])
   })
 
-  t.test('should tokenize and stem correctly in slovak', async (t) => {
+  it('should tokenize and stem correctly in slovak', async () => {
     const tokenizer = await createTokenizer({
       language: slovakLanguage,
       stemmer: slovakStemmer,
@@ -404,11 +415,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.strictSame(O1, ['det', 'cital', 'knih', 'skol'])
-    t.strictSame(O2, ['lud', 'sedl', 'velk', 'stol'])
+    expect(O1).toStrictEqual(['det', 'cital', 'knih', 'skol'])
+    expect(O2).toStrictEqual(['lud', 'sedl', 'velk', 'stol'])
   })
 
-  t.test('slovak-only letters do not split tokens', async (t) => {
+  it('slovak-only letters do not split tokens', async () => {
     const tokenizer = await createTokenizer({
       language: slovakLanguage,
       stemming: false,
@@ -417,13 +428,13 @@ t.test('Tokenizer', async (t) => {
 
     // ä, ô, ľ, ĺ and ŕ are absent from the Czech splitter, which would break
     // these words apart. They must survive tokenization as whole tokens.
-    t.strictSame(tokenizer.tokenize('mäso stôl ľudia vĺča vŕba'), ['maso', 'stol', 'ludia', 'vlca', 'vrba'])
+    expect(tokenizer.tokenize('mäso stôl ľudia vĺča vŕba')).toStrictEqual(['maso', 'stol', 'ludia', 'vlca', 'vrba'])
   })
 
-  t.test('uses the complete stopwords-iso Slovak list', async (t) => {
-    t.equal(slovakStopwords.length, 418)
+  it('uses the complete stopwords-iso Slovak list', async () => {
+    expect(slovakStopwords.length).toBe(418)
     for (const word of ['je', 'bude', 'ešte', 'takže']) {
-      t.ok(slovakStopwords.includes(word), `contains ${word}`)
+      expect(slovakStopwords.includes(word), `contains ${word}`).toBeTruthy()
     }
 
     const tokenizer = await createTokenizer({
@@ -432,10 +443,10 @@ t.test('Tokenizer', async (t) => {
       stopWords: slovakStopwords
     })
 
-    t.strictSame(tokenizer.tokenize('To je ešte bude takže vyhľadávanie'), ['vyhladavanie'])
+    expect(tokenizer.tokenize('To je ešte bude takže vyhľadávanie')).toStrictEqual(['vyhladavanie'])
   })
 
-  t.test('should tokenize and stem correctly in slovenian', async (t) => {
+  it('should tokenize and stem correctly in slovenian', async () => {
     const tokenizer = await createTokenizer({
       language: slovenianLanguage,
       stemmer: slovenianStemmer,
@@ -448,11 +459,11 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.strictSame(O1, ['spekl', 'tort'])
-    t.strictSame(O2, ['otroc', 'ber', 'knjig', 'mest'])
+    expect(O1).toStrictEqual(['spekl', 'tort'])
+    expect(O2).toStrictEqual(['otroc', 'ber', 'knjig', 'mest'])
   })
 
-  t.test('disable stemming', async (t) => {
+  it('disable stemming', async () => {
     const tokenizer = await createTokenizer({ language: 'english', stemming: false, stopWords: englishStopwords })
 
     const I1 = 'the quick brown fox jumps over the lazy dog'
@@ -461,89 +472,95 @@ t.test('Tokenizer', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.same(O1, ['quick', 'brown', 'fox', 'jumps', 'lazy', 'dog'])
-    t.same(O2, ['baked', 'cakes'])
+    expect(O1).toEqual(['quick', 'brown', 'fox', 'jumps', 'lazy', 'dog'])
+    expect(O2).toEqual(['baked', 'cakes'])
   })
 
-  t.test('should validate options', async (t) => {
-    await t.rejects(() => createTokenizer({ language: 'weird-language' }), { code: 'LANGUAGE_NOT_SUPPORTED' })
+  it('should validate options', async () => {
+    expect(() => createTokenizer({ language: 'weird-language' })).toThrow(
+      expect.objectContaining({ code: 'LANGUAGE_NOT_SUPPORTED' })
+    )
 
-    await t.rejects(() => createTokenizer({ language: 'italian', stemming: true }), { code: 'MISSING_STEMMER' })
+    expect(() => createTokenizer({ language: 'italian', stemming: true })).toThrow(
+      expect.objectContaining({ code: 'MISSING_STEMMER' })
+    )
 
     // @ts-expect-error testing validation
-    await t.rejects(() => createTokenizer({ language: 'english', stemmer: 'FOO' }), {
-      code: 'INVALID_STEMMER_FUNCTION_TYPE'
-    })
+    expect(() => createTokenizer({ language: 'english', stemmer: 'FOO' })).toThrow(
+      expect.objectContaining({
+        code: 'INVALID_STEMMER_FUNCTION_TYPE'
+      })
+    )
   })
 })
 
-t.test('Czech, Slovak and Slovenian stemming', async (t) => {
-  t.test('czech inflected forms collapse to a single stem', async (t) => {
+describe('Czech, Slovak and Slovenian stemming', () => {
+  it('czech inflected forms collapse to a single stem', async () => {
     for (const word of ['žák', 'žáci', 'žáky', 'žákům', 'žácích']) {
-      t.equal(czechStemmer(word), 'žák', `${word} stems to žák`)
+      expect(czechStemmer(word), `${word} stems to žák`).toBe('žák')
     }
 
     for (const word of ['kniha', 'knihy', 'knihám', 'knihách']) {
-      t.equal(czechStemmer(word), 'knih', `${word} stems to knih`)
+      expect(czechStemmer(word), `${word} stems to knih`).toBe('knih')
     }
 
     for (const word of ['malý', 'malá', 'malé', 'malému', 'malých']) {
-      t.equal(czechStemmer(word), 'mal', `${word} stems to mal`)
+      expect(czechStemmer(word), `${word} stems to mal`).toBe('mal')
     }
   })
 
-  t.test('czech short words are left unchanged', async (t) => {
-    t.equal(czechStemmer('e'), 'e')
-    t.equal(czechStemmer('zi'), 'zi')
+  it('czech short words are left unchanged', async () => {
+    expect(czechStemmer('e')).toBe('e')
+    expect(czechStemmer('zi')).toBe('zi')
   })
 
-  t.test('slovak inflected forms collapse to a single stem', async (t) => {
+  it('slovak inflected forms collapse to a single stem', async () => {
     for (const word of ['žiak', 'žiaka', 'žiaci', 'žiakovi', 'žiakom', 'žiakov', 'žiakoch', 'žiakmi']) {
-      t.equal(slovakStemmer(word), 'žiak', `${word} stems to žiak`)
+      expect(slovakStemmer(word), `${word} stems to žiak`).toBe('žiak')
     }
 
     for (const word of ['kniha', 'knihy', 'knihe', 'knihu', 'knihou', 'knihám', 'knihách', 'knihami']) {
-      t.equal(slovakStemmer(word), 'knih', `${word} stems to knih`)
+      expect(slovakStemmer(word), `${word} stems to knih`).toBe('knih')
     }
 
     for (const word of ['mesto', 'mesta', 'mestu', 'mestom', 'mestá', 'mestám', 'mestách']) {
-      t.equal(slovakStemmer(word), 'mest', `${word} stems to mest`)
+      expect(slovakStemmer(word), `${word} stems to mest`).toBe('mest')
     }
 
     for (const word of ['malý', 'malá', 'malé', 'malého', 'malému', 'malej', 'malých', 'malými']) {
-      t.equal(slovakStemmer(word), 'mal', `${word} stems to mal`)
+      expect(slovakStemmer(word), `${word} stems to mal`).toBe('mal')
     }
   })
 
-  t.test('slovak stems ascii-folded input the same way', async (t) => {
+  it('slovak stems ascii-folded input the same way', async () => {
     // The tokenizer folds diacritics before stemming, so the folded forms must
     // collapse exactly like their accented counterparts.
     for (const word of ['ziak', 'ziaka', 'ziaci', 'ziakovi', 'ziakom', 'ziakov', 'ziakoch']) {
-      t.equal(slovakStemmer(word), 'ziak', `${word} stems to ziak`)
+      expect(slovakStemmer(word), `${word} stems to ziak`).toBe('ziak')
     }
 
     for (const word of ['maly', 'mala', 'male', 'maleho', 'malemu', 'malej', 'malych', 'malymi']) {
-      t.equal(slovakStemmer(word), 'mal', `${word} stems to mal`)
+      expect(slovakStemmer(word), `${word} stems to mal`).toBe('mal')
     }
   })
 
-  t.test('slovak fleeting vowel and ô alternations conflate', async (t) => {
+  it('slovak fleeting vowel and ô alternations conflate', async () => {
     for (const word of ['stôl', 'stola', 'stolu', 'stolom', 'stoly', 'stolov']) {
-      t.equal(slovakStemmer(word), 'stol', `${word} stems to stol`)
+      expect(slovakStemmer(word), `${word} stems to stol`).toBe('stol')
     }
 
     for (const word of ['ovca', 'ovce', 'ovcu', 'oviec', 'ovciam']) {
-      t.equal(slovakStemmer(word), 'ovk', `${word} stems to ovk`)
+      expect(slovakStemmer(word), `${word} stems to ovk`).toBe('ovk')
     }
 
     for (const word of ['chlapec', 'chlapca', 'chlapci', 'chlapcov']) {
-      t.equal(slovakStemmer(word), 'chlapk', `${word} stems to chlapk`)
+      expect(slovakStemmer(word), `${word} stems to chlapk`).toBe('chlapk')
     }
   })
 
-  t.test('slovak superlative, comparative and verb inflections conflate', async (t) => {
+  it('slovak superlative, comparative and verb inflections conflate', async () => {
     for (const word of ['najžľaznatejšieho', 'najzlaznatejsieho']) {
-      t.equal(slovakStemmer(word), word.includes('ž') ? 'žľaznat' : 'zlaznat', `${word} stems to its adjective base`)
+      expect(slovakStemmer(word), `${word} stems to its adjective base`).toBe(word.includes('ž') ? 'žľaznat' : 'zlaznat')
     }
 
     for (const word of [
@@ -560,16 +577,16 @@ t.test('Czech, Slovak and Slovenian stemming', async (t) => {
       'robila',
       'robilo'
     ]) {
-      t.equal(slovakStemmer(word), 'rob', `${word} stems to rob`)
+      expect(slovakStemmer(word), `${word} stems to rob`).toBe('rob')
     }
 
     // The -ieť class ("vidieť", "sedieť", "musieť"): the infinitive and present
     // tense join, but the past tense stays out because "-eli" collides with the
     // locative of nouns in "-el" ("hoteli"). See the note in svk.js.
     for (const word of ['vidieť', 'vidiet', 'vidím', 'vidim']) {
-      t.equal(slovakStemmer(word), 'vid', `${word} stems to vid`)
+      expect(slovakStemmer(word), `${word} stems to vid`).toBe('vid')
     }
-    t.equal(slovakStemmer('videli'), 'vidl', 'past tense of the -ieť class keeps a separate stem')
+    expect(slovakStemmer('videli'), 'past tense of the -ieť class keeps a separate stem').toBe('vidl')
 
     for (const [word, expected] of [
       ['čítajú', 'čít'],
@@ -577,105 +594,105 @@ t.test('Czech, Slovak and Slovenian stemming', async (t) => {
       ['pracujú', 'prac'],
       ['pracuju', 'prac']
     ]) {
-      t.equal(slovakStemmer(word), expected, `${word} stems to its verb base`)
+      expect(slovakStemmer(word), `${word} stems to its verb base`).toBe(expected)
     }
   })
 
-  t.test('slovak z/ž endings remain stable across muž inflections', async (t) => {
+  it('slovak z/ž endings remain stable across muž inflections', async () => {
     for (const word of ['muž', 'muža', 'muži', 'mužom', 'mužoch', 'mužmi']) {
-      t.equal(slovakStemmer(word), 'muž', `${word} stems to muž`)
+      expect(slovakStemmer(word), `${word} stems to muž`).toBe('muž')
     }
 
     for (const word of ['muz', 'muza', 'muzi', 'muzom', 'muzoch', 'muzmi']) {
-      t.equal(slovakStemmer(word), 'muz', `${word} stems to muz`)
+      expect(slovakStemmer(word), `${word} stems to muz`).toBe('muz')
     }
   })
 
-  t.test('slovak short words are left unchanged', async (t) => {
-    t.equal(slovakStemmer('e'), 'e')
-    t.equal(slovakStemmer('zi'), 'zi')
-    t.equal(slovakStemmer('dom'), 'dom')
+  it('slovak short words are left unchanged', async () => {
+    expect(slovakStemmer('e')).toBe('e')
+    expect(slovakStemmer('zi')).toBe('zi')
+    expect(slovakStemmer('dom')).toBe('dom')
   })
 
-  t.test('slovak folded infinitive endings conflate nouns as well as verbs', async (t) => {
+  it('slovak folded infinitive endings conflate nouns as well as verbs', async () => {
     // The tokenizer folds accents before stemming, so folded "-at"/"-it" is
     // ambiguous between an infinitive ("robit") and a noun ("internát",
     // "zošit"). The ending is stripped in both cases and stripped again after
     // case removal, so the nouns lose it across their whole paradigm instead of
     // splitting singular from plural.
     for (const word of ['internat', 'internaty']) {
-      t.equal(slovakStemmer(word), 'intern', `${word} stems to intern`)
+      expect(slovakStemmer(word), `${word} stems to intern`).toBe('intern')
     }
     for (const word of ['zosit', 'zosity']) {
-      t.equal(slovakStemmer(word), 'zos', `${word} stems to zos`)
+      expect(slovakStemmer(word), `${word} stems to zos`).toBe('zos')
     }
     for (const word of ['citat', 'citam', 'citaju']) {
-      t.equal(slovakStemmer(word), 'cit', `${word} stems to cit`)
+      expect(slovakStemmer(word), `${word} stems to cit`).toBe('cit')
     }
     for (const word of ['pracovat', 'pracuju']) {
-      t.equal(slovakStemmer(word), 'prac', `${word} stems to prac`)
+      expect(slovakStemmer(word), `${word} stems to prac`).toBe('prac')
     }
     // Too short to strip: the minimum-stem guard keeps these intact.
     for (const word of ['plat', 'platy']) {
-      t.equal(slovakStemmer(word), 'plat', `${word} stems to plat`)
+      expect(slovakStemmer(word), `${word} stems to plat`).toBe('plat')
     }
   })
 
-  t.test('slovak fleeting ie keeps a minimum stem length', async (t) => {
+  it('slovak fleeting ie keeps a minimum stem length', async () => {
     // Dropping "ie" costs two characters, so it only applies when at least
     // three remain. Below that the word is left for palatalization alone,
     // rather than falling through to the weaker fleeting-e rule.
-    t.equal(slovakStemmer('okien'), 'okn')
-    t.equal(slovakStemmer('oviec'), 'ovk')
-    t.equal(slovakStemmer('dieťa'), 'diet')
-    t.equal(slovakStemmer('dieta'), 'diet')
+    expect(slovakStemmer('okien')).toBe('okn')
+    expect(slovakStemmer('oviec')).toBe('ovk')
+    expect(slovakStemmer('dieťa')).toBe('diet')
+    expect(slovakStemmer('dieta')).toBe('diet')
     // A surface "ie" also marks a lengthened root vowel ("žena"/"žien"), which
     // this rule cannot undo, so the genitive plural stays separate.
-    t.equal(slovakStemmer('žien'), 'žien')
-    t.not(slovakStemmer('žien'), slovakStemmer('žena'))
+    expect(slovakStemmer('žien')).toBe('žien')
+    expect(slovakStemmer('žien')).not.toBe(slovakStemmer('žena'))
   })
 
-  t.test('slovak sieť and diel paradigms conflate', async (t) => {
+  it('slovak sieť and diel paradigms conflate', async () => {
     for (const word of ['sieť', 'siet', 'siete', 'sietami']) {
-      t.equal(slovakStemmer(word), 'siet', `${word} stems to siet`)
+      expect(slovakStemmer(word), `${word} stems to siet`).toBe('siet')
     }
     for (const word of ['diel', 'dielo', 'dielom']) {
-      t.equal(slovakStemmer(word), 'diel', `${word} stems to diel`)
+      expect(slovakStemmer(word), `${word} stems to diel`).toBe('diel')
     }
   })
 
-  t.test('slovak stemming keeps distinct words distinct', async (t) => {
-    t.not(slovakStemmer('mesto'), slovakStemmer('meso'), 'mesto and meso must not collapse')
-    t.not(slovakStemmer('stôl'), slovakStemmer('stolica'), 'stôl and stolica must not collapse')
-    t.not(slovakStemmer('okno'), slovakStemmer('oko'), 'okno and oko must not collapse')
+  it('slovak stemming keeps distinct words distinct', async () => {
+    expect(slovakStemmer('mesto'), 'mesto and meso must not collapse').not.toBe(slovakStemmer('meso'))
+    expect(slovakStemmer('stôl'), 'stôl and stolica must not collapse').not.toBe(slovakStemmer('stolica'))
+    expect(slovakStemmer('okno'), 'okno and oko must not collapse').not.toBe(slovakStemmer('oko'))
   })
 
-  t.test('slovenian inflected forms collapse to a single stem', async (t) => {
+  it('slovenian inflected forms collapse to a single stem', async () => {
     for (const word of ['mesto', 'mesta', 'mestu', 'mestom', 'mest', 'mestih']) {
-      t.equal(slovenianStemmer(word), 'mest', `${word} stems to mest`)
+      expect(slovenianStemmer(word), `${word} stems to mest`).toBe('mest')
     }
 
     for (const word of ['hiša', 'hiše', 'hiši', 'hišo']) {
-      t.equal(slovenianStemmer(word), 'hiš', `${word} stems to hiš`)
+      expect(slovenianStemmer(word), `${word} stems to hiš`).toBe('hiš')
     }
 
     for (const word of ['velik', 'velika', 'veliko', 'velikega', 'velikih']) {
-      t.equal(slovenianStemmer(word), 'velik', `${word} stems to velik`)
+      expect(slovenianStemmer(word), `${word} stems to velik`).toBe('velik')
     }
 
     for (const word of ['delati', 'delam', 'delaš', 'dela', 'delamo', 'delajo']) {
-      t.equal(slovenianStemmer(word), 'del', `${word} stems to del`)
+      expect(slovenianStemmer(word), `${word} stems to del`).toBe('del')
     }
   })
 
-  t.test('slovenian stemming keeps distinct words distinct', async (t) => {
-    t.not(slovenianStemmer('mesto'), slovenianStemmer('meso'), 'mesto and meso must not collapse')
-    t.not(slovenianStemmer('letalo'), slovenianStemmer('leto'), 'letalo and leto must not collapse')
+  it('slovenian stemming keeps distinct words distinct', async () => {
+    expect(slovenianStemmer('mesto'), 'mesto and meso must not collapse').not.toBe(slovenianStemmer('meso'))
+    expect(slovenianStemmer('letalo'), 'letalo and leto must not collapse').not.toBe(slovenianStemmer('leto'))
   })
 })
 
-t.test('Custom stop-words rules', async (t) => {
-  t.test('custom array of stop-words', async (t) => {
+describe('Custom stop-words rules', async () => {
+  it('custom array of stop-words', async () => {
     const tokenizer = await createTokenizer({
       language: 'english',
       stopWords: ['quick', 'brown', 'fox', 'dog'],
@@ -689,11 +706,11 @@ t.test('Custom stop-words rules', async (t) => {
 
     const O2 = tokenizer.tokenize(I2)
 
-    t.same(O1, ['the', 'jump', 'over', 'lazi'])
-    t.same(O2, ['i', 'bake', 'some', 'cake'])
+    expect(O1).toEqual(['the', 'jump', 'over', 'lazi'])
+    expect(O2).toEqual(['i', 'bake', 'some', 'cake'])
   })
 
-  t.test('custom stop-words function', async (t) => {
+  it('custom stop-words function', async () => {
     const tokenizer = await createTokenizer({
       language: 'english',
       stopWords(): string[] {
@@ -708,11 +725,11 @@ t.test('Custom stop-words rules', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.same(O1, ['jump', 'lazi'])
-    t.same(O2, ['bake', 'cake'])
+    expect(O1).toEqual(['jump', 'lazi'])
+    expect(O2).toEqual(['bake', 'cake'])
   })
 
-  t.test('disable stop-words', async (t) => {
+  it('disable stop-words', async () => {
     const tokenizer = await createTokenizer({ language: 'english', stopWords: false, stemming: true })
 
     const I1 = 'the quick brown fox jumps over the lazy dog'
@@ -721,11 +738,11 @@ t.test('Custom stop-words rules', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.same(O1, ['the', 'quick', 'brown', 'fox', 'jump', 'over', 'lazi', 'dog'])
-    t.same(O2, ['i', 'bake', 'some', 'cake'])
+    expect(O1).toEqual(['the', 'quick', 'brown', 'fox', 'jump', 'over', 'lazi', 'dog'])
+    expect(O2).toEqual(['i', 'bake', 'some', 'cake'])
   })
 
-  t.test('custom stemming function', async (t) => {
+  it('custom stemming function', async () => {
     const tokenizer = await createTokenizer({
       language: 'english',
       stemmer: (word) => `${word}-ish`,
@@ -738,50 +755,56 @@ t.test('Custom stop-words rules', async (t) => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    t.same(O1, ['quick-ish', 'brown-ish', 'fox-ish', 'jumps-ish', 'lazy-ish', 'dog-ish'])
-    t.same(O2, ['baked-ish', 'cakes-ish'])
+    expect(O1).toEqual(['quick-ish', 'brown-ish', 'fox-ish', 'jumps-ish', 'lazy-ish', 'dog-ish'])
+    expect(O2).toEqual(['baked-ish', 'cakes-ish'])
   })
 
-  await t.test('should validate options', async (t) => {
+  it('should validate options', async () => {
     // @ts-expect-error testing validation
-    await t.rejects(() => createTokenizer({ language: 'english', stopWords: 'FOO' }), {
-      code: 'CUSTOM_STOP_WORDS_MUST_BE_FUNCTION_OR_ARRAY'
-    })
+    expect(() => createTokenizer({ language: 'english', stopWords: 'FOO' })).toThrow(
+      expect.objectContaining({
+        code: 'CUSTOM_STOP_WORDS_MUST_BE_FUNCTION_OR_ARRAY'
+      })
+    )
 
     // @ts-expect-error testing validation
-    await t.rejects(() => createTokenizer({ language: 'english', stopWords: [1, 2, 3] }), {
-      code: 'CUSTOM_STOP_WORDS_MUST_BE_FUNCTION_OR_ARRAY'
-    })
+    expect(() => createTokenizer({ language: 'english', stopWords: [1, 2, 3] })).toThrow(
+      expect.objectContaining({
+        code: 'CUSTOM_STOP_WORDS_MUST_BE_FUNCTION_OR_ARRAY'
+      })
+    )
 
     // @ts-expect-error testing validation
-    await t.rejects(() => createTokenizer({ language: 'english', stopWords: {} }), {
-      code: 'CUSTOM_STOP_WORDS_MUST_BE_FUNCTION_OR_ARRAY'
-    })
+    expect(() => createTokenizer({ language: 'english', stopWords: {} })).toThrow(
+      expect.objectContaining({
+        code: 'CUSTOM_STOP_WORDS_MUST_BE_FUNCTION_OR_ARRAY'
+      })
+    )
   })
 
-  t.test('multilingual mode', async (t) => {
+  describe('multilingual mode', () => {
     // NOTE: this test must run before any other multilingual tokenization in this file, because the Intl.Segmenter instance is cached at module level on first use and the fallback can only trigger beforehand.
-    t.test('falls back to a Unicode regex when Intl.Segmenter is unavailable', async (t) => {
+    it('falls back to a Unicode regex when Intl.Segmenter is unavailable', async () => {
       const originalSegmenter = Intl.Segmenter
       // @ts-expect-error simulating a runtime without Intl.Segmenter
       delete Intl.Segmenter
-      t.teardown(() => {
+      onTestFinished(() => {
         Intl.Segmenter = originalSegmenter
       })
 
       const tokenizer = createTokenizer({ language: 'multilingual' })
       const O = tokenizer.tokenize('The quick fox съешь café')
 
-      t.strictSame(O, ['the', 'quick', 'fox', 'съешь', 'cafe'])
+      expect(O).toStrictEqual(['the', 'quick', 'fox', 'съешь', 'cafe'])
     })
 
-    t.test('tokenizes mixed Latin and Cyrillic scripts, lowercased and diacritic-folded', async (t) => {
+    it('tokenizes mixed Latin and Cyrillic scripts, lowercased and diacritic-folded', async () => {
       const tokenizer = createTokenizer({ language: 'multilingual' })
 
       const I1 = 'The quick BROWN fox. Съешь же ещё этих МЯГКИХ французских булок'
       const I2 = 'Un café crème et deux croissants'
 
-      t.strictSame(tokenizer.tokenize(I1), [
+      expect(tokenizer.tokenize(I1)).toStrictEqual([
         'the',
         'quick',
         'brown',
@@ -794,50 +817,54 @@ t.test('Custom stop-words rules', async (t) => {
         'французских',
         'булок'
       ])
-      t.strictSame(tokenizer.tokenize(I2), ['un', 'cafe', 'creme', 'et', 'deux', 'croissants'])
+      expect(tokenizer.tokenize(I2)).toStrictEqual(['un', 'cafe', 'creme', 'et', 'deux', 'croissants'])
     })
 
-    t.test('produces searchable tokens for CJK text', async (t) => {
+    it('produces searchable tokens for CJK text', async () => {
       const tokenizer = createTokenizer({ language: 'multilingual' })
 
       const tokens = tokenizer.tokenize('日本語のテキストを検索する')
 
-      t.ok(tokens.length > 0, 'CJK input yields tokens')
+      expect(tokens.length > 0, 'CJK input yields tokens').toBeTruthy()
       for (const token of tokens) {
-        t.equal(token, token.toLowerCase(), 'tokens are lowercased')
+        expect(token, 'tokens are lowercased').toBe(token.toLowerCase())
       }
     })
 
-    t.test('honors stopWords, custom stemmer, and allowDuplicates', async (t) => {
+    it('honors stopWords, custom stemmer, and allowDuplicates', async () => {
       const tokenizer = createTokenizer({ language: 'multilingual', stopWords: ['the'] })
-      t.strictSame(tokenizer.tokenize('the fox the dog'), ['fox', 'dog'])
+      expect(tokenizer.tokenize('the fox the dog')).toStrictEqual(['fox', 'dog'])
 
       const stemmed = createTokenizer({ language: 'multilingual', stemmer: (word) => `${word}!` })
-      t.strictSame(stemmed.tokenize('quick fox'), ['quick!', 'fox!'])
+      expect(stemmed.tokenize('quick fox')).toStrictEqual(['quick!', 'fox!'])
 
       const duplicates = createTokenizer({ language: 'multilingual', allowDuplicates: true })
-      t.strictSame(duplicates.tokenize('test test test'), ['test', 'test', 'test'])
+      expect(duplicates.tokenize('test test test')).toStrictEqual(['test', 'test', 'test'])
     })
 
-    t.test('still rejects a different explicit language at tokenize time', async (t) => {
+    it('still rejects a different explicit language at tokenize time', async () => {
       const tokenizer = createTokenizer({ language: 'multilingual' })
 
-      t.throws(() => tokenizer.tokenize('some text', 'russian'), { code: 'LANGUAGE_NOT_SUPPORTED' })
+      expect(() => tokenizer.tokenize('some text', 'russian')).toThrow(
+        expect.objectContaining({ code: 'LANGUAGE_NOT_SUPPORTED' })
+      )
     })
 
-    t.test('requires an explicit custom stemmer when stemming is enabled', async (t) => {
-      t.throws(() => createTokenizer({ language: 'multilingual', stemming: true }), { code: 'MISSING_STEMMER' })
+    it('requires an explicit custom stemmer when stemming is enabled', async () => {
+      expect(() => createTokenizer({ language: 'multilingual', stemming: true })).toThrow(
+        expect.objectContaining({ code: 'MISSING_STEMMER' })
+      )
     })
 
-    t.test('folds Cyrillic ё and Arabic alef variants', async (t) => {
+    it('folds Cyrillic ё and Arabic alef variants', async () => {
       const tokenizer = createTokenizer({ language: 'multilingual' })
 
-      t.strictSame(tokenizer.tokenize('ёлка'), ['елка'])
-      t.strictSame(tokenizer.tokenize('Съешь ещё'), ['съешь', 'еще'])
-      t.strictSame(tokenizer.tokenize('آلاف إبراهيم'), ['الاف', 'ابراهيم'])
+      expect(tokenizer.tokenize('ёлка')).toStrictEqual(['елка'])
+      expect(tokenizer.tokenize('Съешь ещё')).toStrictEqual(['съешь', 'еще'])
+      expect(tokenizer.tokenize('آلاف إبراهيم')).toStrictEqual(['الاف', 'ابراهيم'])
     })
 
-    t.test('folds diacritics before stemming, so accented and folded forms share a stem', async (t) => {
+    it('folds diacritics before stemming, so accented and folded forms share a stem', async () => {
       const seen: string[] = []
       const tokenizer = createTokenizer({
         language: 'multilingual',
@@ -850,51 +877,49 @@ t.test('Custom stop-words rules', async (t) => {
       tokenizer.tokenize('pão')
       tokenizer.tokenize('pao')
 
-      t.strictSame(seen, ['pao', 'pao'], 'the stemmer receives the diacritic-folded form')
+      expect(seen, 'the stemmer receives the diacritic-folded form').toStrictEqual(['pao', 'pao'])
     })
   })
 
-  t.test('arabic tokenizer keeps alef madda and standalone hamza inside words', async (t) => {
+  it('arabic tokenizer keeps alef madda and standalone hamza inside words', async () => {
     const tokenizer = createTokenizer({ language: 'arabic' })
 
     // آ (U+0622) and ء (U+0621) were outside the old splitter range, so words
     // like آلاف and قراءة were shredded into fragments.
-    t.strictSame(tokenizer.tokenize('آلاف'), ['الاف'])
-    t.strictSame(tokenizer.tokenize('قراءة'), ['قراءة'])
+    expect(tokenizer.tokenize('آلاف')).toStrictEqual(['الاف'])
+    expect(tokenizer.tokenize('قراءة')).toStrictEqual(['قراءة'])
   })
 
-  t.test('foreign accents do not split words apart', async (t) => {
+  it('foreign accents do not split words apart', async () => {
     for (const language of ['english', 'dutch', 'italian', 'french', 'german', 'portuguese', 'spanish'] as const) {
       const tokenizer = createTokenizer({ language })
 
-      t.strictSame(
+      expect(
         tokenizer.tokenize('Invitation gâteau au chocolat'),
-        ['invitation', 'gateau', 'au', 'chocolat'],
         `${language}: accented word survives as one token`
-      )
-      t.strictSame(
+      ).toStrictEqual(['invitation', 'gateau', 'au', 'chocolat'])
+      expect(
         tokenizer.tokenize('Gateau'),
-        tokenizer.tokenize('Gâteau'),
         `${language}: accented and unaccented queries produce the same token`
-      )
-      t.strictSame(tokenizer.tokenize('Crème brûlée'), ['creme', 'brulee'], `${language}: folds every accent`)
+      ).toStrictEqual(tokenizer.tokenize('Gâteau'))
+      expect(tokenizer.tokenize('Crème brûlée'), `${language}: folds every accent`).toStrictEqual(['creme', 'brulee'])
     }
   })
 
-  t.test('languages with significant diacritics are still not folded', async (t) => {
+  it('languages with significant diacritics are still not folded', async () => {
     const tokenizer = createTokenizer({ language: 'vietnamese' })
 
     // Vietnamese tone marks change the meaning of a word, so "tài" must not collapse onto "tai".
-    t.strictSame(tokenizer.tokenize('tài'), ['tài'])
-    t.strictSame(tokenizer.tokenize('tai'), ['tai'])
+    expect(tokenizer.tokenize('tài')).toStrictEqual(['tài'])
+    expect(tokenizer.tokenize('tai')).toStrictEqual(['tai'])
   })
 
-  t.test('accented stopwords are still filtered out once tokens are folded', async (t) => {
+  it('accented stopwords are still filtered out once tokens are folded', async () => {
     const tokenizer = createTokenizer({ language: 'french', stopWords: ['où', 'été'] })
 
-    t.strictSame(tokenizer.tokenize('Où est le gâteau été'), ['est', 'le', 'gateau'])
+    expect(tokenizer.tokenize('Où est le gâteau été')).toStrictEqual(['est', 'le', 'gateau'])
     // The unaccented spelling of a stopword is dropped too, so a query typed
     // without accents behaves exactly like the accented one.
-    t.strictSame(tokenizer.tokenize('Ou est le gateau ete'), ['est', 'le', 'gateau'])
+    expect(tokenizer.tokenize('Ou est le gateau ete')).toStrictEqual(['est', 'le', 'gateau'])
   })
 })

@@ -1,8 +1,8 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { replaceDiacritics } from '../src/components/tokenizer/diacritics.js'
 
-t.test('Diacritics Replacer', async (t) => {
-  t.test('should replace diacritics', async (t) => {
+describe('Diacritics Replacer', () => {
+  it('should replace diacritics', async () => {
     const I1 = 'áàâãéèêíïóôõöúçñÁÀÂÃÉÈÍÏÓÔÕÖÚÇÑ'
     const I2 = 'áaauioèaíïóiuubnÁoiÃotytÓhygÚnÑ'
     const I3 = 'aaaaeeeiiooooucnAAAAEEIIOOOOUCN'
@@ -11,8 +11,8 @@ t.test('Diacritics Replacer', async (t) => {
     const O2 = replaceDiacritics(I2)
     const O3 = replaceDiacritics(I3)
 
-    t.equal(O1, 'aaaaeeeiiooooucnAAAAEEIIOOOOUCN')
-    t.equal(O2, `aaauioeaiioiuubnAoiAotytOhygUnN`)
-    t.equal(O3, `aaaaeeeiiooooucnAAAAEEIIOOOOUCN`)
+    expect(O1).toBe('aaaaeeeiiooooucnAAAAEEIIOOOOUCN')
+    expect(O2).toBe(`aaauioeaiioiuubnAoiAotytOhygUnN`)
+    expect(O3).toBe(`aaaaeeeiiooooucnAAAAEEIIOOOOUCN`)
   })
 })

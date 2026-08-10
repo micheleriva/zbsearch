@@ -1,72 +1,62 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { create, insert, search } from '../src/index.js'
 import { SUPPORTED_LANGUAGES } from '../src/components/tokenizer/languages.js'
 
-t.test('language', async (t) => {
-  t.test('should throw an error if the desired language is not supported', async (t) => {
-    await t.throws(
-      () =>
-        create({
-          schema: {} as const,
-          language: 'latin'
-        }),
-      { code: 'LANGUAGE_NOT_SUPPORTED' }
-    )
+describe('language', () => {
+  it('should throw an error if the desired language is not supported', async () => {
+    await expect(() =>
+      create({
+        schema: {} as const,
+        language: 'latin'
+      })
+    ).toThrow(expect.objectContaining({ code: 'LANGUAGE_NOT_SUPPORTED' }))
   })
 
-  t.test('should throw an error if the desired language is not supported during insertion', async (t) => {
+  it('should throw an error if the desired language is not supported during insertion', async () => {
     const db = await create({
       schema: { foo: 'string' }
     })
 
-    await t.throws(
-      () =>
-        insert(
-          db,
-          // @ts-expect-error - error case
-          { foo: 'bar' },
-          'latin'
-        ),
-      { code: 'LANGUAGE_NOT_SUPPORTED' }
-    )
+    await expect(() =>
+      insert(
+        db,
+        // @ts-expect-error - error case
+        { foo: 'bar' },
+        'latin'
+      )
+    ).toThrow(expect.objectContaining({ code: 'LANGUAGE_NOT_SUPPORTED' }))
   })
 
-  t.test('should not throw if if the language is supported', async (t) => {
+  it('should not throw if if the language is supported', async () => {
     try {
       create({
         schema: {},
         language: 'portuguese'
       })
-
-      t.pass()
     } catch (e) {
-      t.fail()
+      expect.fail()
     }
   })
 
-  t.test('should not throw if if the language is supported', async (t) => {
+  it('should not throw if if the language is supported', async () => {
     try {
       create({
         schema: {},
         language: 'slovenian'
       })
-
-      t.pass()
     } catch (e) {
-      t.fail()
+      expect.fail()
     }
   })
 
-  t.test('should not throw if if the language is supported', async (t) => {
+  it('should not throw if if the language is supported', async () => {
     try {
       create({
         schema: {},
         language: 'bulgarian'
       })
-
-      t.pass()
     } catch (e) {
-      t.fail()
+      expect.fail()
     }
   })
 })
@@ -110,7 +100,7 @@ t.test('custom tokenizer configuration', async (t) => {
 })
   */
 
-t.test('should access own properties exclusively', async (t) => {
+it('should access own properties exclusively', async () => {
   const db = await create({
     schema: {
       txt: 'string'
@@ -126,10 +116,10 @@ t.test('should access own properties exclusively', async (t) => {
     tolerance: 1
   })
 
-  t.same(1, 1)
+  expect(1).toEqual(1)
 })
 
-t.test('should search numbers in supported languages', async (t) => {
+it('should search numbers in supported languages', async () => {
   for (const language of SUPPORTED_LANGUAGES) {
     const db = await create({
       schema: {
@@ -148,14 +138,12 @@ t.test('should search numbers in supported languages', async (t) => {
       term: '123'
     })
 
-    t.same(searchResult.count, 1, `Language: ${language}`)
+    expect(searchResult.count, `Language: ${language}`).toEqual(1)
   }
-
-  t.end()
 })
 
 //  Tests for https://github.com/oramasearch/orama/issues/230
-t.test('should correctly search accented words in Italian', async (t) => {
+it('should correctly search accented words in Italian', async () => {
   const db = await create({
     schema: {
       description: 'string'
@@ -172,11 +160,11 @@ t.test('should correctly search accented words in Italian', async (t) => {
   const searchResult = await search(db, {
     term: 'jose'
   })
-  t.equal(searchResult.count, 1)
+  expect(searchResult.count).toBe(1)
 })
 
 //  Tests for https://github.com/oramasearch/orama/issues/230
-t.test('should correctly search accented words in English', async (t) => {
+it('should correctly search accented words in English', async () => {
   const db = await create({
     schema: {
       description: 'string'
@@ -193,11 +181,11 @@ t.test('should correctly search accented words in English', async (t) => {
   const searchResult = await search(db, {
     term: 'jose'
   })
-  t.equal(searchResult.count, 1)
+  expect(searchResult.count).toBe(1)
 })
 
 //  Tests for https://github.com/oramasearch/orama/issues/230
-t.test('should correctly search accented words in Dutch', async (t) => {
+it('should correctly search accented words in Dutch', async () => {
   const db = await create({
     schema: {
       description: 'string'
@@ -214,10 +202,10 @@ t.test('should correctly search accented words in Dutch', async (t) => {
   const searchResult = await search(db, {
     term: 'jose'
   })
-  t.equal(searchResult.count, 1)
+  expect(searchResult.count).toBe(1)
 })
 
-t.test('should correctly search accented words in Slovenian', async (t) => {
+it('should correctly search accented words in Slovenian', async () => {
   const db = await create({
     schema: {
       description: 'string'
@@ -242,10 +230,10 @@ t.test('should correctly search accented words in Slovenian', async (t) => {
   const searchResult = await search(db, {
     term: 'križišče'
   })
-  t.equal(searchResult.count, 2)
+  expect(searchResult.count).toBe(2)
 })
 
-t.test('should correctly search words in Bulgarian', async (t) => {
+it('should correctly search words in Bulgarian', async () => {
   const db = await create({
     schema: {
       description: 'string'
@@ -273,12 +261,12 @@ t.test('should correctly search words in Bulgarian', async (t) => {
     term: 'пингвин',
     prefix: true
   })
-  t.equal(firstSearchResult.count, 2)
+  expect(firstSearchResult.count).toBe(2)
 
   // 'жълта' is a fragment of the indexed 'жълтата', so opt into prefix expansion.
   const secondSearchResult = await search(db, {
     term: 'жълта',
     prefix: true
   })
-  t.equal(secondSearchResult.count, 1)
+  expect(secondSearchResult.count).toBe(1)
 })

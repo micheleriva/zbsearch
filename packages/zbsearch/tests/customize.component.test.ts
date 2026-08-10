@@ -1,4 +1,4 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import {
   documentsStore as defaultDocumentsStore,
   index as defaultIndex,
@@ -28,8 +28,8 @@ import {
   search
 } from '../src/index.js'
 
-t.test('index', (t) => {
-  t.test('should allow custom component', async (t) => {
+describe('index', () => {
+  it('should allow custom component', async () => {
     const index = defaultIndex.createIndex()
     const db = create({
       schema: {
@@ -45,26 +45,22 @@ t.test('index', (t) => {
       }
     })
     const id = insert(db, { number: 1 }) as string
-    t.equal(count(db), 1)
+    expect(count(db)).toBe(1)
 
     const result = await search(db, { sortBy: { property: 'number' } })
-    t.equal(result.count, 1)
+    expect(result.count).toBe(1)
 
     await remove(db, id)
-    t.equal(count(db), 0)
+    expect(count(db)).toBe(0)
 
     const raw = await save(db)
     await load(db, raw)
-    t.equal(count(db), 0)
-
-    t.end()
+    expect(count(db)).toBe(0)
   })
-
-  t.end()
 })
 
-t.test('documentStore', (t) => {
-  t.test('should allow custom component', async (t) => {
+describe('documentStore', () => {
+  it('should allow custom component', async () => {
     const store = await defaultDocumentsStore.createDocumentsStore()
     const customDocumentStore: IDocumentsStore<DocumentsStore> = {
       count(s) {
@@ -104,22 +100,20 @@ t.test('documentStore', (t) => {
       }
     })
     const id = insert(db, { number: 1 }) as string
-    t.equal(count(db), 1)
+    expect(count(db)).toBe(1)
 
     const result = await search(db, { sortBy: { property: 'number' } })
-    t.equal(result.count, 1)
+    expect(result.count).toBe(1)
 
     await remove(db, id)
-    t.equal(count(db), 0)
+    expect(count(db)).toBe(0)
 
     const raw = await save(db)
     await load(db, raw)
-    t.equal(count(db), 0)
-
-    t.end()
+    expect(count(db)).toBe(0)
   })
 
-  t.test('should allow custom component - partially', async (t) => {
+  it('should allow custom component - partially', async () => {
     const store = defaultDocumentsStore.createDocumentsStore()
     const customDocumentStore: IDocumentsStore<DocumentsStore> = {
       ...store,
@@ -136,26 +130,22 @@ t.test('documentStore', (t) => {
       }
     })
     const id = await insert(db, { number: 1 })
-    t.equal(count(db), 1)
+    expect(count(db)).toBe(1)
 
     const result = await search(db, { sortBy: { property: 'number' } })
-    t.equal(result.count, 1)
+    expect(result.count).toBe(1)
 
     await remove(db, id)
-    t.equal(count(db), 0)
+    expect(count(db)).toBe(0)
 
     const raw = await save(db)
     await load(db, raw)
-    t.equal(count(db), 0)
-
-    t.end()
+    expect(count(db)).toBe(0)
   })
-
-  t.end()
 })
 
-t.test('sorter', (t) => {
-  t.test('should allow custom component', async (t) => {
+describe('sorter', () => {
+  it('should allow custom component', async () => {
     const s = await defaultSorter.createSorter()
     const customSorter: ISorter<Sorter> = {
       sortBy(sort, docIds, by) {
@@ -204,12 +194,10 @@ t.test('sorter', (t) => {
     const raw = await save(db)
     await load(db, raw)
 
-    t.strictSame(order, ['create', 'insert', 'sortBy', 'remove', 'save', 'load'])
-
-    t.end()
+    expect(order).toStrictEqual(['create', 'insert', 'sortBy', 'remove', 'save', 'load'])
   })
 
-  t.test('should allow custom component - partially', async (t) => {
+  it('should allow custom component - partially', async () => {
     const s = defaultSorter.createSorter()
     const customSorter: ISorter<Sorter> = {
       ...s,
@@ -233,12 +221,10 @@ t.test('sorter', (t) => {
     const raw = await save(db)
     await load(db, raw)
 
-    t.strictSame(order, ['remove'])
-
-    t.end()
+    expect(order).toStrictEqual(['remove'])
   })
 
-  t.test('should allow custom sorter - partial type definition', async (t) => {
+  it('should allow custom sorter - partial type definition', async () => {
     interface SorterStorage extends AnySorterStore {
       storage: Sorter
     }
@@ -287,22 +273,20 @@ t.test('sorter', (t) => {
       }
     })
     const id = await insert(db, { number: 1 })
-    t.equal(count(db), 1)
+    expect(count(db)).toBe(1)
 
     const result = await search(db, { sortBy: { property: 'number' } })
-    t.equal(result.count, 1)
+    expect(result.count).toBe(1)
 
     await remove(db, id)
-    t.equal(count(db), 0)
+    expect(count(db)).toBe(0)
 
     const raw = await save(db)
     await load(db, raw)
-    t.equal(count(db), 0)
-
-    t.end()
+    expect(count(db)).toBe(0)
   })
 
-  t.test('should allow custom document store - partial type definition', async (t) => {
+  it('should allow custom document store - partial type definition', async () => {
     interface DocStorage extends AnyDocumentStore {
       storage: DocumentsStore
     }
@@ -362,20 +346,16 @@ t.test('sorter', (t) => {
       }
     })
     const id = await insert(db, { number: 1 })
-    t.equal(count(db), 1)
+    expect(count(db)).toBe(1)
 
     const result = await search(db, { sortBy: { property: 'number' } })
-    t.equal(result.count, 1)
+    expect(result.count).toBe(1)
 
     await remove(db, id)
-    t.equal(count(db), 0)
+    expect(count(db)).toBe(0)
 
     const raw = await save(db)
     await load(db, raw)
-    t.equal(count(db), 0)
-
-    t.end()
+    expect(count(db)).toBe(0)
   })
-
-  t.end()
 })

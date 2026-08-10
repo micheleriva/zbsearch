@@ -1,5 +1,6 @@
+import { expectTypeOf } from 'vitest'
+
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { expectAssignable, expectNotAssignable, expectType } from 'tsd'
 import { suggest } from '../../src/index.js'
 import type { SuggestParams, SuggestResults, ZBSearch } from '../../src/types.d.ts'
 
@@ -20,40 +21,40 @@ type MovieDB = ZBSearch<typeof movieSchema>
 {
   type MovieSuggestParamsProperties = SuggestParams<MovieDB>['properties']
 
-  expectAssignable<MovieSuggestParamsProperties>('*')
-  expectAssignable<MovieSuggestParamsProperties>(['title'])
-  expectAssignable<MovieSuggestParamsProperties>(['meta.foo'])
-  expectNotAssignable<MovieSuggestParamsProperties>(['meta.unknown'])
-  expectNotAssignable<MovieSuggestParamsProperties>(['unknown'])
+  expectTypeOf('*').toExtend<MovieSuggestParamsProperties>()
+  expectTypeOf(['title']).toExtend<MovieSuggestParamsProperties>()
+  expectTypeOf(['meta.foo']).toExtend<MovieSuggestParamsProperties>()
+  expectTypeOf(['meta.unknown']).not.toExtend<MovieSuggestParamsProperties>()
+  expectTypeOf(['unknown']).not.toExtend<MovieSuggestParamsProperties>()
 }
 
 // Test suggest boost type
 {
   type MovieSuggestParamsBoost = SuggestParams<MovieDB>['boost']
 
-  expectAssignable<MovieSuggestParamsBoost>(undefined)
-  expectAssignable<MovieSuggestParamsBoost>({ title: 1 })
-  expectAssignable<MovieSuggestParamsBoost>({ 'meta.foo': 1 })
-  expectNotAssignable<MovieSuggestParamsBoost>({ unknown: 1 })
+  expectTypeOf(undefined).toExtend<MovieSuggestParamsBoost>()
+  expectTypeOf({ title: 1 }).toExtend<MovieSuggestParamsBoost>()
+  expectTypeOf({ 'meta.foo': 1 }).toExtend<MovieSuggestParamsBoost>()
+  expectTypeOf({ unknown: 1 }).not.toExtend<MovieSuggestParamsBoost>()
 }
 
 // Test suggest prefix type
 {
   type MovieSuggestParamsPrefix = SuggestParams<MovieDB>['prefix']
 
-  expectAssignable<MovieSuggestParamsPrefix>(true)
-  expectAssignable<MovieSuggestParamsPrefix>(false)
-  expectAssignable<MovieSuggestParamsPrefix>('last')
-  expectNotAssignable<MovieSuggestParamsPrefix>('first')
+  expectTypeOf(true).toExtend<MovieSuggestParamsPrefix>()
+  expectTypeOf(false).toExtend<MovieSuggestParamsPrefix>()
+  expectTypeOf('last').toExtend<MovieSuggestParamsPrefix>()
+  expectTypeOf('first').not.toExtend<MovieSuggestParamsPrefix>()
 }
 
 // Test suggest where type
 {
   type MovieSuggestParamsWhere = SuggestParams<MovieDB>['where']
 
-  expectAssignable<MovieSuggestParamsWhere>({ year: { gt: 2000 } })
-  expectAssignable<MovieSuggestParamsWhere>({ isFavorite: true })
-  expectNotAssignable<MovieSuggestParamsWhere>({ unknown: true })
+  expectTypeOf({ year: { gt: 2000 } }).toExtend<MovieSuggestParamsWhere>()
+  expectTypeOf({ isFavorite: true }).toExtend<MovieSuggestParamsWhere>()
+  expectTypeOf({ unknown: true }).not.toExtend<MovieSuggestParamsWhere>()
 }
 
 // Test suggest results
@@ -61,10 +62,10 @@ type MovieDB = ZBSearch<typeof movieSchema>
   const db = null as unknown as MovieDB
   const results = suggest(db, { term: 'the god' })
 
-  expectType<SuggestResults>(results)
-  expectType<number>(results.count)
-  expectType<string>(results.suggestions[0].suggestion)
-  expectType<string[]>(results.suggestions[0].terms)
-  expectType<number>(results.suggestions[0].score)
-  expectType<number>(results.suggestions[0].count)
+  expectTypeOf(results).toEqualTypeOf<SuggestResults>()
+  expectTypeOf(results.count).toEqualTypeOf<number>()
+  expectTypeOf(results.suggestions[0].suggestion).toEqualTypeOf<string>()
+  expectTypeOf(results.suggestions[0].terms).toEqualTypeOf<string[]>()
+  expectTypeOf(results.suggestions[0].score).toEqualTypeOf<number>()
+  expectTypeOf(results.suggestions[0].count).toEqualTypeOf<number>()
 }

@@ -1,9 +1,9 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { create, insert, search } from '../../src/index.js'
 // 👆 This test assumes the module has been built
 
-t.test('zbsearch', (t) => {
-  t.test('should correctly search for data', async (t) => {
+describe('zbsearch', () => {
+  it('should correctly search for data', async () => {
     const db = await create({
       schema: {
         quote: 'string',
@@ -20,21 +20,21 @@ t.test('zbsearch', (t) => {
     const result1 = await search(db, { term: 'fox', exact: true })
     const result2 = await search(db, { term: 'dog', exact: true })
 
-    t.equal(result1.count, 2)
-    t.equal(result2.count, 3)
+    expect(result1.count).toBe(2)
+    expect(result2.count).toBe(3)
 
     // Prefix search
     const result3 = await search(db, { term: 'fox', exact: false })
     const result4 = await search(db, { term: 'dog', exact: false })
 
-    t.equal(result3.count, 2)
-    t.equal(result4.count, 3)
+    expect(result3.count).toBe(2)
+    expect(result4.count).toBe(3)
 
     // Typo-tolerant search
     const result5 = await search(db, { term: 'fx', tolerance: 1 })
     const result6 = await search(db, { term: 'dg', tolerance: 2 })
 
-    t.equal(result5.count, 2)
-    t.equal(result6.count, 4)
+    expect(result5.count).toBe(2)
+    expect(result6.count).toBe(4)
   })
 })

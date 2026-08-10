@@ -1,4 +1,4 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { stopwords as englishStopwords } from '@zbsearch/stopwords/english'
 import { DocumentsStore } from '../src/components/documents-store.js'
@@ -35,7 +35,7 @@ function removeVariadicData(res: Results<AnyDocument>): Omit<Results<AnyDocument
   }
 }
 
-t.test('zbsearch.dataset', async (t) => {
+describe('zbsearch.dataset', async () => {
   const db = await create({
     schema: {
       date: 'string',
@@ -69,7 +69,7 @@ t.test('zbsearch.dataset', async (t) => {
 
   await insertMultiple(db, events)
 
-  t.test('should correctly populate the database with a large dataset', async (t) => {
+  it('should correctly populate the database with a large dataset', async () => {
     const s1 = await search(db, {
       term: 'august',
       exact: true,
@@ -94,17 +94,15 @@ t.test('zbsearch.dataset', async (t) => {
       offset: 0
     })
 
-    t.equal(Object.keys((db.data.docs as DocumentsStore).docs).length, (dataset as EventJson).result.events.length)
+    expect(Object.keys((db.data.docs as DocumentsStore).docs).length).toBe((dataset as EventJson).result.events.length)
     // Note: counts changed after adding case-sensitive exact matching in issue #866
-    t.equal(s1.count, 0) // "War" (capitalized) doesn't match "war" (lowercase) with exact: true
-    t.equal(s2.count, 0) // Same reason
-    t.equal(s3.count, 0) // Same reason
-
-    t.end()
+    expect(s1.count).toBe(0) // "War" (capitalized) doesn't match "war" (lowercase) with exact: true
+    expect(s2.count).toBe(0) // Same reason
+    expect(s3.count).toBe(0) // Same reason
   })
 
   //  Tests for https://github.com/oramasearch/orama/issues/159
-  t.test('should correctly search long strings', async (t) => {
+  it('should correctly search long strings', async () => {
     const s1 = await search(db, {
       term: 'e into the',
       properties: ['description']
@@ -120,14 +118,12 @@ t.test('zbsearch.dataset', async (t) => {
       properties: ['description']
     })
 
-    t.equal(s1.count, 14927)
-    t.equal(s2.count, 2926)
-    t.equal(s3.count, 3332)
-
-    t.end()
+    expect(s1.count).toBe(14927)
+    expect(s2.count).toBe(2926)
+    expect(s3.count).toBe(3332)
   })
 
-  t.test('should perform paginate search', async (t) => {
+  it('should perform paginate search', async ({ task }) => {
     const s1 = removeVariadicData(
       await search(db, {
         term: 'war',
@@ -183,9 +179,9 @@ t.test('zbsearch.dataset', async (t) => {
         fileURLToPath(new URL('./snapshots/events.json', import.meta.url)),
         JSON.stringify(
           {
-            [`${t.name}-page-1`]: s1,
-            [`${t.name}-page-2`]: s2,
-            [`${t.name}-page-3`]: s3
+            [`${task.name}-page-1`]: s1,
+            [`${task.name}-page-2`]: s2,
+            [`${task.name}-page-3`]: s3
           },
           null,
           2
@@ -193,23 +189,21 @@ t.test('zbsearch.dataset', async (t) => {
         'utf-8'
       )
 
-      t.ok(s1)
-      t.ok(s2)
-      t.ok(s3)
+      expect(s1).toBeTruthy()
+      expect(s2).toBeTruthy()
+      expect(s3).toBeTruthy()
     } else {
-      t.strictSame(s1, snapshots[`${t.name}-page-1`])
-      t.strictSame(s2, snapshots[`${t.name}-page-2`])
-      t.strictSame(s3, snapshots[`${t.name}-page-3`])
+      expect(s1).toStrictEqual(snapshots[`${task.name}-page-1`])
+      expect(s2).toStrictEqual(snapshots[`${task.name}-page-2`])
+      expect(s3).toStrictEqual(snapshots[`${task.name}-page-3`])
     }
 
     // Note: counts changed after adding case-sensitive exact matching in issue #866
-    t.equal(s4.count, 679) // Only lowercase "war" matches, not "War"
-    t.equal(s5.hits.length, 0) // No results at offset 2239 with only 679 total results
-
-    t.end()
+    expect(s4.count).toBe(679) // Only lowercase "war" matches, not "War"
+    expect(s5.hits.length).toBe(0) // No results at offset 2239 with only 679 total results
   })
 
-  t.test('should correctly delete documents', async (t) => {
+  it('should correctly delete documents', async () => {
     const documentsToDelete = await search(db, {
       term: 'war',
       exact: true,
@@ -231,10 +225,6 @@ t.test('zbsearch.dataset', async (t) => {
     })
 
     // Note: counts changed after adding case-sensitive exact matching in issue #866
-    t.equal(newSearch.count, 669) // Only lowercase "war" matches, not "War", and after deleting 10 docs
-
-    t.end()
+    expect(newSearch.count).toBe(669) // Only lowercase "war" matches, not "War", and after deleting 10 docs
   })
-
-  t.end()
 })

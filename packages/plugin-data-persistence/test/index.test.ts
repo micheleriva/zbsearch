@@ -1,5 +1,5 @@
+import { describe, expect, it, onTestFinished } from 'vitest'
 import { create, insert, search, insertPin, getAllPins } from 'zbsearch'
-import t from 'tap'
 import { UNSUPPORTED_FORMAT, METHOD_MOVED } from '../src/errors.js'
 import {
   persist,
@@ -76,11 +76,8 @@ async function generateTestDBInstance() {
   return db
 }
 
-t.test('binary persistence', (t) => {
-  t.plan(5)
-
-  t.test('should generate a persistence file on the disk with random name', async (t) => {
-    t.plan(2)
+describe('binary persistence', () => {
+  it('should generate a persistence file on the disk with random name', async () => {
     const db = await generateTestDBInstance()
     const q1 = await search(db, {
       mode: 'fulltext',
@@ -94,7 +91,7 @@ t.test('binary persistence', (t) => {
 
     // Persist database on disk in binary format
     const path = await persistToFile(db, 'binary')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
 
     // Load database from disk in binary format
     const db2 = await restoreFromFile('binary')
@@ -110,12 +107,11 @@ t.test('binary persistence', (t) => {
     })
 
     // Queries on the loaded database should match the original database
-    t.ok(hitsApproxEqual(q1.hits, qp1.hits))
-    t.same(q2.hits, qp2.hits)
+    expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
+    expect(q2.hits).toEqual(qp2.hits)
   })
 
-  t.test('should generate a persistence file on the disk with a given name', async (t) => {
-    t.plan(2)
+  it('should generate a persistence file on the disk with a given name', async () => {
     const db = await generateTestDBInstance()
     const q1 = await search(db, {
       mode: 'fulltext',
@@ -129,7 +125,7 @@ t.test('binary persistence', (t) => {
 
     // Persist database on disk in binary format
     const path = await persistToFile(db, 'binary', 'test.dpack')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
 
     // Load database from disk in binary format
     const db2 = await restoreFromFile('binary', 'test.dpack')
@@ -145,12 +141,11 @@ t.test('binary persistence', (t) => {
     })
 
     // Queries on the loaded database should match the original database
-    t.ok(hitsApproxEqual(q1.hits, qp1.hits))
-    t.same(q2.hits, qp2.hits)
+    expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
+    expect(q2.hits).toEqual(qp2.hits)
   })
 
-  t.test('should generate a persistence file on the disk using ZBSEARCH_DB_NAME env', async (t) => {
-    t.plan(3)
+  it('should generate a persistence file on the disk using ZBSEARCH_DB_NAME env', async () => {
     let currentZBSearchDBNameValue: string | undefined
 
     if (typeof Deno !== 'undefined') {
@@ -174,8 +169,8 @@ t.test('binary persistence', (t) => {
 
     // Persist database on disk in binary format
     const path = await persistToFile(db, 'binary')
-    t.teardown(rmTeardown(path))
-    t.match(path, 'example_db_dump')
+    onTestFinished(rmTeardown(path))
+    expect(path).toMatch('example_db_dump')
 
     // Load database from disk in binary format
     const db2 = await restoreFromFile('binary', path)
@@ -191,8 +186,8 @@ t.test('binary persistence', (t) => {
     })
 
     // Queries on the loaded database should match the original database
-    t.ok(hitsApproxEqual(q1.hits, qp1.hits))
-    t.same(q2.hits, qp2.hits)
+    expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
+    expect(q2.hits).toEqual(qp2.hits)
 
     if (currentZBSearchDBNameValue) {
       if (typeof Deno !== 'undefined') {
@@ -203,8 +198,7 @@ t.test('binary persistence', (t) => {
     }
   })
 
-  t.test('should continue to work with `enum`', async (t) => {
-    t.plan(1)
+  it('should continue to work with `enum`', async () => {
     const db = await generateTestDBInstance()
     const q1 = await search(db, {
       mode: 'fulltext',
@@ -214,7 +208,7 @@ t.test('binary persistence', (t) => {
     })
 
     const path = await persistToFile(db, 'binary', 'test.dpack')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
 
     const db2 = await restoreFromFile('binary', 'test.dpack')
 
@@ -225,11 +219,10 @@ t.test('binary persistence', (t) => {
       }
     })
 
-    t.ok(hitsApproxEqual(q1.hits, qp1.hits))
+    expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
   })
 
-  t.test('should continue to work with `enum[]`', async (t) => {
-    t.plan(1)
+  it('should continue to work with `enum[]`', async () => {
     const db = await generateTestDBInstance()
     const q1 = await search(db, {
       mode: 'fulltext',
@@ -239,7 +232,7 @@ t.test('binary persistence', (t) => {
     })
 
     const path = await persistToFile(db, 'binary', 'test.dpack')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
 
     const db2 = await restoreFromFile('binary', 'test.dpack')
 
@@ -250,15 +243,12 @@ t.test('binary persistence', (t) => {
       }
     })
 
-    t.ok(hitsApproxEqual(q1.hits, qp1.hits))
+    expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
   })
 })
 
-t.test('json persistence', (t) => {
-  t.plan(5)
-
-  t.test('should generate a persistence file on the disk with random name and json format', async (t) => {
-    t.plan(2)
+describe('json persistence', () => {
+  it('should generate a persistence file on the disk with random name and json format', async () => {
     const db = await generateTestDBInstance()
     const q1 = await search(db, {
       mode: 'fulltext',
@@ -272,7 +262,7 @@ t.test('json persistence', (t) => {
 
     // Persist database on disk in json format
     const path = await persistToFile(db, 'json')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
 
     // Load database from disk in json format
     const db2 = await restoreFromFile('json')
@@ -288,12 +278,11 @@ t.test('json persistence', (t) => {
     })
 
     // Queries on the loaded database should match the original database
-    t.ok(hitsApproxEqual(q1.hits, qp1.hits))
-    t.same(q2.hits, qp2.hits)
+    expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
+    expect(q2.hits).toEqual(qp2.hits)
   })
 
-  t.test('should generate a persistence file on the disk with support for vectors', async (t) => {
-    t.plan(1)
+  it('should generate a persistence file on the disk with support for vectors', async () => {
     const db1 = await create({
       schema: {
         text: 'string',
@@ -307,7 +296,7 @@ t.test('json persistence', (t) => {
 
     // Persist database on disk in json format
     const path = await persistToFile(db1, 'json', 'test.json')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
 
     // Load database from disk in json format
     const db2 = await restoreFromFile('json', 'test.json')
@@ -329,11 +318,10 @@ t.test('json persistence', (t) => {
     })
 
     // Queries on the loaded database should match the original database
-    t.same(qp1.hits, qp2.hits)
+    expect(qp1.hits).toEqual(qp2.hits)
   })
 
-  t.test('should generate a persistence file on the disk with a given name and json format', async (t) => {
-    t.plan(2)
+  it('should generate a persistence file on the disk with a given name and json format', async () => {
     const db = await generateTestDBInstance()
     const q1 = await search(db, {
       mode: 'fulltext',
@@ -347,7 +335,7 @@ t.test('json persistence', (t) => {
 
     // Persist database on disk in json format
     const path = await persistToFile(db, 'json', 'test.json')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
 
     // Load database from disk in json format
     const db2 = await restoreFromFile('json', 'test.json')
@@ -363,12 +351,11 @@ t.test('json persistence', (t) => {
     })
 
     // Queries on the loaded database should match the original database
-    t.ok(hitsApproxEqual(q1.hits, qp1.hits))
-    t.same(q2.hits, qp2.hits)
+    expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
+    expect(q2.hits).toEqual(qp2.hits)
   })
 
-  t.test('should continue to work with `enum`', async (t) => {
-    t.plan(1)
+  it('should continue to work with `enum`', async () => {
     const db = await generateTestDBInstance()
     const q1 = await search(db, {
       mode: 'fulltext',
@@ -378,7 +365,7 @@ t.test('json persistence', (t) => {
     })
 
     const path = await persistToFile(db, 'json', 'test.json')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
 
     const db2 = await restoreFromFile('json', 'test.json')
 
@@ -389,12 +376,10 @@ t.test('json persistence', (t) => {
       }
     })
 
-    t.ok(hitsApproxEqual(q1.hits, qp1.hits))
+    expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
   })
 
-  t.test('should continue to work with `enum[]`', async (t) => {
-    t.plan(1)
-
+  it('should continue to work with `enum[]`', async () => {
     const db = await generateTestDBInstance()
     const q1 = await search(db, {
       mode: 'fulltext',
@@ -404,7 +389,7 @@ t.test('json persistence', (t) => {
     })
 
     const path = await persistToFile(db, 'json', 'test.json')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
 
     const db2 = await restoreFromFile('json', 'test.json')
 
@@ -415,16 +400,12 @@ t.test('json persistence', (t) => {
       }
     })
 
-    t.ok(hitsApproxEqual(q1.hits, qp1.hits))
+    expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
   })
 })
 
-t.test('dpack persistence', (t) => {
-  t.plan(4)
-
-  t.test('should generate a persistence file on the disk with random name and dpack format', async (t) => {
-    t.plan(2)
-
+describe('dpack persistence', () => {
+  it('should generate a persistence file on the disk with random name and dpack format', async () => {
     const db = await generateTestDBInstance()
     const q1 = await search(db, {
       mode: 'fulltext',
@@ -438,7 +419,7 @@ t.test('dpack persistence', (t) => {
 
     // Persist database on disk in dpack format
     const path = await persistToFile(db, 'dpack')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
 
     // Load database from disk in dpack format
     const db2 = await restoreFromFile('dpack')
@@ -454,12 +435,11 @@ t.test('dpack persistence', (t) => {
     })
 
     // Queries on the loaded database should match the original database
-    t.ok(hitsApproxEqual(q1.hits, qp1.hits))
-    t.same(q2.hits, qp2.hits)
+    expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
+    expect(q2.hits).toEqual(qp2.hits)
   })
 
-  t.test('should generate a persistence file on the disk with a given name and dpack format', async (t) => {
-    t.plan(2)
+  it('should generate a persistence file on the disk with a given name and dpack format', async () => {
     const db = await generateTestDBInstance()
     const q1 = await search(db, {
       mode: 'fulltext',
@@ -473,7 +453,7 @@ t.test('dpack persistence', (t) => {
 
     // Persist database on disk in json format
     const path = await persistToFile(db, 'dpack', 'test.dpack')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
 
     // Load database from disk in json format
     const db2 = await restoreFromFile('dpack', 'test.dpack')
@@ -489,13 +469,11 @@ t.test('dpack persistence', (t) => {
     })
 
     // Queries on the loaded database should match the original database
-    t.ok(hitsApproxEqual(q1.hits, qp1.hits))
-    t.same(q2.hits, qp2.hits)
+    expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
+    expect(q2.hits).toEqual(qp2.hits)
   })
 
-  t.test('should continue to work with `enum`', async (t) => {
-    t.plan(1)
-
+  it('should continue to work with `enum`', async () => {
     const db = await generateTestDBInstance()
     const q1 = await search(db, {
       mode: 'fulltext',
@@ -505,7 +483,7 @@ t.test('dpack persistence', (t) => {
     })
 
     const path = await persistToFile(db, 'dpack', 'test.dpack')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
 
     const db2 = await restoreFromFile('dpack', 'test.dpack')
 
@@ -516,12 +494,10 @@ t.test('dpack persistence', (t) => {
       }
     })
 
-    t.ok(hitsApproxEqual(q1.hits, qp1.hits))
+    expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
   })
 
-  t.test('should continue to work with `enum[]`', async (t) => {
-    t.plan(1)
-
+  it('should continue to work with `enum[]`', async () => {
     const db = await generateTestDBInstance()
     const q1 = await search(db, {
       mode: 'fulltext',
@@ -531,7 +507,7 @@ t.test('dpack persistence', (t) => {
     })
 
     const path = await persistToFile(db, 'dpack', 'test.dpack')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
 
     const db2 = await restoreFromFile('dpack', 'test.dpack')
 
@@ -542,43 +518,38 @@ t.test('dpack persistence', (t) => {
       }
     })
 
-    t.ok(hitsApproxEqual(q1.hits, qp1.hits))
+    expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
   })
 })
 
-t.test('seqproto persistence', (t) => {
-  t.plan(5)
-
-  t.test('should generate a persistence file on the disk with random name (seqproto)', async (t) => {
-    t.plan(2)
+describe('seqproto persistence', () => {
+  it('should generate a persistence file on the disk with random name (seqproto)', async () => {
     const db = await generateTestDBInstance()
     const q1 = await search(db, { mode: 'fulltext', term: 'way' })
     const q2 = await search(db, { mode: 'fulltext', term: 'i' })
     const path = await persistToFile(db, 'seqproto')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
     const db2 = await restoreFromFile('seqproto')
     const qp1 = await search(db2, { mode: 'fulltext', term: 'way' })
     const qp2 = await search(db2, { mode: 'fulltext', term: 'i' })
-    t.ok(hitsApproxEqual(q1.hits, qp1.hits))
-    t.ok(hitsApproxEqual(q2.hits, qp2.hits))
+    expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
+    expect(hitsApproxEqual(q2.hits, qp2.hits)).toBeTruthy()
   })
 
-  t.test('should generate a persistence file on the disk with a given name (seqproto)', async (t) => {
-    t.plan(2)
+  it('should generate a persistence file on the disk with a given name (seqproto)', async () => {
     const db = await generateTestDBInstance()
     const q1 = await search(db, { mode: 'fulltext', term: 'way' })
     const q2 = await search(db, { mode: 'fulltext', term: 'i' })
     const path = await persistToFile(db, 'seqproto', 'test.seqp')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
     const db2 = await restoreFromFile('seqproto', 'test.seqp')
     const qp1 = await search(db2, { mode: 'fulltext', term: 'way' })
     const qp2 = await search(db2, { mode: 'fulltext', term: 'i' })
-    t.ok(hitsApproxEqual(q1.hits, qp1.hits))
-    t.ok(hitsApproxEqual(q2.hits, qp2.hits))
+    expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
+    expect(hitsApproxEqual(q2.hits, qp2.hits)).toBeTruthy()
   })
 
-  t.test('should generate a persistence file on the disk using ZBSEARCH_DB_NAME env (seqproto)', async (t) => {
-    t.plan(3)
+  it('should generate a persistence file on the disk using ZBSEARCH_DB_NAME env (seqproto)', async () => {
     let currentZBSearchDBNameValue: string | undefined
     if (typeof Deno !== 'undefined') {
       currentZBSearchDBNameValue = Deno.env.get('ZBSEARCH_DB_NAME')
@@ -591,13 +562,13 @@ t.test('seqproto persistence', (t) => {
     const q1 = await search(db, { mode: 'fulltext', term: 'way' })
     const q2 = await search(db, { mode: 'fulltext', term: 'i' })
     const path = await persistToFile(db, 'seqproto')
-    t.teardown(rmTeardown(path))
-    t.match(path, 'example_db_dump_seqproto')
+    onTestFinished(rmTeardown(path))
+    expect(path).toMatch('example_db_dump_seqproto')
     const db2 = await restoreFromFile('seqproto', path)
     const qp1 = await search(db2, { mode: 'fulltext', term: 'way' })
     const qp2 = await search(db2, { mode: 'fulltext', term: 'i' })
-    t.ok(hitsApproxEqual(q1.hits, qp1.hits))
-    t.ok(hitsApproxEqual(q2.hits, qp2.hits))
+    expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
+    expect(hitsApproxEqual(q2.hits, qp2.hits)).toBeTruthy()
     if (currentZBSearchDBNameValue) {
       if (typeof Deno !== 'undefined') {
         Deno.env.set('ZBSEARCH_DB_NAME', currentZBSearchDBNameValue)
@@ -607,31 +578,28 @@ t.test('seqproto persistence', (t) => {
     }
   })
 
-  t.test('should continue to work with `enum` (seqproto)', async (t) => {
-    t.plan(1)
+  it('should continue to work with `enum` (seqproto)', async () => {
     const db = await generateTestDBInstance()
     const q1 = await search(db, { mode: 'fulltext', where: { genre: { eq: 'way' } } })
     const path = await persistToFile(db, 'seqproto', 'test_enum.seqp')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
     const db2 = await restoreFromFile('seqproto', 'test_enum.seqp')
     const qp1 = await search(db2, { mode: 'fulltext', where: { genre: { eq: 'way' } } })
-    t.ok(hitsApproxEqual(q1.hits, qp1.hits))
+    expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
   })
 
-  t.test('should continue to work with `enum[]` (seqproto)', async (t) => {
-    t.plan(1)
+  it('should continue to work with `enum[]` (seqproto)', async () => {
     const db = await generateTestDBInstance()
     const q1 = await search(db, { mode: 'fulltext', where: { colors: { containsAll: ['green'] } } })
     const path = await persistToFile(db, 'seqproto', 'test_enum_arr.seqp')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
     const db2 = await restoreFromFile('seqproto', 'test_enum_arr.seqp')
     const qp1 = await search(db2, { mode: 'fulltext', where: { colors: { containsAll: ['green'] } } })
-    t.ok(hitsApproxEqual(q1.hits, qp1.hits))
+    expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
   })
 })
 
-t.test('should persist data in-memory', async (t) => {
-  t.plan(5)
+it('should persist data in-memory', async () => {
   const db = await generateTestDBInstance()
 
   const q1 = await search(db, {
@@ -682,67 +650,57 @@ t.test('should persist data in-memory', async (t) => {
   })
 
   // Queries on the loaded database should match the original database
-  t.ok(hitsApproxEqual(q1.hits, qp1.hits))
-  t.same(q2.hits, qp2.hits)
-  t.ok(hitsApproxEqual(q1.hits, qp3.hits))
-  t.same(q2.hits, qp4.hits)
-  t.ok(hitsApproxEqual(q1.hits, qp5.hits))
+  expect(hitsApproxEqual(q1.hits, qp1.hits)).toBeTruthy()
+  expect(q2.hits).toEqual(qp2.hits)
+  expect(hitsApproxEqual(q1.hits, qp3.hits)).toBeTruthy()
+  expect(q2.hits).toEqual(qp4.hits)
+  expect(hitsApproxEqual(q1.hits, qp5.hits)).toBeTruthy()
 })
 
-t.test('errors', (t) => {
-  t.plan(2)
-
-  t.test('should throw an error when trying to persist a database in an unsupported format', async (t) => {
-    t.plan(1)
-
+describe('errors', () => {
+  it('should throw an error when trying to persist a database in an unsupported format', async () => {
     const db = await generateTestDBInstance()
     try {
       // @ts-expect-error - 'unsupported' is not a supported format
       await persistToFile(db, 'unsupported')
     } catch ({ message }) {
-      t.match(message, 'Unsupported serialization format: unsupported')
+      expect(message).toMatch('Unsupported serialization format: unsupported')
     }
   })
 
-  t.test('should throw an error when trying to restoreFromFile a database from an unsupported format', async (t) => {
-    t.plan(1)
-
+  it('should throw an error when trying to restoreFromFile a database from an unsupported format', async () => {
     const format = 'unsupported'
     const db = await generateTestDBInstance()
     const path = await persistToFile(db, 'binary', 'supported')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
 
     try {
       // @ts-expect-error - 'unsupported' is not a supported format
       await restoreFromFile(format, path)
     } catch ({ message }) {
-      t.match(message, UNSUPPORTED_FORMAT(format))
+      expect(message).toMatchObject(UNSUPPORTED_FORMAT(format))
     }
   })
 })
 
-t.test('should throw an error when trying to use a deprecated method', async (t) => {
-  t.plan(2)
+it('should throw an error when trying to use a deprecated method', async () => {
   const db = await generateTestDBInstance()
 
   try {
     await deprecatedPersistToFile(db, 'binary')
   } catch ({ message }) {
-    t.match(message, METHOD_MOVED('persistToFile'))
+    expect(message).toMatchObject(METHOD_MOVED('persistToFile'))
   }
 
   try {
     await deprecatedRestoreFromFile('binary', 'path')
   } catch ({ message }) {
-    t.match(message, METHOD_MOVED('restoreFromFile'))
+    expect(message).toMatchObject(METHOD_MOVED('restoreFromFile'))
   }
 })
 
-t.test('pinning rules persistence', (t) => {
-  t.plan(4)
-
-  t.test('should persist and restore pinning rules (binary)', async (t) => {
-    t.plan(3)
+describe('pinning rules persistence', () => {
+  it('should persist and restore pinning rules (binary)', async () => {
     const db = create({
       schema: {
         quote: 'string',
@@ -768,23 +726,22 @@ t.test('pinning rules persistence', (t) => {
 
     // Search - With pinning rule, Oscar Wilde quote should be at position 0
     const q1 = await search(db, { mode: 'fulltext', term: 'great' })
-    t.same(q1.hits[0].id, '2', 'Pinned document should be first')
+    expect(q1.hits[0].id, 'Pinned document should be first').toEqual('2')
 
     // Persist and restore
     const path = await persistToFile(db, 'binary', 'test_pinning.bin')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
     const db2 = await restoreFromFile('binary', 'test_pinning.bin')
 
     // Search on restored database - pinning should still work
     const qp1 = await search(db2, { mode: 'fulltext', term: 'great' })
-    t.same(qp1.hits[0].id, '2', 'Pinned document should be first after restore')
+    expect(qp1.hits[0].id, 'Pinned document should be first after restore').toEqual('2')
 
     const rules = getAllPins(db2)
-    t.same(rules.length, 1, 'Pinning rule should be persisted')
+    expect(rules.length, 'Pinning rule should be persisted').toEqual(1)
   })
 
-  t.test('should persist and restore pinning rules (json)', async (t) => {
-    t.plan(3)
+  it('should persist and restore pinning rules (json)', async () => {
     const db = create({
       schema: {
         quote: 'string',
@@ -808,21 +765,20 @@ t.test('pinning rules persistence', (t) => {
     })
 
     const q1 = await search(db, { mode: 'fulltext', term: 'i have' })
-    t.same(q1.hits[0].id, '3', 'Pinned document should be first')
+    expect(q1.hits[0].id, 'Pinned document should be first').toEqual('3')
 
     const path = await persistToFile(db, 'json', 'test_pinning.json')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
     const db2 = await restoreFromFile('json', 'test_pinning.json')
 
     const qp1 = await search(db2, { mode: 'fulltext', term: 'i have' })
-    t.same(qp1.hits[0].id, '3', 'Pinned document should be first after restore')
+    expect(qp1.hits[0].id, 'Pinned document should be first after restore').toEqual('3')
 
     const rules = getAllPins(db2)
-    t.same(rules.length, 1, 'Pinning rule should be persisted')
+    expect(rules.length, 'Pinning rule should be persisted').toEqual(1)
   })
 
-  t.test('should persist and restore pinning rules (dpack)', async (t) => {
-    t.plan(3)
+  it('should persist and restore pinning rules (dpack)', async () => {
     const db = create({
       schema: {
         quote: 'string',
@@ -841,21 +797,20 @@ t.test('pinning rules persistence', (t) => {
     })
 
     const q1 = await search(db, { mode: 'fulltext', term: 'work' })
-    t.same(q1.hits[0].id, '4', 'Pinned document should be first')
+    expect(q1.hits[0].id, 'Pinned document should be first').toEqual('4')
 
     const path = await persistToFile(db, 'dpack', 'test_pinning.dpack')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
     const db2 = await restoreFromFile('dpack', 'test_pinning.dpack')
 
     const qp1 = await search(db2, { mode: 'fulltext', term: 'work' })
-    t.same(qp1.hits[0].id, '4', 'Pinned document should be first after restore')
+    expect(qp1.hits[0].id, 'Pinned document should be first after restore').toEqual('4')
 
     const rules = getAllPins(db2)
-    t.same(rules.length, 1, 'Pinning rule should be persisted')
+    expect(rules.length, 'Pinning rule should be persisted').toEqual(1)
   })
 
-  t.test('should persist and restore pinning rules (seqproto)', async (t) => {
-    t.plan(3)
+  it('should persist and restore pinning rules (seqproto)', async () => {
     const db = create({
       schema: {
         quote: 'string',
@@ -876,17 +831,17 @@ t.test('pinning rules persistence', (t) => {
     })
 
     const q1 = await search(db, { mode: 'fulltext', term: 'programmer' })
-    t.same(q1.hits[0].id, '3', 'Pinned document should be first')
+    expect(q1.hits[0].id, 'Pinned document should be first').toEqual('3')
 
     const path = await persistToFile(db, 'seqproto', 'test_pinning.seqp')
-    t.teardown(rmTeardown(path))
+    onTestFinished(rmTeardown(path))
     const db2 = await restoreFromFile('seqproto', 'test_pinning.seqp')
 
     const qp1 = await search(db2, { mode: 'fulltext', term: 'programmer' })
-    t.same(qp1.hits[0].id, '3', 'Pinned document should be first after restore')
+    expect(qp1.hits[0].id, 'Pinned document should be first after restore').toEqual('3')
 
     const rules = getAllPins(db2)
-    t.same(rules.length, 1, 'Pinning rule should be persisted')
+    expect(rules.length, 'Pinning rule should be persisted').toEqual(1)
   })
 })
 

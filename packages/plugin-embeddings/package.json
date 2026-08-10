@@ -41,6 +41,7 @@
     "access": "public"
   },
   "devDependencies": {
+    "@swc/core": "^1.15.47",
     "@types/node": "^20.9.0",
     "rolldown": "^1.2.3",
     "typescript": "^7.0.2"

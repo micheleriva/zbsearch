@@ -29,8 +29,7 @@
   ],
   "scripts": {
     "dev": "swc --delete-dir-on-start -s -w --extensions .ts,.cts -d dist src",
-    "build": "swc --delete-dir-on-start --extensions .ts,.cts -d dist src",
-    "postbuild": "sh scripts/postbuild.sh",
+    "build": "node ../../scripts/mixed-build.mjs",
     "test": "vitest run",
     "benchmark": "tsx benchmark/index.ts"
   },
@@ -52,14 +51,15 @@
     "zbsearch": "workspace:*"
   },
   "devDependencies": {
-    "@swc/cli": "^0.1.59",
-    "@swc/core": "^1.3.27",
+    "@swc/cli": "^0.7.10",
+    "@swc/core": "^1.15.47",
     "@types/node": "^20.19.43",
     "@typescript-eslint/eslint-plugin": "^8.63.0",
     "@typescript-eslint/parser": "^8.63.0",
     "benny": "^3.7.1",
     "fake-indexeddb": "^6.2.5",
     "msgpack": "link:@types/msgpack/msgpack",
+    "oxc-transform": "^0.143.0",
     "readable-stream": "^4.3.0",
     "tsx": "^4.20.6",
     "typescript": "npm:@typescript/typescript6@^6.0.2",

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { copyFileSync, readFileSync } from 'node:fs'
+import { copyFileSync, readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 
 const { build } = createRequire(`${process.cwd()}/`)('rolldown')
@@ -41,6 +41,22 @@ for (const [format, ext] of Object.entries(cfg.formats)) {
         ...(cfg.name ? { name: cfg.name } : {})
       }
     })
+  }
+}
+
+if (cfg.downlevel) {
+  const { transformSync } = createRequire(`${process.cwd()}/`)('@swc/core')
+  for (const [, ext] of Object.entries(cfg.formats)) {
+    for (const name of Object.keys(cfg.entry)) {
+      const file = `${outDir}/${name}${ext}`
+      const { code } = transformSync(readFileSync(file, 'utf8'), {
+        filename: file,
+        jsc: { target: cfg.downlevel, parser: { syntax: 'ecmascript' } },
+        minify: Boolean(cfg.minify),
+        sourceMaps: false
+      })
+      writeFileSync(file, code)
+    }
   }
 }
 

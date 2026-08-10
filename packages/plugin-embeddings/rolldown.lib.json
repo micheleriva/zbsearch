@@ -8,5 +8,6 @@
     "iife": ".global.js"
   },
   "name": "zbsearch.plugin.embeddings",
-  "minify": true
+  "minify": true,
+  "downlevel": "es5"
 }

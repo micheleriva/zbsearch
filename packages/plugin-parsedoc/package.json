@@ -29,12 +29,10 @@
   ],
   "scripts": {
     "dev": "swc --delete-dir-on-start -s -w --extensions .ts,.cts -d dist src",
-    "build": "swc --delete-dir-on-start --extensions .ts,.cts -d dist src",
-    "postbuild": "tsc -p . --emitDeclarationOnly && tsc -p tsconfig.cjs.json --emitDeclarationOnly && mv dist/commonjs.js dist/commonjs.cjs && mv dist/commonjs.js.map dist/commonjs.cjs.map",
+    "build": "node ../../scripts/mixed-build.mjs",
     "test": "vitest run"
   },
   "dependencies": {
-    "zbsearch": "workspace:*",
     "glob": "^8.1.0",
     "hast-util-from-html": "^1.0.1",
     "hast-util-from-string": "^2.0.0",
@@ -46,14 +44,16 @@
     "rehype-preset-minify": "^6.0.0",
     "remark-parse": "^10.0.1",
     "remark-rehype": "^10.1.0",
-    "unified": "^10.1.2"
+    "unified": "^10.1.2",
+    "zbsearch": "workspace:*"
   },
   "devDependencies": {
-    "@swc/cli": "^0.1.59",
-    "@swc/core": "^1.3.27",
+    "@swc/cli": "^0.7.10",
+    "@swc/core": "^1.15.47",
     "@types/glob": "^8.0.1",
     "@types/hast": "^2.3.4",
     "@types/node": "^20.9.0",
+    "oxc-transform": "^0.143.0",
     "tsx": "^3.12.2",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-7": "npm:typescript@7.0.2"

@@ -151,9 +151,8 @@
   ],
   "license": "Apache-2.0",
   "devDependencies": {
-    "@playwright/test": "^1.29.2",
-    "@swc/cli": "^0.1.59",
-    "@swc/core": "^1.3.27",
+    "@swc/cli": "^0.7.10",
+    "@swc/core": "^1.15.47",
     "@types/node": "^20.9.0",
     "@zbsearch/stemmers": "workspace:*",
     "@zbsearch/stopwords": "workspace:*",

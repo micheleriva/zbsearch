@@ -1,0 +1,132 @@
+@import 'tailwindcss';
+
+/*
+ * Three search modes run through this whole page — the switch, the score bars, the compare
+ * columns, the console — so each one gets a colour and keeps it everywhere:
+ *
+ *   keyword   amber   what the inverted index found
+ *   semantic  teal    what the embedding found
+ *   hybrid    blue    the two blended, and the product accent
+ *
+ * Hybrid gets the accent because it is the mode the product would ship with. The three
+ * hues sit far enough apart (32°, 172°, 222°) to stay distinguishable in a 3px score bar,
+ * which is the smallest place any of them has to work.
+ *
+ * The app is light only. The console is the deliberate exception — a dark instrument
+ * panel, the way developer tooling has always looked — and it is the one surface that does
+ * not follow the page.
+ */
+@theme {
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 22px;
+
+  --color-lexical: hsl(32, 90%, 40%);
+  --color-vector: hsl(174, 84%, 27%);
+  --color-hybrid: hsl(222, 84%, 50%);
+
+  /* The accent is hybrid's blue, named separately for links and focus rings. */
+  --color-accent: hsl(222, 84%, 50%);
+  --color-accent-ink: hsl(222, 80%, 42%);
+
+  --color-page: hsl(220, 24%, 98%);
+  --color-card: hsl(0, 0%, 100%);
+  --color-ink: hsl(222, 24%, 11%);
+  --color-ink-muted: hsl(222, 10%, 40%);
+  --color-ink-faint: hsl(222, 10%, 56%);
+  --color-line: hsl(222, 16%, 89%);
+  --color-line-soft: hsl(222, 18%, 94%);
+  --color-shade: hsl(222, 22%, 96%);
+  --color-positive: hsl(152, 58%, 30%);
+  --color-warn: hsl(18, 78%, 44%);
+
+  --color-console: hsl(222, 20%, 10%);
+  --color-console-line: hsl(222, 12%, 23%);
+  --color-console-ink: hsl(0, 0%, 100%);
+  --color-console-muted: hsl(222, 10%, 64%);
+
+  --font-mono:
+    ui-monospace, 'SF Mono', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
+}
+
+html {
+  scrollbar-gutter: stable;
+  /* Light only: this keeps form controls and scrollbars from going dark underneath it. */
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-page);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Emitted by @zbsearch/highlight, and only ever wrapped around a lexical match. */
+mark.zbsearch-highlight {
+  background: color-mix(in srgb, var(--color-lexical) 20%, transparent);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+  font-weight: 600;
+}
+
+/* Sliders only ever appear inside the dark console. */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  background: var(--color-console-line);
+  border-radius: 999px;
+  outline: none;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: currentColor;
+  cursor: pointer;
+  border: none;
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: currentColor;
+  cursor: pointer;
+  border: none;
+}
+
+@keyframes zbs-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.zbs-pulse {
+  animation: zbs-pulse 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zbs-pulse {
+    animation: none;
+  }
+}

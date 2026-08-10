@@ -120,7 +120,7 @@ t.test('zbsearch.dataset', async (t) => {
       properties: ['description']
     })
 
-    t.equal(s1.count, 14979)
+    t.equal(s1.count, 14927)
     t.equal(s2.count, 2926)
     t.equal(s3.count, 3332)
 

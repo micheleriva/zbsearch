@@ -190,7 +190,7 @@ t.test('Tokenizer', async (t) => {
     const O2 = tokenizer.tokenize(I2)
 
     t.strictSame(O1, ['cozinh', 'alguns', 'bol'])
-    t.strictSame(O2, ['dorm', 'e', 'cois', 'dificil', 'test', 'falh'])
+    t.strictSame(O2, ['dorm', 'cois', 'dificil', 'test', 'falh'])
   })
 
   t.test('should tokenize and stem correctly in russian', async (t) => {
@@ -861,5 +861,40 @@ t.test('Custom stop-words rules', async (t) => {
     // like آلاف and قراءة were shredded into fragments.
     t.strictSame(tokenizer.tokenize('آلاف'), ['الاف'])
     t.strictSame(tokenizer.tokenize('قراءة'), ['قراءة'])
+  })
+
+  t.test('foreign accents do not split words apart', async (t) => {
+    for (const language of ['english', 'dutch', 'italian', 'french', 'german', 'portuguese', 'spanish'] as const) {
+      const tokenizer = createTokenizer({ language })
+
+      t.strictSame(
+        tokenizer.tokenize('Invitation gâteau au chocolat'),
+        ['invitation', 'gateau', 'au', 'chocolat'],
+        `${language}: accented word survives as one token`
+      )
+      t.strictSame(
+        tokenizer.tokenize('Gateau'),
+        tokenizer.tokenize('Gâteau'),
+        `${language}: accented and unaccented queries produce the same token`
+      )
+      t.strictSame(tokenizer.tokenize('Crème brûlée'), ['creme', 'brulee'], `${language}: folds every accent`)
+    }
+  })
+
+  t.test('languages with significant diacritics are still not folded', async (t) => {
+    const tokenizer = createTokenizer({ language: 'vietnamese' })
+
+    // Vietnamese tone marks change the meaning of a word, so "tài" must not collapse onto "tai".
+    t.strictSame(tokenizer.tokenize('tài'), ['tài'])
+    t.strictSame(tokenizer.tokenize('tai'), ['tai'])
+  })
+
+  t.test('accented stopwords are still filtered out once tokens are folded', async (t) => {
+    const tokenizer = createTokenizer({ language: 'french', stopWords: ['où', 'été'] })
+
+    t.strictSame(tokenizer.tokenize('Où est le gâteau été'), ['est', 'le', 'gateau'])
+    // The unaccented spelling of a stopword is dropped too, so a query typed
+    // without accents behaves exactly like the accented one.
+    t.strictSame(tokenizer.tokenize('Ou est le gateau ete'), ['est', 'le', 'gateau'])
   })
 })

@@ -9,6 +9,11 @@ allowBuilds:
   # Pulled in by the Docusaurus sandbox. Its postinstall only prints a banner.
   core-js: false
   esbuild: true
+  # Both are pulled in by transformers.js in the semantic demo. Its encoder runs on
+  # WASM in the browser and in the build scripts, so the native ONNX binding is never
+  # loaded and there is nothing to gain from downloading and building it.
+  onnxruntime-node: false
+  protobufjs: false
   sharp: true
   workerd: false
 

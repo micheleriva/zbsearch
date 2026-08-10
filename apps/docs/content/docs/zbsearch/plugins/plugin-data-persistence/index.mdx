@@ -107,8 +107,8 @@ const db = await restoreFromFile("binary", filePath);
 ## Persisting to a storage backend (IndexedDB, S3, …)
 
 Besides strings, buffers, and the filesystem, you can persist a snapshot
-directly into a pluggable storage backend — such as IndexedDB in the browser or
-S3/R2 on the server — with `persistToStorage` / `restoreFromStorage`:
+directly into a pluggable storage backend - such as IndexedDB in the browser or
+S3/R2 on the server - with `persistToStorage` / `restoreFromStorage`:
 
 ```javascript copy
 import { persistToStorage, restoreFromStorage } from "@zbsearch/plugin-data-persistence";

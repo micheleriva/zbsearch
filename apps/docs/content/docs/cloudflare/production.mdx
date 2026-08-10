@@ -19,7 +19,7 @@ The `IndexCoordinator` Durable Object (WAL batching and rebuild locking) uses a 
 
 ## Authentication
 
-Always set API keys before exposing the Worker publicly — a full-access write key, and a read-only key you can safely embed in public clients:
+Always set API keys before exposing the Worker publicly - a full-access write key, and a read-only key you can safely embed in public clients:
 
 ```bash
 wrangler secret put WRITE_API_KEY --config deploy/cloudflare/wrangler.toml
@@ -137,7 +137,7 @@ Confirm `pendingOps` is `0` and `lastRebuildAt` is recent.
 | Secret | Required | Description |
 | --- | --- | --- |
 | `WRITE_API_KEY` | Recommended | Full-access Bearer token (reads + writes) |
-| `READ_API_KEY` | Recommended | Read-only Bearer token (searches, status) — safe for public clients |
+| `READ_API_KEY` | Recommended | Read-only Bearer token (searches, status) - safe for public clients |
 | `BUILDER_WEBHOOK_URL` | Production | URL called when rebuild threshold is hit |
 
 ### Worker vars (`wrangler.toml`)

@@ -1,0 +1,153 @@
+@import 'tailwindcss';
+
+/*
+ * OneStore reads as a shop first: a light, roomy surface, a near-black primary
+ * action, and one violet accent carried over from the ZBSearch logo gradient.
+ * The engine internals live in the search console, which keeps the mono
+ * typography — everything else is plain sans.
+ */
+@theme {
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 22px;
+
+  --color-brand: hsl(286, 96%, 44%);
+  --color-brand-ink: hsl(286, 96%, 36%);
+  --color-sale: hsl(346, 74%, 45%);
+  --color-positive: hsl(152, 60%, 30%);
+  --color-star: hsl(38, 96%, 48%);
+
+  --color-page: hsl(260, 20%, 97%);
+  --color-card: hsl(0, 0%, 100%);
+  --color-ink: hsl(258, 20%, 9%);
+  --color-ink-muted: hsl(258, 8%, 38%);
+  --color-ink-faint: hsl(258, 8%, 55%);
+  --color-line: hsl(258, 14%, 89%);
+  --color-line-soft: hsl(258, 16%, 94%);
+  --color-shade: hsl(258, 18%, 95%);
+
+  /* The console is a dark instrument in both themes. */
+  --color-console: hsl(258, 14%, 8%);
+  --color-console-line: hsl(258, 10%, 20%);
+  --color-console-ink: hsl(0, 0%, 100%);
+  --color-console-muted: hsl(258, 8%, 62%);
+  --color-console-brand: hsl(285, 100%, 74%);
+
+  --font-mono:
+    ui-monospace, 'SF Mono', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
+}
+
+/*
+ * `@theme` carries the light values. Dark is a plain custom-property override on the
+ * root — Tailwind hoists a nested `@theme` out of its media query, which would make the
+ * dark palette unconditional.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-brand: hsl(285, 100%, 74%);
+    --color-brand-ink: hsl(285, 100%, 80%);
+    --color-sale: hsl(346, 90%, 66%);
+    --color-positive: hsl(152, 55%, 60%);
+    --color-star: hsl(38, 92%, 62%);
+
+    --color-page: hsl(258, 14%, 7%);
+    --color-card: hsl(258, 12%, 10%);
+    --color-ink: hsl(0, 0%, 100%);
+    --color-ink-muted: hsl(258, 8%, 68%);
+    --color-ink-faint: hsl(258, 8%, 52%);
+    --color-line: hsl(258, 10%, 19%);
+    --color-line-soft: hsl(258, 10%, 15%);
+    --color-shade: hsl(258, 11%, 13%);
+
+    --color-console: hsl(258, 12%, 11%);
+    --color-console-line: hsl(258, 10%, 22%);
+  }
+}
+
+html {
+  scrollbar-gutter: stable;
+  color-scheme: light dark;
+}
+
+body {
+  background: var(--color-page);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Emitted by @zbsearch/highlight. */
+mark.zbsearch-highlight {
+  background: color-mix(in srgb, var(--color-brand) 20%, transparent);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+  font-weight: 600;
+}
+
+/* Sliders are only ever shown inside the dark search console. */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  background: var(--color-console-line);
+  border-radius: 999px;
+  outline: none;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--color-console-brand);
+  cursor: pointer;
+  border: none;
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--color-console-brand);
+  cursor: pointer;
+  border: none;
+}
+
+input[type='range']:focus-visible {
+  outline: 2px solid var(--color-console-brand);
+  outline-offset: 4px;
+}
+
+@keyframes zbs-flash {
+  from {
+    color: var(--color-console-brand);
+  }
+  to {
+    color: inherit;
+  }
+}
+
+.zbs-flash {
+  animation: zbs-flash 400ms ease-out;
+}
+
+@keyframes zbs-slide-in {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.zbs-slide-in {
+  animation: zbs-slide-in 200ms ease-out;
+}

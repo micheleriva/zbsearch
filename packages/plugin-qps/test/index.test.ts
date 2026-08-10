@@ -152,3 +152,28 @@ t.test('string[] is allowed by this plugin', { only: true }, async (t) => {
 
   t.equal(found.count, found2.count)
 })
+
+// https://github.com/oramasearch/orama/issues/995
+t.test('matches accented content when the query is typed without accents', async (t) => {
+  const db = create({
+    schema: { title: 'string' } as const,
+    plugins: [pluginQPS()]
+  })
+
+  await insertMultiple(db, [
+    { id: '1', title: 'Invitation gâteau au chocolat' },
+    { id: '2', title: 'Crème brûlée recipe' }
+  ])
+
+  for (const term of ['Gateau', 'Gâteau', 'gateau au chocolat']) {
+    const result = await search(db, { term })
+    t.equal(result.count, 1, `"${term}" finds the gâteau document`)
+    t.equal(result.hits[0].id, '1')
+  }
+
+  for (const term of ['creme brulee', 'Crème brûlée']) {
+    const result = await search(db, { term })
+    t.equal(result.count, 1, `"${term}" finds the crème brûlée document`)
+    t.equal(result.hits[0].id, '2')
+  }
+})

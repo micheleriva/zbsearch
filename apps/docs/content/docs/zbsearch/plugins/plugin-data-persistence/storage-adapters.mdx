@@ -27,7 +27,7 @@ const restored = await restoreFromStorage(storage, "my-index");
 <Callout type="info">
   This is **snapshot** persistence: the entire index is written as one compact
   payload, and restoring it loads that payload back into memory. The database is
-  fully in-memory when you query it — searches do **not** run against the
+  fully in-memory when you query it - searches do **not** run against the
   storage backend. The goal is durability and portability, not out-of-core
   search.
 </Callout>
@@ -116,14 +116,14 @@ interface PersistenceStorage {
 
 It is intentionally **structurally compatible with `ObjectStorage` from
 `@zbsearch/edge-core`**, so any edge-core storage backend can be passed directly,
-with no adapter in between — see [S3, R2, and MinIO](#s3-cloudflare-r2-and-minio)
+with no adapter in between - see [S3, R2, and MinIO](#s3-cloudflare-r2-and-minio)
 below.
 
 ## S3, Cloudflare R2, and MinIO
 
 `S3ObjectStorage` from `@zbsearch/storage-s3` already implements the
 `PersistenceStorage` contract, so it works with `persistToStorage` /
-`restoreFromStorage` **out of the box** — no wrapper needed. This is ideal for
+`restoreFromStorage` **out of the box** - no wrapper needed. This is ideal for
 the "build once, restore on many stateless workers" pattern: persist a prebuilt
 index to S3/R2 and have serverless functions restore it on cold start instead of
 re-indexing.
@@ -207,7 +207,7 @@ const storage = new IndexedDBStorage({ indexedDB: new IDBFactory() });
 
 ## Writing your own adapter
 
-Implementing the two-method contract is enough to target any store — Redis, a
+Implementing the two-method contract is enough to target any store - Redis, a
 SQLite blob column, `localStorage`, or a remote HTTP API:
 
 ```javascript copy

@@ -1,6 +1,7 @@
 # ZBSearch Stop-words
 
 <!-- LANGUAGES:START -->
+
 This package provides support for stop-words removal in 34 languages:
 
 - Arabic
@@ -37,6 +38,7 @@ This package provides support for stop-words removal in 34 languages:
 - Turkish
 - Ukrainian
 - Vietnamese
+
 <!-- LANGUAGES:END -->
 
 ```js

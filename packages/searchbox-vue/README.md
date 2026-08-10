@@ -51,13 +51,13 @@ dismisses it or picks a result.
 
 ```ts
 interface SearchHit {
-  id: string          // unique across the result set
-  url: string         // where the hit points
-  title: string       // title of the page it belongs to
-  section?: string    // heading it was extracted from
-  snippet?: string    // excerpt of the matching content
+  id: string // unique across the result set
+  url: string // where the hit points
+  title: string // title of the page it belongs to
+  section?: string // heading it was extracted from
+  snippet?: string // excerpt of the matching content
   breadcrumb?: string[] // ancestor headings, outermost first
-  category?: string   // label such as 'Docs', used to tag groups
+  category?: string // label such as 'Docs', used to tag groups
 }
 ```
 
@@ -65,15 +65,15 @@ Hits that share a page, ignoring the fragment, are grouped under one heading aut
 
 ## Props
 
-| Prop | Default | Description |
-| --- | --- | --- |
-| `open` | — | Whether the dialog is visible |
-| `searcher` | — | Resolves a query to hits |
-| `onNavigate` | full page load | Opens a result; pass a router-aware function to keep client-side navigation |
-| `labels` | English defaults | Copy overrides |
-| `debounceMs` | `0` | Milliseconds to wait after the last keystroke |
-| `recentSearches` | `true` | Remember and replay opened results |
-| `recentSearchesKey` | `'zbsearch:searchbox:recent'` | `localStorage` key backing that history |
+| Prop                | Default                       | Description                                                                 |
+| ------------------- | ----------------------------- | --------------------------------------------------------------------------- |
+| `open`              | —                             | Whether the dialog is visible                                               |
+| `searcher`          | —                             | Resolves a query to hits                                                    |
+| `onNavigate`        | full page load                | Opens a result; pass a router-aware function to keep client-side navigation |
+| `labels`            | English defaults              | Copy overrides                                                              |
+| `debounceMs`        | `0`                           | Milliseconds to wait after the last keystroke                               |
+| `recentSearches`    | `true`                        | Remember and replay opened results                                          |
+| `recentSearchesKey` | `'zbsearch:searchbox:recent'` | `localStorage` key backing that history                                     |
 
 `SearchBox` emits `close`; `SearchButton` emits `click`.
 
@@ -102,14 +102,14 @@ explicit `data-theme` attribute on any ancestor wins over both.
 
 ## Exports
 
-| Export | Description |
-| --- | --- |
-| `SearchBox` | The dialog |
-| `SearchButton` | Navbar trigger with a platform-aware shortcut badge |
-| `Highlighted` | Renders text with the parts matching a query wrapped in `<mark>` |
-| `ZBSearchWordmark` | The ZBSearch lockup |
-| `useSearch` | The query state machine, if you want to build your own UI |
-| `useSearchHotkeys`, `useScrollLock`, `useIsMounted`, `useIsApplePlatform` | Behaviour composables |
+| Export                                                                    | Description                                                      |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `SearchBox`                                                               | The dialog                                                       |
+| `SearchButton`                                                            | Navbar trigger with a platform-aware shortcut badge              |
+| `Highlighted`                                                             | Renders text with the parts matching a query wrapped in `<mark>` |
+| `ZBSearchWordmark`                                                        | The ZBSearch lockup                                              |
+| `useSearch`                                                               | The query state machine, if you want to build your own UI        |
+| `useSearchHotkeys`, `useScrollLock`, `useIsMounted`, `useIsApplePlatform` | Behaviour composables                                            |
 
 Everything framework-neutral — helpers, labels and types — is re-exported from
 [`@zbsearch/searchbox-core`](../searchbox-core).

@@ -1,61 +1,60 @@
-'use client';
+'use client'
 
-import { cn } from '@/lib/cn';
-import { benchmarkSuites, type BenchmarkEngine } from '@/lib/benchmarks/data';
-import { ChartLegend } from './legend';
-import { useState } from 'react';
+import { cn } from '@/lib/cn'
+import { benchmarkSuites, type BenchmarkEngine } from '@/lib/benchmarks/data'
+import { ChartLegend } from './legend'
+import { useState } from 'react'
 
 function formatOps(value: number): string {
   if (value >= 10_000) {
-    return `${Math.round(value / 1000)}k`;
+    return `${Math.round(value / 1000)}k`
   }
   if (value >= 1000) {
-    return `${(value / 1000).toFixed(1)}k`;
+    return `${(value / 1000).toFixed(1)}k`
   }
-  return value.toLocaleString('en-US');
+  return value.toLocaleString('en-US')
 }
 
 function formatTitle(name: string): string {
   return name
     .replace(/^search with /, '')
     .replace(/^plain search \(all terms\)$/, 'plain search')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+    .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 function formatSpeedRatio(ops: number, fastest: number): string {
   if (ops >= fastest) {
-    return 'Fastest';
+    return 'Fastest'
   }
 
-  const ratio = fastest / ops;
+  const ratio = fastest / ops
 
   if (ratio >= 100) {
-    return `${Math.round(ratio).toLocaleString('en-US')}× slower`;
+    return `${Math.round(ratio).toLocaleString('en-US')}× slower`
   }
 
   if (ratio >= 10) {
-    return `${Math.round(ratio)}× slower`;
+    return `${Math.round(ratio)}× slower`
   }
 
-  return `${ratio.toFixed(1)}× slower`;
+  return `${ratio.toFixed(1)}× slower`
 }
 
 export function BenchmarkCharts({
   title,
   description,
-  className,
+  className
 }: {
-  title?: string;
-  description?: string;
-  className?: string;
+  title?: string
+  description?: string
+  className?: string
 } = {}) {
-  const [activeSuiteId, setActiveSuiteId] = useState(benchmarkSuites[0].id);
-  const [activeEngine, setActiveEngine] = useState<BenchmarkEngine | null>(null);
-  const benchmarkDate = benchmarkSuites[0]?.date.slice(0, 10);
-  const activeSuite =
-    benchmarkSuites.find((suite) => suite.id === activeSuiteId) ?? benchmarkSuites[0];
-  const rows = [...activeSuite.results].sort((a, b) => b.ops - a.ops);
-  const fastestOps = rows[0]?.ops ?? 1;
+  const [activeSuiteId, setActiveSuiteId] = useState(benchmarkSuites[0].id)
+  const [activeEngine, setActiveEngine] = useState<BenchmarkEngine | null>(null)
+  const benchmarkDate = benchmarkSuites[0]?.date.slice(0, 10)
+  const activeSuite = benchmarkSuites.find((suite) => suite.id === activeSuiteId) ?? benchmarkSuites[0]
+  const rows = [...activeSuite.results].sort((a, b) => b.ops - a.ops)
+  const fastestOps = rows[0]?.ops ?? 1
 
   return (
     <section className={cn('mx-auto w-full max-w-6xl px-6 pb-14', className)}>
@@ -75,11 +74,7 @@ export function BenchmarkCharts({
                 </a>
               </h2>
             )}
-            {description && (
-              <p className="mt-1 text-sm leading-relaxed text-fd-muted-foreground">
-                {description}
-              </p>
-            )}
+            {description && <p className="mt-1 text-sm leading-relaxed text-fd-muted-foreground">{description}</p>}
           </div>
         )}
         <div className="mb-5 flex flex-wrap gap-2">
@@ -92,7 +87,7 @@ export function BenchmarkCharts({
                 'rounded-md border px-3 py-1 text-xs font-medium transition-colors',
                 activeSuite.id === suite.id
                   ? 'border-fd-primary/40 bg-fd-primary/10 text-fd-foreground'
-                  : 'border-fd-border bg-fd-background text-fd-muted-foreground hover:text-fd-foreground',
+                  : 'border-fd-border bg-fd-background text-fd-muted-foreground hover:text-fd-foreground'
               )}
             >
               {formatTitle(suite.name)}
@@ -102,9 +97,9 @@ export function BenchmarkCharts({
 
         <div className="space-y-2.5">
           {rows.map((result) => {
-            const dimmed = activeEngine !== null && activeEngine !== result.engine;
-            const highlighted = activeEngine === result.engine;
-            const isZbsearch = result.engine.startsWith('ZBSearch');
+            const dimmed = activeEngine !== null && activeEngine !== result.engine
+            const highlighted = activeEngine === result.engine
+            const isZbsearch = result.engine.startsWith('ZBSearch')
 
             return (
               <button
@@ -116,20 +111,15 @@ export function BenchmarkCharts({
                 onBlur={() => setActiveEngine(null)}
                 className={cn(
                   'grid w-full grid-cols-[minmax(8.5rem,10.5rem)_1fr_auto] items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all',
-                  isZbsearch
-                    ? 'border-fd-primary/25 bg-fd-primary/5'
-                    : 'border-fd-border bg-fd-background',
+                  isZbsearch ? 'border-fd-primary/25 bg-fd-primary/5' : 'border-fd-border bg-fd-background',
                   dimmed && 'opacity-35',
-                  highlighted && 'ring-1 ring-fd-primary/20',
+                  highlighted && 'ring-1 ring-fd-primary/20'
                 )}
               >
                 <span className="inline-flex items-center gap-2 text-xs font-medium text-fd-foreground">
                   <span
                     aria-hidden
-                    className={cn(
-                      'size-2 shrink-0 rounded-full',
-                      isZbsearch ? 'bg-chart-subject' : 'bg-chart-other',
-                    )}
+                    className={cn('size-2 shrink-0 rounded-full', isZbsearch ? 'bg-chart-subject' : 'bg-chart-other')}
                   />
                   {result.engine}
                 </span>
@@ -138,7 +128,7 @@ export function BenchmarkCharts({
                   <div
                     className={cn(
                       'h-full rounded-xs transition-[width]',
-                      isZbsearch ? 'bg-chart-subject' : 'bg-chart-other',
+                      isZbsearch ? 'bg-chart-subject' : 'bg-chart-other'
                     )}
                     style={{ width: `${(result.ops / fastestOps) * 100}%` }}
                   />
@@ -147,24 +137,22 @@ export function BenchmarkCharts({
                 <div className="min-w-[6.5rem] text-right">
                   <p className="text-sm font-semibold tabular-nums text-fd-foreground">
                     {formatOps(result.ops)}
-                    <span className="ml-1 text-[10px] font-normal text-fd-muted-foreground">
-                      ops/s
-                    </span>
+                    <span className="ml-1 text-[10px] font-normal text-fd-muted-foreground">ops/s</span>
                   </p>
                   <p className="text-[10px] tabular-nums text-fd-muted-foreground">
                     {formatSpeedRatio(result.ops, fastestOps)}
                   </p>
                 </div>
               </button>
-            );
+            )
           })}
         </div>
 
         <ChartLegend className="mt-4 border-t border-fd-border pt-3" />
 
         <p className="mt-3 text-xs leading-relaxed text-fd-muted-foreground">
-          Measured {benchmarkDate} with benny on Node.js. Bars and speed ratios are relative to the
-          fastest engine in the selected workload.{' '}
+          Measured {benchmarkDate} with benny on Node.js. Bars and speed ratios are relative to the fastest engine in
+          the selected workload.{' '}
           <a
             href="/docs/zbsearch/vs-orama"
             className="font-medium text-fd-foreground underline underline-offset-2 hover:text-fd-primary"
@@ -174,5 +162,5 @@ export function BenchmarkCharts({
         </p>
       </div>
     </section>
-  );
+  )
 }

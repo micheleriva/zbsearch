@@ -8,7 +8,7 @@
     "build": "docusaurus build",
     "serve": "docusaurus serve --port 3211",
     "clear": "docusaurus clear",
-    "lint": "exit 0",
+    "lint": "oxlint --fix --fix-suggestions",
     "test": "playwright test && playwright test --config playwright.dev.config.ts",
     "test:dev": "playwright test --config playwright.dev.config.ts",
     "pretest": "playwright install chromium",

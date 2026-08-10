@@ -1,10 +1,50 @@
 {
   "name": "zbsearch",
   "version": "3.3.4",
-  "type": "module",
   "description": "A complete search engine in your browser, server, or edge network with support for full-text, vector, and hybrid search in less than 2kb.",
+  "keywords": [
+    "full-text",
+    "full-text search",
+    "fuzzy search",
+    "search",
+    "typo-tolerant search",
+    "vector database",
+    "vector search",
+    "vectors"
+  ],
+  "bugs": {
+    "url": "https://github.com/micheleriva/zbsearch"
+  },
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Michele Riva",
+    "email": "riva.michele.95@gmail.com",
+    "url": "https://github.com/MicheleRiva",
+    "author": true
+  },
+  "contributors": [
+    {
+      "name": "Tommaso Allevi",
+      "url": "https://github.com/allevo"
+    },
+    {
+      "name": "Paolo Insogna",
+      "url": "http://cowtech.it",
+      "author": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/micheleriva/zbsearch"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
   "sideEffects": false,
   "main": "./dist/commonjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/commonjs/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -98,58 +138,19 @@
       }
     }
   },
-  "types": "./dist/commonjs/index.d.ts",
-  "files": [
-    "dist"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/micheleriva/zbsearch"
-  },
-  "bugs": {
-    "url": "https://github.com/micheleriva/zbsearch"
-  },
   "scripts": {
     "benchmark": "node ../../benchmarks/index.js",
     "predev": "rm -rf dist && mkdir dist",
     "dev": "swc -s -w --extensions .ts,.cts -d dist src",
-    "prebuild": "npm run lint && cp ../../README.md ./README.md",
+    "prebuild": "cp ../../README.md ./README.md",
     "build": "node ../../scripts/dialects-build.mjs --esm-target esnext --copies browser,deno",
-    "lint": "exit 0;",
+    "lint": "oxlint --fix --fix-suggestions",
     "test": "vitest run --coverage",
     "test:ci": "vitest run --coverage",
     "test:smoke": "vitest run --config vitest.smoke.config.ts",
     "test:types": "vitest run --typecheck --config vitest.types.config.ts",
     "ci": "npm run build && npm run test:ci && npm run test:types"
   },
-  "keywords": [
-    "full-text search",
-    "vector search",
-    "vector database",
-    "vectors",
-    "search",
-    "fuzzy search",
-    "typo-tolerant search",
-    "full-text"
-  ],
-  "author": {
-    "name": "Michele Riva",
-    "email": "riva.michele.95@gmail.com",
-    "url": "https://github.com/MicheleRiva",
-    "author": true
-  },
-  "contributors": [
-    {
-      "name": "Tommaso Allevi",
-      "url": "https://github.com/allevo"
-    },
-    {
-      "name": "Paolo Insogna",
-      "url": "http://cowtech.it",
-      "author": true
-    }
-  ],
-  "license": "Apache-2.0",
   "devDependencies": {
     "@swc/cli": "^0.7.10",
     "@swc/core": "^1.15.47",
@@ -165,6 +166,5 @@
   },
   "engines": {
     "node": ">= 20.0.0"
-  },
-  "module": "./dist/esm/index.js"
+  }
 }

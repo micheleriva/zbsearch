@@ -16,12 +16,7 @@ export type {
   ShardStatusSummary,
   ShardWriteResult
 } from './types.js'
-export type {
-  WalAppendResult,
-  WalCoordinator,
-  WalFreezeResult,
-  WalRebuildResult
-} from './coordinator.js'
+export type { WalAppendResult, WalCoordinator, WalFreezeResult, WalRebuildResult } from './coordinator.js'
 export {
   appendBufferOp,
   appendWalBatch,

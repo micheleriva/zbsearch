@@ -10,7 +10,9 @@ const INLINE_WIDTH = 46
  * into forty lines of scrolling.
  */
 function pretty(value: unknown, indent = ''): string {
-  const compact = JSON.stringify(value)?.replace(/"([A-Za-z_$][\w$]*)":/g, '$1: ').replace(/,/g, ', ')
+  const compact = JSON.stringify(value)
+    ?.replace(/"([A-Za-z_$][\w$]*)":/g, '$1: ')
+    .replace(/,/g, ', ')
 
   if (value === null || typeof value !== 'object') {
     return JSON.stringify(value) ?? 'undefined'
@@ -23,7 +25,7 @@ function pretty(value: unknown, indent = ''): string {
   const inner = indent + '  '
 
   if (Array.isArray(value)) {
-    return `[\n${value.map(item => `${inner}${pretty(item, inner)}`).join(',\n')}\n${indent}]`
+    return `[\n${value.map((item) => `${inner}${pretty(item, inner)}`).join(',\n')}\n${indent}]`
   }
 
   const entries = Object.entries(value as Record<string, unknown>)

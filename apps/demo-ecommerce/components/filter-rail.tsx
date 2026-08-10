@@ -10,7 +10,7 @@ function Check({
   label,
   count,
   active,
-  onClick,
+  onClick
 }: {
   label: string
   count?: number
@@ -71,7 +71,7 @@ function FacetGroup({
   buckets,
   labelOf,
   onToggle,
-  initiallyVisible = 7,
+  initiallyVisible = 7
 }: {
   title: string
   buckets: FacetBucket[]
@@ -81,12 +81,12 @@ function FacetGroup({
 }) {
   const [expanded, setExpanded] = useState(false)
   // Buckets arrive selected-first, so never collapse away a value the shopper checked.
-  const cutoff = Math.max(initiallyVisible, buckets.filter(bucket => bucket.selected).length)
+  const cutoff = Math.max(initiallyVisible, buckets.filter((bucket) => bucket.selected).length)
   const shown = expanded ? buckets : buckets.slice(0, cutoff)
 
   return (
     <Group title={title}>
-      {shown.map(bucket => (
+      {shown.map((bucket) => (
         <Check
           key={bucket.value}
           label={labelOf ? labelOf(bucket.value) : bucket.value}
@@ -99,7 +99,7 @@ function FacetGroup({
       {buckets.length > cutoff ? (
         <button
           type="button"
-          onClick={() => setExpanded(current => !current)}
+          onClick={() => setExpanded((current) => !current)}
           className="mx-2 mt-1 text-[12px] font-medium text-brand-ink hover:underline"
         >
           {expanded ? 'Show less' : `Show ${buckets.length - cutoff} more`}
@@ -114,7 +114,7 @@ export function FilterRail({
   facets,
   priceBounds,
   onChange,
-  onReset,
+  onReset
 }: {
   filters: StoreFilters
   facets: { categories: FacetBucket[]; brands: FacetBucket[]; price: FacetBucket[]; rating: FacetBucket[] }
@@ -132,7 +132,7 @@ export function FilterRail({
     (filters.price[0] > priceBounds[0] || filters.price[1] < priceBounds[1] ? 1 : 0)
 
   function toggleIn(list: string[], value: string) {
-    return list.includes(value) ? list.filter(item => item !== value) : [...list, value]
+    return list.includes(value) ? list.filter((item) => item !== value) : [...list, value]
   }
 
   return (
@@ -152,7 +152,7 @@ export function FilterRail({
           <button
             type="button"
             aria-expanded={mobileOpen}
-            onClick={() => setMobileOpen(current => !current)}
+            onClick={() => setMobileOpen((current) => !current)}
             className="text-[12px] font-medium text-ink-muted lg:hidden"
           >
             {mobileOpen ? 'Hide' : 'Show'}
@@ -164,18 +164,18 @@ export function FilterRail({
         <FacetGroup
           title="Category"
           buckets={facets.categories}
-          labelOf={value => categoryLabels.get(value) ?? value}
-          onToggle={value => onChange({ ...filters, categories: toggleIn(filters.categories, value) })}
+          labelOf={(value) => categoryLabels.get(value) ?? value}
+          onToggle={(value) => onChange({ ...filters, categories: toggleIn(filters.categories, value) })}
         />
 
         <FacetGroup
           title="Brand"
           buckets={facets.brands}
-          onToggle={value => onChange({ ...filters, brands: toggleIn(filters.brands, value) })}
+          onToggle={(value) => onChange({ ...filters, brands: toggleIn(filters.brands, value) })}
         />
 
         <Group title="Price">
-          {facets.price.map(bucket => {
+          {facets.price.map((bucket) => {
             const [from, to] = bucket.value.split('-').map(Number) as [number, number]
             const selected = filters.price[0] === from && filters.price[1] === to
 
@@ -192,11 +192,11 @@ export function FilterRail({
         </Group>
 
         <Group title="Customer rating">
-          {[4.5, 4, 3].map(min => (
+          {[4.5, 4, 3].map((min) => (
             <Check
               key={min}
               label={`${min.toFixed(1)} & up`}
-              count={facets.rating.find(item => item.value === `${min}-5`)?.count}
+              count={facets.rating.find((item) => item.value === `${min}-5`)?.count}
               active={filters.minRating === min}
               onClick={() => onChange({ ...filters, minRating: filters.minRating === min ? 0 : min })}
             />

@@ -560,7 +560,9 @@ describe('Czech, Slovak and Slovenian stemming', () => {
 
   it('slovak superlative, comparative and verb inflections conflate', async () => {
     for (const word of ['najžľaznatejšieho', 'najzlaznatejsieho']) {
-      expect(slovakStemmer(word), `${word} stems to its adjective base`).toBe(word.includes('ž') ? 'žľaznat' : 'zlaznat')
+      expect(slovakStemmer(word), `${word} stems to its adjective base`).toBe(
+        word.includes('ž') ? 'žľaznat' : 'zlaznat'
+      )
     }
 
     for (const word of [

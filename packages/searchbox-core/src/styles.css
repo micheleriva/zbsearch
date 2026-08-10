@@ -9,13 +9,13 @@
     ui-sans-serif,
     system-ui,
     -apple-system,
-    "Segoe UI",
+    'Segoe UI',
     Roboto,
     Helvetica,
     Arial,
     sans-serif
   );
-  --zbs-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --zbs-font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
   --zbs-backdrop: rgb(14 8 24 / 55%);
   --zbs-surface: #fff;
@@ -60,7 +60,7 @@
   }
 }
 
-[data-theme="light"] {
+[data-theme='light'] {
   --zbs-backdrop: rgb(14 8 24 / 55%);
   --zbs-surface: #fff;
   --zbs-surface-raised: #f7f5fa;
@@ -78,7 +78,7 @@
   --zbs-wordmark-ink: #170319;
 }
 
-[data-theme="dark"] {
+[data-theme='dark'] {
   --zbs-backdrop: rgb(4 2 8 / 68%);
   --zbs-surface: #16121d;
   --zbs-surface-raised: #1d1826;
@@ -431,7 +431,7 @@
 }
 
 .zbs-searchbox__crumb + .zbs-searchbox__crumb::before {
-  content: "›";
+  content: '›';
   margin-right: 4px;
   opacity: 0.7;
 }

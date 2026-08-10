@@ -2,11 +2,11 @@
 
 A help center that runs the same query three ways and shows you the difference:
 
-| | | |
-| --- | --- | --- |
-| **Keyword** | BM25 over an inverted index | finds the words you typed |
-| **Semantic** | cosine similarity over sentence embeddings | finds what you meant |
-| **Hybrid** | both rankings, normalised and blended | finds either |
+|              |                                            |                           |
+| ------------ | ------------------------------------------ | ------------------------- |
+| **Keyword**  | BM25 over an inverted index                | finds the words you typed |
+| **Semantic** | cosine similarity over sentence embeddings | finds what you meant      |
+| **Hybrid**   | both rankings, normalised and blended      | finds either              |
 
 Everything happens in the tab. The index is built on page load, the document vectors are
 bundled with it, and query embeddings are produced locally by a transformer in a Web
@@ -23,7 +23,7 @@ can watch both of them fail.
 
 Search **`i can't log in`** in Keyword mode. Nothing in the corpus says "log in" — the
 articles all say "sign in" — so after stop-word removal the only term left is `log`, and
-you get the article about *diagnostic logs*. Switch to Semantic and the right article is
+you get the article about _diagnostic logs_. Switch to Semantic and the right article is
 first.
 
 Now search **`429`**. Semantic returns nothing at all: a bare status code carries no
@@ -42,11 +42,11 @@ against all three modes, using the same schema, tokeniser and defaults the brows
 pnpm --filter @zbsearch/demo-semantic evaluate
 ```
 
-| mode | answer ranked first | answer in top 10 | MRR |
-| --- | --- | --- | --- |
-| Keyword | 11/18 | 17/18 | 0.691 |
-| Semantic | **17/18** | 17/18 | **0.944** |
-| Hybrid | 16/18 | **18/18** | 0.935 |
+| mode     | answer ranked first | answer in top 10 | MRR       |
+| -------- | ------------------- | ---------------- | --------- |
+| Keyword  | 11/18               | 17/18            | 0.691     |
+| Semantic | **17/18**           | 17/18            | **0.944** |
+| Hybrid   | 16/18               | **18/18**        | 0.935     |
 
 Hybrid is the only mode that answers every query, and that is the column that matters: a
 mode which returns nothing has no rank to average. Semantic edges it on MRR by 0.009 while
@@ -59,20 +59,20 @@ completely, paid for with a little precision when both modes work.
 
 ## What it demonstrates
 
-| Feature | Where to see it | API |
-| --- | --- | --- |
-| Vector search | The Semantic mode | `search({ mode: 'vector', vector })` |
-| Hybrid search | The Hybrid mode | `search({ mode: 'hybrid' })` |
-| Blend weights | Console → Ranking → `hybridWeights` | `search({ hybridWeights })` |
-| Similarity floor | Console → Ranking → `similarity` | `search({ similarity })` |
-| Filtered vector search | Pick an area in the sidebar while in Semantic mode | `search({ mode: 'vector', where })` |
-| Nearest neighbours | "Related articles" at the foot of any article | `search({ mode: 'vector', vector })` |
-| Facets over any mode | The counts in the sidebar | `search({ facets })` |
-| Field boosting | Console → Ranking → `boost.*` | `search({ boost })` |
-| Typo tolerance | Console → Ranking → `tolerance` | `search({ tolerance })` |
-| Stop words | 33 languages available; English is on | `components.tokenizer.stopWords` |
-| Match highlighting | The marks on keyword and hybrid hits | `@zbsearch/highlight` |
-| Throughput | Console → Throughput | — |
+| Feature                | Where to see it                                    | API                                  |
+| ---------------------- | -------------------------------------------------- | ------------------------------------ |
+| Vector search          | The Semantic mode                                  | `search({ mode: 'vector', vector })` |
+| Hybrid search          | The Hybrid mode                                    | `search({ mode: 'hybrid' })`         |
+| Blend weights          | Console → Ranking → `hybridWeights`                | `search({ hybridWeights })`          |
+| Similarity floor       | Console → Ranking → `similarity`                   | `search({ similarity })`             |
+| Filtered vector search | Pick an area in the sidebar while in Semantic mode | `search({ mode: 'vector', where })`  |
+| Nearest neighbours     | "Related articles" at the foot of any article      | `search({ mode: 'vector', vector })` |
+| Facets over any mode   | The counts in the sidebar                          | `search({ facets })`                 |
+| Field boosting         | Console → Ranking → `boost.*`                      | `search({ boost })`                  |
+| Typo tolerance         | Console → Ranking → `tolerance`                    | `search({ tolerance })`              |
+| Stop words             | 33 languages available; English is on              | `components.tokenizer.stopWords`     |
+| Match highlighting     | The marks on keyword and hybrid hits               | `@zbsearch/highlight`                |
+| Throughput             | Console → Throughput                               | —                                    |
 
 Filters are worth singling out. `where` is evaluated **before** the vector index is
 consulted, so narrowing to one area makes semantic search consider fewer candidates rather
@@ -90,16 +90,16 @@ The obvious choice would have been our own plugin, which generates embeddings lo
 Universal Sentence Encoder. It was measured against the alternatives on a support-KB probe
 of 15 paraphrase queries, of the kind this demo is built on:
 
-| encoder | dimensions | answer ranked first |
-| --- | --- | --- |
-| USE (`@zbsearch/plugin-embeddings`) | 512 | 10/15 |
-| `bge-small-en-v1.5` | 384 | 13/15 |
-| `gte-small` | 384 | 14/15 |
-| **`all-MiniLM-L6-v2`** | **384** | **15/15** |
+| encoder                             | dimensions | answer ranked first |
+| ----------------------------------- | ---------- | ------------------- |
+| USE (`@zbsearch/plugin-embeddings`) | 512        | 10/15               |
+| `bge-small-en-v1.5`                 | 384        | 13/15               |
+| `gte-small`                         | 384        | 14/15               |
+| **`all-MiniLM-L6-v2`**              | **384**    | **15/15**           |
 
 USE is a 2018 model and it shows: it put "Configuring single sign-on with SAML" first for
-*add a colleague to my account*, and the article on updating a card first for *how do I get
-a receipt for accounting*. Those are the exact queries this demo exists to get right, so it
+_add a colleague to my account_, and the article on updating a card first for _how do I get
+a receipt for accounting_. Those are the exact queries this demo exists to get right, so it
 uses `all-MiniLM-L6-v2` through transformers.js instead.
 
 Nothing about that choice is specific to ZBSearch. The engine takes a `vector` like any

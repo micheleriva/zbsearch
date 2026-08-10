@@ -43,7 +43,7 @@ const CATEGORY_LABELS = {
   'womens-dresses': 'Women Dresses',
   'womens-jewellery': 'Women Jewellery',
   'womens-shoes': 'Women Shoes',
-  'womens-watches': 'Women Watches',
+  'womens-watches': 'Women Watches'
 }
 
 function labelize(slug) {
@@ -51,7 +51,7 @@ function labelize(slug) {
     CATEGORY_LABELS[slug] ??
     slug
       .split('-')
-      .map(word => word[0].toUpperCase() + word.slice(1))
+      .map((word) => word[0].toUpperCase() + word.slice(1))
       .join(' ')
   )
 }
@@ -106,7 +106,7 @@ async function main() {
   const existing = new Set(await readdir(imagesDir))
   const downloads = []
 
-  const catalog = products.map(product => {
+  const catalog = products.map((product) => {
     const slug = product.thumbnail.split('/').at(-2)
     const file = `${slug}.webp`
     downloads.push({ url: product.thumbnail, file })
@@ -137,7 +137,7 @@ async function main() {
       shipping: product.shippingInformation,
       warranty: product.warrantyInformation,
       returnPolicy: product.returnPolicy,
-      image: `/products/${file}`,
+      image: `/products/${file}`
     }
   })
 
@@ -157,7 +157,7 @@ async function main() {
   console.log(`Images in public/products (${(await readdir(imagesDir)).length} files)`)
 }
 
-main().catch(error => {
+main().catch((error) => {
   console.error(error)
   process.exit(1)
 })

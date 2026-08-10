@@ -1,6 +1,6 @@
 import type { AnyZBSearch, TokenScore } from '../types.js'
 import { getInternalDocumentId, type InternalDocumentID } from './internal-document-id-store.js'
-import type { PinRule, PinningStore } from './pinning.js'
+import type { PinningStore } from './pinning.js'
 import { getMatchingRules } from './pinning.js'
 
 /**

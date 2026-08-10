@@ -15,7 +15,7 @@ const EXAMPLES: { term: string; note: string }[] = [
   { term: 'lether bag', note: 'typo tolerance' },
   { term: 'luxury watch', note: 'two-condition pinning rule' },
   { term: 'blue cotton shirt', note: 'threshold' },
-  { term: 'chanel', note: 'brand boost' },
+  { term: 'chanel', note: 'brand boost' }
 ]
 
 /**
@@ -26,7 +26,7 @@ export function ConsoleDock({
   results,
   stats,
   open,
-  onToggle,
+  onToggle
 }: {
   results: QueryOutput | null
   stats: EngineStats | null
@@ -83,7 +83,7 @@ export function SearchConsole({
   onClose,
   onSettings,
   onShowScores,
-  onSearch,
+  onSearch
 }: {
   open: boolean
   db: CatalogDB
@@ -154,7 +154,7 @@ export function SearchConsole({
           <div className="mt-3 border-t border-console-line pt-3">
             <p className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-console-muted">try a query</p>
             <div className="flex flex-wrap gap-1.5">
-              {EXAMPLES.map(example => (
+              {EXAMPLES.map((example) => (
                 <button
                   key={example.term}
                   type="button"
@@ -175,12 +175,7 @@ export function SearchConsole({
           onChange={onSettings}
           onTry={onSearch}
         />
-        <BoostPanel
-          settings={settings}
-          showScores={showScores}
-          onChange={onSettings}
-          onShowScores={onShowScores}
-        />
+        <BoostPanel settings={settings} showScores={showScores} onChange={onSettings} onShowScores={onShowScores} />
         <MatchingPanel settings={settings} onChange={onSettings} />
         <BenchmarkPanel db={db} />
         {results ? <QueryInspector params={results.params} /> : null}

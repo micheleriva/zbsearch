@@ -11,7 +11,7 @@ type StoredObject = { body: Uint8Array; etag: string; contentType?: string }
 export class MockS3Backend {
   readonly objects = new Map<string, StoredObject>()
 
-  createClient(bucket: string): S3Client {
+  createClient(_bucket: string): S3Client {
     const store = this.objects
     return {
       send: async (command: unknown) => {

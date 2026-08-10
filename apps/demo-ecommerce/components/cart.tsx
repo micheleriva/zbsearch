@@ -13,7 +13,7 @@ function Drawer({
   title,
   onClose,
   children,
-  footer,
+  footer
 }: {
   title: string
   onClose: () => void
@@ -65,7 +65,7 @@ function Empty({ message }: { message: string }) {
 export function CartDrawer({
   cart,
   onClose,
-  onSetQuantity,
+  onSetQuantity
 }: {
   cart: CartState
   onClose: () => void
@@ -170,7 +170,7 @@ export function SavedDrawer({
   saved,
   onClose,
   onRemove,
-  onAddToCart,
+  onAddToCart
 }: {
   saved: string[]
   onClose: () => void
@@ -185,7 +185,7 @@ export function SavedDrawer({
         <Empty message="Nothing saved yet. Tap the heart on any product." />
       ) : (
         <ul className="flex-1 divide-y divide-line-soft overflow-auto">
-          {items.map(product => (
+          {items.map((product) => (
             <li key={product.id} className="flex gap-3.5 px-5 py-4">
               <img
                 src={product.image}

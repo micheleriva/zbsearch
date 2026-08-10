@@ -3,23 +3,27 @@
   "version": "3.3.4",
   "description": "ZBSearch plugin for search match highlighting",
   "keywords": [
+    "full-text",
     "full-text search",
-    "search",
     "fuzzy search",
-    "typo-tolerant search",
-    "full-text"
+    "search",
+    "typo-tolerant search"
   ],
+  "bugs": {
+    "url": "https://github.com/micheleriva/zbsearch"
+  },
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/micheleriva/zbsearch"
   },
-  "bugs": {
-    "url": "https://github.com/micheleriva/zbsearch"
-  },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
@@ -28,13 +32,9 @@
       "browser": "./dist/index.global.js"
     }
   },
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "node ../../scripts/rolldown-build.mjs && tsc -p . --emitDeclarationOnly",
-    "lint": "exit 0",
+    "lint": "oxlint --fix --fix-suggestions",
     "test": "vitest run"
   },
   "dependencies": {

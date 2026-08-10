@@ -1,6 +1,6 @@
-import { createMDX } from 'fumadocs-mdx/next';
+import { createMDX } from 'fumadocs-mdx/next'
 
-const withMDX = createMDX();
+const withMDX = createMDX()
 
 /** @type {import('next').NextConfig} */
 const config = {
@@ -9,19 +9,19 @@ const config = {
     {
       source: '/docs',
       destination: '/docs/zbsearch',
-      permanent: false,
+      permanent: false
     },
     {
       source: '/docs/zbsearch-js',
       destination: '/docs/zbsearch',
-      permanent: true,
+      permanent: true
     },
     {
       source: '/docs/zbsearch-js/:path*',
       destination: '/docs/zbsearch/:path*',
-      permanent: true,
-    },
-  ],
-};
+      permanent: true
+    }
+  ]
+}
 
-export default withMDX(config);
+export default withMDX(config)

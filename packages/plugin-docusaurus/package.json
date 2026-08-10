@@ -3,14 +3,31 @@
   "version": "3.3.4",
   "description": "Make ZBSearch the default search engine of your Docusaurus site",
   "keywords": [
-    "zbsearch",
     "docusaurus",
     "docusaurus-plugin",
     "docusaurus-theme",
+    "full-text search",
     "search",
-    "full-text search"
+    "zbsearch"
   ],
+  "homepage": "https://github.com/micheleriva/zbsearch#readme",
+  "bugs": {
+    "url": "https://github.com/micheleriva/zbsearch/issues"
+  },
   "license": "Apache-2.0",
+  "author": {
+    "name": "Michele Riva",
+    "email": "riva.michele.95@gmail.com",
+    "url": "https://github.com/MicheleRiva"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/micheleriva/zbsearch.git"
+  },
+  "files": [
+    "lib",
+    "src/theme"
+  ],
   "type": "module",
   "main": "./lib/index.cjs",
   "module": "./lib/index.js",
@@ -27,30 +44,13 @@
     },
     "./package.json": "./package.json"
   },
-  "files": [
-    "lib",
-    "src/theme"
-  ],
-  "bugs": {
-    "url": "https://github.com/micheleriva/zbsearch/issues"
-  },
-  "homepage": "https://github.com/micheleriva/zbsearch#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/micheleriva/zbsearch.git"
-  },
-  "scripts": {
-    "build": "node build.mjs && tsc -p . --emitDeclarationOnly",
-    "lint": "exit 0",
-    "test": "vitest run"
-  },
   "publishConfig": {
     "access": "public"
   },
-  "peerDependencies": {
-    "@docusaurus/core": "^3.0.0",
-    "react": "^18.0.0 || ^19.0.0",
-    "react-dom": "^18.0.0 || ^19.0.0"
+  "scripts": {
+    "build": "node build.mjs && tsc -p . --emitDeclarationOnly",
+    "lint": "oxlint --fix --fix-suggestions",
+    "test": "vitest run"
   },
   "dependencies": {
     "@zbsearch/docs-index": "workspace:*",
@@ -71,9 +71,9 @@
     "tsx": "^4.20.6",
     "typescript": "^7.0.2"
   },
-  "author": {
-    "name": "Michele Riva",
-    "email": "riva.michele.95@gmail.com",
-    "url": "https://github.com/MicheleRiva"
+  "peerDependencies": {
+    "@docusaurus/core": "^3.0.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
   }
 }

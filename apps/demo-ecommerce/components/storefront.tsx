@@ -11,7 +11,7 @@ import {
   runSuggest,
   setPinningEnabled,
   type CatalogDB,
-  type EngineStats,
+  type EngineStats
 } from '@/lib/engine'
 import { formatCount } from '@/lib/format'
 import type { EngineSettings, SortKey, StoreFilters } from '@/lib/types'
@@ -30,7 +30,7 @@ const DEFAULT_FILTERS: StoreFilters = {
   brands: [],
   price: priceBounds,
   minRating: 0,
-  inStockOnly: false,
+  inStockOnly: false
 }
 
 const DEFAULT_SETTINGS: EngineSettings = {
@@ -38,7 +38,7 @@ const DEFAULT_SETTINGS: EngineSettings = {
   tolerance: 1,
   exact: false,
   threshold: 0,
-  pinningEnabled: true,
+  pinningEnabled: true
 }
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
@@ -46,7 +46,7 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: 'price-asc', label: 'Price: low to high' },
   { value: 'price-desc', label: 'Price: high to low' },
   { value: 'rating', label: 'Customer rating' },
-  { value: 'discount', label: 'Biggest discount' },
+  { value: 'discount', label: 'Biggest discount' }
 ]
 
 function filtersActive(filters: StoreFilters): boolean {
@@ -101,7 +101,7 @@ export function Storefront() {
       sort,
       limit: visible,
       offset: 0,
-      priceBounds,
+      priceBounds
     })
   }, [engine, term, filters, settings, sort, visible])
 
@@ -114,7 +114,7 @@ export function Storefront() {
       // The rating leaders include bottled water and a punnet of mulberries; a price
       // floor keeps the row reading like a curated shelf rather than a grocery aisle.
       trending: browse(engine.db, 'rating', 5, { price: { gte: 25 } }),
-      deals: browse(engine.db, 'discount', 5),
+      deals: browse(engine.db, 'discount', 5)
     }
   }, [engine, browsing])
 
@@ -127,17 +127,17 @@ export function Storefront() {
     const query = term.trim().toLowerCase()
 
     return {
-      list: output.suggestions.filter(item => item.suggestion.toLowerCase() !== query),
-      elapsed: output.elapsed.formatted,
+      list: output.suggestions.filter((item) => item.suggestion.toLowerCase() !== query),
+      elapsed: output.elapsed.formatted
     }
   }, [engine, term])
 
   const addToCart = useCallback((id: string) => {
-    setCart(current => ({ ...current, [id]: (current[id] ?? 0) + 1 }))
+    setCart((current) => ({ ...current, [id]: (current[id] ?? 0) + 1 }))
   }, [])
 
   const setQuantity = useCallback((id: string, quantity: number) => {
-    setCart(current => {
+    setCart((current) => {
       const next = { ...current }
 
       if (quantity <= 0) {
@@ -151,7 +151,7 @@ export function Storefront() {
   }, [])
 
   const toggleSaved = useCallback((id: string) => {
-    setSaved(current => (current.includes(id) ? current.filter(item => item !== id) : [...current, id]))
+    setSaved((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]))
   }, [])
 
   const search = useCallback((next: string) => {
@@ -181,7 +181,7 @@ export function Storefront() {
         cartCount={cartCount}
         savedCount={saved.length}
         onTerm={setTerm}
-        onDepartment={categories => {
+        onDepartment={(categories) => {
           setTerm('')
           setFilters({ ...DEFAULT_FILTERS, categories })
         }}
@@ -194,7 +194,7 @@ export function Storefront() {
           <div className="space-y-10">
             <Hero highlights={home.trending} onSearch={search} />
 
-            <DepartmentTiles onPick={categories => setFilters({ ...DEFAULT_FILTERS, categories })} />
+            <DepartmentTiles onPick={(categories) => setFilters({ ...DEFAULT_FILTERS, categories })} />
 
             <section>
               <SectionHeading
@@ -207,7 +207,7 @@ export function Storefront() {
                 }}
               />
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                {home.trending.map(product => (
+                {home.trending.map((product) => (
                   <ProductCard
                     key={product.id}
                     product={product}
@@ -231,7 +231,7 @@ export function Storefront() {
                 }}
               />
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                {home.deals.map(product => (
+                {home.deals.map((product) => (
                   <ProductCard
                     key={product.id}
                     product={product}
@@ -281,10 +281,10 @@ export function Storefront() {
                   <span className="text-[12.5px] text-ink-muted">Sort by</span>
                   <select
                     value={sort}
-                    onChange={event => setSort(event.target.value as SortKey)}
+                    onChange={(event) => setSort(event.target.value as SortKey)}
                     className="rounded-lg border border-line bg-card px-2.5 py-1.5 text-[13px] text-ink outline-none focus:border-ink"
                   >
-                    {SORT_OPTIONS.map(option => (
+                    {SORT_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
@@ -298,12 +298,12 @@ export function Storefront() {
                   term={term}
                   suggestion={suggestions.list[0]?.suggestion}
                   onPick={search}
-                  onRelax={() => setSettings(current => ({ ...current, threshold: 1, tolerance: 2, exact: false }))}
+                  onRelax={() => setSettings((current) => ({ ...current, threshold: 1, tolerance: 2, exact: false }))}
                 />
               ) : null}
 
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-                {results?.hits.map(hit => (
+                {results?.hits.map((hit) => (
                   <ProductCard
                     key={hit.id}
                     product={hit.document}
@@ -322,7 +322,7 @@ export function Storefront() {
                 <div className="mt-6 flex justify-center">
                   <button
                     type="button"
-                    onClick={() => setVisible(current => current + PAGE_SIZE)}
+                    onClick={() => setVisible((current) => current + PAGE_SIZE)}
                     className="rounded-xl border border-line bg-card px-5 py-2.5 text-[13px] font-medium text-ink transition-colors hover:bg-shade"
                   >
                     Show {Math.min(PAGE_SIZE, results.count - results.hits.length)} more
@@ -340,7 +340,7 @@ export function Storefront() {
         results={results}
         stats={engine?.stats ?? null}
         open={consoleOpen}
-        onToggle={() => setConsoleOpen(current => !current)}
+        onToggle={() => setConsoleOpen((current) => !current)}
       />
 
       {engine ? (
@@ -363,12 +363,7 @@ export function Storefront() {
       ) : null}
 
       {drawer === 'saved' ? (
-        <SavedDrawer
-          saved={saved}
-          onClose={() => setDrawer(null)}
-          onRemove={toggleSaved}
-          onAddToCart={addToCart}
-        />
+        <SavedDrawer saved={saved} onClose={() => setDrawer(null)} onRemove={toggleSaved} onAddToCart={addToCart} />
       ) : null}
     </div>
   )
@@ -378,7 +373,7 @@ function EmptyState({
   term,
   suggestion,
   onPick,
-  onRelax,
+  onRelax
 }: {
   term: string
   suggestion?: string
@@ -387,14 +382,16 @@ function EmptyState({
 }) {
   return (
     <div className="rounded-xl border border-line bg-card p-8 text-center">
-      <p className="text-[15px] font-medium text-ink">
-        No results for “{term.trim() || 'that'}”
-      </p>
+      <p className="text-[15px] font-medium text-ink">No results for “{term.trim() || 'that'}”</p>
 
       {suggestion ? (
         <p className="mt-2 text-[13px] text-ink-muted">
           Did you mean{' '}
-          <button type="button" onClick={() => onPick(suggestion)} className="font-medium text-brand-ink hover:underline">
+          <button
+            type="button"
+            onClick={() => onPick(suggestion)}
+            className="font-medium text-brand-ink hover:underline"
+          >
             {suggestion}
           </button>
           ?

@@ -6,7 +6,7 @@ import { Language } from './components/tokenizer/languages.js'
 import { MODE_FULLTEXT_SEARCH, MODE_HYBRID_SEARCH, MODE_VECTOR_SEARCH, RESERVED_VECTOR_INDEX_KEY } from './constants.js'
 import type { InsertOptions } from './methods/insert.js'
 import { Point } from './trees/bkd.js'
-import { VectorIndex, VectorType, VectorTypeLike } from './trees/vector.js'
+import { VectorType, VectorTypeLike } from './trees/vector.js'
 
 export type { DefaultTokenizer } from './components/tokenizer/index.js'
 export { MODE_FULLTEXT_SEARCH, MODE_HYBRID_SEARCH, MODE_VECTOR_SEARCH, RESERVED_VECTOR_INDEX_KEY } from './constants.js'
@@ -308,8 +308,10 @@ export type SearchMode = typeof MODE_FULLTEXT_SEARCH | typeof MODE_HYBRID_SEARCH
 // eslint-disable-next-line
 export interface SearchParamsBase<T extends AnyZBSearch, ResultDocument = TypedDocument<T>> {}
 
-export interface SearchParamsFullText<T extends AnyZBSearch, ResultDocument = TypedDocument<T>>
-  extends SearchParamsBase<T, ResultDocument> {
+export interface SearchParamsFullText<
+  T extends AnyZBSearch,
+  ResultDocument = TypedDocument<T>
+> extends SearchParamsBase<T, ResultDocument> {
   /**
    * The term, sentence, or word to search.
    */
@@ -526,8 +528,10 @@ export interface SearchParamsFullText<T extends AnyZBSearch, ResultDocument = Ty
   includeVectors?: boolean
 }
 
-export interface SearchParamsHybrid<T extends AnyZBSearch, ResultDocument = TypedDocument<T>>
-  extends SearchParamsBase<T, ResultDocument> {
+export interface SearchParamsHybrid<T extends AnyZBSearch, ResultDocument = TypedDocument<T>> extends SearchParamsBase<
+  T,
+  ResultDocument
+> {
   /**
    * The vector used to perform vector similarity search.
    * Since "mode" is set to "hybrid", ZBSearch will perform a full-text search and a vector search,
@@ -667,8 +671,10 @@ export interface SearchParamsHybrid<T extends AnyZBSearch, ResultDocument = Type
   hybridWeights?: HybridWeights
 }
 
-export interface SearchParamsVector<T extends AnyZBSearch, ResultDocument = TypedDocument<T>>
-  extends SearchParamsBase<T, ResultDocument> {
+export interface SearchParamsVector<T extends AnyZBSearch, ResultDocument = TypedDocument<T>> extends SearchParamsBase<
+  T,
+  ResultDocument
+> {
   /**
    * Search mode. Tell ZBSearch to perform either a fulltext search, a vector search or a hybrid search.
    * By default, ZBSearch will perform a full-text search.
@@ -1554,32 +1560,17 @@ type ZBSearchID = {
 export type ExtractSchema<T> = T extends { schema: infer RawSchema } ? Schema<RawSchema> : never
 
 export type AnyGeneric<T> = T[]
-export type AnyGenericIndex<T> = T extends IIndex<infer TStore>
-  ? TStore extends AnyIndexStore
-    ? TStore
-    : never
-  : AnyIndexStore
-export type AnyGenericDocumentStore<T> = T extends IDocumentsStore<infer TStore>
-  ? TStore extends AnyDocumentStore
-    ? TStore
-    : never
-  : AnyDocumentStore
-export type AnyGenericSorter<T> = T extends ISorter<infer TSorter>
-  ? TSorter extends AnySorterStore
-    ? TSorter
-    : never
-  : AnySorterStore
-export type AnyGenericPinning<T> = T extends IPinning<infer TPinning>
-  ? TPinning extends AnyPinningStore
-    ? TPinning
-    : never
-  : AnyPinningStore
+export type AnyGenericIndex<T> =
+  T extends IIndex<infer TStore> ? (TStore extends AnyIndexStore ? TStore : never) : AnyIndexStore
+export type AnyGenericDocumentStore<T> =
+  T extends IDocumentsStore<infer TStore> ? (TStore extends AnyDocumentStore ? TStore : never) : AnyDocumentStore
+export type AnyGenericSorter<T> =
+  T extends ISorter<infer TSorter> ? (TSorter extends AnySorterStore ? TSorter : never) : AnySorterStore
+export type AnyGenericPinning<T> =
+  T extends IPinning<infer TPinning> ? (TPinning extends AnyPinningStore ? TPinning : never) : AnyPinningStore
 
-export type PickInferGeneric<T, Default> = T extends AnyGeneric<infer Generic>
-  ? Generic extends Default
-    ? Generic
-    : never
-  : never
+export type PickInferGeneric<T, Default> =
+  T extends AnyGeneric<infer Generic> ? (Generic extends Default ? Generic : never) : never
 
 export type ZBSearch<
   TSchema,

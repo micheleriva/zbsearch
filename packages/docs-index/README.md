@@ -72,10 +72,10 @@ The resulting `searcher` is exactly the shape
 
 ## Exports
 
-| Entry point | Contents |
-| --- | --- |
-| `@zbsearch/docs-index` | Record shape, schema, defaults, and the browser-side loader and searcher |
-| `@zbsearch/docs-index/node` | `parseMarkdown`, `stripInlineMarkup` and `buildIndex` |
+| Entry point                 | Contents                                                                 |
+| --------------------------- | ------------------------------------------------------------------------ |
+| `@zbsearch/docs-index`      | Record shape, schema, defaults, and the browser-side loader and searcher |
+| `@zbsearch/docs-index/node` | `parseMarkdown`, `stripInlineMarkup` and `buildIndex`                    |
 
 ## License
 

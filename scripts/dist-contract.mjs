@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 import { createRequire } from 'node:module'
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, lstatSync } from 'node:fs'
-import { join, relative, dirname, resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { join, relative } from 'node:path'
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
@@ -26,8 +25,7 @@ function walk(dir, base = dir, out = []) {
 function dtsSurface(file) {
   const src = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true)
   const names = new Set()
-  const isExported = (n) =>
-    n.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)
+  const isExported = (n) => n.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)
 
   for (const node of src.statements) {
     if (ts.isExportDeclaration(node)) {
@@ -94,14 +92,18 @@ function contractFor(pkgDir) {
   return { name: pkg.name, files: files.sort(), types, targets, markers }
 }
 
-function diff(golden, current, label) {
+function diff(golden, current, _label) {
   const problems = []
   const gf = new Set(golden.files)
   const cf = new Set(current.files)
   const missing = [...gf].filter((f) => !cf.has(f))
   const added = [...cf].filter((f) => !gf.has(f))
-  if (missing.length) problems.push(`  ${missing.length} MISSING file(s): ${missing.slice(0, 8).join(', ')}${missing.length > 8 ? ' …' : ''}`)
-  if (added.length) problems.push(`  ${added.length} ADDED file(s): ${added.slice(0, 8).join(', ')}${added.length > 8 ? ' …' : ''}`)
+  if (missing.length)
+    problems.push(
+      `  ${missing.length} MISSING file(s): ${missing.slice(0, 8).join(', ')}${missing.length > 8 ? ' …' : ''}`
+    )
+  if (added.length)
+    problems.push(`  ${added.length} ADDED file(s): ${added.slice(0, 8).join(', ')}${added.length > 8 ? ' …' : ''}`)
 
   for (const [f, want] of Object.entries(golden.types)) {
     const got = current.types[f]
@@ -109,7 +111,9 @@ function diff(golden, current, label) {
     const lost = want.filter((n) => !got.includes(n))
     const gained = got.filter((n) => !want.includes(n))
     if (lost.length || gained.length) {
-      problems.push(`  TYPE DRIFT ${f}: ${lost.length ? `-${lost.join(',')}` : ''} ${gained.length ? `+${gained.join(',')}` : ''}`.trimEnd())
+      problems.push(
+        `  TYPE DRIFT ${f}: ${lost.length ? `-${lost.join(',')}` : ''} ${gained.length ? `+${gained.join(',')}` : ''}`.trimEnd()
+      )
     }
   }
 
@@ -147,7 +151,9 @@ for (const dir of dirs) {
 
   if (mode === 'snapshot') {
     writeFileSync(goldenPath, `${JSON.stringify(current, null, 2)}\n`)
-    console.log(`snapshot ${current.name.padEnd(34)} ${current.files.length} files, ${Object.keys(current.types).length} d.ts`)
+    console.log(
+      `snapshot ${current.name.padEnd(34)} ${current.files.length} files, ${Object.keys(current.types).length} d.ts`
+    )
     continue
   }
 

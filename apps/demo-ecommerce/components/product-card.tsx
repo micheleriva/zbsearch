@@ -9,7 +9,7 @@ function Stars({ rating, reviews }: { rating: number; reviews?: number }) {
   return (
     <span className="flex items-center gap-1.5" title={`${rating.toFixed(2)} out of 5`}>
       <span className="flex" aria-hidden>
-        {[0, 1, 2, 3, 4].map(index => (
+        {[0, 1, 2, 3, 4].map((index) => (
           <svg key={index} viewBox="0 0 12 12" className="h-[12px] w-[12px]">
             <path
               d="M6 1 7.5 4.4 11 4.8 8.4 7.2 9.1 10.7 6 9 2.9 10.7 3.6 7.2 1 4.8 4.5 4.4Z"
@@ -34,7 +34,7 @@ export function ProductCard({
   inCart,
   saved,
   onAdd,
-  onSave,
+  onSave
 }: {
   product: Product
   term?: string
@@ -74,9 +74,7 @@ export function ProductCard({
             </span>
           ) : null}
           {!product.inStock ? (
-            <span className="rounded-full bg-shade px-2 py-0.5 text-[10px] font-semibold text-ink-muted">
-              Sold out
-            </span>
+            <span className="rounded-full bg-shade px-2 py-0.5 text-[10px] font-semibold text-ink-muted">Sold out</span>
           ) : null}
         </div>
 

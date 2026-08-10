@@ -52,7 +52,8 @@
   },
   "scripts": {
     "build": "node ../../scripts/dialects-build.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "oxlint --fix --fix-suggestions"
   },
   "keywords": [
     "full-text search",

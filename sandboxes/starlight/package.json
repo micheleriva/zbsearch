@@ -8,7 +8,7 @@
     "start": "astro dev --port 3220",
     "build": "astro build",
     "serve": "astro preview --port 3221",
-    "lint": "exit 0",
+    "lint": "oxlint --fix --fix-suggestions",
     "pretest": "playwright install chromium",
     "test": "playwright test && playwright test --config playwright.dev.config.ts",
     "test:prod": "playwright test",

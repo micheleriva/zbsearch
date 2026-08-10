@@ -14,9 +14,7 @@ import { env, pipeline, type FeatureExtractionPipeline } from '@huggingface/tran
  */
 env.allowLocalModels = false
 
-export type EncoderRequest =
-  | { type: 'warm'; model: string }
-  | { type: 'embed'; id: number; text: string }
+export type EncoderRequest = { type: 'warm'; model: string } | { type: 'embed'; id: number; text: string }
 
 export type EncoderResponse =
   | { type: 'progress'; file: string; loaded: number; total: number }
@@ -63,7 +61,7 @@ async function warm(model: string): Promise<FeatureExtractionPipeline> {
   if (!warming) {
     const started = performance.now()
 
-    warming = load(model).then(async loaded => {
+    warming = load(model).then(async (loaded) => {
       extractor = loaded
 
       /*
@@ -107,13 +105,13 @@ scope.onmessage = async (event: MessageEvent<EncoderRequest>) => {
       type: 'embedded',
       id: request.id,
       vector: Array.from(output.data as Float32Array),
-      ms: performance.now() - started,
+      ms: performance.now() - started
     })
   } catch (error) {
     post({
       type: 'failed',
       id: request.type === 'embed' ? request.id : undefined,
-      message: error instanceof Error ? error.message : String(error),
+      message: error instanceof Error ? error.message : String(error)
     })
   }
 }

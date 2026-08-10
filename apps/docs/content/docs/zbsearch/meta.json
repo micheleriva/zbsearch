@@ -1,22 +1,22 @@
 {
-	"root": true,
-	"title": "ZBSearch",
-	"description": "ZBSearch for your browser",
-	"icon": "ZBSearch",
-	"pages": [
-		"---Getting Started---",
-		"index",
-		"vs-orama",
-		"usage",
-		"search",
-		"results-pinning",
-		"---Integrations---",
-		"integrations",
-		"---Supported Languages---",
-		"...supported-languages",
-		"---Advanced ZBSearch---",
-		"internals",
-		"plugins",
-		"text-analysis"
-	]
+  "root": true,
+  "title": "ZBSearch",
+  "description": "ZBSearch for your browser",
+  "icon": "ZBSearch",
+  "pages": [
+    "---Getting Started---",
+    "index",
+    "vs-orama",
+    "usage",
+    "search",
+    "results-pinning",
+    "---Integrations---",
+    "integrations",
+    "---Supported Languages---",
+    "...supported-languages",
+    "---Advanced ZBSearch---",
+    "internals",
+    "plugins",
+    "text-analysis"
+  ]
 }

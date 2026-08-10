@@ -46,7 +46,7 @@ export function EncoderPanel({
   status,
   lastMs,
   lastCached,
-  onWarm,
+  onWarm
 }: {
   model: string
   status: EncoderStatus
@@ -59,9 +59,7 @@ export function EncoderPanel({
     <Panel
       title="Encoder"
       hint="The document vectors ship with the page. Only the query is encoded here, in a Web Worker, so typing never blocks on the model."
-      action={
-        status.state === 'cold' ? <ConsoleButton onClick={onWarm}>load now</ConsoleButton> : null
-      }
+      action={status.state === 'cold' ? <ConsoleButton onClick={onWarm}>load now</ConsoleButton> : null}
     >
       <div className="grid grid-cols-2 gap-3">
         <Readout label="model" value={<span className="text-[11px]">{model.split('/').at(-1)}</span>} />

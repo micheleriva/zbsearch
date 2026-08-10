@@ -1,9 +1,9 @@
-import { asBlogPostData } from '@/lib/blog';
-import { blog } from '@/lib/source';
-import { notFound } from 'next/navigation';
-import { ImageResponse } from 'next/og';
+import { asBlogPostData } from '@/lib/blog'
+import { blog } from '@/lib/source'
+import { notFound } from 'next/navigation'
+import { ImageResponse } from 'next/og'
 
-export const revalidate = false;
+export const revalidate = false
 
 // Inlined from public/logo/zbsearch-logo-white.svg (wordmark, icon + "zbsearch")
 function Logo({ height }: { height: number }) {
@@ -52,21 +52,21 @@ function Logo({ height }: { height: number }) {
         fill="white"
       />
     </svg>
-  );
+  )
 }
 
 export async function GET(_req: Request, { params }: RouteContext<'/og/blog/[slug]'>) {
-  const { slug } = await params;
-  const page = blog.getPage([slug]);
-  if (!page) notFound();
+  const { slug } = await params
+  const page = blog.getPage([slug])
+  if (!page) notFound()
 
-  const data = asBlogPostData(page.data);
+  const data = asBlogPostData(page.data)
   const date = data.date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    timeZone: 'UTC',
-  });
+    timeZone: 'UTC'
+  })
 
   return new ImageResponse(
     <div
@@ -80,7 +80,7 @@ export async function GET(_req: Request, { params }: RouteContext<'/og/blog/[slu
           'radial-gradient(circle at 85% 15%, rgba(181, 0, 241, 0.35), transparent 55%), radial-gradient(circle at 10% 95%, rgba(253, 0, 239, 0.18), transparent 50%)',
         padding: '72px 80px',
         color: '#FAFAFA',
-        fontFamily: 'sans-serif',
+        fontFamily: 'sans-serif'
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -92,7 +92,7 @@ export async function GET(_req: Request, { params }: RouteContext<'/og/blog/[slu
             color: '#E879F9',
             border: '2px solid rgba(217, 70, 239, 0.45)',
             borderRadius: 999,
-            padding: '8px 24px',
+            padding: '8px 24px'
           }}
         >
           Blog
@@ -105,7 +105,7 @@ export async function GET(_req: Request, { params }: RouteContext<'/og/blog/[slu
           flexDirection: 'column',
           justifyContent: 'center',
           flex: 1,
-          gap: 24,
+          gap: 24
         }}
       >
         <h1
@@ -114,7 +114,7 @@ export async function GET(_req: Request, { params }: RouteContext<'/og/blog/[slu
             fontWeight: 800,
             letterSpacing: '-0.03em',
             lineHeight: 1.1,
-            margin: 0,
+            margin: 0
           }}
         >
           {data.title}
@@ -125,7 +125,7 @@ export async function GET(_req: Request, { params }: RouteContext<'/og/blog/[slu
               fontSize: 28,
               lineHeight: 1.4,
               color: '#A1A1AA',
-              margin: 0,
+              margin: 0
             }}
           >
             {data.description}
@@ -138,7 +138,7 @@ export async function GET(_req: Request, { params }: RouteContext<'/og/blog/[slu
           display: 'flex',
           alignItems: 'center',
           fontSize: 24,
-          color: '#A1A1AA',
+          color: '#A1A1AA'
         }}
       >
         <span style={{ display: 'flex', gap: 12 }}>
@@ -150,13 +150,13 @@ export async function GET(_req: Request, { params }: RouteContext<'/og/blog/[slu
     </div>,
     {
       width: 1200,
-      height: 630,
-    },
-  );
+      height: 630
+    }
+  )
 }
 
 export function generateStaticParams(): { slug: string }[] {
   return blog.getPages().map((page) => ({
-    slug: page.slugs[0]!,
-  }));
+    slug: page.slugs[0]!
+  }))
 }

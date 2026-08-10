@@ -10,8 +10,8 @@ import { cx } from './ui'
 function useDepartmentTiles() {
   return useMemo(
     () =>
-      departments.map(department => {
-        const members = products.filter(product => department.categories.includes(product.categoryKey))
+      departments.map((department) => {
+        const members = products.filter((product) => department.categories.includes(product.categoryKey))
         const cover = [...members].sort((a, b) => b.rating - a.rating)[0]
 
         return { ...department, count: members.length, image: cover?.image }
@@ -92,7 +92,7 @@ export function DepartmentTiles({ onPick }: { onPick: (categories: string[]) => 
       <h2 className="mb-3 text-[18px] font-semibold tracking-tight text-ink">Shop by department</h2>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {tiles.map(tile => (
+        {tiles.map((tile) => (
           <button
             key={tile.slug}
             type="button"
@@ -126,7 +126,7 @@ export function SectionHeading({
   title,
   caption,
   action,
-  onAction,
+  onAction
 }: {
   title: string
   caption?: string

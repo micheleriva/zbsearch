@@ -135,7 +135,7 @@ function innerInsertSync<T extends AnyZBSearch>(
   skipHooks?: boolean,
   options?: InsertOptions
 ): string {
-  const { index, docs } = zbsearch.data
+  const { index: _index, docs } = zbsearch.data
   const id = zbsearch.getDocumentIndexId(doc)
 
   if (typeof id !== 'string') {

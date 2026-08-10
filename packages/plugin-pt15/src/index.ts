@@ -156,9 +156,9 @@ function createComponents(schema: AnySchema): Partial<ObjectComponents<any, any,
         relevance: Required<BM25Params>,
         docsCount: number,
         whereFiltersIDs: Set<InternalDocumentID> | undefined,
-        threshold?: number,
+        _threshold?: number,
         // PT15 indexes every token prefix at insert time, so its matching is inherently prefix-based and the `prefix` flag has no effect here.
-        prefix?: boolean
+        _prefix?: boolean
       ): TokenScore[] {
         if (tolerance !== 0) {
           throw new Error('Tolerance not implemented yet')

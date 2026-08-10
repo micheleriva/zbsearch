@@ -21,19 +21,19 @@ screen. Everything in it is live: change a boost and the grid behind it re-order
 
 ## What it demonstrates
 
-| Feature | Where to see it | API |
-| --- | --- | --- |
+| Feature                         | Where to see it                                                              | API                       |
+| ------------------------------- | ---------------------------------------------------------------------------- | ------------------------- |
 | Results pinning (merchandising) | Console → Merchandising. Pinned products wear a "Featured" badge in the shop | `insertPin` / `deletePin` |
-| Field boosting | Console → Field boosting. Search `leather`, drag `description` up | `search({ boost })` |
-| Facets | Category and brand counts in the results sidebar | `search({ facets })` |
-| Filters | Price, rating, availability, and the department nav | `search({ where })` |
-| Sorting | The sort dropdown, and the home page's trending / deals rows | `search({ sortBy })` |
-| Typo tolerance | Search `lether bag` | `search({ tolerance })` |
-| Exact match | Console → Matching | `search({ exact })` |
-| Threshold | Search `blue cotton shirt`, pull the slider to 1 | `search({ threshold })` |
-| Autocomplete | The dropdown under the search box | `suggest` |
-| Match highlighting | The marks in titles and brands | `@zbsearch/highlight` |
-| Throughput | Console → Benchmark | — |
+| Field boosting                  | Console → Field boosting. Search `leather`, drag `description` up            | `search({ boost })`       |
+| Facets                          | Category and brand counts in the results sidebar                             | `search({ facets })`      |
+| Filters                         | Price, rating, availability, and the department nav                          | `search({ where })`       |
+| Sorting                         | The sort dropdown, and the home page's trending / deals rows                 | `search({ sortBy })`      |
+| Typo tolerance                  | Search `lether bag`                                                          | `search({ tolerance })`   |
+| Exact match                     | Console → Matching                                                           | `search({ exact })`       |
+| Threshold                       | Search `blue cotton shirt`, pull the slider to 1                             | `search({ threshold })`   |
+| Autocomplete                    | The dropdown under the search box                                            | `suggest`                 |
+| Match highlighting              | The marks in titles and brands                                               | `@zbsearch/highlight`     |
+| Throughput                      | Console → Benchmark                                                          | —                         |
 
 ### Pinning rules
 

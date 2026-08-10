@@ -20,7 +20,7 @@ function IconButton({
   label,
   badge,
   onClick,
-  children,
+  children
 }: {
   label: string
   badge?: number
@@ -54,7 +54,7 @@ export function SiteHeader({
   onTerm,
   onDepartment,
   onOpenCart,
-  onOpenSaved,
+  onOpenSaved
 }: {
   term: string
   suggestions: Suggestion[]
@@ -133,7 +133,7 @@ export function SiteHeader({
             All
           </button>
 
-          {departments.map(department => (
+          {departments.map((department) => (
             <button
               key={department.slug}
               type="button"

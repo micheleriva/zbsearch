@@ -40,7 +40,7 @@ export function SearchConsole({
   encodeCached,
   onWarm,
   settings,
-  onSettings,
+  onSettings
 }: {
   open: boolean
   onOpen: (open: boolean) => void

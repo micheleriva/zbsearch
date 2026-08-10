@@ -8,7 +8,7 @@ export class MemoryObjectStorage implements ObjectStorage {
     return obj ? { body: obj.body, etag: obj.etag } : null
   }
 
-  async put(key: string, body: Uint8Array, opts?: { contentType?: string }): Promise<{ etag: string }> {
+  async put(key: string, body: Uint8Array, _opts?: { contentType?: string }): Promise<{ etag: string }> {
     const etag = `"${crypto.randomUUID()}"`
     this.objects.set(key, { body, etag })
     return { etag }

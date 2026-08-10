@@ -20,7 +20,7 @@ export function ResultRow({
   term,
   relative,
   showScore,
-  onOpen,
+  onOpen
 }: {
   hit: Hit
   mode: Mode

@@ -3,14 +3,27 @@
   "version": "3.3.4",
   "description": "ZBSearch plugin for generating embeddings locally",
   "keywords": [
-    "zbsearch",
     "embeddings",
     "secure proxy",
-    "vector search"
+    "vector search",
+    "zbsearch"
   ],
+  "homepage": "https://github.com/micheleriva/zbsearch#readme",
+  "bugs": {
+    "url": "https://github.com/oramasearch/orama/issues"
+  },
   "license": "Apache-2.0",
-  "main": "./dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/micheleriva/zbsearch.git"
+  },
+  "files": [
+    "dist"
+  ],
   "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
@@ -19,35 +32,22 @@
       "browser": "./dist/index.global.js"
     }
   },
-  "bugs": {
-    "url": "https://github.com/oramasearch/orama/issues"
-  },
-  "homepage": "https://github.com/micheleriva/zbsearch#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/micheleriva/zbsearch.git"
-  },
-  "sideEffects": false,
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "node ../../scripts/rolldown-build.mjs && tsc -p . --emitDeclarationOnly",
-    "lint": "exit 0",
-    "test": "exit 0"
-  },
   "publishConfig": {
     "access": "public"
+  },
+  "scripts": {
+    "build": "node ../../scripts/rolldown-build.mjs && tsc -p . --emitDeclarationOnly",
+    "lint": "oxlint --fix --fix-suggestions",
+    "test": "exit 0"
+  },
+  "dependencies": {
+    "@tensorflow-models/universal-sentence-encoder": "^1.3.3",
+    "zbsearch": "workspace:*"
   },
   "devDependencies": {
     "@swc/core": "^1.15.47",
     "@types/node": "^20.9.0",
     "rolldown": "^1.2.3",
     "typescript": "^7.0.2"
-  },
-  "dependencies": {
-    "@tensorflow-models/universal-sentence-encoder": "^1.3.3",
-    "zbsearch": "workspace:*"
   }
 }

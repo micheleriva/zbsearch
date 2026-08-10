@@ -16,7 +16,14 @@ await bundle(readConfig())
 await transpile({
   out: 'lib',
   target: 'es2020',
-  patterns: ['theme/**/*.ts', 'theme/**/*.tsx', 'client/**/*.ts', 'client/**/*.tsx', 'shared/**/*.ts', 'shared/**/*.tsx'],
+  patterns: [
+    'theme/**/*.ts',
+    'theme/**/*.tsx',
+    'client/**/*.ts',
+    'client/**/*.tsx',
+    'shared/**/*.ts',
+    'shared/**/*.tsx'
+  ],
   sourcemap: true,
   clean: false
 })

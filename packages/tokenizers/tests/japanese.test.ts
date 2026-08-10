@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { create, insert, Results, search } from 'zbsearch'
+import { create, insert, search } from 'zbsearch'
 import { createTokenizer } from '../src/japanese.js'
 
 const db = create({

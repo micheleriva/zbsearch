@@ -1,15 +1,9 @@
-import type { ImgHTMLAttributes } from 'react';
+import type { ImgHTMLAttributes } from 'react'
 
 /** Official Docusaurus logo - `/public/icons/docusaurus.svg` */
 export function DocusaurusIcon(props: ImgHTMLAttributes<HTMLImageElement>) {
-  const { className, ...rest } = props;
+  const { className, ...rest } = props
   return (
-    <img
-      src="/icons/docusaurus.svg"
-      alt=""
-      aria-hidden
-      className={className ?? 'size-full object-contain'}
-      {...rest}
-    />
-  );
+    <img src="/icons/docusaurus.svg" alt="" aria-hidden className={className ?? 'size-full object-contain'} {...rest} />
+  )
 }

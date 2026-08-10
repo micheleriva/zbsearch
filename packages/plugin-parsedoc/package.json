@@ -3,19 +3,23 @@
   "version": "3.3.4",
   "description": "ZBSearch plugin to populate an index with HTML/Markdown documents",
   "keywords": [],
-  "author": "",
+  "homepage": "https://github.com/micheleriva/zbsearch#readme",
+  "bugs": {
+    "url": "https://github.com/oramasearch/orama/issues"
+  },
   "license": "Apache-2.0",
+  "author": "",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/micheleriva/zbsearch.git"
   },
-  "bugs": {
-    "url": "https://github.com/oramasearch/orama/issues"
-  },
-  "homepage": "https://github.com/micheleriva/zbsearch#readme",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "sideEffects": false,
   "main": "./dist/commonjs.cjs",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -23,14 +27,11 @@
       "require": "./dist/commonjs.cjs"
     }
   },
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "dev": "swc --delete-dir-on-start -s -w --extensions .ts,.cts -d dist src",
     "build": "node ../../scripts/mixed-build.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "oxlint --fix --fix-suggestions"
   },
   "dependencies": {
     "glob": "^8.1.0",

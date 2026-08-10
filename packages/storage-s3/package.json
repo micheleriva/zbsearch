@@ -2,24 +2,25 @@
   "name": "@zbsearch/storage-s3",
   "version": "3.3.4",
   "description": "S3-compatible object storage driver for ZBSearch Edge (AWS S3, R2, MinIO)",
+  "license": "Apache-2.0",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
   },
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "node ../../scripts/oxc-build.mjs && tsc -p . --emitDeclarationOnly",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "oxlint --fix --fix-suggestions"
   },
-  "license": "Apache-2.0",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.750.0",
     "@zbsearch/edge-core": "workspace:*"

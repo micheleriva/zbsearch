@@ -1,13 +1,13 @@
-import Link from 'next/link';
-import { ArrowUpRight } from 'lucide-react';
-import { asBlogPostData } from '@/lib/blog';
-import { blog } from '@/lib/source';
+import Link from 'next/link'
+import { ArrowUpRight } from 'lucide-react'
+import { asBlogPostData } from '@/lib/blog'
+import { blog } from '@/lib/source'
 
 export default function BlogPage() {
   const posts = blog
     .getPages()
     .map((post) => ({ post, data: asBlogPostData(post.data) }))
-    .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+    .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden">
@@ -19,7 +19,8 @@ export default function BlogPage() {
         <header className="mb-14">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Blog</h1>
           <p className="mt-4 max-w-xl text-lg leading-relaxed text-fd-muted-foreground">
-            Engineering notes on building ZBSearch. <br />Architecture, performance, and deployment.
+            Engineering notes on building ZBSearch. <br />
+            Architecture, performance, and deployment.
           </p>
         </header>
 
@@ -37,7 +38,7 @@ export default function BlogPage() {
                   {data.date.toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'short',
-                    day: 'numeric',
+                    day: 'numeric'
                   })}
                 </time>
 
@@ -46,9 +47,7 @@ export default function BlogPage() {
                     {data.title}
                     <ArrowUpRight className="ml-1.5 inline size-4 -translate-y-0.5 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-1 group-hover:opacity-100" />
                   </h2>
-                  <p className="mt-2 text-[15px] leading-relaxed text-fd-muted-foreground">
-                    {data.description}
-                  </p>
+                  <p className="mt-2 text-[15px] leading-relaxed text-fd-muted-foreground">{data.description}</p>
                   <p className="mt-3 text-sm text-fd-muted-foreground/80">{data.author}</p>
                 </div>
               </Link>
@@ -57,5 +56,5 @@ export default function BlogPage() {
         </ul>
       </main>
     </div>
-  );
+  )
 }

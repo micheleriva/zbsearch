@@ -49,21 +49,21 @@ new Highlight({
 })
 ```
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `caseSensitive` | `false` | Whether case has to match |
-| `strategy` | `'partialMatch'` | How a term is matched against the text |
-| `HTMLTag` | `'mark'` | Element wrapped around each match in `HTML` |
-| `CSSClass` | `'zbsearch-highlight'` | Class set on that element |
+| Option          | Default                | Description                                 |
+| --------------- | ---------------------- | ------------------------------------------- |
+| `caseSensitive` | `false`                | Whether case has to match                   |
+| `strategy`      | `'partialMatch'`       | How a term is matched against the text      |
+| `HTMLTag`       | `'mark'`               | Element wrapped around each match in `HTML` |
+| `CSSClass`      | `'zbsearch-highlight'` | Class set on that element                   |
 
 ### Strategies
 
 Every term in the search string is matched independently; whitespace separates them.
 
-| Strategy | Searching `vec` in `the vectorised store` |
-| --- | --- |
-| `wholeWordMatch` | nothing: `vec` is not a word here |
-| `partialMatch` | `vec`, the term itself |
+| Strategy               | Searching `vec` in `the vectorised store`        |
+| ---------------------- | ------------------------------------------------ |
+| `wholeWordMatch`       | nothing: `vec` is not a word here                |
+| `partialMatch`         | `vec`, the term itself                           |
 | `partialMatchFullWord` | `vectorised`, the whole word the term appears in |
 
 `partialMatchFullWord` is the one to reach for alongside a search engine that expands prefixes: the engine

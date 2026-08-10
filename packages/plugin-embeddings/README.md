@@ -44,7 +44,7 @@ const plugin = await pluginEmbeddings({
     onInsert: {
       generate: true, // Generate embeddings at insert-time
       properties: ['description'], // properties to use for generating embeddings at insert time
-      verbose: true,
+      verbose: true
     }
   }
 })

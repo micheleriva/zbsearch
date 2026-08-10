@@ -5,7 +5,7 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'OneStore — everything you need, found instantly',
   description:
-    'A demo storefront where the whole search stack — full-text, facets, filters, field boosting and merchandising pins — runs client-side on ZBSearch.',
+    'A demo storefront where the whole search stack — full-text, facets, filters, field boosting and merchandising pins — runs client-side on ZBSearch.'
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {

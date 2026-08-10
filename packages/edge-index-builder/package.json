@@ -2,27 +2,28 @@
   "name": "@zbsearch/edge-index-builder",
   "version": "3.3.4",
   "description": "Rebuild and bulk-import CLI for ZBSearch Edge indexes",
-  "type": "module",
+  "license": "Apache-2.0",
   "bin": {
     "zbsearch-edge-builder": "./dist/cli.js"
   },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
   "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
   },
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "node ../../scripts/oxc-build.mjs && tsc -p . --emitDeclarationOnly",
     "rebuild": "node dist/cli.js rebuild",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "oxlint --fix --fix-suggestions"
   },
-  "license": "Apache-2.0",
   "dependencies": {
     "@zbsearch/edge-core": "workspace:*",
     "@zbsearch/storage-s3": "workspace:*"

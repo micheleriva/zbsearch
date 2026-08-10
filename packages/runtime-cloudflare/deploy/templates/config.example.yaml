@@ -5,14 +5,14 @@ r2:
   previewBucket: zbsearch-edge-preview
   createPreviewBucket: true
   accountId: YOUR_ACCOUNT_ID
-  accessKeyId: ""
-  secretAccessKey: ""
+  accessKeyId: ''
+  secretAccessKey: ''
 
 secrets:
-  readApiKey: ""
-  writeApiKey: ""
-  builderWebhookUrl: ""
+  readApiKey: ''
+  writeApiKey: ''
+  builderWebhookUrl: ''
 
 rebuild:
   thresholdOps: 500
-  cron: "*/5 * * * *"
+  cron: '*/5 * * * *'

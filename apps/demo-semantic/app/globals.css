@@ -49,8 +49,7 @@
   --color-console-ink: hsl(0, 0%, 100%);
   --color-console-muted: hsl(222, 10%, 64%);
 
-  --font-mono:
-    ui-monospace, 'SF Mono', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
 }
 
 html {

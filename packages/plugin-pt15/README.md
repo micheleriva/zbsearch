@@ -18,9 +18,9 @@ import { pluginPT15 } from '@zbsearch/plugin-pt15'
 
 const db = await create({
   schema: {
-    description: 'string',
+    description: 'string'
   },
-  plugins: [ pluginPT15() ],
+  plugins: [pluginPT15()]
 })
 ```
 

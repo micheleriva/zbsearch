@@ -25,7 +25,7 @@ type PolygonBounds = {
   maxLat: number
 }
 
-const K = 2 // 2D points
+const _K = 2 // 2D points
 const EARTH_RADIUS = 6371e3 // Earth radius in meters
 
 class BKDNode {

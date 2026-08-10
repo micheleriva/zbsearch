@@ -1,11 +1,11 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import Link from 'fumadocs-core/link';
-import { useHomeLayout } from 'fumadocs-ui/layouts/home';
-import { LinkItem } from 'fumadocs-ui/layouts/shared';
-import type { LinkItemType } from 'fumadocs-ui/layouts/shared';
-import { buttonVariants } from 'fumadocs-ui/components/ui/button';
+import { useState } from 'react'
+import Link from 'fumadocs-core/link'
+import { useHomeLayout } from 'fumadocs-ui/layouts/home'
+import { LinkItem } from 'fumadocs-ui/layouts/shared'
+import type { LinkItemType } from 'fumadocs-ui/layouts/shared'
+import { buttonVariants } from 'fumadocs-ui/components/ui/button'
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -13,12 +13,12 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-  NavigationMenuViewport,
-} from 'fumadocs-ui/components/ui/navigation-menu';
-import { Menu } from 'lucide-react';
-import { Logo } from '@/components/logo';
-import { cn } from '@/lib/cn';
-import { gitConfig, packageVersion } from '@/lib/shared';
+  NavigationMenuViewport
+} from 'fumadocs-ui/components/ui/navigation-menu'
+import { Menu } from 'lucide-react'
+import { Logo } from '@/components/logo'
+import { cn } from '@/lib/cn'
+import { gitConfig, packageVersion } from '@/lib/shared'
 
 /**
  * Home header, built on the vite/void(0) pattern: a solid bar whose bottom rule
@@ -27,29 +27,22 @@ import { gitConfig, packageVersion } from '@/lib/shared';
  * pills, no hover fills - so the accent colour is the only thing that moves.
  */
 export function HomeHeader(props: React.ComponentProps<'header'>) {
-  const { navItems, menuItems, slots } = useHomeLayout();
-  const [openMenu, setOpenMenu] = useState('');
+  const { navItems, menuItems, slots } = useHomeLayout()
+  const [openMenu, setOpenMenu] = useState('')
 
-  const primary = navItems.filter((item) => !isSecondary(item));
-  const secondary = navItems.filter(isSecondary);
+  const primary = navItems.filter((item) => !isSecondary(item))
+  const secondary = navItems.filter(isSecondary)
 
   return (
     <NavigationMenu value={openMenu} onValueChange={setOpenMenu} asChild>
-      <header
-        id="nd-nav"
-        {...props}
-        className={cn('sticky top-0 z-40 h-20', props.className)}
-      >
+      <header id="nd-nav" {...props} className={cn('sticky top-0 z-40 h-20', props.className)}>
         <div
           className={cn(
             'border-b border-fd-border bg-fd-background',
-            openMenu.length > 0 && 'shadow-lg md:shadow-none',
+            openMenu.length > 0 && 'shadow-lg md:shadow-none'
           )}
         >
-          <NavigationMenuList
-            className="mx-auto flex h-20 w-full max-w-[90rem] items-center gap-8 px-6"
-            asChild
-          >
+          <NavigationMenuList className="mx-auto flex h-20 w-full max-w-[90rem] items-center gap-8 px-6" asChild>
             <nav>
               <Link
                 href="/"
@@ -90,17 +83,12 @@ export function HomeHeader(props: React.ComponentProps<'header'>) {
               </div>
 
               <div className="-me-2 ms-auto flex flex-row items-center gap-1 md:hidden">
-                {slots.searchTrigger && (
-                  <slots.searchTrigger.sm hideIfDisabled className="p-2" />
-                )}
+                {slots.searchTrigger && <slots.searchTrigger.sm hideIfDisabled className="p-2" />}
                 <NavigationMenuItem asChild>
                   <div>
                     <NavigationMenuTrigger
                       aria-label="Toggle menu"
-                      className={cn(
-                        buttonVariants({ size: 'icon', color: 'ghost' }),
-                        '[&_svg]:size-5',
-                      )}
+                      className={cn(buttonVariants({ size: 'icon', color: 'ghost' }), '[&_svg]:size-5')}
                       onPointerMove={(e) => e.preventDefault()}
                     >
                       <Menu />
@@ -128,18 +116,18 @@ export function HomeHeader(props: React.ComponentProps<'header'>) {
         </div>
       </header>
     </NavigationMenu>
-  );
+  )
 }
 
 /** Plain text, full contrast; the accent is reserved for hover and active. */
 const navLinkStyles =
-  'inline-flex items-center gap-1.5 text-[0.9375rem] text-fd-foreground transition-colors hover:text-fd-primary data-[active=true]:text-fd-primary';
+  'inline-flex items-center gap-1.5 text-[0.9375rem] text-fd-foreground transition-colors hover:text-fd-primary data-[active=true]:text-fd-primary'
 
 const iconLinkStyles =
-  'inline-flex size-5 items-center justify-center text-fd-muted-foreground transition-colors hover:text-fd-foreground';
+  'inline-flex size-5 items-center justify-center text-fd-muted-foreground transition-colors hover:text-fd-foreground'
 
 function NavItem({ item }: { item: LinkItemType }) {
-  if (item.type === 'custom') return item.children;
+  if (item.type === 'custom') return item.children
 
   if (item.type === 'menu') {
     return (
@@ -168,16 +156,14 @@ function NavItem({ item }: { item: LinkItemType }) {
                 >
                   {child.icon}
                   <p className="text-[0.9375rem]">{child.text}</p>
-                  <p className="text-sm text-fd-muted-foreground empty:hidden">
-                    {child.description}
-                  </p>
+                  <p className="text-sm text-fd-muted-foreground empty:hidden">{child.description}</p>
                 </Link>
               </NavigationMenuLink>
-            ),
+            )
           )}
         </NavigationMenuContent>
       </NavigationMenuItem>
-    );
+    )
   }
 
   return (
@@ -187,33 +173,28 @@ function NavItem({ item }: { item: LinkItemType }) {
           <LinkItem
             item={item}
             aria-label={item.type === 'icon' ? item.label : undefined}
-            className={cn(
-              item.type === 'icon' ? iconLinkStyles : navLinkStyles,
-              '[&_svg]:size-5',
-            )}
+            className={cn(item.type === 'icon' ? iconLinkStyles : navLinkStyles, '[&_svg]:size-5')}
           >
             {item.type === 'icon' ? item.icon : item.text}
           </LinkItem>
         </NavigationMenuLink>
       </NavigationMenuItem>
     </li>
-  );
+  )
 }
 
 function MobileNavItem({ item }: { item: LinkItemType }) {
-  if (item.type === 'custom') return <div className="grid">{item.children}</div>;
+  if (item.type === 'custom') return <div className="grid">{item.children}</div>
 
   if (item.type === 'menu') {
     return (
       <div className="flex flex-col">
-        <p className="mb-1 mt-2 font-mono text-xs uppercase tracking-wide text-fd-muted-foreground">
-          {item.text}
-        </p>
+        <p className="mb-1 mt-2 font-mono text-xs uppercase tracking-wide text-fd-muted-foreground">{item.text}</p>
         {item.items.map((child, i) => (
           <MobileNavItem key={i} item={child} />
         ))}
       </div>
-    );
+    )
   }
 
   return (
@@ -225,16 +206,16 @@ function MobileNavItem({ item }: { item: LinkItemType }) {
           item.type === 'icon'
             ? cn(iconLinkStyles, 'mx-2')
             : 'py-2 text-[0.9375rem] text-fd-foreground transition-colors hover:text-fd-primary data-[active=true]:text-fd-primary',
-          '[&_svg]:size-5',
+          '[&_svg]:size-5'
         )}
       >
         {item.type === 'icon' ? item.icon : item.text}
       </LinkItem>
     </NavigationMenuLink>
-  );
+  )
 }
 
 function isSecondary(item: LinkItemType) {
-  if ('secondary' in item && item.secondary != null) return item.secondary;
-  return item.type === 'icon';
+  if ('secondary' in item && item.secondary != null) return item.secondary
+  return item.type === 'icon'
 }

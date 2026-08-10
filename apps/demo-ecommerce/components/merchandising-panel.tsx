@@ -9,7 +9,7 @@ export function MerchandisingPanel({
   settings,
   matchedRuleIds,
   onChange,
-  onTry,
+  onTry
 }: {
   settings: EngineSettings
   matchedRuleIds: string[]
@@ -26,7 +26,7 @@ export function MerchandisingPanel({
           label="Pinning rules active"
           description={`${merchandisingRules.length} rules registered on the index.`}
           checked={settings.pinningEnabled}
-          onChange={checked => onChange({ ...settings, pinningEnabled: checked })}
+          onChange={(checked) => onChange({ ...settings, pinningEnabled: checked })}
         />
 
         <ul className="space-y-2 border-t border-console-line pt-3">
@@ -51,11 +51,11 @@ export function MerchandisingPanel({
                 <div className="mt-1.5 space-y-0.5 font-mono text-[10px] leading-relaxed text-console-ink/80">
                   {rule.conditions.map((condition, index) => (
                     <div key={index}>
-                      <span className="text-console-muted">{index === 0 ? 'when' : 'and '}</span> {condition.anchoring} “
-                      {condition.pattern}”
+                      <span className="text-console-muted">{index === 0 ? 'when' : 'and '}</span> {condition.anchoring}{' '}
+                      “{condition.pattern}”
                     </div>
                   ))}
-                  {rule.consequence.promote.map(promotion => (
+                  {rule.consequence.promote.map((promotion) => (
                     <div key={String(promotion.doc_id)}>
                       <span className="text-console-muted">pin </span>
                       {findProduct(String(promotion.doc_id))?.title ?? promotion.doc_id}

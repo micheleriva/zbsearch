@@ -8,10 +8,7 @@
     "brandKey": "Essence",
     "category": "Beauty",
     "categoryKey": "beauty",
-    "tags": [
-      "beauty",
-      "mascara"
-    ],
+    "tags": ["beauty", "mascara"],
     "price": 8.94,
     "listPrice": 9.99,
     "discount": 10.5,
@@ -34,10 +31,7 @@
     "brandKey": "Glamour Beauty",
     "category": "Beauty",
     "categoryKey": "beauty",
-    "tags": [
-      "beauty",
-      "eyeshadow"
-    ],
+    "tags": ["beauty", "eyeshadow"],
     "price": 16.35,
     "listPrice": 19.99,
     "discount": 18.2,
@@ -60,10 +54,7 @@
     "brandKey": "Velvet Touch",
     "category": "Beauty",
     "categoryKey": "beauty",
-    "tags": [
-      "beauty",
-      "face powder"
-    ],
+    "tags": ["beauty", "face powder"],
     "price": 13.51,
     "listPrice": 14.99,
     "discount": 9.8,
@@ -86,10 +77,7 @@
     "brandKey": "Chic Cosmetics",
     "category": "Beauty",
     "categoryKey": "beauty",
-    "tags": [
-      "beauty",
-      "lipstick"
-    ],
+    "tags": ["beauty", "lipstick"],
     "price": 11.41,
     "listPrice": 12.99,
     "discount": 12.2,
@@ -112,10 +100,7 @@
     "brandKey": "Nail Couture",
     "category": "Beauty",
     "categoryKey": "beauty",
-    "tags": [
-      "beauty",
-      "nail polish"
-    ],
+    "tags": ["beauty", "nail polish"],
     "price": 7.96,
     "listPrice": 8.99,
     "discount": 11.4,
@@ -138,10 +123,7 @@
     "brandKey": "Calvin Klein",
     "category": "Fragrances",
     "categoryKey": "fragrances",
-    "tags": [
-      "fragrances",
-      "perfumes"
-    ],
+    "tags": ["fragrances", "perfumes"],
     "price": 49.05,
     "listPrice": 49.99,
     "discount": 1.9,
@@ -164,10 +146,7 @@
     "brandKey": "Chanel",
     "category": "Fragrances",
     "categoryKey": "fragrances",
-    "tags": [
-      "fragrances",
-      "perfumes"
-    ],
+    "tags": ["fragrances", "perfumes"],
     "price": 108.53,
     "listPrice": 129.99,
     "discount": 16.5,
@@ -190,10 +169,7 @@
     "brandKey": "Dior",
     "category": "Fragrances",
     "categoryKey": "fragrances",
-    "tags": [
-      "fragrances",
-      "perfumes"
-    ],
+    "tags": ["fragrances", "perfumes"],
     "price": 76.74,
     "listPrice": 89.99,
     "discount": 14.7,
@@ -216,10 +192,7 @@
     "brandKey": "Dolce & Gabbana",
     "category": "Fragrances",
     "categoryKey": "fragrances",
-    "tags": [
-      "fragrances",
-      "perfumes"
-    ],
+    "tags": ["fragrances", "perfumes"],
     "price": 69.56,
     "listPrice": 69.99,
     "discount": 0.6,
@@ -242,10 +215,7 @@
     "brandKey": "Gucci",
     "category": "Fragrances",
     "categoryKey": "fragrances",
-    "tags": [
-      "fragrances",
-      "perfumes"
-    ],
+    "tags": ["fragrances", "perfumes"],
     "price": 68.48,
     "listPrice": 79.99,
     "discount": 14.4,
@@ -268,10 +238,7 @@
     "brandKey": "Annibale Colombo",
     "category": "Furniture",
     "categoryKey": "furniture",
-    "tags": [
-      "furniture",
-      "beds"
-    ],
+    "tags": ["furniture", "beds"],
     "price": 1737.16,
     "listPrice": 1899.99,
     "discount": 8.6,
@@ -294,10 +261,7 @@
     "brandKey": "Annibale Colombo",
     "category": "Furniture",
     "categoryKey": "furniture",
-    "tags": [
-      "furniture",
-      "sofas"
-    ],
+    "tags": ["furniture", "sofas"],
     "price": 2139.99,
     "listPrice": 2499.99,
     "discount": 14.4,
@@ -320,10 +284,7 @@
     "brandKey": "Furniture Co.",
     "category": "Furniture",
     "categoryKey": "furniture",
-    "tags": [
-      "furniture",
-      "bedside tables"
-    ],
+    "tags": ["furniture", "bedside tables"],
     "price": 242.72,
     "listPrice": 299.99,
     "discount": 19.1,
@@ -346,10 +307,7 @@
     "brandKey": "Knoll",
     "category": "Furniture",
     "categoryKey": "furniture",
-    "tags": [
-      "furniture",
-      "office chairs"
-    ],
+    "tags": ["furniture", "office chairs"],
     "price": 489.94,
     "listPrice": 499.99,
     "discount": 2,
@@ -372,10 +330,7 @@
     "brandKey": "Bath Trends",
     "category": "Furniture",
     "categoryKey": "furniture",
-    "tags": [
-      "furniture",
-      "bathroom"
-    ],
+    "tags": ["furniture", "bathroom"],
     "price": 729.59,
     "listPrice": 799.99,
     "discount": 8.8,
@@ -398,9 +353,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "fruits"
-    ],
+    "tags": ["fruits"],
     "price": 1.74,
     "listPrice": 1.99,
     "discount": 12.6,
@@ -423,9 +376,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "meat"
-    ],
+    "tags": ["meat"],
     "price": 11.74,
     "listPrice": 12.99,
     "discount": 9.6,
@@ -448,10 +399,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "pet supplies",
-      "cat food"
-    ],
+    "tags": ["pet supplies", "cat food"],
     "price": 8.13,
     "listPrice": 8.99,
     "discount": 9.6,
@@ -474,9 +422,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "meat"
-    ],
+    "tags": ["meat"],
     "price": 8.62,
     "listPrice": 9.99,
     "discount": 13.7,
@@ -499,9 +445,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "cooking essentials"
-    ],
+    "tags": ["cooking essentials"],
     "price": 4.52,
     "listPrice": 4.99,
     "discount": 9.3,
@@ -524,9 +468,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "vegetables"
-    ],
+    "tags": ["vegetables"],
     "price": 1.49,
     "listPrice": 1.49,
     "discount": 0.2,
@@ -549,10 +491,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "pet supplies",
-      "dog food"
-    ],
+    "tags": ["pet supplies", "dog food"],
     "price": 9.86,
     "listPrice": 10.99,
     "discount": 10.3,
@@ -575,9 +514,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "dairy"
-    ],
+    "tags": ["dairy"],
     "price": 2.66,
     "listPrice": 2.99,
     "discount": 11.1,
@@ -600,9 +537,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "seafood"
-    ],
+    "tags": ["seafood"],
     "price": 14.36,
     "listPrice": 14.99,
     "discount": 4.2,
@@ -625,9 +560,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "vegetables"
-    ],
+    "tags": ["vegetables"],
     "price": 1.29,
     "listPrice": 1.29,
     "discount": 0.2,
@@ -650,9 +583,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "vegetables"
-    ],
+    "tags": ["vegetables"],
     "price": 0.98,
     "listPrice": 0.99,
     "discount": 1,
@@ -675,9 +606,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "condiments"
-    ],
+    "tags": ["condiments"],
     "price": 5.98,
     "listPrice": 6.99,
     "discount": 14.4,
@@ -700,9 +629,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "desserts"
-    ],
+    "tags": ["desserts"],
     "price": 5.01,
     "listPrice": 5.49,
     "discount": 8.7,
@@ -725,9 +652,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "beverages"
-    ],
+    "tags": ["beverages"],
     "price": 3.51,
     "listPrice": 3.99,
     "discount": 12.1,
@@ -750,9 +675,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "fruits"
-    ],
+    "tags": ["fruits"],
     "price": 2.11,
     "listPrice": 2.49,
     "discount": 15.2,
@@ -775,9 +698,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "fruits"
-    ],
+    "tags": ["fruits"],
     "price": 0.71,
     "listPrice": 0.79,
     "discount": 9.7,
@@ -800,9 +721,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "dairy"
-    ],
+    "tags": ["dairy"],
     "price": 3.01,
     "listPrice": 3.49,
     "discount": 13.7,
@@ -825,9 +744,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "fruits"
-    ],
+    "tags": ["fruits"],
     "price": 4.35,
     "listPrice": 4.99,
     "discount": 12.9,
@@ -850,10 +767,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "beverages",
-      "coffee"
-    ],
+    "tags": ["beverages", "coffee"],
     "price": 7.86,
     "listPrice": 7.99,
     "discount": 1.6,
@@ -876,9 +790,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "vegetables"
-    ],
+    "tags": ["vegetables"],
     "price": 2.17,
     "listPrice": 2.29,
     "discount": 5.4,
@@ -901,9 +813,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "health supplements"
-    ],
+    "tags": ["health supplements"],
     "price": 18.47,
     "listPrice": 19.99,
     "discount": 7.6,
@@ -926,9 +836,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "vegetables"
-    ],
+    "tags": ["vegetables"],
     "price": 1.79,
     "listPrice": 1.99,
     "discount": 9.9,
@@ -951,9 +859,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "grains"
-    ],
+    "tags": ["grains"],
     "price": 5.43,
     "listPrice": 5.99,
     "discount": 9.3,
@@ -976,9 +882,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "beverages"
-    ],
+    "tags": ["beverages"],
     "price": 1.64,
     "listPrice": 1.99,
     "discount": 17.5,
@@ -1001,9 +905,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "fruits"
-    ],
+    "tags": ["fruits"],
     "price": 3.95,
     "listPrice": 3.99,
     "discount": 1.1,
@@ -1026,9 +928,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "household essentials"
-    ],
+    "tags": ["household essentials"],
     "price": 2.16,
     "listPrice": 2.49,
     "discount": 13.3,
@@ -1051,9 +951,7 @@
     "brandKey": "",
     "category": "Groceries",
     "categoryKey": "groceries",
-    "tags": [
-      "beverages"
-    ],
+    "tags": ["beverages"],
     "price": 0.84,
     "listPrice": 0.99,
     "discount": 14.9,
@@ -1076,10 +974,7 @@
     "brandKey": "",
     "category": "Home Decoration",
     "categoryKey": "home-decoration",
-    "tags": [
-      "home decor",
-      "swing"
-    ],
+    "tags": ["home decor", "swing"],
     "price": 53.75,
     "listPrice": 59.99,
     "discount": 10.4,
@@ -1102,10 +997,7 @@
     "brandKey": "",
     "category": "Home Decoration",
     "categoryKey": "home-decoration",
-    "tags": [
-      "home decor",
-      "photo frame"
-    ],
+    "tags": ["home decor", "photo frame"],
     "price": 25.53,
     "listPrice": 29.99,
     "discount": 14.9,
@@ -1128,10 +1020,7 @@
     "brandKey": "",
     "category": "Home Decoration",
     "categoryKey": "home-decoration",
-    "tags": [
-      "home decor",
-      "artificial plants"
-    ],
+    "tags": ["home decor", "artificial plants"],
     "price": 37.01,
     "listPrice": 39.99,
     "discount": 7.5,
@@ -1154,10 +1043,7 @@
     "brandKey": "",
     "category": "Home Decoration",
     "categoryKey": "home-decoration",
-    "tags": [
-      "home decor",
-      "plant accessories"
-    ],
+    "tags": ["home decor", "plant accessories"],
     "price": 13.96,
     "listPrice": 14.99,
     "discount": 6.8,
@@ -1180,10 +1066,7 @@
     "brandKey": "",
     "category": "Home Decoration",
     "categoryKey": "home-decoration",
-    "tags": [
-      "home decor",
-      "lighting"
-    ],
+    "tags": ["home decor", "lighting"],
     "price": 46.45,
     "listPrice": 49.99,
     "discount": 7.1,
@@ -1206,10 +1089,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "utensils"
-    ],
+    "tags": ["kitchen tools", "utensils"],
     "price": 7.76,
     "listPrice": 7.99,
     "discount": 2.8,
@@ -1232,10 +1112,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "drinkware",
-      "cups"
-    ],
+    "tags": ["drinkware", "cups"],
     "price": 5.05,
     "listPrice": 5.99,
     "discount": 15.7,
@@ -1258,10 +1135,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "utensils"
-    ],
+    "tags": ["kitchen tools", "utensils"],
     "price": 8.97,
     "listPrice": 9.99,
     "discount": 10.2,
@@ -1284,10 +1158,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen appliances",
-      "blenders"
-    ],
+    "tags": ["kitchen appliances", "blenders"],
     "price": 37.09,
     "listPrice": 39.99,
     "discount": 7.3,
@@ -1310,10 +1181,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "cookware",
-      "woks"
-    ],
+    "tags": ["cookware", "woks"],
     "price": 28.03,
     "listPrice": 29.99,
     "discount": 6.5,
@@ -1336,10 +1204,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "cutting boards"
-    ],
+    "tags": ["kitchen tools", "cutting boards"],
     "price": 11.95,
     "listPrice": 12.99,
     "discount": 8,
@@ -1362,10 +1227,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "juicers"
-    ],
+    "tags": ["kitchen tools", "juicers"],
     "price": 7.9,
     "listPrice": 8.99,
     "discount": 12.1,
@@ -1388,10 +1250,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "slicers"
-    ],
+    "tags": ["kitchen tools", "slicers"],
     "price": 5.96,
     "listPrice": 6.99,
     "discount": 14.8,
@@ -1414,10 +1273,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen appliances",
-      "cooktops"
-    ],
+    "tags": ["kitchen appliances", "cooktops"],
     "price": 42.97,
     "listPrice": 49.99,
     "discount": 14,
@@ -1440,10 +1296,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "strainers"
-    ],
+    "tags": ["kitchen tools", "strainers"],
     "price": 9.64,
     "listPrice": 9.99,
     "discount": 3.5,
@@ -1466,10 +1319,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "utensils"
-    ],
+    "tags": ["kitchen tools", "utensils"],
     "price": 3.67,
     "listPrice": 3.99,
     "discount": 8.1,
@@ -1492,10 +1342,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "drinkware",
-      "glasses"
-    ],
+    "tags": ["drinkware", "glasses"],
     "price": 4.59,
     "listPrice": 4.99,
     "discount": 7.9,
@@ -1518,10 +1365,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "graters"
-    ],
+    "tags": ["kitchen tools", "graters"],
     "price": 10.6,
     "listPrice": 10.99,
     "discount": 3.6,
@@ -1544,10 +1388,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen appliances",
-      "blenders"
-    ],
+    "tags": ["kitchen appliances", "blenders"],
     "price": 29.03,
     "listPrice": 34.99,
     "discount": 17,
@@ -1570,10 +1411,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "ice cube trays"
-    ],
+    "tags": ["kitchen tools", "ice cube trays"],
     "price": 5.95,
     "listPrice": 5.99,
     "discount": 0.6,
@@ -1596,10 +1434,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "strainers"
-    ],
+    "tags": ["kitchen tools", "strainers"],
     "price": 6.48,
     "listPrice": 7.99,
     "discount": 18.9,
@@ -1622,10 +1457,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "cutlery"
-    ],
+    "tags": ["kitchen tools", "cutlery"],
     "price": 12.16,
     "listPrice": 14.99,
     "discount": 18.9,
@@ -1648,10 +1480,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "storage"
-    ],
+    "tags": ["kitchen tools", "storage"],
     "price": 11.65,
     "listPrice": 12.99,
     "discount": 10.3,
@@ -1674,10 +1503,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen appliances",
-      "microwaves"
-    ],
+    "tags": ["kitchen appliances", "microwaves"],
     "price": 79.07,
     "listPrice": 89.99,
     "discount": 12.1,
@@ -1700,10 +1526,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "organization"
-    ],
+    "tags": ["kitchen tools", "organization"],
     "price": 14.51,
     "listPrice": 15.99,
     "discount": 9.3,
@@ -1726,10 +1549,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "cookware",
-      "pans"
-    ],
+    "tags": ["cookware", "pans"],
     "price": 24.24,
     "listPrice": 24.99,
     "discount": 3,
@@ -1752,10 +1572,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "dinnerware",
-      "plates"
-    ],
+    "tags": ["dinnerware", "plates"],
     "price": 3.7,
     "listPrice": 3.99,
     "discount": 7.3,
@@ -1778,10 +1595,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "tongs"
-    ],
+    "tags": ["kitchen tools", "tongs"],
     "price": 5.98,
     "listPrice": 6.99,
     "discount": 14.5,
@@ -1804,10 +1618,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "cookware",
-      "pots"
-    ],
+    "tags": ["cookware", "pots"],
     "price": 37.71,
     "listPrice": 39.99,
     "discount": 5.7,
@@ -1830,10 +1641,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "turners"
-    ],
+    "tags": ["kitchen tools", "turners"],
     "price": 7.79,
     "listPrice": 8.99,
     "discount": 13.4,
@@ -1856,10 +1664,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "organization"
-    ],
+    "tags": ["kitchen tools", "organization"],
     "price": 17.57,
     "listPrice": 19.99,
     "discount": 12.1,
@@ -1882,10 +1687,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "utensils"
-    ],
+    "tags": ["kitchen tools", "utensils"],
     "price": 4.91,
     "listPrice": 4.99,
     "discount": 1.5,
@@ -1908,10 +1710,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "serveware",
-      "trays"
-    ],
+    "tags": ["serveware", "trays"],
     "price": 15.72,
     "listPrice": 16.99,
     "discount": 7.5,
@@ -1934,10 +1733,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "baking"
-    ],
+    "tags": ["kitchen tools", "baking"],
     "price": 10.82,
     "listPrice": 11.99,
     "discount": 9.8,
@@ -1960,10 +1756,7 @@
     "brandKey": "",
     "category": "Kitchen Accessories",
     "categoryKey": "kitchen-accessories",
-    "tags": [
-      "kitchen tools",
-      "peelers"
-    ],
+    "tags": ["kitchen tools", "peelers"],
     "price": 5.24,
     "listPrice": 5.99,
     "discount": 12.5,
@@ -1986,10 +1779,7 @@
     "brandKey": "Apple",
     "category": "Laptops",
     "categoryKey": "laptops",
-    "tags": [
-      "laptops",
-      "apple"
-    ],
+    "tags": ["laptops", "apple"],
     "price": 1906.19,
     "listPrice": 1999.99,
     "discount": 4.7,
@@ -2012,9 +1802,7 @@
     "brandKey": "Asus",
     "category": "Laptops",
     "categoryKey": "laptops",
-    "tags": [
-      "laptops"
-    ],
+    "tags": ["laptops"],
     "price": 1599.47,
     "listPrice": 1799.99,
     "discount": 11.1,
@@ -2037,9 +1825,7 @@
     "brandKey": "Huawei",
     "category": "Laptops",
     "categoryKey": "laptops",
-    "tags": [
-      "laptops"
-    ],
+    "tags": ["laptops"],
     "price": 1268.67,
     "listPrice": 1399.99,
     "discount": 9.4,
@@ -2062,9 +1848,7 @@
     "brandKey": "Lenovo",
     "category": "Laptops",
     "categoryKey": "laptops",
-    "tags": [
-      "laptops"
-    ],
+    "tags": ["laptops"],
     "price": 1027.94,
     "listPrice": 1099.99,
     "discount": 6.6,
@@ -2087,9 +1871,7 @@
     "brandKey": "Dell",
     "category": "Laptops",
     "categoryKey": "laptops",
-    "tags": [
-      "laptops"
-    ],
+    "tags": ["laptops"],
     "price": 1321.64,
     "listPrice": 1499.99,
     "discount": 11.9,
@@ -2112,10 +1894,7 @@
     "brandKey": "Fashion Trends",
     "category": "Men Shirts",
     "categoryKey": "mens-shirts",
-    "tags": [
-      "clothing",
-      "men's shirts"
-    ],
+    "tags": ["clothing", "men's shirts"],
     "price": 25.39,
     "listPrice": 29.99,
     "discount": 15.4,
@@ -2138,10 +1917,7 @@
     "brandKey": "Gigabyte",
     "category": "Men Shirts",
     "categoryKey": "mens-shirts",
-    "tags": [
-      "clothing",
-      "men's t-shirts"
-    ],
+    "tags": ["clothing", "men's t-shirts"],
     "price": 24.76,
     "listPrice": 24.99,
     "discount": 0.9,
@@ -2164,10 +1940,7 @@
     "brandKey": "Classic Wear",
     "category": "Men Shirts",
     "categoryKey": "mens-shirts",
-    "tags": [
-      "clothing",
-      "men's shirts"
-    ],
+    "tags": ["clothing", "men's shirts"],
     "price": 28.17,
     "listPrice": 34.99,
     "discount": 19.5,
@@ -2190,10 +1963,7 @@
     "brandKey": "Casual Comfort",
     "category": "Men Shirts",
     "categoryKey": "mens-shirts",
-    "tags": [
-      "clothing",
-      "men's shirts"
-    ],
+    "tags": ["clothing", "men's shirts"],
     "price": 18.62,
     "listPrice": 19.99,
     "discount": 6.8,
@@ -2216,10 +1986,7 @@
     "brandKey": "Urban Chic",
     "category": "Men Shirts",
     "categoryKey": "mens-shirts",
-    "tags": [
-      "clothing",
-      "men's shirts"
-    ],
+    "tags": ["clothing", "men's shirts"],
     "price": 24.8,
     "listPrice": 27.99,
     "discount": 11.4,
@@ -2242,10 +2009,7 @@
     "brandKey": "Nike",
     "category": "Men Shoes",
     "categoryKey": "mens-shoes",
-    "tags": [
-      "footwear",
-      "athletic shoes"
-    ],
+    "tags": ["footwear", "athletic shoes"],
     "price": 143.81,
     "listPrice": 149.99,
     "discount": 4.1,
@@ -2268,10 +2032,7 @@
     "brandKey": "Nike",
     "category": "Men Shoes",
     "categoryKey": "mens-shoes",
-    "tags": [
-      "footwear",
-      "sports cleats"
-    ],
+    "tags": ["footwear", "sports cleats"],
     "price": 65.56,
     "listPrice": 79.99,
     "discount": 18,
@@ -2294,10 +2055,7 @@
     "brandKey": "Puma",
     "category": "Men Shoes",
     "categoryKey": "mens-shoes",
-    "tags": [
-      "footwear",
-      "casual shoes"
-    ],
+    "tags": ["footwear", "casual shoes"],
     "price": 86.21,
     "listPrice": 89.99,
     "discount": 4.2,
@@ -2320,10 +2078,7 @@
     "brandKey": "Off White",
     "category": "Men Shoes",
     "categoryKey": "mens-shoes",
-    "tags": [
-      "footwear",
-      "athletic shoes"
-    ],
+    "tags": ["footwear", "athletic shoes"],
     "price": 114.03,
     "listPrice": 119.99,
     "discount": 5,
@@ -2346,10 +2101,7 @@
     "brandKey": "Off White",
     "category": "Men Shoes",
     "categoryKey": "mens-shoes",
-    "tags": [
-      "footwear",
-      "casual shoes"
-    ],
+    "tags": ["footwear", "casual shoes"],
     "price": 109.95,
     "listPrice": 109.99,
     "discount": 0,
@@ -2372,10 +2124,7 @@
     "brandKey": "Fashion Timepieces",
     "category": "Men Watches",
     "categoryKey": "mens-watches",
-    "tags": [
-      "watches",
-      "leather watches"
-    ],
+    "tags": ["watches", "leather watches"],
     "price": 84.6,
     "listPrice": 89.99,
     "discount": 6,
@@ -2398,10 +2147,7 @@
     "brandKey": "Longines",
     "category": "Men Watches",
     "categoryKey": "mens-watches",
-    "tags": [
-      "watches",
-      "luxury watches"
-    ],
+    "tags": ["watches", "luxury watches"],
     "price": 1241.39,
     "listPrice": 1499.99,
     "discount": 17.2,
@@ -2424,10 +2170,7 @@
     "brandKey": "Rolex",
     "category": "Men Watches",
     "categoryKey": "mens-watches",
-    "tags": [
-      "watches",
-      "luxury watches"
-    ],
+    "tags": ["watches", "luxury watches"],
     "price": 8200.79,
     "listPrice": 8999.99,
     "discount": 8.9,
@@ -2450,10 +2193,7 @@
     "brandKey": "Rolex",
     "category": "Men Watches",
     "categoryKey": "mens-watches",
-    "tags": [
-      "watches",
-      "luxury watches"
-    ],
+    "tags": ["watches", "luxury watches"],
     "price": 10722.39,
     "listPrice": 12999.99,
     "discount": 17.5,
@@ -2476,10 +2216,7 @@
     "brandKey": "Rolex",
     "category": "Men Watches",
     "categoryKey": "mens-watches",
-    "tags": [
-      "watches",
-      "luxury watches"
-    ],
+    "tags": ["watches", "luxury watches"],
     "price": 10589.69,
     "listPrice": 10999.99,
     "discount": 3.7,
@@ -2502,10 +2239,7 @@
     "brandKey": "Rolex",
     "category": "Men Watches",
     "categoryKey": "mens-watches",
-    "tags": [
-      "watches",
-      "luxury watches"
-    ],
+    "tags": ["watches", "luxury watches"],
     "price": 13292.99,
     "listPrice": 13999.99,
     "discount": 5.1,
@@ -2528,10 +2262,7 @@
     "brandKey": "Amazon",
     "category": "Mobile Accessories",
     "categoryKey": "mobile-accessories",
-    "tags": [
-      "electronics",
-      "smart speakers"
-    ],
+    "tags": ["electronics", "smart speakers"],
     "price": 87.92,
     "listPrice": 99.99,
     "discount": 12.1,
@@ -2554,10 +2285,7 @@
     "brandKey": "Apple",
     "category": "Mobile Accessories",
     "categoryKey": "mobile-accessories",
-    "tags": [
-      "electronics",
-      "wireless earphones"
-    ],
+    "tags": ["electronics", "wireless earphones"],
     "price": 109.79,
     "listPrice": 129.99,
     "discount": 15.5,
@@ -2580,10 +2308,7 @@
     "brandKey": "Apple",
     "category": "Mobile Accessories",
     "categoryKey": "mobile-accessories",
-    "tags": [
-      "electronics",
-      "over-ear headphones"
-    ],
+    "tags": ["electronics", "over-ear headphones"],
     "price": 474.81,
     "listPrice": 549.99,
     "discount": 13.7,
@@ -2606,10 +2331,7 @@
     "brandKey": "Apple",
     "category": "Mobile Accessories",
     "categoryKey": "mobile-accessories",
-    "tags": [
-      "electronics",
-      "wireless chargers"
-    ],
+    "tags": ["electronics", "wireless chargers"],
     "price": 76.41,
     "listPrice": 79.99,
     "discount": 4.5,
@@ -2632,10 +2354,7 @@
     "brandKey": "Apple",
     "category": "Mobile Accessories",
     "categoryKey": "mobile-accessories",
-    "tags": [
-      "electronics",
-      "smart speakers"
-    ],
+    "tags": ["electronics", "smart speakers"],
     "price": 81.89,
     "listPrice": 99.99,
     "discount": 18.1,
@@ -2658,10 +2377,7 @@
     "brandKey": "Apple",
     "category": "Mobile Accessories",
     "categoryKey": "mobile-accessories",
-    "tags": [
-      "electronics",
-      "chargers"
-    ],
+    "tags": ["electronics", "chargers"],
     "price": 16.29,
     "listPrice": 19.99,
     "discount": 18.5,
@@ -2684,10 +2400,7 @@
     "brandKey": "Apple",
     "category": "Mobile Accessories",
     "categoryKey": "mobile-accessories",
-    "tags": [
-      "electronics",
-      "power banks"
-    ],
+    "tags": ["electronics", "power banks"],
     "price": 82.82,
     "listPrice": 99.99,
     "discount": 17.2,
@@ -2710,10 +2423,7 @@
     "brandKey": "Apple",
     "category": "Mobile Accessories",
     "categoryKey": "mobile-accessories",
-    "tags": [
-      "electronics",
-      "smartwatches"
-    ],
+    "tags": ["electronics", "smartwatches"],
     "price": 307.92,
     "listPrice": 349.99,
     "discount": 12,
@@ -2736,10 +2446,7 @@
     "brandKey": "Beats",
     "category": "Mobile Accessories",
     "categoryKey": "mobile-accessories",
-    "tags": [
-      "electronics",
-      "wireless earphones"
-    ],
+    "tags": ["electronics", "wireless earphones"],
     "price": 47.13,
     "listPrice": 49.99,
     "discount": 5.7,
@@ -2762,10 +2469,7 @@
     "brandKey": "Apple",
     "category": "Mobile Accessories",
     "categoryKey": "mobile-accessories",
-    "tags": [
-      "electronics",
-      "phone accessories"
-    ],
+    "tags": ["electronics", "phone accessories"],
     "price": 25.84,
     "listPrice": 29.99,
     "discount": 13.9,
@@ -2788,10 +2492,7 @@
     "brandKey": "TechGear",
     "category": "Mobile Accessories",
     "categoryKey": "mobile-accessories",
-    "tags": [
-      "electronics",
-      "camera accessories"
-    ],
+    "tags": ["electronics", "camera accessories"],
     "price": 18.27,
     "listPrice": 19.99,
     "discount": 8.6,
@@ -2814,10 +2515,7 @@
     "brandKey": "GadgetMaster",
     "category": "Mobile Accessories",
     "categoryKey": "mobile-accessories",
-    "tags": [
-      "electronics",
-      "selfie accessories"
-    ],
+    "tags": ["electronics", "selfie accessories"],
     "price": 12.08,
     "listPrice": 14.99,
     "discount": 19.4,
@@ -2840,10 +2538,7 @@
     "brandKey": "SnapTech",
     "category": "Mobile Accessories",
     "categoryKey": "mobile-accessories",
-    "tags": [
-      "electronics",
-      "selfie accessories"
-    ],
+    "tags": ["electronics", "selfie accessories"],
     "price": 10.51,
     "listPrice": 12.99,
     "discount": 19.1,
@@ -2866,10 +2561,7 @@
     "brandKey": "ProVision",
     "category": "Mobile Accessories",
     "categoryKey": "mobile-accessories",
-    "tags": [
-      "electronics",
-      "camera accessories"
-    ],
+    "tags": ["electronics", "camera accessories"],
     "price": 458.44,
     "listPrice": 499.99,
     "discount": 8.3,
@@ -2892,9 +2584,7 @@
     "brandKey": "Generic Motors",
     "category": "Motorcycle",
     "categoryKey": "motorcycle",
-    "tags": [
-      "motorcycles"
-    ],
+    "tags": ["motorcycles"],
     "price": 3515.99,
     "listPrice": 3999.99,
     "discount": 12.1,
@@ -2917,10 +2607,7 @@
     "brandKey": "Kawasaki",
     "category": "Motorcycle",
     "categoryKey": "motorcycle",
-    "tags": [
-      "motorcycles",
-      "sportbikes"
-    ],
+    "tags": ["motorcycles", "sportbikes"],
     "price": 8120.69,
     "listPrice": 8999.99,
     "discount": 9.8,
@@ -2943,10 +2630,7 @@
     "brandKey": "MotoGP",
     "category": "Motorcycle",
     "categoryKey": "motorcycle",
-    "tags": [
-      "motorcycles",
-      "sportbikes"
-    ],
+    "tags": ["motorcycles", "sportbikes"],
     "price": 13961.99,
     "listPrice": 14999.99,
     "discount": 6.9,
@@ -2969,10 +2653,7 @@
     "brandKey": "ScootMaster",
     "category": "Motorcycle",
     "categoryKey": "motorcycle",
-    "tags": [
-      "motorcycles",
-      "scooters"
-    ],
+    "tags": ["motorcycles", "scooters"],
     "price": 2811.89,
     "listPrice": 2999.99,
     "discount": 6.3,
@@ -2995,10 +2676,7 @@
     "brandKey": "SpeedMaster",
     "category": "Motorcycle",
     "categoryKey": "motorcycle",
-    "tags": [
-      "motorcycles",
-      "sportbikes"
-    ],
+    "tags": ["motorcycles", "sportbikes"],
     "price": 6631.49,
     "listPrice": 7499.99,
     "discount": 11.6,
@@ -3021,10 +2699,7 @@
     "brandKey": "Attitude",
     "category": "Skin Care",
     "categoryKey": "skin-care",
-    "tags": [
-      "personal care",
-      "hand soap"
-    ],
+    "tags": ["personal care", "hand soap"],
     "price": 7.33,
     "listPrice": 8.99,
     "discount": 18.5,
@@ -3047,10 +2722,7 @@
     "brandKey": "Olay",
     "category": "Skin Care",
     "categoryKey": "skin-care",
-    "tags": [
-      "personal care",
-      "body wash"
-    ],
+    "tags": ["personal care", "body wash"],
     "price": 10.86,
     "listPrice": 12.99,
     "discount": 16.4,
@@ -3073,10 +2745,7 @@
     "brandKey": "Vaseline",
     "category": "Skin Care",
     "categoryKey": "skin-care",
-    "tags": [
-      "personal care",
-      "body lotion"
-    ],
+    "tags": ["personal care", "body lotion"],
     "price": 8.65,
     "listPrice": 9.99,
     "discount": 13.4,
@@ -3099,10 +2768,7 @@
     "brandKey": "Apple",
     "category": "Smartphones",
     "categoryKey": "smartphones",
-    "tags": [
-      "smartphones",
-      "apple"
-    ],
+    "tags": ["smartphones", "apple"],
     "price": 174.17,
     "listPrice": 199.99,
     "discount": 12.9,
@@ -3125,10 +2791,7 @@
     "brandKey": "Apple",
     "category": "Smartphones",
     "categoryKey": "smartphones",
-    "tags": [
-      "smartphones",
-      "apple"
-    ],
+    "tags": ["smartphones", "apple"],
     "price": 279.92,
     "listPrice": 299.99,
     "discount": 6.7,
@@ -3151,10 +2814,7 @@
     "brandKey": "Apple",
     "category": "Smartphones",
     "categoryKey": "smartphones",
-    "tags": [
-      "smartphones",
-      "apple"
-    ],
+    "tags": ["smartphones", "apple"],
     "price": 996.92,
     "listPrice": 1099.99,
     "discount": 9.4,
@@ -3177,10 +2837,7 @@
     "brandKey": "Apple",
     "category": "Smartphones",
     "categoryKey": "smartphones",
-    "tags": [
-      "smartphones",
-      "apple"
-    ],
+    "tags": ["smartphones", "apple"],
     "price": 723.68,
     "listPrice": 899.99,
     "discount": 19.6,
@@ -3203,10 +2860,7 @@
     "brandKey": "Oppo",
     "category": "Smartphones",
     "categoryKey": "smartphones",
-    "tags": [
-      "smartphones",
-      "oppo"
-    ],
+    "tags": ["smartphones", "oppo"],
     "price": 243.92,
     "listPrice": 249.99,
     "discount": 2.4,
@@ -3229,10 +2883,7 @@
     "brandKey": "Oppo",
     "category": "Smartphones",
     "categoryKey": "smartphones",
-    "tags": [
-      "smartphones",
-      "oppo"
-    ],
+    "tags": ["smartphones", "oppo"],
     "price": 325.43,
     "listPrice": 399.99,
     "discount": 18.6,
@@ -3255,10 +2906,7 @@
     "brandKey": "Oppo",
     "category": "Smartphones",
     "categoryKey": "smartphones",
-    "tags": [
-      "smartphones",
-      "oppo"
-    ],
+    "tags": ["smartphones", "oppo"],
     "price": 245.12,
     "listPrice": 299.99,
     "discount": 18.3,
@@ -3281,10 +2929,7 @@
     "brandKey": "Realme",
     "category": "Smartphones",
     "categoryKey": "smartphones",
-    "tags": [
-      "smartphones",
-      "realme"
-    ],
+    "tags": ["smartphones", "realme"],
     "price": 127.04,
     "listPrice": 149.99,
     "discount": 15.3,
@@ -3307,10 +2952,7 @@
     "brandKey": "Realme",
     "category": "Smartphones",
     "categoryKey": "smartphones",
-    "tags": [
-      "smartphones",
-      "realme"
-    ],
+    "tags": ["smartphones", "realme"],
     "price": 279.14,
     "listPrice": 299.99,
     "discount": 7,
@@ -3333,10 +2975,7 @@
     "brandKey": "Realme",
     "category": "Smartphones",
     "categoryKey": "smartphones",
-    "tags": [
-      "smartphones",
-      "realme"
-    ],
+    "tags": ["smartphones", "realme"],
     "price": 309.71,
     "listPrice": 349.99,
     "discount": 11.5,
@@ -3359,10 +2998,7 @@
     "brandKey": "Samsung",
     "category": "Smartphones",
     "categoryKey": "smartphones",
-    "tags": [
-      "smartphones",
-      "samsung galaxy"
-    ],
+    "tags": ["smartphones", "samsung galaxy"],
     "price": 241.34,
     "listPrice": 299.99,
     "discount": 19.6,
@@ -3385,10 +3021,7 @@
     "brandKey": "Samsung",
     "category": "Smartphones",
     "categoryKey": "smartphones",
-    "tags": [
-      "smartphones",
-      "samsung galaxy"
-    ],
+    "tags": ["smartphones", "samsung galaxy"],
     "price": 402.74,
     "listPrice": 499.99,
     "discount": 19.5,
@@ -3411,10 +3044,7 @@
     "brandKey": "Samsung",
     "category": "Smartphones",
     "categoryKey": "smartphones",
-    "tags": [
-      "smartphones",
-      "samsung galaxy"
-    ],
+    "tags": ["smartphones", "samsung galaxy"],
     "price": 660.86,
     "listPrice": 699.99,
     "discount": 5.6,
@@ -3437,10 +3067,7 @@
     "brandKey": "Vivo",
     "category": "Smartphones",
     "categoryKey": "smartphones",
-    "tags": [
-      "smartphones",
-      "vivo"
-    ],
+    "tags": ["smartphones", "vivo"],
     "price": 224.57,
     "listPrice": 249.99,
     "discount": 10.2,
@@ -3463,10 +3090,7 @@
     "brandKey": "Vivo",
     "category": "Smartphones",
     "categoryKey": "smartphones",
-    "tags": [
-      "smartphones",
-      "vivo"
-    ],
+    "tags": ["smartphones", "vivo"],
     "price": 246.98,
     "listPrice": 299.99,
     "discount": 17.7,
@@ -3489,10 +3113,7 @@
     "brandKey": "Vivo",
     "category": "Smartphones",
     "categoryKey": "smartphones",
-    "tags": [
-      "smartphones",
-      "vivo"
-    ],
+    "tags": ["smartphones", "vivo"],
     "price": 412.94,
     "listPrice": 499.99,
     "discount": 17.4,
@@ -3515,10 +3136,7 @@
     "brandKey": "",
     "category": "Sports Accessories",
     "categoryKey": "sports-accessories",
-    "tags": [
-      "sports equipment",
-      "american football"
-    ],
+    "tags": ["sports equipment", "american football"],
     "price": 19,
     "listPrice": 19.99,
     "discount": 4.9,
@@ -3541,10 +3159,7 @@
     "brandKey": "",
     "category": "Sports Accessories",
     "categoryKey": "sports-accessories",
-    "tags": [
-      "sports equipment",
-      "baseball"
-    ],
+    "tags": ["sports equipment", "baseball"],
     "price": 8.84,
     "listPrice": 8.99,
     "discount": 1.7,
@@ -3567,10 +3182,7 @@
     "brandKey": "",
     "category": "Sports Accessories",
     "categoryKey": "sports-accessories",
-    "tags": [
-      "sports equipment",
-      "baseball"
-    ],
+    "tags": ["sports equipment", "baseball"],
     "price": 24.27,
     "listPrice": 24.99,
     "discount": 2.9,
@@ -3593,10 +3205,7 @@
     "brandKey": "",
     "category": "Sports Accessories",
     "categoryKey": "sports-accessories",
-    "tags": [
-      "sports equipment",
-      "basketball"
-    ],
+    "tags": ["sports equipment", "basketball"],
     "price": 13.87,
     "listPrice": 14.99,
     "discount": 7.4,
@@ -3619,10 +3228,7 @@
     "brandKey": "",
     "category": "Sports Accessories",
     "categoryKey": "sports-accessories",
-    "tags": [
-      "sports equipment",
-      "basketball"
-    ],
+    "tags": ["sports equipment", "basketball"],
     "price": 36.89,
     "listPrice": 39.99,
     "discount": 7.7,
@@ -3645,10 +3251,7 @@
     "brandKey": "",
     "category": "Sports Accessories",
     "categoryKey": "sports-accessories",
-    "tags": [
-      "sports equipment",
-      "cricket"
-    ],
+    "tags": ["sports equipment", "cricket"],
     "price": 11.87,
     "listPrice": 12.99,
     "discount": 8.6,
@@ -3671,10 +3274,7 @@
     "brandKey": "",
     "category": "Sports Accessories",
     "categoryKey": "sports-accessories",
-    "tags": [
-      "sports equipment",
-      "cricket"
-    ],
+    "tags": ["sports equipment", "cricket"],
     "price": 29,
     "listPrice": 29.99,
     "discount": 3.3,
@@ -3697,10 +3297,7 @@
     "brandKey": "",
     "category": "Sports Accessories",
     "categoryKey": "sports-accessories",
-    "tags": [
-      "sports equipment",
-      "cricket"
-    ],
+    "tags": ["sports equipment", "cricket"],
     "price": 40.65,
     "listPrice": 44.99,
     "discount": 9.6,
@@ -3723,10 +3320,7 @@
     "brandKey": "",
     "category": "Sports Accessories",
     "categoryKey": "sports-accessories",
-    "tags": [
-      "sports equipment",
-      "cricket"
-    ],
+    "tags": ["sports equipment", "cricket"],
     "price": 24.91,
     "listPrice": 29.99,
     "discount": 16.9,
@@ -3749,10 +3343,7 @@
     "brandKey": "",
     "category": "Sports Accessories",
     "categoryKey": "sports-accessories",
-    "tags": [
-      "sports equipment",
-      "badminton"
-    ],
+    "tags": ["sports equipment", "badminton"],
     "price": 5.81,
     "listPrice": 5.99,
     "discount": 3,
@@ -3775,10 +3366,7 @@
     "brandKey": "",
     "category": "Sports Accessories",
     "categoryKey": "sports-accessories",
-    "tags": [
-      "sports equipment",
-      "football"
-    ],
+    "tags": ["sports equipment", "football"],
     "price": 17.06,
     "listPrice": 17.99,
     "discount": 5.2,
@@ -3801,10 +3389,7 @@
     "brandKey": "",
     "category": "Sports Accessories",
     "categoryKey": "sports-accessories",
-    "tags": [
-      "sports equipment",
-      "golf"
-    ],
+    "tags": ["sports equipment", "golf"],
     "price": 8.25,
     "listPrice": 9.99,
     "discount": 17.4,
@@ -3827,10 +3412,7 @@
     "brandKey": "",
     "category": "Sports Accessories",
     "categoryKey": "sports-accessories",
-    "tags": [
-      "sports equipment",
-      "golf"
-    ],
+    "tags": ["sports equipment", "golf"],
     "price": 46.73,
     "listPrice": 49.99,
     "discount": 6.5,
@@ -3853,10 +3435,7 @@
     "brandKey": "",
     "category": "Sports Accessories",
     "categoryKey": "sports-accessories",
-    "tags": [
-      "sports equipment",
-      "baseball"
-    ],
+    "tags": ["sports equipment", "baseball"],
     "price": 24.14,
     "listPrice": 29.99,
     "discount": 19.5,
@@ -3879,10 +3458,7 @@
     "brandKey": "",
     "category": "Sports Accessories",
     "categoryKey": "sports-accessories",
-    "tags": [
-      "sports equipment",
-      "tennis"
-    ],
+    "tags": ["sports equipment", "tennis"],
     "price": 6.17,
     "listPrice": 6.99,
     "discount": 11.8,
@@ -3905,10 +3481,7 @@
     "brandKey": "",
     "category": "Sports Accessories",
     "categoryKey": "sports-accessories",
-    "tags": [
-      "sports equipment",
-      "tennis"
-    ],
+    "tags": ["sports equipment", "tennis"],
     "price": 40.19,
     "listPrice": 49.99,
     "discount": 19.6,
@@ -3931,10 +3504,7 @@
     "brandKey": "",
     "category": "Sports Accessories",
     "categoryKey": "sports-accessories",
-    "tags": [
-      "sports equipment",
-      "volleyball"
-    ],
+    "tags": ["sports equipment", "volleyball"],
     "price": 10.52,
     "listPrice": 11.99,
     "discount": 12.3,
@@ -3957,10 +3527,7 @@
     "brandKey": "Fashion Shades",
     "category": "Sunglasses",
     "categoryKey": "sunglasses",
-    "tags": [
-      "eyewear",
-      "sunglasses"
-    ],
+    "tags": ["eyewear", "sunglasses"],
     "price": 28.51,
     "listPrice": 29.99,
     "discount": 4.9,
@@ -3983,10 +3550,7 @@
     "brandKey": "Fashion Shades",
     "category": "Sunglasses",
     "categoryKey": "sunglasses",
-    "tags": [
-      "eyewear",
-      "sunglasses"
-    ],
+    "tags": ["eyewear", "sunglasses"],
     "price": 23.76,
     "listPrice": 24.99,
     "discount": 4.9,
@@ -4009,10 +3573,7 @@
     "brandKey": "Fashion Shades",
     "category": "Sunglasses",
     "categoryKey": "sunglasses",
-    "tags": [
-      "eyewear",
-      "sunglasses"
-    ],
+    "tags": ["eyewear", "sunglasses"],
     "price": 34.64,
     "listPrice": 34.99,
     "discount": 1,
@@ -4035,10 +3596,7 @@
     "brandKey": "Fashion Fun",
     "category": "Sunglasses",
     "categoryKey": "sunglasses",
-    "tags": [
-      "eyewear",
-      "party glasses"
-    ],
+    "tags": ["eyewear", "party glasses"],
     "price": 17.75,
     "listPrice": 19.99,
     "discount": 11.2,
@@ -4061,10 +3619,7 @@
     "brandKey": "Fashion Shades",
     "category": "Sunglasses",
     "categoryKey": "sunglasses",
-    "tags": [
-      "eyewear",
-      "sunglasses"
-    ],
+    "tags": ["eyewear", "sunglasses"],
     "price": 22.64,
     "listPrice": 22.99,
     "discount": 1.5,
@@ -4087,10 +3642,7 @@
     "brandKey": "Apple",
     "category": "Tablets",
     "categoryKey": "tablets",
-    "tags": [
-      "electronics",
-      "tablets"
-    ],
+    "tags": ["electronics", "tablets"],
     "price": 481.79,
     "listPrice": 499.99,
     "discount": 3.6,
@@ -4113,10 +3665,7 @@
     "brandKey": "Samsung",
     "category": "Tablets",
     "categoryKey": "tablets",
-    "tags": [
-      "electronics",
-      "tablets"
-    ],
+    "tags": ["electronics", "tablets"],
     "price": 520.13,
     "listPrice": 599.99,
     "discount": 13.3,
@@ -4139,10 +3688,7 @@
     "brandKey": "Samsung",
     "category": "Tablets",
     "categoryKey": "tablets",
-    "tags": [
-      "electronics",
-      "tablets"
-    ],
+    "tags": ["electronics", "tablets"],
     "price": 286.29,
     "listPrice": 349.99,
     "discount": 18.2,
@@ -4165,10 +3711,7 @@
     "brandKey": "",
     "category": "Tops",
     "categoryKey": "tops",
-    "tags": [
-      "clothing",
-      "dresses"
-    ],
+    "tags": ["clothing", "dresses"],
     "price": 26.35,
     "listPrice": 29.99,
     "discount": 12.1,
@@ -4191,10 +3734,7 @@
     "brandKey": "",
     "category": "Tops",
     "categoryKey": "tops",
-    "tags": [
-      "clothing",
-      "girls' dresses"
-    ],
+    "tags": ["clothing", "girls' dresses"],
     "price": 16.15,
     "listPrice": 19.99,
     "discount": 19.2,
@@ -4217,10 +3757,7 @@
     "brandKey": "",
     "category": "Tops",
     "categoryKey": "tops",
-    "tags": [
-      "clothing",
-      "dresses"
-    ],
+    "tags": ["clothing", "dresses"],
     "price": 29.99,
     "listPrice": 34.99,
     "discount": 14.3,
@@ -4243,10 +3780,7 @@
     "brandKey": "",
     "category": "Tops",
     "categoryKey": "tops",
-    "tags": [
-      "clothing",
-      "dresses"
-    ],
+    "tags": ["clothing", "dresses"],
     "price": 21.63,
     "listPrice": 24.99,
     "discount": 13.5,
@@ -4269,10 +3803,7 @@
     "brandKey": "",
     "category": "Tops",
     "categoryKey": "tops",
-    "tags": [
-      "clothing",
-      "dresses"
-    ],
+    "tags": ["clothing", "dresses"],
     "price": 34.81,
     "listPrice": 39.99,
     "discount": 13,
@@ -4295,10 +3826,7 @@
     "brandKey": "Chrysler",
     "category": "Vehicle",
     "categoryKey": "vehicle",
-    "tags": [
-      "sedans",
-      "vehicles"
-    ],
+    "tags": ["sedans", "vehicles"],
     "price": 27845.79,
     "listPrice": 28999.99,
     "discount": 4,
@@ -4321,11 +3849,7 @@
     "brandKey": "Dodge",
     "category": "Vehicle",
     "categoryKey": "vehicle",
-    "tags": [
-      "sedans",
-      "sports cars",
-      "vehicles"
-    ],
+    "tags": ["sedans", "sports cars", "vehicles"],
     "price": 30284.09,
     "listPrice": 32999.99,
     "discount": 8.2,
@@ -4348,11 +3872,7 @@
     "brandKey": "Dodge",
     "category": "Vehicle",
     "categoryKey": "vehicle",
-    "tags": [
-      "hatchbacks",
-      "compact cars",
-      "vehicles"
-    ],
+    "tags": ["hatchbacks", "compact cars", "vehicles"],
     "price": 24342.49,
     "listPrice": 24999.99,
     "discount": 2.6,
@@ -4375,10 +3895,7 @@
     "brandKey": "Dodge",
     "category": "Vehicle",
     "categoryKey": "vehicle",
-    "tags": [
-      "suvs",
-      "vehicles"
-    ],
+    "tags": ["suvs", "vehicles"],
     "price": 30917.19,
     "listPrice": 36999.99,
     "discount": 16.4,
@@ -4401,10 +3918,7 @@
     "brandKey": "Chrysler",
     "category": "Vehicle",
     "categoryKey": "vehicle",
-    "tags": [
-      "minivans",
-      "vehicles"
-    ],
+    "tags": ["minivans", "vehicles"],
     "price": 27276.79,
     "listPrice": 31999.99,
     "discount": 14.8,
@@ -4427,10 +3941,7 @@
     "brandKey": "Fashionista",
     "category": "Women Bags",
     "categoryKey": "womens-bags",
-    "tags": [
-      "fashion accessories",
-      "handbags"
-    ],
+    "tags": ["fashion accessories", "handbags"],
     "price": 41.05,
     "listPrice": 49.99,
     "discount": 17.9,
@@ -4453,10 +3964,7 @@
     "brandKey": "Heshe",
     "category": "Women Bags",
     "categoryKey": "womens-bags",
-    "tags": [
-      "fashion accessories",
-      "leather bags"
-    ],
+    "tags": ["fashion accessories", "leather bags"],
     "price": 124.96,
     "listPrice": 129.99,
     "discount": 3.9,
@@ -4479,10 +3987,7 @@
     "brandKey": "Prada",
     "category": "Women Bags",
     "categoryKey": "womens-bags",
-    "tags": [
-      "fashion accessories",
-      "designer bags"
-    ],
+    "tags": ["fashion accessories", "designer bags"],
     "price": 515.45,
     "listPrice": 599.99,
     "discount": 14.1,
@@ -4505,10 +4010,7 @@
     "brandKey": "Urban Chic",
     "category": "Women Bags",
     "categoryKey": "womens-bags",
-    "tags": [
-      "fashion accessories",
-      "backpacks"
-    ],
+    "tags": ["fashion accessories", "backpacks"],
     "price": 33.91,
     "listPrice": 39.99,
     "discount": 15.2,
@@ -4531,10 +4033,7 @@
     "brandKey": "Elegance Collection",
     "category": "Women Bags",
     "categoryKey": "womens-bags",
-    "tags": [
-      "fashion accessories",
-      "handbags"
-    ],
+    "tags": ["fashion accessories", "handbags"],
     "price": 53.01,
     "listPrice": 59.99,
     "discount": 11.6,
@@ -4557,10 +4056,7 @@
     "brandKey": "",
     "category": "Women Dresses",
     "categoryKey": "womens-dresses",
-    "tags": [
-      "clothing",
-      "gowns"
-    ],
+    "tags": ["clothing", "gowns"],
     "price": 116.37,
     "listPrice": 129.99,
     "discount": 10.5,
@@ -4583,11 +4079,7 @@
     "brandKey": "",
     "category": "Women Dresses",
     "categoryKey": "womens-dresses",
-    "tags": [
-      "clothing",
-      "corsets",
-      "skirts"
-    ],
+    "tags": ["clothing", "corsets", "skirts"],
     "price": 75.36,
     "listPrice": 89.99,
     "discount": 16.3,
@@ -4610,11 +4102,7 @@
     "brandKey": "",
     "category": "Women Dresses",
     "categoryKey": "womens-dresses",
-    "tags": [
-      "clothing",
-      "corsets",
-      "skirts"
-    ],
+    "tags": ["clothing", "corsets", "skirts"],
     "price": 67.94,
     "listPrice": 79.99,
     "discount": 15.1,
@@ -4637,10 +4125,7 @@
     "brandKey": "",
     "category": "Women Dresses",
     "categoryKey": "womens-dresses",
-    "tags": [
-      "clothing",
-      "dresses"
-    ],
+    "tags": ["clothing", "dresses"],
     "price": 41.15,
     "listPrice": 49.99,
     "discount": 17.7,
@@ -4663,10 +4148,7 @@
     "brandKey": "",
     "category": "Women Dresses",
     "categoryKey": "womens-dresses",
-    "tags": [
-      "clothing",
-      "suits"
-    ],
+    "tags": ["clothing", "suits"],
     "price": 145.76,
     "listPrice": 179.99,
     "discount": 19,
@@ -4689,10 +4171,7 @@
     "brandKey": "",
     "category": "Women Jewellery",
     "categoryKey": "womens-jewellery",
-    "tags": [
-      "fashion accessories",
-      "earrings"
-    ],
+    "tags": ["fashion accessories", "earrings"],
     "price": 25.42,
     "listPrice": 29.99,
     "discount": 15.2,
@@ -4715,10 +4194,7 @@
     "brandKey": "",
     "category": "Women Jewellery",
     "categoryKey": "womens-jewellery",
-    "tags": [
-      "fashion accessories",
-      "earrings"
-    ],
+    "tags": ["fashion accessories", "earrings"],
     "price": 21.2,
     "listPrice": 24.99,
     "discount": 15.2,
@@ -4741,10 +4217,7 @@
     "brandKey": "",
     "category": "Women Jewellery",
     "categoryKey": "womens-jewellery",
-    "tags": [
-      "fashion accessories",
-      "earrings"
-    ],
+    "tags": ["fashion accessories", "earrings"],
     "price": 19.84,
     "listPrice": 19.99,
     "discount": 0.8,
@@ -4767,10 +4240,7 @@
     "brandKey": "Comfort Trends",
     "category": "Women Shoes",
     "categoryKey": "womens-shoes",
-    "tags": [
-      "footwear",
-      "slippers"
-    ],
+    "tags": ["footwear", "slippers"],
     "price": 19.32,
     "listPrice": 19.99,
     "discount": 3.3,
@@ -4793,10 +4263,7 @@
     "brandKey": "Calvin Klein",
     "category": "Women Shoes",
     "categoryKey": "womens-shoes",
-    "tags": [
-      "footwear",
-      "heel shoes"
-    ],
+    "tags": ["footwear", "heel shoes"],
     "price": 77.44,
     "listPrice": 79.99,
     "discount": 3.2,
@@ -4819,10 +4286,7 @@
     "brandKey": "Fashion Diva",
     "category": "Women Shoes",
     "categoryKey": "womens-shoes",
-    "tags": [
-      "footwear",
-      "women's shoes"
-    ],
+    "tags": ["footwear", "women's shoes"],
     "price": 43.03,
     "listPrice": 49.99,
     "discount": 13.9,
@@ -4845,10 +4309,7 @@
     "brandKey": "Pampi",
     "category": "Women Shoes",
     "categoryKey": "womens-shoes",
-    "tags": [
-      "footwear",
-      "casual shoes"
-    ],
+    "tags": ["footwear", "casual shoes"],
     "price": 25.75,
     "listPrice": 29.99,
     "discount": 14.1,
@@ -4871,10 +4332,7 @@
     "brandKey": "Fashion Express",
     "category": "Women Shoes",
     "categoryKey": "womens-shoes",
-    "tags": [
-      "footwear",
-      "women's shoes"
-    ],
+    "tags": ["footwear", "women's shoes"],
     "price": 28.8,
     "listPrice": 34.99,
     "discount": 17.7,
@@ -4897,10 +4355,7 @@
     "brandKey": "IWC",
     "category": "Women Watches",
     "categoryKey": "womens-watches",
-    "tags": [
-      "watches",
-      "luxury watches"
-    ],
+    "tags": ["watches", "luxury watches"],
     "price": 4527.49,
     "listPrice": 4999.99,
     "discount": 9.5,
@@ -4923,10 +4378,7 @@
     "brandKey": "Rolex",
     "category": "Women Watches",
     "categoryKey": "womens-watches",
-    "tags": [
-      "watches",
-      "luxury watches"
-    ],
+    "tags": ["watches", "luxury watches"],
     "price": 15342.39,
     "listPrice": 15999.99,
     "discount": 4.1,
@@ -4949,11 +4401,7 @@
     "brandKey": "Rolex",
     "category": "Women Watches",
     "categoryKey": "womens-watches",
-    "tags": [
-      "watches",
-      "luxury watches",
-      "women's watches"
-    ],
+    "tags": ["watches", "luxury watches", "women's watches"],
     "price": 9246.59,
     "listPrice": 10999.99,
     "discount": 15.9,
@@ -4976,10 +4424,7 @@
     "brandKey": "Fashion Gold",
     "category": "Women Watches",
     "categoryKey": "womens-watches",
-    "tags": [
-      "watches",
-      "women's watches"
-    ],
+    "tags": ["watches", "women's watches"],
     "price": 653.27,
     "listPrice": 799.99,
     "discount": 18.3,
@@ -5002,10 +4447,7 @@
     "brandKey": "Fashion Co.",
     "category": "Women Watches",
     "categoryKey": "womens-watches",
-    "tags": [
-      "watches",
-      "women's watches"
-    ],
+    "tags": ["watches", "women's watches"],
     "price": 113.61,
     "listPrice": 129.99,
     "discount": 12.6,

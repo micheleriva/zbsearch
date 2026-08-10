@@ -3,13 +3,29 @@
   "version": "3.3.4",
   "description": "Highlight and trim search matches inside a text",
   "keywords": [
-    "zbsearch",
+    "excerpt",
     "highlight",
     "search",
     "snippet",
-    "excerpt"
+    "zbsearch"
   ],
+  "homepage": "https://github.com/micheleriva/zbsearch#readme",
+  "bugs": {
+    "url": "https://github.com/micheleriva/zbsearch/issues"
+  },
   "license": "Apache-2.0",
+  "author": {
+    "name": "Michele Riva",
+    "email": "riva.michele.95@gmail.com",
+    "url": "https://github.com/MicheleRiva"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/micheleriva/zbsearch.git"
+  },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.cjs",
@@ -23,34 +39,18 @@
     },
     "./package.json": "./package.json"
   },
-  "files": [
-    "dist"
-  ],
-  "bugs": {
-    "url": "https://github.com/micheleriva/zbsearch/issues"
-  },
-  "homepage": "https://github.com/micheleriva/zbsearch#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/micheleriva/zbsearch.git"
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "node ../../scripts/rolldown-build.mjs && tsc -p . --emitDeclarationOnly",
-    "lint": "exit 0",
+    "lint": "oxlint --fix --fix-suggestions",
     "test": "vitest run"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "devDependencies": {
     "@types/node": "^24.7.0",
     "rolldown": "^1.2.3",
     "tsx": "^4.20.6",
     "typescript": "^7.0.2"
-  },
-  "author": {
-    "name": "Michele Riva",
-    "email": "riva.michele.95@gmail.com",
-    "url": "https://github.com/MicheleRiva"
   }
 }

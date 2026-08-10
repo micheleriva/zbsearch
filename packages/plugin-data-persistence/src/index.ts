@@ -8,11 +8,7 @@ import { detectRuntime } from './utils.js'
 import { serializeZBSearchInstance, deserializeZBSearchInstance } from './seqproto.js'
 
 export { persistToStorage, restoreFromStorage } from './storage.js'
-export type {
-  PersistenceStorage,
-  PersistToStorageOptions,
-  RestoreFromStorageOptions
-} from './storage.js'
+export type { PersistenceStorage, PersistToStorageOptions, RestoreFromStorageOptions } from './storage.js'
 
 const hexFromMap: Record<string, number> = {
   0: 0,
@@ -165,18 +161,18 @@ export async function restore<T extends AnyZBSearch>(
 }
 
 export async function persistToFile<T extends AnyZBSearch>(
-  db: T,
-  format: PersistenceFormat = 'json',
-  path?: string,
-  runtime?: Runtime
+  _db: T,
+  _format: PersistenceFormat = 'json',
+  _path?: string,
+  _runtime?: Runtime
 ): Promise<never> {
   throw new Error(METHOD_MOVED('persistToFile'))
 }
 
-export async function restoreFromFile<T extends AnyZBSearch>(
-  format: PersistenceFormat = 'json',
-  path?: string,
-  runtime?: Runtime
+export async function restoreFromFile<_T extends AnyZBSearch>(
+  _format: PersistenceFormat = 'json',
+  _path?: string,
+  _runtime?: Runtime
 ): Promise<never> {
   throw new Error(METHOD_MOVED('restoreFromFile'))
 }

@@ -15,7 +15,7 @@ const AREA_BLURBS: Record<string, string> = {
   Mobile: 'The phone and tablet apps',
   Desktop: 'The desktop client and deployment',
   Security: 'SSO, SCIM, device trust and compliance',
-  Data: 'Export, retention, backups and privacy',
+  Data: 'Export, retention, backups and privacy'
 }
 
 /**
@@ -32,7 +32,7 @@ export function Home({
   areaCounts,
   onAsk,
   onArea,
-  onOpen,
+  onOpen
 }: {
   examples: ExampleQuery[]
   popular: Hit[]
@@ -46,15 +46,15 @@ export function Home({
       <section>
         <h1 className="text-[22px] font-semibold tracking-tight text-ink">How can we help?</h1>
         <p className="mt-1 text-[13.5px] text-ink-muted">
-          150 articles, searched in your browser. Describe the problem however you like — the search
-          understands more than the words you type.
+          150 articles, searched in your browser. Describe the problem however you like — the search understands more
+          than the words you type.
         </p>
       </section>
 
       <section>
         <h2 className="mb-3 text-[13px] font-semibold text-ink">Common questions</h2>
         <ul className="grid gap-x-8 sm:grid-cols-2">
-          {examples.slice(0, 10).map(example => (
+          {examples.slice(0, 10).map((example) => (
             <li key={example.term}>
               <button
                 type="button"

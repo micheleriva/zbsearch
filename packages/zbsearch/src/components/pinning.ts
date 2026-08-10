@@ -1,4 +1,4 @@
-import { DocumentID, getInternalDocumentId, InternalDocumentIDStore } from './internal-document-id-store.js'
+import { DocumentID, InternalDocumentIDStore } from './internal-document-id-store.js'
 
 export type PinAnchoring = 'is' | 'starts_with' | 'contains'
 

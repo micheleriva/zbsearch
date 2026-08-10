@@ -67,22 +67,22 @@ zbsearch({
 })
 ```
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `language` | `'english'` | Language used to tokenize and stem the index |
-| `excludeRoutes` | `[]` | Routes to leave out, with `*` and `**` wildcards |
-| `categoryLabel` | `'Docs'` | Label shown next to a result's page title |
-| `indexDrafts` | `false` | Index pages marked `draft: true` |
-| `maxResults` | `12` | Maximum number of hits shown at once |
-| `boost` | `{ title: 4, section: 3, hierarchy: 1.5, content: 1 }` | Per-property ranking weights |
-| `tolerance` | `1` | Edit distance tolerated per term |
-| `threshold` | `0` | Minimum share of query terms a document must match |
-| `snippetLength` | `140` | Maximum length of the excerpt under a hit |
-| `recentSearches` | `true` | Remember and replay recently opened results |
-| `hotkeys` | `true` | Bind the ⌘K / Ctrl+K and `/` shortcuts |
-| `searchButtonLabel` | `'Search'` | Text of the navbar button |
-| `placeholder` | `'Search documentation…'` | Placeholder of the search input |
-| `labels` | `{}` | Copy overrides for the dialog |
+| Option              | Default                                                | Description                                        |
+| ------------------- | ------------------------------------------------------ | -------------------------------------------------- |
+| `language`          | `'english'`                                            | Language used to tokenize and stem the index       |
+| `excludeRoutes`     | `[]`                                                   | Routes to leave out, with `*` and `**` wildcards   |
+| `categoryLabel`     | `'Docs'`                                               | Label shown next to a result's page title          |
+| `indexDrafts`       | `false`                                                | Index pages marked `draft: true`                   |
+| `maxResults`        | `12`                                                   | Maximum number of hits shown at once               |
+| `boost`             | `{ title: 4, section: 3, hierarchy: 1.5, content: 1 }` | Per-property ranking weights                       |
+| `tolerance`         | `1`                                                    | Edit distance tolerated per term                   |
+| `threshold`         | `0`                                                    | Minimum share of query terms a document must match |
+| `snippetLength`     | `140`                                                  | Maximum length of the excerpt under a hit          |
+| `recentSearches`    | `true`                                                 | Remember and replay recently opened results        |
+| `hotkeys`           | `true`                                                 | Bind the ⌘K / Ctrl+K and `/` shortcuts             |
+| `searchButtonLabel` | `'Search'`                                             | Text of the navbar button                          |
+| `placeholder`       | `'Search documentation…'`                              | Placeholder of the search input                    |
+| `labels`            | `{}`                                                   | Copy overrides for the dialog                      |
 
 A page is left out of the index when its front matter sets `search: false`, and landing pages
 (`layout: home`) are skipped because they are navigation rather than prose.

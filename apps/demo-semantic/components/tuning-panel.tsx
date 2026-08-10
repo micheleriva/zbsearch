@@ -14,7 +14,7 @@ const BOOST_FIELDS = ['title', 'summary', 'tags', 'body'] as const
 export function TuningPanel({
   view,
   settings,
-  onChange,
+  onChange
 }: {
   view: View
   settings: Settings
@@ -35,15 +35,14 @@ export function TuningPanel({
             max={0.9}
             step={0.01}
             value={settings.similarity}
-            onChange={similarity => set({ similarity })}
+            onChange={(similarity) => set({ similarity })}
             accent="text-vector"
           />
         </Field>
         <p className="text-[11px] leading-relaxed text-console-muted">
-          The floor a cosine has to clear to count as a hit. ZBSearch defaults this to 0.80, which suits
-          encoders whose unrelated pairs already sit high; with this model the best match ever measured on
-          this corpus is 0.74, so that default would return nothing at all. Pull it up and watch the
-          semantic results thin out one by one.
+          The floor a cosine has to clear to count as a hit. ZBSearch defaults this to 0.80, which suits encoders whose
+          unrelated pairs already sit high; with this model the best match ever measured on this corpus is 0.74, so that
+          default would return nothing at all. Pull it up and watch the semantic results thin out one by one.
         </p>
       </div>
 
@@ -57,14 +56,14 @@ export function TuningPanel({
             max={1}
             step={0.05}
             value={settings.vectorWeight}
-            onChange={vectorWeight => set({ vectorWeight })}
+            onChange={(vectorWeight) => set({ vectorWeight })}
             accent="text-hybrid"
           />
         </Field>
         <p className="text-[11px] leading-relaxed text-console-muted">
-          Both rankings are normalised to their own top score before being added, so this is a true split
-          rather than a comparison of raw scores. At 0.00 hybrid collapses onto keyword; at 1.00 it is
-          semantic with a lexical tie-break.
+          Both rankings are normalised to their own top score before being added, so this is a true split rather than a
+          comparison of raw scores. At 0.00 hybrid collapses onto keyword; at 1.00 it is semantic with a lexical
+          tie-break.
         </p>
       </div>
 
@@ -75,24 +74,24 @@ export function TuningPanel({
             max={2}
             step={1}
             value={settings.tolerance}
-            onChange={tolerance => set({ tolerance })}
+            onChange={(tolerance) => set({ tolerance })}
             accent="text-lexical"
           />
         </Field>
         <p className="text-[11px] leading-relaxed text-console-muted">
-          Edit distance allowed per term. Typo tolerance is the lexical answer to a query that does not
-          match; the vector index needs no equivalent because near-misses are already near in the space.
+          Edit distance allowed per term. Typo tolerance is the lexical answer to a query that does not match; the
+          vector index needs no equivalent because near-misses are already near in the space.
         </p>
 
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-1">
-          {BOOST_FIELDS.map(field => (
+          {BOOST_FIELDS.map((field) => (
             <Field key={field} label={`boost.${field}`} value={settings.boosts[field]}>
               <Slider
                 min={1}
                 max={8}
                 step={1}
                 value={settings.boosts[field]}
-                onChange={value => set({ boosts: { ...settings.boosts, [field]: value } })}
+                onChange={(value) => set({ boosts: { ...settings.boosts, [field]: value } })}
                 accent="text-lexical"
               />
             </Field>

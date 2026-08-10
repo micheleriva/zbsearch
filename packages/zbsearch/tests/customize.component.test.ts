@@ -229,9 +229,7 @@ describe('sorter', () => {
       storage: Sorter
     }
     class MyCustomSorter implements ISorter<SorterStorage> {
-      constructor(private sorter: ISorter<Sorter>) {
-        this.sorter = sorter
-      }
+      constructor(private sorter: ISorter<Sorter>) {}
       sortBy(sort, docIds, by) {
         return this.sorter.sortBy(sort.storage, docIds, by)
       }
@@ -291,9 +289,7 @@ describe('sorter', () => {
       storage: DocumentsStore
     }
     class MyCustomDoc implements IDocumentsStore<DocStorage> {
-      constructor(private doc: IDocumentsStore<DocumentsStore>) {
-        this.doc = doc
-      }
+      constructor(private doc: IDocumentsStore<DocumentsStore>) {}
       create<T extends AnyZBSearch<any>>(
         zbsearch: T,
         sharedInternalDocumentStore: InternalDocumentIDStore

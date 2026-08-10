@@ -1,8 +1,33 @@
 {
   "name": "@zbsearch/stemmers",
   "version": "3.3.4",
-  "type": "module",
   "description": "Stemmers for ZBSearch",
+  "keywords": [
+    "full-text",
+    "full-text search",
+    "fuzzy search",
+    "search",
+    "stemming",
+    "typo-tolerant search"
+  ],
+  "bugs": {
+    "url": "https://github.com/micheleriva/zbsearch"
+  },
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Michele Riva",
+    "email": "riva.michele.95@gmail.com",
+    "url": "https://github.com/MicheleRiva",
+    "author": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/micheleriva/zbsearch"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
   "sideEffects": false,
   "main": "./dist/en.cjs",
   "types": "./dist/en.d.ts",
@@ -168,37 +193,12 @@
       "require": "./dist/sk.cjs"
     }
   },
-  "files": [
-    "dist"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/micheleriva/zbsearch"
-  },
-  "bugs": {
-    "url": "https://github.com/micheleriva/zbsearch"
-  },
   "scripts": {
     "build": "node scripts/build.js",
-    "lint": "exit 0;",
+    "lint": "oxlint --fix --fix-suggestions",
     "test": "exit 0;",
     "ci": "npm run test"
   },
-  "keywords": [
-    "full-text search",
-    "search",
-    "fuzzy search",
-    "typo-tolerant search",
-    "full-text",
-    "stemming"
-  ],
-  "author": {
-    "name": "Michele Riva",
-    "email": "riva.michele.95@gmail.com",
-    "url": "https://github.com/MicheleRiva",
-    "author": true
-  },
-  "license": "Apache-2.0",
   "devDependencies": {
     "@swc/core": "^1.15.43"
   },

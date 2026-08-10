@@ -6,7 +6,7 @@ const config = {
    * in this demo runs the encoder on the server — it only ever runs in the worker — so
    * the package is kept out of the server bundle rather than being resolved and traced.
    */
-  serverExternalPackages: ['@huggingface/transformers'],
+  serverExternalPackages: ['@huggingface/transformers']
 }
 
 export default config

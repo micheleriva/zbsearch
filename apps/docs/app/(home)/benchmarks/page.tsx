@@ -1,14 +1,14 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import { BenchmarkCharts } from '@/components/benchmarks/benchmark-charts';
-import { QualityCharts } from '@/components/benchmarks/quality-charts';
-import { QualitySpeedChart } from '@/components/benchmarks/quality-speed-chart';
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { BenchmarkCharts } from '@/components/benchmarks/benchmark-charts'
+import { QualityCharts } from '@/components/benchmarks/quality-charts'
+import { QualitySpeedChart } from '@/components/benchmarks/quality-speed-chart'
 
 export const metadata: Metadata = {
   title: 'Benchmarks',
   description:
-    'Interactive ZBSearch benchmark results: BEIR search quality, multilingual tokenization quality, and full-text throughput.',
-};
+    'Interactive ZBSearch benchmark results: BEIR search quality, multilingual tokenization quality, and full-text throughput.'
+}
 
 export default function BenchmarksPage() {
   return (
@@ -21,8 +21,7 @@ export default function BenchmarksPage() {
         <header className="mb-12 max-w-3xl">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Benchmarks</h1>
           <p className="mt-4 text-lg leading-relaxed text-fd-muted-foreground">
-            Results come
-            from the open{' '}
+            Results come from the open{' '}
             <Link
               href="https://github.com/micheleriva/zbsearch/tree/main/benchmarks"
               className="font-medium text-fd-foreground underline underline-offset-2 hover:text-fd-primary"
@@ -89,5 +88,5 @@ export default function BenchmarksPage() {
         </p>
       </main>
     </div>
-  );
+  )
 }

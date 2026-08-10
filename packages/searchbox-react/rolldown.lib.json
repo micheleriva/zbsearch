@@ -6,15 +6,6 @@
     "es": ".js",
     "cjs": ".cjs"
   },
-  "external": [
-    "react",
-    "react-dom",
-    "react/jsx-runtime"
-  ],
-  "copy": [
-    [
-      "../searchbox-core/src/styles.css",
-      "dist/styles.css"
-    ]
-  ]
+  "external": ["react", "react-dom", "react/jsx-runtime"],
+  "copy": [["../searchbox-core/src/styles.css", "dist/styles.css"]]
 }

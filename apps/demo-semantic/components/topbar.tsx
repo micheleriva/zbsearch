@@ -16,7 +16,7 @@ export function Topbar({
   onFocus,
   onHome,
   busy,
-  documents,
+  documents
 }: {
   term: string
   onTerm: (term: string) => void
@@ -83,7 +83,7 @@ export function Topbar({
             ref={input}
             type="search"
             value={term}
-            onChange={event => onTerm(event.target.value)}
+            onChange={(event) => onTerm(event.target.value)}
             onFocus={onFocus}
             placeholder="Search for help, in your own words…"
             aria-label="Search the help center"

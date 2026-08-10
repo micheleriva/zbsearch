@@ -11,7 +11,7 @@ export function BoostPanel({
   settings,
   showScores,
   onChange,
-  onShowScores,
+  onShowScores
 }: {
   settings: EngineSettings
   showScores: boolean
@@ -25,7 +25,7 @@ export function BoostPanel({
       action={<ConsoleButton onClick={() => onChange({ ...settings, boosts: DEFAULT_BOOSTS })}>reset</ConsoleButton>}
     >
       <div className="space-y-3">
-        {BOOST_FIELDS.map(field => (
+        {BOOST_FIELDS.map((field) => (
           <Field key={field} label={field} value={`×${settings.boosts[field].toFixed(1)}`}>
             <Slider
               // ZBSearch rejects a boost of 0 — a field can be de-emphasised, not switched off.
@@ -33,7 +33,7 @@ export function BoostPanel({
               max={8}
               step={0.5}
               value={settings.boosts[field]}
-              onChange={value => onChange({ ...settings, boosts: { ...settings.boosts, [field]: value } })}
+              onChange={(value) => onChange({ ...settings, boosts: { ...settings.boosts, [field]: value } })}
             />
           </Field>
         ))}
@@ -53,7 +53,7 @@ export function BoostPanel({
 
 export function MatchingPanel({
   settings,
-  onChange,
+  onChange
 }: {
   settings: EngineSettings
   onChange: (next: EngineSettings) => void
@@ -72,7 +72,7 @@ export function MatchingPanel({
             max={2}
             step={1}
             value={settings.tolerance}
-            onChange={value => onChange({ ...settings, tolerance: value })}
+            onChange={(value) => onChange({ ...settings, tolerance: value })}
           />
         </Field>
         <p className="-mt-1 text-[11px] leading-snug text-console-muted">
@@ -86,7 +86,7 @@ export function MatchingPanel({
             max={1}
             step={0.05}
             value={settings.threshold}
-            onChange={value => onChange({ ...settings, threshold: value })}
+            onChange={(value) => onChange({ ...settings, threshold: value })}
           />
         </Field>
         <p className="-mt-1 text-[11px] leading-snug text-console-muted">
@@ -100,7 +100,7 @@ export function MatchingPanel({
             label="Exact match"
             description="Whole indexed words only — no prefix expansion, no typo tolerance."
             checked={settings.exact}
-            onChange={checked => onChange({ ...settings, exact: checked })}
+            onChange={(checked) => onChange({ ...settings, exact: checked })}
           />
         </div>
       </div>

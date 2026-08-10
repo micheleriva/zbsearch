@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/cn'
 import {
   averageQualityScores,
   multilingualConfigLabels,
@@ -17,73 +17,72 @@ import {
   type MultilingualConfigKey,
   type MultilingualMetricKey,
   type QualityEngineKey,
-  type QualityMetricKey,
-} from '@/lib/benchmarks/quality-data';
-import { ChartLegend } from './legend';
-import { useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
+  type QualityMetricKey
+} from '@/lib/benchmarks/quality-data'
+import { ChartLegend } from './legend'
+import { useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 
-type DatasetTab = 'macro' | string;
+type DatasetTab = 'macro' | string
 
 function formatScore(value: number): string {
-  return value.toFixed(3);
+  return value.toFixed(3)
 }
 
 function formatMs(value: number | null, crashed: boolean): string {
-  if (crashed || value == null) return 'crashed';
-  if (value >= 100) return `${Math.round(value)} ms`;
-  if (value >= 10) return `${value.toFixed(1)} ms`;
-  return `${value.toFixed(2)} ms`;
+  if (crashed || value == null) return 'crashed'
+  if (value >= 100) return `${Math.round(value)} ms`
+  if (value >= 10) return `${value.toFixed(1)} ms`
+  return `${value.toFixed(2)} ms`
 }
 
 function datasetTitle(id: string): string {
-  if (id === 'macro') return 'Macro average';
-  if (id === 'scifact') return 'SciFact';
-  if (id === 'nfcorpus') return 'NFCorpus';
-  if (id === 'arguana') return 'ArguAna';
-  return id;
+  if (id === 'macro') return 'Macro average'
+  if (id === 'scifact') return 'SciFact'
+  if (id === 'nfcorpus') return 'NFCorpus'
+  if (id === 'arguana') return 'ArguAna'
+  return id
 }
 
 function SearchQualitySection() {
-  const [dataset, setDataset] = useState<DatasetTab>('macro');
-  const [metric, setMetric] = useState<QualityMetricKey>('ndcg10');
-  const [activeEngine, setActiveEngine] = useState<QualityEngineKey | null>(null);
+  const [dataset, setDataset] = useState<DatasetTab>('macro')
+  const [metric, setMetric] = useState<QualityMetricKey>('ndcg10')
+  const [activeEngine, setActiveEngine] = useState<QualityEngineKey | null>(null)
 
   const engines = useMemo(() => {
     if (dataset === 'macro') {
-      return averageQualityScores(searchQualityDatasets);
+      return averageQualityScores(searchQualityDatasets)
     }
-    const found = searchQualityDatasets.find((entry) => entry.id === dataset);
-    return found?.engines ?? averageQualityScores(searchQualityDatasets);
-  }, [dataset]);
+    const found = searchQualityDatasets.find((entry) => entry.id === dataset)
+    return found?.engines ?? averageQualityScores(searchQualityDatasets)
+  }, [dataset])
 
   const reference =
     dataset === 'macro'
       ? null
-      : (searchQualityDatasets.find((entry) => entry.id === dataset)?.referenceBm25Ndcg10 ??
-        null);
+      : (searchQualityDatasets.find((entry) => entry.id === dataset)?.referenceBm25Ndcg10 ?? null)
 
   const rows = qualityEngineOrder
     .map((key) => ({
       key,
       ...engines[key],
-      value: engines[key][metric],
+      value: engines[key][metric]
     }))
-    .sort((a, b) => b.value - a.value);
+    .sort((a, b) => b.value - a.value)
 
   const maxValue = Math.max(
     ...rows.map((row) => row.value),
     metric === 'ndcg10' && reference != null ? reference : 0,
-    0.01,
-  );
+    0.01
+  )
 
   const datasetMeta =
     dataset === 'macro'
       ? {
           documents: searchQualityDatasets.reduce((sum, entry) => sum + entry.documents, 0),
-          queries: searchQualityDatasets.reduce((sum, entry) => sum + entry.queries, 0),
+          queries: searchQualityDatasets.reduce((sum, entry) => sum + entry.queries, 0)
         }
-      : searchQualityDatasets.find((entry) => entry.id === dataset);
+      : searchQualityDatasets.find((entry) => entry.id === dataset)
 
   return (
     <section className="rounded-2xl border border-fd-border bg-fd-card p-4 sm:p-6">
@@ -102,35 +101,33 @@ function SearchQualitySection() {
           </h2>
           {datasetMeta && (
             <p className="shrink-0 text-xs tabular-nums text-fd-muted-foreground">
-              {datasetMeta.documents.toLocaleString('en-US')} docs ·{' '}
-              {datasetMeta.queries.toLocaleString('en-US')} queries
+              {datasetMeta.documents.toLocaleString('en-US')} docs · {datasetMeta.queries.toLocaleString('en-US')}{' '}
+              queries
             </p>
           )}
         </div>
         <p className="mt-1 text-sm leading-relaxed text-fd-muted-foreground">
-          Ranking quality on official BEIR collections with trec_eval-compatible metrics. Higher is
-          better. Primary metric is nDCG@10.
+          Ranking quality on official BEIR collections with trec_eval-compatible metrics. Higher is better. Primary
+          metric is nDCG@10.
         </p>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
-        {(['macro', ...searchQualityDatasets.map((entry) => entry.id)] as DatasetTab[]).map(
-          (id) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setDataset(id)}
-              className={cn(
-                'rounded-md border px-3 py-1 text-xs font-medium transition-colors',
-                dataset === id
-                  ? 'border-fd-primary/40 bg-fd-primary/10 text-fd-foreground'
-                  : 'border-fd-border bg-fd-background text-fd-muted-foreground hover:text-fd-foreground',
-              )}
-            >
-              {datasetTitle(id)}
-            </button>
-          ),
-        )}
+        {(['macro', ...searchQualityDatasets.map((entry) => entry.id)] as DatasetTab[]).map((id) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setDataset(id)}
+            className={cn(
+              'rounded-md border px-3 py-1 text-xs font-medium transition-colors',
+              dataset === id
+                ? 'border-fd-primary/40 bg-fd-primary/10 text-fd-foreground'
+                : 'border-fd-border bg-fd-background text-fd-muted-foreground hover:text-fd-foreground'
+            )}
+          >
+            {datasetTitle(id)}
+          </button>
+        ))}
       </div>
 
       <div className="mb-5 flex flex-wrap gap-2">
@@ -143,7 +140,7 @@ function SearchQualitySection() {
               'rounded-lg border px-2.5 py-1 text-xs tabular-nums transition-colors',
               metric === key
                 ? 'border-fd-primary/40 bg-fd-primary/10 font-semibold text-fd-foreground'
-                : 'border-fd-border bg-fd-background text-fd-muted-foreground hover:text-fd-foreground',
+                : 'border-fd-border bg-fd-background text-fd-muted-foreground hover:text-fd-foreground'
             )}
           >
             {qualityMetricLabels[key]}
@@ -154,21 +151,17 @@ function SearchQualitySection() {
       <div className="space-y-2.5">
         {metric === 'ndcg10' && reference != null && (
           <div className="mb-3 flex items-center gap-2 text-xs text-fd-muted-foreground">
-            <span
-              className="inline-block h-px w-6 border-t border-dashed border-fd-muted-foreground"
-              aria-hidden
-            />
+            <span className="inline-block h-px w-6 border-t border-dashed border-fd-muted-foreground" aria-hidden />
             Lucene BM25 reference: {formatScore(reference)}
           </div>
         )}
 
         {rows.map((row) => {
-          const dimmed = activeEngine !== null && activeEngine !== row.key;
-          const highlighted = activeEngine === row.key;
-          const isZbsearch = row.key.startsWith('zbsearch');
-          const width = (row.value / maxValue) * 100;
-          const referenceWidth =
-            metric === 'ndcg10' && reference != null ? (reference / maxValue) * 100 : null;
+          const dimmed = activeEngine !== null && activeEngine !== row.key
+          const highlighted = activeEngine === row.key
+          const isZbsearch = row.key.startsWith('zbsearch')
+          const width = (row.value / maxValue) * 100
+          const referenceWidth = metric === 'ndcg10' && reference != null ? (reference / maxValue) * 100 : null
 
           return (
             <button
@@ -182,16 +175,13 @@ function SearchQualitySection() {
                 'grid w-full grid-cols-[minmax(7.5rem,9rem)_1fr_auto] items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all',
                 isZbsearch ? 'border-fd-primary/25 bg-fd-primary/5' : 'border-fd-border bg-fd-background',
                 dimmed && 'opacity-35',
-                highlighted && 'ring-1 ring-fd-primary/20',
+                highlighted && 'ring-1 ring-fd-primary/20'
               )}
             >
               <span className="inline-flex items-center gap-2 text-xs font-medium text-fd-foreground">
                 <span
                   aria-hidden
-                  className={cn(
-                    'size-2 shrink-0 rounded-full',
-                    isZbsearch ? 'bg-chart-subject' : 'bg-chart-other',
-                  )}
+                  className={cn('size-2 shrink-0 rounded-full', isZbsearch ? 'bg-chart-subject' : 'bg-chart-other')}
                 />
                 {row.label}
               </span>
@@ -207,7 +197,7 @@ function SearchQualitySection() {
                 <div
                   className={cn(
                     'h-full rounded-xs transition-[width]',
-                    isZbsearch ? 'bg-chart-subject' : 'bg-chart-other',
+                    isZbsearch ? 'bg-chart-subject' : 'bg-chart-other'
                   )}
                   style={{ width: `${width}%` }}
                 />
@@ -222,7 +212,7 @@ function SearchQualitySection() {
                 </p>
               </div>
             </button>
-          );
+          )
         })}
       </div>
 
@@ -232,31 +222,27 @@ function SearchQualitySection() {
         <p className="mt-3 text-xs leading-relaxed text-fd-muted-foreground">{searchQualityNotes[0]}</p>
       )}
     </section>
-  );
+  )
 }
 
 function MultilingualSection() {
-  const [metric, setMetric] = useState<MultilingualMetricKey>('recall');
-  const [view, setView] = useState<'macro' | 'mixed' | string>('macro');
-  const [activeConfig, setActiveConfig] = useState<MultilingualConfigKey | null>(null);
+  const [metric, setMetric] = useState<MultilingualMetricKey>('recall')
+  const [view, setView] = useState<'macro' | 'mixed' | string>('macro')
+  const [activeConfig, setActiveConfig] = useState<MultilingualConfigKey | null>(null)
 
   const scores =
-    view === 'macro'
-      ? multilingualMacro
-      : view === 'mixed'
-        ? multilingualMixed
-        : multilingualPerLanguage[view];
+    view === 'macro' ? multilingualMacro : view === 'mixed' ? multilingualMixed : multilingualPerLanguage[view]
   const rows = multilingualConfigs
     .filter((config) => config in scores)
     .map((config) => ({ config, value: scores[config as keyof typeof scores][metric] }))
-    .sort((a, b) => b.value - a.value);
-  const maxValue = rows[0]?.value ?? 1;
+    .sort((a, b) => b.value - a.value)
+  const maxValue = rows[0]?.value ?? 1
 
   const viewLabel = (id: string) => {
-    if (id === 'macro') return 'Macro average';
-    if (id === 'mixed') return 'Mixed index';
-    return id[0].toUpperCase() + id.slice(1);
-  };
+    if (id === 'macro') return 'Macro average'
+    if (id === 'mixed') return 'Mixed index'
+    return id[0].toUpperCase() + id.slice(1)
+  }
 
   return (
     <section className="rounded-2xl border border-fd-border bg-fd-card p-4 sm:p-6">
@@ -273,8 +259,8 @@ function MultilingualSection() {
           </a>
         </h2>
         <p className="mt-1 text-sm leading-relaxed text-fd-muted-foreground">
-          Zero-config <code className="text-xs">language: &apos;multilingual&apos;</code> vs
-          per-language stemmers/stopwords vs the English default tokenizer.
+          Zero-config <code className="text-xs">language: &apos;multilingual&apos;</code> vs per-language
+          stemmers/stopwords vs the English default tokenizer.
         </p>
       </div>
 
@@ -288,7 +274,7 @@ function MultilingualSection() {
               'rounded-md border px-3 py-1 text-xs font-medium transition-colors',
               view === id
                 ? 'border-fd-primary/40 bg-fd-primary/10 text-fd-foreground'
-                : 'border-fd-border bg-fd-background text-fd-muted-foreground hover:text-fd-foreground',
+                : 'border-fd-border bg-fd-background text-fd-muted-foreground hover:text-fd-foreground'
             )}
           >
             {viewLabel(id)}
@@ -306,7 +292,7 @@ function MultilingualSection() {
               'rounded-lg border px-2.5 py-1 text-xs transition-colors',
               metric === key
                 ? 'border-fd-primary/40 bg-fd-primary/10 font-semibold text-fd-foreground'
-                : 'border-fd-border bg-fd-background text-fd-muted-foreground hover:text-fd-foreground',
+                : 'border-fd-border bg-fd-background text-fd-muted-foreground hover:text-fd-foreground'
             )}
           >
             {multilingualMetricLabels[key]}
@@ -316,10 +302,10 @@ function MultilingualSection() {
 
       <div className="space-y-2.5">
         {rows.map(({ config, value }) => {
-          const dimmed = activeConfig !== null && activeConfig !== config;
-          const highlighted = activeConfig === config;
-          const isSubject = config === 'multilingual';
-          const relative = value / maxValue;
+          const dimmed = activeConfig !== null && activeConfig !== config
+          const highlighted = activeConfig === config
+          const isSubject = config === 'multilingual'
+          const relative = value / maxValue
 
           return (
             <button
@@ -333,16 +319,13 @@ function MultilingualSection() {
                 'grid w-full grid-cols-[minmax(8.5rem,10.5rem)_1fr_auto] items-center gap-3 rounded-xl border border-fd-border bg-fd-background px-3 py-2.5 text-left transition-all',
                 isSubject && 'border-fd-primary/25 bg-fd-primary/5',
                 dimmed && 'opacity-35',
-                highlighted && 'ring-1 ring-fd-primary/20',
+                highlighted && 'ring-1 ring-fd-primary/20'
               )}
             >
               <span className="inline-flex items-center gap-2 text-xs font-medium text-fd-foreground">
                 <span
                   aria-hidden
-                  className={cn(
-                    'size-2 shrink-0 rounded-full',
-                    isSubject ? 'bg-chart-subject' : 'bg-chart-other',
-                  )}
+                  className={cn('size-2 shrink-0 rounded-full', isSubject ? 'bg-chart-subject' : 'bg-chart-other')}
                 />
                 {multilingualConfigLabels[config]}
               </span>
@@ -351,22 +334,20 @@ function MultilingualSection() {
                 <div
                   className={cn(
                     'h-full rounded-xs transition-[width]',
-                    isSubject ? 'bg-chart-subject' : 'bg-chart-other',
+                    isSubject ? 'bg-chart-subject' : 'bg-chart-other'
                   )}
                   style={{ width: `${relative * 100}%` }}
                 />
               </div>
 
               <div className="min-w-[5.5rem] text-right">
-                <p className="text-sm font-semibold tabular-nums text-fd-foreground">
-                  {formatScore(value)}
-                </p>
+                <p className="text-sm font-semibold tabular-nums text-fd-foreground">{formatScore(value)}</p>
                 <p className="text-[10px] tabular-nums text-fd-muted-foreground">
                   {relative === 1 ? 'Best' : `${Math.round(relative * 100)}% of best`}
                 </p>
               </div>
             </button>
-          );
+          )
         })}
       </div>
 
@@ -383,12 +364,12 @@ function MultilingualSection() {
             : `${viewLabel(view)} results for the selected metric.`}
         </span>
         <span>
-          Multilingual handles exact forms, diacritics, and non-Latin scripts without language
-          configuration; tuned stemmers still lead on morphology.
+          Multilingual handles exact forms, diacritics, and non-Latin scripts without language configuration; tuned
+          stemmers still lead on morphology.
         </span>
       </div>
     </section>
-  );
+  )
 }
 
 export function QualityCharts({ between }: { between?: ReactNode } = {}) {
@@ -402,5 +383,5 @@ export function QualityCharts({ between }: { between?: ReactNode } = {}) {
         <MultilingualSection />
       </div>
     </div>
-  );
+  )
 }

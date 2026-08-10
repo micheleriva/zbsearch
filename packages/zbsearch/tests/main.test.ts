@@ -33,7 +33,7 @@ describe('language', () => {
         schema: {},
         language: 'portuguese'
       })
-    } catch (e) {
+    } catch {
       expect.fail()
     }
   })
@@ -44,7 +44,7 @@ describe('language', () => {
         schema: {},
         language: 'slovenian'
       })
-    } catch (e) {
+    } catch {
       expect.fail()
     }
   })
@@ -55,7 +55,7 @@ describe('language', () => {
         schema: {},
         language: 'bulgarian'
       })
-    } catch (e) {
+    } catch {
       expect.fail()
     }
   })

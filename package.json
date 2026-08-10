@@ -11,8 +11,8 @@
     "build": "turbo build",
     "docs:dev": "pnpm --filter @zbsearch/docs dev",
     "docs:build": "pnpm --filter @zbsearch/docs build",
-    "format": "biome format --write ./packages",
-    "format:hook": "biome format --write --no-errors-on-unmatched ./packages",
+    "format": "oxfmt ./packages",
+    "format:hook": "oxfmt --no-error-on-unmatched-pattern ./packages",
     "lint": "turbo lint",
     "test": "turbo test",
     "commit": "turbo lint && pnpm lint-staged && cz",
@@ -20,10 +20,10 @@
     "publish-packages": "node scripts/release.mjs",
     "verify": "node scripts/smoke-dist.mjs packages/*/ && node scripts/verify-sourcemaps.mjs packages/*/",
     "verify:contract": "node scripts/dist-contract.mjs verify packages/*/",
-    "snapshot:contract": "node scripts/dist-contract.mjs snapshot packages/*/"
+    "snapshot:contract": "node scripts/dist-contract.mjs snapshot packages/*/",
+    "lint:check": "oxlint"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.5",
     "@esbuild/darwin-arm64": "0.28.1",
     "@swc/cli": "^0.7.8",
     "@swc/core": "^1.3.27",
@@ -35,6 +35,8 @@
     "commitizen": "^4.2.6",
     "husky": "^8.0.2",
     "lint-staged": "^16.2.4",
+    "oxfmt": "^0.62.0",
+    "oxlint": "^1.77.0",
     "semver": "^7.3.8",
     "simple-git": "^3.17.0",
     "tsx": "^4.20.6",

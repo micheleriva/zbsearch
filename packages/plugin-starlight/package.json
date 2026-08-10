@@ -3,14 +3,30 @@
   "version": "3.3.4",
   "description": "Make ZBSearch the search engine of your Astro Starlight site",
   "keywords": [
-    "zbsearch",
     "astro",
+    "full-text search",
+    "search",
     "starlight",
     "starlight-plugin",
-    "search",
-    "full-text search"
+    "zbsearch"
   ],
+  "homepage": "https://github.com/micheleriva/zbsearch#readme",
+  "bugs": {
+    "url": "https://github.com/micheleriva/zbsearch/issues"
+  },
   "license": "Apache-2.0",
+  "author": {
+    "name": "Michele Riva",
+    "email": "riva.michele.95@gmail.com",
+    "url": "https://github.com/MicheleRiva"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/micheleriva/zbsearch.git"
+  },
+  "files": [
+    "src"
+  ],
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -18,31 +34,13 @@
     "./endpoint": "./src/endpoint.ts",
     "./package.json": "./package.json"
   },
-  "files": [
-    "src"
-  ],
-  "bugs": {
-    "url": "https://github.com/micheleriva/zbsearch/issues"
-  },
-  "homepage": "https://github.com/micheleriva/zbsearch#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/micheleriva/zbsearch.git"
-  },
-  "scripts": {
-    "build": "exit 0",
-    "lint": "exit 0",
-    "test": "vitest run"
-  },
   "publishConfig": {
     "access": "public"
   },
-  "peerDependencies": {
-    "@astrojs/react": ">=4.0.0",
-    "@astrojs/starlight": ">=0.34.0",
-    "astro": ">=5.0.0",
-    "react": "^18.0.0 || ^19.0.0",
-    "react-dom": "^18.0.0 || ^19.0.0"
+  "scripts": {
+    "build": "exit 0",
+    "lint": "oxlint --fix --fix-suggestions",
+    "test": "vitest run"
   },
   "dependencies": {
     "@zbsearch/docs-index": "workspace:*",
@@ -60,9 +58,11 @@
     "tsx": "^4.20.6",
     "typescript": "^7.0.2"
   },
-  "author": {
-    "name": "Michele Riva",
-    "email": "riva.michele.95@gmail.com",
-    "url": "https://github.com/MicheleRiva"
+  "peerDependencies": {
+    "@astrojs/react": ">=4.0.0",
+    "@astrojs/starlight": ">=0.34.0",
+    "astro": ">=5.0.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
   }
 }

@@ -18,9 +18,9 @@ import { pluginQPS } from '@zbsearch/plugin-qps'
 
 const db = await create({
   schema: {
-    description: 'string',
+    description: 'string'
   },
-  plugins: [ pluginQPS() ],
+  plugins: [pluginQPS()]
 })
 ```
 

@@ -20,9 +20,7 @@ export const FUNCTION_COMPONENTS = [
   'formatElapsedTime'
 ]
 
-export const SINGLE_OR_ARRAY_COMPONENTS = [
-  /* deprecated with v2.0.0-beta.5 */
-]
+export const SINGLE_OR_ARRAY_COMPONENTS = [/* deprecated with v2.0.0-beta.5 */]
 
 export function runSingleHook<T extends AnyZBSearch, ResultDocument extends TypedDocument<T>>(
   hooks: SingleCallbackComponent<T>[],

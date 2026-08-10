@@ -1,13 +1,9 @@
-'use client';
+'use client'
 
-import { cn } from '@/lib/cn';
-import { benchmarkSuites, type BenchmarkEngine } from '@/lib/benchmarks/data';
-import {
-  averageQualityScores,
-  searchQualityDatasets,
-  type QualityEngineKey,
-} from '@/lib/benchmarks/quality-data';
-import { useState } from 'react';
+import { cn } from '@/lib/cn'
+import { benchmarkSuites, type BenchmarkEngine } from '@/lib/benchmarks/data'
+import { averageQualityScores, searchQualityDatasets, type QualityEngineKey } from '@/lib/benchmarks/quality-data'
+import { useState } from 'react'
 
 const qualityKeyByEngine: Record<BenchmarkEngine, QualityEngineKey> = {
   'ZBSearch (BM25)': 'zbsearch-bm25',
@@ -17,8 +13,8 @@ const qualityKeyByEngine: Record<BenchmarkEngine, QualityEngineKey> = {
   MiniSearch: 'minisearch',
   FlexSearch: 'flexsearch',
   Lunr: 'lunr',
-  'Fuse.js': 'fusejs',
-};
+  'Fuse.js': 'fusejs'
+}
 
 const labelOffsets: Record<BenchmarkEngine, { x: number; y: number; anchor: 'start' | 'end' }> = {
   'ZBSearch (BM25)': { x: 8, y: -10, anchor: 'start' },
@@ -28,37 +24,34 @@ const labelOffsets: Record<BenchmarkEngine, { x: number; y: number; anchor: 'sta
   MiniSearch: { x: 8, y: 16, anchor: 'start' },
   FlexSearch: { x: 8, y: -10, anchor: 'start' },
   Lunr: { x: -8, y: 16, anchor: 'end' },
-  'Fuse.js': { x: 8, y: -10, anchor: 'start' },
-};
+  'Fuse.js': { x: 8, y: -10, anchor: 'start' }
+}
 
 function formatTitle(name: string): string {
   return name
     .replace(/^search with /, '')
     .replace(/^plain search \(all terms\)$/, 'plain search')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+    .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 function formatOps(value: number): string {
-  if (value >= 100_000) return `${Math.round(value / 1000)}k`;
-  if (value >= 1000) return `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1)}k`;
-  return Math.round(value).toLocaleString('en-US');
+  if (value >= 100_000) return `${Math.round(value / 1000)}k`
+  if (value >= 1000) return `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1)}k`
+  return Math.round(value).toLocaleString('en-US')
 }
 
 export function QualitySpeedChart() {
-  const [activeSuiteId, setActiveSuiteId] = useState(benchmarkSuites[0].id);
-  const [activeEngine, setActiveEngine] = useState<BenchmarkEngine | null>(null);
-  const activeSuite =
-    benchmarkSuites.find((suite) => suite.id === activeSuiteId) ?? benchmarkSuites[0];
-  const qualityScores = averageQualityScores(searchQualityDatasets);
+  const [activeSuiteId, setActiveSuiteId] = useState(benchmarkSuites[0].id)
+  const [activeEngine, setActiveEngine] = useState<BenchmarkEngine | null>(null)
+  const activeSuite = benchmarkSuites.find((suite) => suite.id === activeSuiteId) ?? benchmarkSuites[0]
+  const qualityScores = averageQualityScores(searchQualityDatasets)
 
   const points = activeSuite.results.map((result) => ({
     engine: result.engine,
     quality: qualityScores[qualityKeyByEngine[result.engine]].ndcg10,
-    ops: result.ops,
-  }));
-  const qualityWinner = points.reduce((best, point) =>
-    point.quality > best.quality ? point : best,
-  );
+    ops: result.ops
+  }))
+  const qualityWinner = points.reduce((best, point) => (point.quality > best.quality ? point : best))
 
   const frontier = points.filter(
     (point) =>
@@ -67,34 +60,29 @@ export function QualitySpeedChart() {
           other !== point &&
           other.quality >= point.quality &&
           other.ops >= point.ops &&
-          (other.quality > point.quality || other.ops > point.ops),
-      ),
-  );
+          (other.quality > point.quality || other.ops > point.ops)
+      )
+  )
 
-  const width = 760;
-  const height = 390;
-  const padding = { top: 30, right: 90, bottom: 56, left: 68 };
-  const chartWidth = width - padding.left - padding.right;
-  const chartHeight = height - padding.top - padding.bottom;
-  const maxQuality = 0.5;
-  const minLogOps = 1;
-  const maxLogOps = 6;
-  const x = (quality: number) => padding.left + (quality / maxQuality) * chartWidth;
+  const width = 760
+  const height = 390
+  const padding = { top: 30, right: 90, bottom: 56, left: 68 }
+  const chartWidth = width - padding.left - padding.right
+  const chartHeight = height - padding.top - padding.bottom
+  const maxQuality = 0.5
+  const minLogOps = 1
+  const maxLogOps = 6
+  const x = (quality: number) => padding.left + (quality / maxQuality) * chartWidth
   const y = (ops: number) =>
-    padding.top +
-    chartHeight -
-    ((Math.log10(Math.max(ops, 10)) - minLogOps) / (maxLogOps - minLogOps)) * chartHeight;
+    padding.top + chartHeight - ((Math.log10(Math.max(ops, 10)) - minLogOps) / (maxLogOps - minLogOps)) * chartHeight
 
   const frontierPath = [...frontier]
     .sort((a, b) => a.quality - b.quality)
     .map((point, index) => `${index === 0 ? 'M' : 'L'} ${x(point.quality)} ${y(point.ops)}`)
-    .join(' ');
+    .join(' ')
 
   return (
-    <section
-      id="quality-speed"
-      className="scroll-mt-24 rounded-2xl border border-fd-border bg-fd-card p-4 sm:p-6"
-    >
+    <section id="quality-speed" className="scroll-mt-24 rounded-2xl border border-fd-border bg-fd-card p-4 sm:p-6">
       <div className="mb-5">
         <h2 className="text-xl font-semibold tracking-tight text-fd-foreground">
           <a href="#quality-speed" className="group">
@@ -108,8 +96,8 @@ export function QualitySpeedChart() {
           </a>
         </h2>
         <p className="mt-1 text-sm leading-relaxed text-fd-muted-foreground">
-          Macro-average BEIR nDCG@10 against Node.js throughput. Up and to the right is better;
-          throughput uses a logarithmic scale.
+          Macro-average BEIR nDCG@10 against Node.js throughput. Up and to the right is better; throughput uses a
+          logarithmic scale.
         </p>
       </div>
 
@@ -123,7 +111,7 @@ export function QualitySpeedChart() {
               'rounded-md border px-3 py-1 text-xs font-medium transition-colors',
               activeSuite.id === suite.id
                 ? 'border-fd-primary/40 bg-fd-primary/10 text-fd-foreground'
-                : 'border-fd-border bg-fd-background text-fd-muted-foreground hover:text-fd-foreground',
+                : 'border-fd-border bg-fd-background text-fd-muted-foreground hover:text-fd-foreground'
             )}
           >
             {formatTitle(suite.name)}
@@ -139,7 +127,7 @@ export function QualitySpeedChart() {
           aria-label={`Search quality versus ${formatTitle(activeSuite.name)} throughput`}
         >
           {[0, 0.1, 0.2, 0.3, 0.4, 0.5].map((tick) => {
-            const tickX = x(tick);
+            const tickX = x(tick)
             return (
               <g key={tick}>
                 <line
@@ -159,11 +147,11 @@ export function QualitySpeedChart() {
                   {tick.toFixed(1)}
                 </text>
               </g>
-            );
+            )
           })}
 
           {[10, 100, 1000, 10_000, 100_000, 1_000_000].map((tick) => {
-            const tickY = y(tick);
+            const tickY = y(tick)
             return (
               <g key={tick}>
                 <line
@@ -183,7 +171,7 @@ export function QualitySpeedChart() {
                   {formatOps(tick)}
                 </text>
               </g>
-            );
+            )
           })}
 
           <text
@@ -216,11 +204,11 @@ export function QualitySpeedChart() {
           )}
 
           {points.map((point) => {
-            const dimmed = activeEngine !== null && activeEngine !== point.engine;
-            const isZbsearch = point.engine.startsWith('ZBSearch');
-            const isQualityWinner = point === qualityWinner;
-            const onFrontier = frontier.includes(point);
-            const offset = labelOffsets[point.engine];
+            const dimmed = activeEngine !== null && activeEngine !== point.engine
+            const isZbsearch = point.engine.startsWith('ZBSearch')
+            const isQualityWinner = point === qualityWinner
+            const onFrontier = frontier.includes(point)
+            const offset = labelOffsets[point.engine]
 
             return (
               <g
@@ -228,10 +216,7 @@ export function QualitySpeedChart() {
                 tabIndex={0}
                 role="button"
                 aria-label={`${point.engine}: ${point.quality.toFixed(3)} nDCG at ${formatOps(point.ops)} operations per second`}
-                className={cn(
-                  'cursor-default outline-none transition-opacity',
-                  dimmed && 'opacity-25',
-                )}
+                className={cn('cursor-default outline-none transition-opacity', dimmed && 'opacity-25')}
                 onMouseEnter={() => setActiveEngine(point.engine)}
                 onMouseLeave={() => setActiveEngine(null)}
                 onFocus={() => setActiveEngine(point.engine)}
@@ -261,28 +246,18 @@ export function QualitySpeedChart() {
                   cx={x(point.quality)}
                   cy={y(point.ops)}
                   r={isZbsearch ? 6 : 5}
-                  className={cn(
-                    'stroke-fd-card',
-                    isZbsearch ? 'fill-chart-subject' : 'fill-chart-other',
-                  )}
+                  className={cn('stroke-fd-card', isZbsearch ? 'fill-chart-subject' : 'fill-chart-other')}
                   strokeWidth={2}
                 />
                 {/* Hit target: the mark itself is far below the 24px minimum. */}
-                <circle
-                  cx={x(point.quality)}
-                  cy={y(point.ops)}
-                  r={14}
-                  fill="transparent"
-                />
+                <circle cx={x(point.quality)} cy={y(point.ops)} r={14} fill="transparent" />
                 <text
                   x={x(point.quality) + offset.x + (isQualityWinner ? 15 : 0)}
                   y={y(point.ops) + offset.y}
                   textAnchor={offset.anchor}
                   className={cn(
                     'text-[10px]',
-                    isZbsearch
-                      ? 'fill-fd-foreground font-semibold'
-                      : 'fill-fd-muted-foreground',
+                    isZbsearch ? 'fill-fd-foreground font-semibold' : 'fill-fd-muted-foreground'
                   )}
                 >
                   {point.engine}
@@ -299,7 +274,7 @@ export function QualitySpeedChart() {
                 )}
                 <title>{`${point.engine} · ${point.quality.toFixed(3)} nDCG@10 · ${formatOps(point.ops)} ops/s`}</title>
               </g>
-            );
+            )
           })}
         </svg>
       </div>
@@ -317,5 +292,5 @@ export function QualitySpeedChart() {
         <span>Quality and throughput use different benchmark corpora; compare the tradeoff, not absolute latency.</span>
       </div>
     </section>
-  );
+  )
 }

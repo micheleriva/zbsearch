@@ -17,20 +17,20 @@ export const MODE_COLOR: Record<Mode, { text: string; bg: string; border: string
     text: 'text-lexical',
     bg: 'bg-lexical',
     border: 'border-lexical',
-    ring: 'ring-lexical',
+    ring: 'ring-lexical'
   },
   vector: {
     text: 'text-vector',
     bg: 'bg-vector',
     border: 'border-vector',
-    ring: 'ring-vector',
+    ring: 'ring-vector'
   },
   hybrid: {
     text: 'text-hybrid',
     bg: 'bg-hybrid',
     border: 'border-hybrid',
-    ring: 'ring-hybrid',
-  },
+    ring: 'ring-hybrid'
+  }
 }
 
 /*
@@ -42,7 +42,7 @@ export function Panel({
   title,
   hint,
   action,
-  children,
+  children
 }: {
   title: string
   hint?: ReactNode
@@ -68,7 +68,7 @@ export function Panel({
 export function ConsoleButton({
   children,
   onClick,
-  disabled,
+  disabled
 }: {
   children: ReactNode
   onClick?: () => void
@@ -104,7 +104,7 @@ export function Slider({
   step,
   value,
   onChange,
-  accent,
+  accent
 }: {
   min: number
   max: number
@@ -121,7 +121,7 @@ export function Slider({
       max={max}
       step={step}
       value={value}
-      onChange={event => onChange(Number(event.target.value))}
+      onChange={(event) => onChange(Number(event.target.value))}
       className={cx('cursor-pointer', accent ?? 'text-console-ink')}
     />
   )

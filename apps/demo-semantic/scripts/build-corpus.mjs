@@ -84,8 +84,8 @@ const payload = {
   scale,
   /** Guards against `articles.json` being edited without re-running this script. */
   sourceHash: hashCorpus(articles),
-  ids: articles.map(article => article.id),
-  vectors: Buffer.from(quantised.buffer).toString('base64'),
+  ids: articles.map((article) => article.id),
+  vectors: Buffer.from(quantised.buffer).toString('base64')
 }
 
 await writeFile(EMBEDDINGS, `${JSON.stringify(payload)}\n`)

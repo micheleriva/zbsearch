@@ -16,7 +16,7 @@ export function Sidebar({
   facets,
   searching,
   onChange,
-  onHome,
+  onHome
 }: {
   filters: Filters
   facets: { areas: FacetBucket[]; topics: FacetBucket[]; audiences: FacetBucket[] }
@@ -29,18 +29,18 @@ export function Sidebar({
     const current = filters[key]
     onChange({
       ...filters,
-      [key]: current.includes(value) ? current.filter(entry => entry !== value) : [...current, value],
+      [key]: current.includes(value) ? current.filter((entry) => entry !== value) : [...current, value]
     })
   }
 
-  const counts = new Map(facets.areas.map(bucket => [bucket.value, bucket.count]))
+  const counts = new Map(facets.areas.map((bucket) => [bucket.value, bucket.count]))
   const active = filters.areas.length + filters.topics.length + filters.audiences.length
 
   return (
     <nav className="flex h-full flex-col gap-6 overflow-y-auto px-3 py-5">
       <Section title="Browse">
         <ul>
-          {allAreas.map(area => {
+          {allAreas.map((area) => {
             const selected = filters.areas.includes(area)
             const count = counts.get(area) ?? 0
             const dimmed = searching && count === 0
@@ -78,16 +78,14 @@ export function Sidebar({
 
       <Section title="Written for">
         <ul>
-          {facets.audiences.map(bucket => (
+          {facets.audiences.map((bucket) => (
             <li key={bucket.value}>
               <button
                 type="button"
                 onClick={() => toggle('audiences', bucket.value)}
                 className={cx(
                   'flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-[5px] text-left text-[13px] capitalize transition-colors',
-                  bucket.selected
-                    ? 'bg-accent font-medium text-white'
-                    : 'text-ink-muted hover:bg-shade hover:text-ink'
+                  bucket.selected ? 'bg-accent font-medium text-white' : 'text-ink-muted hover:bg-shade hover:text-ink'
                 )}
               >
                 <span>{bucket.value}</span>
@@ -108,7 +106,7 @@ export function Sidebar({
       {searching && facets.topics.length > 0 ? (
         <Section title="Topic">
           <div className="flex flex-wrap gap-1 px-1">
-            {facets.topics.slice(0, 10).map(bucket => (
+            {facets.topics.slice(0, 10).map((bucket) => (
               <button
                 key={bucket.value}
                 type="button"
@@ -139,11 +137,7 @@ export function Sidebar({
         ) : null}
 
         {searching ? (
-          <button
-            type="button"
-            onClick={onHome}
-            className="block text-[12px] text-ink-faint hover:text-ink-muted"
-          >
+          <button type="button" onClick={onHome} className="block text-[12px] text-ink-faint hover:text-ink-muted">
             Back to help center home
           </button>
         ) : null}
@@ -155,9 +149,7 @@ export function Sidebar({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h3 className="mb-1.5 px-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">
-        {title}
-      </h3>
+      <h3 className="mb-1.5 px-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">{title}</h3>
       {children}
     </section>
   )

@@ -302,13 +302,7 @@ function dropRecent(url: string): void {
             :aria-activedescendant="navigable.length > 0 ? optionId(selected) : undefined"
           />
 
-          <button
-            v-if="term"
-            type="button"
-            class="zbs-searchbox__clear"
-            :aria-label="labels.clearLabel"
-            @click="clear"
-          >
+          <button v-if="term" type="button" class="zbs-searchbox__clear" :aria-label="labels.clearLabel" @click="clear">
             <CloseIcon />
           </button>
 
@@ -324,7 +318,13 @@ function dropRecent(url: string): void {
         </div>
 
         <div ref="listRef" class="zbs-searchbox__body">
-          <div :id="listboxId" role="listbox" :aria-label="labels.dialogLabel" class="zbs-searchbox__list" :data-state="bodyState">
+          <div
+            :id="listboxId"
+            role="listbox"
+            :aria-label="labels.dialogLabel"
+            class="zbs-searchbox__list"
+            :data-state="bodyState"
+          >
             <template v-if="bodyState === 'results'">
               <section v-for="group in groups" :key="group.id" class="zbs-searchbox__group">
                 <header class="zbs-searchbox__group-title">

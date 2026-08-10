@@ -268,7 +268,7 @@ describe('suggest method', () => {
   })
 
   it('should throw when the index component cannot expand a token', () => {
-    const { supportsSuggestions, ...index } = defaultIndex.createIndex()
+    const { supportsSuggestions: _supportsSuggestions, ...index } = defaultIndex.createIndex()
 
     const db = create({
       schema: { title: 'string' } as const,

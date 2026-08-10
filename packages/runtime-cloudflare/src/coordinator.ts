@@ -11,7 +11,6 @@ import {
   walSegmentKey,
   WAL_SEGMENT_MAX_BYTES,
   WAL_SEGMENT_MAX_OPS,
-  type BufferHead,
   type BufferOp,
   type IndexMeta,
   type ObjectStorage,

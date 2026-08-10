@@ -20,7 +20,7 @@ export function BenchmarkPanel({ db, settings }: { db: ArticleDB; settings: Sett
       setRows(
         benchmark(
           db,
-          examples.map(example => example.term),
+          examples.map((example) => example.term),
           vectors.slice(0, examples.length),
           settings,
           ROUNDS
@@ -54,7 +54,7 @@ export function BenchmarkPanel({ db, settings }: { db: ArticleDB; settings: Sett
             </tr>
           </thead>
           <tbody>
-            {rows.map(row => (
+            {rows.map((row) => (
               <tr key={row.mode}>
                 <td className={cx('py-0.5', MODE_COLOR[row.mode].text)}>{MODE_LABELS[row.mode]}</td>
                 <td className="py-0.5 text-right tabular-nums text-console-ink">
@@ -71,8 +71,8 @@ export function BenchmarkPanel({ db, settings }: { db: ArticleDB; settings: Sett
 
       {rows ? (
         <p className="text-[11px] leading-relaxed text-console-muted">
-          Vector search here is exhaustive: every query compares against all {vectors.length} stored vectors.
-          That stays fast at this size and is why the flat index is the right choice for a corpus this small.
+          Vector search here is exhaustive: every query compares against all {vectors.length} stored vectors. That stays
+          fast at this size and is why the flat index is the right choice for a corpus this small.
         </p>
       ) : null}
     </Panel>

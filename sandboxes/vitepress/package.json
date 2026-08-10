@@ -7,7 +7,7 @@
     "start": "vitepress dev --port 3230",
     "build": "vitepress build",
     "serve": "vitepress preview --port 3231",
-    "lint": "exit 0",
+    "lint": "oxlint --fix --fix-suggestions",
     "pretest": "playwright install chromium",
     "test": "playwright test && playwright test --config playwright.dev.config.ts",
     "test:prod": "playwright test",

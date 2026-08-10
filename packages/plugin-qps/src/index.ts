@@ -40,9 +40,9 @@ function search<T extends AnyZBSearch>(
   relevance: Required<BM25Params>,
   docsCount: number,
   whereFiltersIDs: Set<InternalDocumentID> | undefined,
-  threshold?: number,
+  _threshold?: number,
   // QPS expands tokens and scores exact matches above prefixed ones itself, so the `prefix` flag has no effect here.
-  prefix?: boolean
+  _prefix?: boolean
 ): TokenScore[] {
   const all: Map<InternalDocumentID, [number, number]> = new Map()
 

@@ -22,7 +22,7 @@ function deserializeStringArray(des: Des): string[] {
   return arr
 }
 
-function serializeNumberArray(ser: Ser, arr: number[]): void {
+function _serializeNumberArray(ser: Ser, arr: number[]): void {
   ser.serializeUInt32(arr.length)
   for (let i = 0; i < arr.length; i++) {
     ser.serializeNumber(arr[i])
@@ -99,7 +99,7 @@ function deserializeRadixPostings(des: Des): Record<string, number[]> {
   return postings
 }
 
-function serializeIndexNode(ser: Ser, type: string, node: any): void {
+function _serializeIndexNode(ser: Ser, type: string, node: any): void {
   if (type === 'Radix') {
     ser.serializeUInt32(3) // Radix structure without inline postings
     serializeRadixStructure(ser, node)

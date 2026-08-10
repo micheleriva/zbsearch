@@ -9,7 +9,7 @@ export function SearchBar({
   suggestions,
   suggestElapsed,
   onChange,
-  onSubmit,
+  onSubmit
 }: {
   term: string
   suggestions: Suggestion[]
@@ -73,19 +73,19 @@ export function SearchBar({
           aria-label="Search products"
           autoComplete="off"
           spellCheck={false}
-          onChange={event => {
+          onChange={(event) => {
             onChange(event.target.value)
             setOpen(true)
           }}
           onFocus={() => setOpen(true)}
-          onKeyDown={event => {
+          onKeyDown={(event) => {
             if (event.key === 'ArrowDown') {
               event.preventDefault()
               setOpen(true)
-              setCursor(current => Math.min(current + 1, suggestions.length - 1))
+              setCursor((current) => Math.min(current + 1, suggestions.length - 1))
             } else if (event.key === 'ArrowUp') {
               event.preventDefault()
-              setCursor(current => Math.max(current - 1, -1))
+              setCursor((current) => Math.max(current - 1, -1))
             } else if (event.key === 'Enter') {
               accept(cursor >= 0 ? suggestions[cursor]!.suggestion : term)
             } else if (event.key === 'Escape') {

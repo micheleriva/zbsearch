@@ -37,8 +37,7 @@
   --color-console-muted: hsl(258, 8%, 62%);
   --color-console-brand: hsl(285, 100%, 74%);
 
-  --font-mono:
-    ui-monospace, 'SF Mono', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
 }
 
 /*

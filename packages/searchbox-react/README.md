@@ -80,17 +80,17 @@ explicit `data-theme` attribute on any ancestor wins over both.
 
 ## Exports
 
-| Export | Description |
-| --- | --- |
-| `SearchBox` | The dialog. Fully controlled through `open` and `onClose` |
-| `SearchButton` | Navbar trigger with a platform-aware shortcut badge |
-| `Highlighted` | Renders text with the parts matching a query wrapped in `<mark>` |
-| `ZBSearchWordmark`, `ZBSearchLogo` | The ZBSearch lockup and its mark |
-| `useSearch` | The query state machine, if you want to build your own UI |
-| `useSearchHotkeys`, `useScrollLock`, `useIsMounted`, `useIsApplePlatform` | Behaviour hooks |
-| `highlight`, `snippetAround` | Text helpers, built on [`@zbsearch/highlight`](../highlight) |
-| `groupHits`, `flattenGroups`, `wrapIndex` | Result helpers |
-| `readRecentSearches`, `addRecentSearch`, `removeRecentSearch` | History helpers |
+| Export                                                                    | Description                                                      |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `SearchBox`                                                               | The dialog. Fully controlled through `open` and `onClose`        |
+| `SearchButton`                                                            | Navbar trigger with a platform-aware shortcut badge              |
+| `Highlighted`                                                             | Renders text with the parts matching a query wrapped in `<mark>` |
+| `ZBSearchWordmark`, `ZBSearchLogo`                                        | The ZBSearch lockup and its mark                                 |
+| `useSearch`                                                               | The query state machine, if you want to build your own UI        |
+| `useSearchHotkeys`, `useScrollLock`, `useIsMounted`, `useIsApplePlatform` | Behaviour hooks                                                  |
+| `highlight`, `snippetAround`                                              | Text helpers, built on [`@zbsearch/highlight`](../highlight)     |
+| `groupHits`, `flattenGroups`, `wrapIndex`                                 | Result helpers                                                   |
+| `readRecentSearches`, `addRecentSearch`, `removeRecentSearch`             | History helpers                                                  |
 
 ## License
 

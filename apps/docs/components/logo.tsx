@@ -1,8 +1,8 @@
-'use client';
+'use client'
 
-import { cn } from '@/lib/cn';
-import { appName } from '@/lib/shared';
-import { useId, type SVGProps } from 'react';
+import { cn } from '@/lib/cn'
+import { appName } from '@/lib/shared'
+import { useId, type SVGProps } from 'react'
 
 /**
  * The ZBSearch mark, painted with the brand gradient. The gradient id has to be
@@ -10,16 +10,10 @@ import { useId, type SVGProps } from 'react';
  * otherwise win the `url(#id)` lookup and paint nothing.
  */
 export function ZBSearchMark({ className, ...props }: SVGProps<SVGSVGElement>) {
-  const GRADIENT_ID = useId();
+  const GRADIENT_ID = useId()
 
   return (
-    <svg
-      viewBox="0 0 314 251"
-      fill="none"
-      aria-hidden
-      className={cn('h-full w-auto', className)}
-      {...props}
-    >
+    <svg viewBox="0 0 314 251" fill="none" aria-hidden className={cn('h-full w-auto', className)} {...props}>
       <path
         d="M4.27328 4.33651C4.69048 -0.636492 11.5432 -1.65609 13.3966 2.97911L29.1283 42.3293C34.8764 56.707 48.826 66.139 64.341 66.14L124.936 65.826C126.802 65.722 128.684 65.668 130.581 65.668H182.708C234.006 65.668 275.59 107.156 275.59 158.334C275.59 209.512 234.005 251 182.708 251H130.581C79.284 251 37.6993 209.512 37.699 158.334C37.699 147.385 39.6035 136.88 43.098 127.13H98.866C90.933 135.154 86.035 146.173 86.035 158.334C86.036 182.878 105.979 202.776 130.581 202.776H182.708C207.31 202.776 227.253 182.878 227.254 158.334C227.254 135.992 210.729 117.503 189.208 114.364H56.87C23.5944 114.364 -2.57142 85.984 0.201784 52.901L4.27328 4.33651ZM300.603 2.97911C302.457 -1.65609 309.309 -0.636492 309.727 4.33651L313.798 52.901C315.981 78.947 300.228 102.076 277.19 110.738C267.434 91.679 253.855 76.252 236.77 66.14H249.659C265.174 66.139 279.124 56.707 284.872 42.3293L300.603 2.97911Z"
         fill={`url(#${GRADIENT_ID})`}
@@ -39,7 +33,7 @@ export function ZBSearchMark({ className, ...props }: SVGProps<SVGSVGElement>) {
         </radialGradient>
       </defs>
     </svg>
-  );
+  )
 }
 
 /** Mark + wordmark lockup used in the site header. */
@@ -47,9 +41,7 @@ export function Logo({ className }: { className?: string }) {
   return (
     <span className={cn('inline-flex items-center gap-2.5', className)}>
       <ZBSearchMark className="h-[1.55em] transition-transform duration-200 group-hover/logo:scale-105" />
-      <span className="text-[1.125rem] font-bold tracking-[-0.02em] text-fd-foreground">
-        {appName}
-      </span>
+      <span className="text-[1.125rem] font-bold tracking-[-0.02em] text-fd-foreground">{appName}</span>
     </span>
-  );
+  )
 }

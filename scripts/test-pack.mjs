@@ -33,7 +33,7 @@ async function execute(command, cwd) {
 }
 
 const pluginInfo = JSON.parse(
-  await readFile(fileURLToPath(new URL('../packages/zbsearch/package.json', import.meta.url)), 'utf-8'),
+  await readFile(fileURLToPath(new URL('../packages/zbsearch/package.json', import.meta.url)), 'utf-8')
 )
 
 await rm(destinationDir, { force: true, recursive: true })

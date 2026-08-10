@@ -13,7 +13,7 @@ import {
   runSearch
 } from '../src/service.js'
 import { getIndexMeta, saveIndexMeta } from '../src/registry.js'
-import { indexMetaKey, snapshotKey } from '../src/paths.js'
+import { indexMetaKey } from '../src/paths.js'
 import { encodeJson } from '../src/codec.js'
 import type { ObjectStorage } from '../src/storage.js'
 import { NoopShardCache } from '../src/storage.js'

@@ -21,7 +21,7 @@ export function ArticleView({
   backLabel,
   onOpen,
   onArea,
-  onBack,
+  onBack
 }: {
   article: Article
   related: Hit[]
@@ -49,9 +49,7 @@ export function ArticleView({
         <span className="text-ink-muted">{article.topic}</span>
       </nav>
 
-      <h1 className="mt-3 text-[26px] font-semibold leading-tight tracking-tight text-ink">
-        {article.title}
-      </h1>
+      <h1 className="mt-3 text-[26px] font-semibold leading-tight tracking-tight text-ink">{article.title}</h1>
 
       <p className="mt-2.5 text-[15px] leading-relaxed text-ink-muted">{article.summary}</p>
 
@@ -65,11 +63,8 @@ export function ArticleView({
       <div className="mt-6 text-[15px] leading-[1.75] text-ink">{article.body}</div>
 
       <div className="mt-8 flex flex-wrap gap-1.5">
-        {article.tags.map(tag => (
-          <span
-            key={tag}
-            className="rounded-full border border-line px-2.5 py-0.5 text-[11.5px] text-ink-muted"
-          >
+        {article.tags.map((tag) => (
+          <span key={tag} className="rounded-full border border-line px-2.5 py-0.5 text-[11.5px] text-ink-muted">
             {tag}
           </span>
         ))}
@@ -79,12 +74,12 @@ export function ArticleView({
         <section className="mt-10 border-t border-line pt-6">
           <h2 className="text-[13px] font-semibold text-ink">Related articles</h2>
           <p className="mt-0.5 text-[11.5px] text-ink-faint">
-            The nearest articles in the embedding space — vector search against this article&rsquo;s own
-            stored vector, with no query and no encoder involved.
+            The nearest articles in the embedding space — vector search against this article&rsquo;s own stored vector,
+            with no query and no encoder involved.
           </p>
 
           <ul className="mt-3 divide-y divide-line-soft">
-            {related.map(hit => (
+            {related.map((hit) => (
               <li key={hit.id}>
                 <button
                   type="button"
@@ -99,9 +94,7 @@ export function ArticleView({
                       {hit.document.area} › {hit.document.topic}
                     </span>
                   </span>
-                  <span
-                    className={cx('shrink-0 font-mono text-[10.5px] tabular-nums', MODE_COLOR.vector.text)}
-                  >
+                  <span className={cx('shrink-0 font-mono text-[10.5px] tabular-nums', MODE_COLOR.vector.text)}>
                     cos {hit.score.toFixed(2)}
                   </span>
                 </button>

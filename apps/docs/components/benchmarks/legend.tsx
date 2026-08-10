@@ -1,4 +1,4 @@
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/cn'
 
 /**
  * Two-slot chart legend. Benchmark charts encode one thing with colour - is this
@@ -9,19 +9,14 @@ import { cn } from '@/lib/cn';
 export function ChartLegend({
   subject = 'ZBSearch',
   other = 'Other engines',
-  className,
+  className
 }: {
-  subject?: string;
-  other?: string;
-  className?: string;
+  subject?: string
+  other?: string
+  className?: string
 }) {
   return (
-    <ul
-      className={cn(
-        'flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-fd-muted-foreground',
-        className,
-      )}
-    >
+    <ul className={cn('flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-fd-muted-foreground', className)}>
       <li className="inline-flex items-center gap-2">
         <span aria-hidden className="size-2 rounded-full bg-chart-subject" />
         {subject}
@@ -31,5 +26,5 @@ export function ChartLegend({
         {other}
       </li>
     </ul>
-  );
+  )
 }

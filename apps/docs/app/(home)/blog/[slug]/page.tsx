@@ -1,21 +1,21 @@
-import { getMDXComponents } from '@/components/mdx';
-import { asBlogPostData } from '@/lib/blog';
-import { blog } from '@/lib/source';
-import { gitConfig } from '@/lib/shared';
-import { InlineTOC } from 'fumadocs-ui/components/inline-toc';
-import { ArrowLeft, Calendar, User } from 'lucide-react';
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { getMDXComponents } from '@/components/mdx'
+import { asBlogPostData } from '@/lib/blog'
+import { blog } from '@/lib/source'
+import { gitConfig } from '@/lib/shared'
+import { InlineTOC } from 'fumadocs-ui/components/inline-toc'
+import { ArrowLeft, Calendar, User } from 'lucide-react'
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
 
 export default async function BlogPostPage(props: PageProps<'/blog/[slug]'>) {
-  const params = await props.params;
-  const page = blog.getPage([params.slug]);
+  const params = await props.params
+  const page = blog.getPage([params.slug])
 
-  if (!page) notFound();
+  if (!page) notFound()
 
-  const data = asBlogPostData(page.data);
-  const MDX = data.body;
+  const data = asBlogPostData(page.data)
+  const MDX = data.body
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-12">
@@ -41,7 +41,7 @@ export default async function BlogPostPage(props: PageProps<'/blog/[slug]'>) {
               year: 'numeric',
               month: 'long',
               day: 'numeric',
-              timeZone: 'UTC',
+              timeZone: 'UTC'
             })}
           </span>
         </div>
@@ -67,31 +67,31 @@ export default async function BlogPostPage(props: PageProps<'/blog/[slug]'>) {
         </p>
       </footer>
     </main>
-  );
+  )
 }
 
 export function generateStaticParams(): { slug: string }[] {
   return blog.getPages().map((page) => ({
-    slug: page.slugs[0]!,
-  }));
+    slug: page.slugs[0]!
+  }))
 }
 
 export async function generateMetadata(props: PageProps<'/blog/[slug]'>): Promise<Metadata> {
-  const params = await props.params;
-  const page = blog.getPage([params.slug]);
+  const params = await props.params
+  const page = blog.getPage([params.slug])
 
-  if (!page) notFound();
+  if (!page) notFound()
 
   return {
     title: page.data.title,
     description: page.data.description,
     openGraph: {
       type: 'article',
-      images: `/og/blog/${params.slug}`,
+      images: `/og/blog/${params.slug}`
     },
     twitter: {
       card: 'summary_large_image',
-      images: `/og/blog/${params.slug}`,
-    },
-  };
+      images: `/og/blog/${params.slug}`
+    }
+  }
 }

@@ -158,6 +158,7 @@ export function stemmer(w) {
     }
   } else if (re2.test(w)) {
     const fp = re2.exec(w)
+    // oxlint-disable-next-line no-constant-binary-expression -- see https://github.com/micheleriva/zbsearch/issues/49
     stem = fp?.[1] ?? '' + fp?.[2] ?? ''
     re2 = new RegExp(mgr1)
     if (re2.test(stem)) {

@@ -16,19 +16,19 @@ const NOTEWORTHY = 3
  * something first that another missed entirely, which is the whole point of the view.
  */
 function verdict(row: ComparisonRow): { label: string; mode: Mode } | null {
-  const best = Math.min(...MODES.map(mode => row.ranks[mode] ?? Infinity))
+  const best = Math.min(...MODES.map((mode) => row.ranks[mode] ?? Infinity))
 
   if (best > NOTEWORTHY) {
     return null
   }
 
-  const found = MODES.filter(mode => row.ranks[mode] !== null)
+  const found = MODES.filter((mode) => row.ranks[mode] !== null)
 
   if (found.length === 1) {
     return { label: `${MODE_LABELS[found[0]].toLowerCase()} only`, mode: found[0] }
   }
 
-  const missing = MODES.filter(mode => row.ranks[mode] === null)
+  const missing = MODES.filter((mode) => row.ranks[mode] === null)
 
   if (missing.length === 1 && missing[0] !== 'hybrid') {
     return { label: `missed by ${MODE_LABELS[missing[0]].toLowerCase()}`, mode: missing[0] }
@@ -71,7 +71,7 @@ export function CompareView({ comparison, onOpen }: { comparison: Comparison; on
       <div className={cx(GRID, 'border-b border-line-soft bg-shade/40 px-4 py-2')}>
         <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-faint">article</span>
 
-        {MODES.map(mode => (
+        {MODES.map((mode) => (
           <div key={mode} className="text-center">
             <div className={cx('text-[11px] font-semibold', MODE_COLOR[mode].text)}>{MODE_LABELS[mode]}</div>
             <div className="font-mono text-[9.5px] text-ink-faint">{results[mode].count} hits</div>
@@ -80,7 +80,7 @@ export function CompareView({ comparison, onOpen }: { comparison: Comparison; on
       </div>
 
       <ul>
-        {visible.map(row => {
+        {visible.map((row) => {
           const note = verdict(row)
 
           return (
@@ -88,7 +88,10 @@ export function CompareView({ comparison, onOpen }: { comparison: Comparison; on
               <button
                 type="button"
                 onClick={() => onOpen(row.document.id)}
-                className={cx(GRID, 'group w-full border-b border-line-soft px-4 py-2.5 text-left last:border-b-0 hover:bg-shade/50')}
+                className={cx(
+                  GRID,
+                  'group w-full border-b border-line-soft px-4 py-2.5 text-left last:border-b-0 hover:bg-shade/50'
+                )}
               >
                 <span className="min-w-0">
                   <span className="block truncate text-[13.5px] text-ink transition-colors group-hover:text-accent-ink">
@@ -105,7 +108,7 @@ export function CompareView({ comparison, onOpen }: { comparison: Comparison; on
                   </span>
                 </span>
 
-                {MODES.map(mode => (
+                {MODES.map((mode) => (
                   <span key={mode} className="text-center">
                     <RankCell rank={row.ranks[mode]} mode={mode} />
                   </span>

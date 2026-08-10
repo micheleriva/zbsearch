@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 
 import { fileURLToPath } from 'node:url'
 
-import { createIndex, importDocuments } from '@zbsearch/edge-core'
+import { importDocuments } from '@zbsearch/edge-core'
 import { MemoryObjectStorage } from './helpers/memory-storage.js'
 import { loadImportDocuments } from '../src/import-documents.js'
 

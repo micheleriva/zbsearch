@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "unicorn/no-new-array": "off"
+  },
+  "ignorePatterns": [
+    "**/.docusaurus/",
+    "**/.next/",
+    "**/.vitepress/cache/",
+    "**/.vitepress/dist/",
+    "**/.vscode/",
+    "**/coverage/",
+    "**/dist/",
+    "**/lib/",
+    "**/node_modules/",
+    "**/playwright-report/",
+    "**/sandboxes/*/build/",
+    "**/test-results/",
+    "packages/stemmers/lib/",
+    "packages/stopwords/lib/"
+  ]
+}

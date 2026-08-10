@@ -4,7 +4,7 @@ const COLUMNS = [
   { title: 'Shop', links: ['New arrivals', 'Best sellers', 'Deals of the week', 'Gift cards'] },
   { title: 'Help', links: ['Track an order', 'Shipping & delivery', 'Returns', 'Contact us'] },
   { title: 'Company', links: ['About OneStore', 'Careers', 'Press', 'Sustainability'] },
-  { title: 'Legal', links: ['Terms of sale', 'Privacy', 'Cookies', 'Accessibility'] },
+  { title: 'Legal', links: ['Terms of sale', 'Privacy', 'Cookies', 'Accessibility'] }
 ]
 
 export function SiteFooter() {
@@ -24,11 +24,11 @@ export function SiteFooter() {
             </p>
           </div>
 
-          {COLUMNS.map(column => (
+          {COLUMNS.map((column) => (
             <div key={column.title}>
               <h3 className="text-[12.5px] font-semibold text-ink">{column.title}</h3>
               <ul className="mt-2.5 space-y-1.5">
-                {column.links.map(link => (
+                {column.links.map((link) => (
                   <li key={link}>
                     <span className="text-[12.5px] text-ink-muted">{link}</span>
                   </li>

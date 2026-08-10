@@ -4,12 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Encoder, type EncoderStatus } from '@/lib/encoder'
 import { areas, articles, encoderModel, examples, vectorById, vectorBytes } from '@/lib/corpus'
 import { browse, compare, createEngine, related, runQuery } from '@/lib/engine'
-import {
-  DEFAULT_BOOST,
-  DEFAULT_HYBRID_WEIGHTS,
-  DEFAULT_SIMILARITY,
-  DEFAULT_TOLERANCE,
-} from '@/lib/schema.mjs'
+import { DEFAULT_BOOST, DEFAULT_HYBRID_WEIGHTS, DEFAULT_SIMILARITY, DEFAULT_TOLERANCE } from '@/lib/schema.mjs'
 import type { Comparison, Filters, QueryResult, Settings, View } from '@/lib/types'
 import { ArticleView } from './article-view'
 import { Home } from './home'
@@ -28,7 +23,7 @@ const DEFAULT_SETTINGS: Settings = {
   similarity: DEFAULT_SIMILARITY,
   vectorWeight: DEFAULT_HYBRID_WEIGHTS.vector,
   tolerance: DEFAULT_TOLERANCE,
-  boosts: { ...DEFAULT_BOOST },
+  boosts: { ...DEFAULT_BOOST }
 }
 
 const EMPTY_FACETS = { areas: [], topics: [], audiences: [] }
@@ -155,14 +150,11 @@ export function HelpCenter() {
     setFilters({ ...NO_FILTERS, areas: [area] })
   }
 
-  const article = openId ? articles.find(candidate => candidate.id === openId) : undefined
-  const neighbours = useMemo(
-    () => (article ? related(db, article, vectorById.get(article.id)!) : []),
-    [db, article]
-  )
+  const article = openId ? articles.find((candidate) => candidate.id === openId) : undefined
+  const neighbours = useMemo(() => (article ? related(db, article, vectorById.get(article.id)!) : []), [db, article])
 
   const areaCounts = useMemo(
-    () => areas.map(area => ({ area, count: articles.filter(a => a.area === area).length })),
+    () => areas.map((area) => ({ area, count: articles.filter((a) => a.area === area).length })),
     []
   )
 
@@ -174,7 +166,7 @@ export function HelpCenter() {
     <div className="flex min-h-screen flex-col">
       <Topbar
         term={term}
-        onTerm={next => {
+        onTerm={(next) => {
           setTerm(next)
           setOpenId(null)
         }}
@@ -190,7 +182,7 @@ export function HelpCenter() {
             filters={filters}
             facets={facets}
             searching={searching}
-            onChange={next => {
+            onChange={(next) => {
               setFilters(next)
               setOpenId(null)
             }}
@@ -210,8 +202,7 @@ export function HelpCenter() {
               <div className="mb-4 rounded-lg border border-line bg-card px-4 py-3">
                 <p className="text-[13px] text-ink">Downloading the sentence encoder…</p>
                 <p className="mt-1 text-[12px] text-ink-muted">
-                  About 23 MB, once per browser, then cached. Keyword search needs none of it and works
-                  right now.
+                  About 23 MB, once per browser, then cached. Keyword search needs none of it and works right now.
                 </p>
                 <span className="mt-2.5 block h-1 w-full overflow-hidden rounded-full bg-shade">
                   <span
@@ -221,7 +212,7 @@ export function HelpCenter() {
                         encoderStatus.state === 'loading' && encoderStatus.total > 0
                           ? (encoderStatus.received / encoderStatus.total) * 100
                           : 4
-                      }%`,
+                      }%`
                     }}
                   />
                 </span>
@@ -245,7 +236,7 @@ export function HelpCenter() {
                 result={result}
                 comparison={comparison}
                 settings={settings}
-                example={examples.find(candidate => candidate.term === query)}
+                example={examples.find((candidate) => candidate.term === query)}
                 onOpen={open}
               />
             ) : filtering ? (
@@ -263,8 +254,8 @@ export function HelpCenter() {
 
             <footer className="mt-14 border-t border-line pt-5 text-[11.5px] leading-relaxed text-ink-faint">
               <p>
-                Atlas is not a real product and these articles describe nothing that exists. They were
-                written for this demo so the queries in it have somewhere honest to land.
+                Atlas is not a real product and these articles describe nothing that exists. They were written for this
+                demo so the queries in it have somewhere honest to land.
               </p>
               <p className="mt-1.5">
                 Search runs entirely on{' '}
@@ -274,8 +265,8 @@ export function HelpCenter() {
                 >
                   ZBSearch
                 </a>{' '}
-                in this tab. Query embeddings come from all-MiniLM-L6-v2 running locally through
-                transformers.js — nothing you type is sent anywhere.
+                in this tab. Query embeddings come from all-MiniLM-L6-v2 running locally through transformers.js —
+                nothing you type is sent anywhere.
               </p>
             </footer>
           </div>
@@ -323,7 +314,7 @@ function BrowseByFilter({ result, onOpen }: { result: QueryResult | null; onOpen
       </header>
 
       <ul className="divide-y divide-line-soft">
-        {result.hits.map(hit => (
+        {result.hits.map((hit) => (
           <li key={hit.id}>
             <button
               type="button"

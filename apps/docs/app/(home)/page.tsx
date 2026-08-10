@@ -1,14 +1,14 @@
-import Link from 'next/link';
-import type { ComponentType, ReactNode } from 'react';
-import { ServerCodeBlock } from 'fumadocs-ui/components/codeblock.rsc';
-import { cn } from '@/lib/cn';
-import { QualitySpeedChart } from '@/components/benchmarks/quality-speed-chart';
-import { SearchBoxDemo, type SearchBoxDemoDoc } from '@/components/searchbox-demo';
-import { CloudflareIcon } from '@/components/icons/cloudflare';
-import { DocusaurusIcon } from '@/components/icons/docusaurus';
-import { StarlightIcon } from '@/components/icons/starlight';
-import { VitePressIcon } from '@/components/icons/vitepress';
-import { source } from '@/lib/source';
+import Link from 'next/link'
+import type { ComponentType, ReactNode } from 'react'
+import { ServerCodeBlock } from 'fumadocs-ui/components/codeblock.rsc'
+import { cn } from '@/lib/cn'
+import { QualitySpeedChart } from '@/components/benchmarks/quality-speed-chart'
+import { SearchBoxDemo, type SearchBoxDemoDoc } from '@/components/searchbox-demo'
+import { CloudflareIcon } from '@/components/icons/cloudflare'
+import { DocusaurusIcon } from '@/components/icons/docusaurus'
+import { StarlightIcon } from '@/components/icons/starlight'
+import { VitePressIcon } from '@/components/icons/vitepress'
+import { source } from '@/lib/source'
 import {
   ArrowRight,
   BarChart3,
@@ -22,96 +22,96 @@ import {
   Sparkles,
   TrendingUp,
   Wand2,
-  Zap,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+  Zap
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
 const features: { title: string; description: string; icon: LucideIcon; href: string }[] = [
   {
     title: 'Full-Text Search',
     description: 'Typo-tolerant BM25 with stemming in 30+ languages.',
     icon: Search,
-    href: '/docs/zbsearch/search',
+    href: '/docs/zbsearch/search'
   },
   {
     title: 'Vector Search',
     description: 'Fast similarity search with optional IVF indexing.',
     icon: Sparkles,
-    href: '/docs/zbsearch/search/vector-search',
+    href: '/docs/zbsearch/search/vector-search'
   },
   {
     title: 'Hybrid Search',
     description: 'Combine keyword and semantic relevance in one query.',
     icon: Zap,
-    href: '/docs/zbsearch/search/hybrid-search',
+    href: '/docs/zbsearch/search/hybrid-search'
   },
   {
     title: 'Search Filters',
     description: 'Filter by numbers, enums, booleans, and nested fields.',
     icon: Filter,
-    href: '/docs/zbsearch/search/filters',
+    href: '/docs/zbsearch/search/filters'
   },
   {
     title: 'Geosearch',
     description: 'Radius, polygon, and sorted geo queries on BKD trees.',
     icon: MapPin,
-    href: '/docs/zbsearch/search/geosearch',
+    href: '/docs/zbsearch/search/geosearch'
   },
   {
     title: 'Results Pinning',
     description: 'Merchandising rules to boost or pin specific results.',
     icon: Pin,
-    href: '/docs/zbsearch/results-pinning',
+    href: '/docs/zbsearch/results-pinning'
   },
   {
     title: 'Facets',
     description: 'Aggregate counts across categories at search time.',
     icon: Layers,
-    href: '/docs/zbsearch/search/facets',
+    href: '/docs/zbsearch/search/facets'
   },
   {
     title: 'Fields Boosting',
     description: 'Weight schema properties to shape ranking.',
     icon: TrendingUp,
-    href: '/docs/zbsearch/search/fields-boosting',
+    href: '/docs/zbsearch/search/fields-boosting'
   },
   {
     title: 'Typo Tolerance',
     description: 'Forgiving matching powered by Levenshtein distance.',
     icon: Wand2,
-    href: '/docs/zbsearch/search#typo-tolerance',
+    href: '/docs/zbsearch/search#typo-tolerance'
   },
   {
     title: 'BM25',
     description: 'Industry-standard ranking out of the box.',
     icon: BarChart3,
-    href: '/docs/zbsearch/search/bm25',
+    href: '/docs/zbsearch/search/bm25'
   },
   {
     title: '30+ Languages',
     description: 'Tokenization and stemming for global text search.',
     icon: Globe2,
-    href: '/docs/zbsearch/supported-languages',
+    href: '/docs/zbsearch/supported-languages'
   },
   {
     title: 'Plugin System',
     description: 'Extend indexing, search, and persistence with hooks.',
     icon: Puzzle,
-    href: '/docs/zbsearch/plugins',
-  },
-];
+    href: '/docs/zbsearch/plugins'
+  }
+]
 
 type Integration = {
-  name: string;
-  tag: string;
-  description: string;
+  name: string
+  tag: string
+  description: string
   /** Brand logo; omit for an integration with no mark of its own. */
-  icon?: ComponentType<{ className?: string }>;
+  icon?: ComponentType<{ className?: string }>
   /** Package to install; omit while the integration is still unreleased. */
-  install?: string;
+  install?: string
   /** Guide to link to; omit to render the cell as an unlinked "Soon" teaser. */
-  href?: string;
-};
+  href?: string
+}
 
 const integrations: Integration[] = [
   {
@@ -121,16 +121,15 @@ const integrations: Integration[] = [
     description:
       'Indexes your docs, blog posts, and MDX pages while Docusaurus builds, then replaces the default search bar with a ZBSearch dialog.',
     install: '@zbsearch/plugin-docusaurus',
-    href: '/docs/zbsearch/integrations/docusaurus',
+    href: '/docs/zbsearch/integrations/docusaurus'
   },
   {
     name: 'Starlight',
     tag: 'Astro Starlight',
     icon: StarlightIcon,
-    description:
-      "Swaps Starlight's built-in Pagefind search for the same dialog, wired into your content collections.",
+    description: "Swaps Starlight's built-in Pagefind search for the same dialog, wired into your content collections.",
     install: '@zbsearch/plugin-starlight',
-    href: '/docs/zbsearch/integrations/starlight',
+    href: '/docs/zbsearch/integrations/starlight'
   },
   {
     name: 'VitePress',
@@ -139,9 +138,9 @@ const integrations: Integration[] = [
     description:
       'Builds the index from VitePress’ own content loader, so results follow your srcDir, cleanUrls, and base exactly as the router does.',
     install: '@zbsearch/plugin-vitepress',
-    href: '/docs/zbsearch/integrations/vitepress',
-  },
-];
+    href: '/docs/zbsearch/integrations/vitepress'
+  }
+]
 
 const exampleCode = `import { create, insert, search } from 'zbsearch'
 
@@ -161,38 +160,24 @@ const results = search(db, {
   term: 'best headphones',
   mode: 'hybrid',
 })
-`;
+`
 
 /**
  * A full-bleed horizontal band. The rule runs edge to edge like the header's
  * while the content stays in the 6xl column, so the page reads as a stack of
  * separated bands rather than one continuous scroll.
  */
-function Band({
-  children,
-  className,
-  inner,
-}: {
-  children: ReactNode;
-  className?: string;
-  inner?: string;
-}) {
+function Band({ children, className, inner }: { children: ReactNode; className?: string; inner?: string }) {
   return (
     <section className={cn('w-full border-b border-fd-border', className)}>
-      <div className={cn('mx-auto w-full max-w-6xl px-6 py-16 sm:py-20', inner)}>
-        {children}
-      </div>
+      <div className={cn('mx-auto w-full max-w-6xl px-6 py-16 sm:py-20', inner)}>{children}</div>
     </section>
-  );
+  )
 }
 
 /** Mono micro-label that names the band above its heading. */
 function BandLabel({ children }: { children: ReactNode }) {
-  return (
-    <p className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-fd-muted-foreground">
-      {children}
-    </p>
-  );
+  return <p className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-fd-muted-foreground">{children}</p>
 }
 
 /** Real docs pages, handed to the demo so it indexes something worth searching. */
@@ -202,17 +187,14 @@ function searchDemoDocs(): SearchBoxDemoDoc[] {
     url: page.url,
     title: page.data.title,
     section: page.slugs[0] === 'cloudflare' ? 'Cloudflare' : 'ZBSearch',
-    snippet: page.data.description,
-  }));
+    snippet: page.data.description
+  }))
 }
 
 export default async function HomePage() {
   return (
     <div className="flex flex-1 flex-col">
-      <Band
-        className="relative overflow-hidden"
-        inner="flex flex-col items-center py-20 text-center sm:py-24"
-      >
+      <Band className="relative overflow-hidden" inner="flex flex-col items-center py-20 text-center sm:py-24">
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
           <div className="absolute -top-24 left-1/2 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-fd-primary/10 blur-3xl" />
           <div className="absolute top-10 -right-24 h-72 w-72 rounded-full bg-fd-primary/5 blur-3xl" />
@@ -259,9 +241,7 @@ export default async function HomePage() {
       <Band>
         <div className="mb-8 text-center">
           <BandLabel>Features</BandLabel>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-            Everything you need to search
-          </h2>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Everything you need to search</h2>
           <p className="mt-2 text-fd-muted-foreground">
             The same Orama API you know - faster internals, no vendor lock-in.
           </p>
@@ -280,9 +260,7 @@ export default async function HomePage() {
             >
               <Icon className="size-5 shrink-0 text-fd-primary" />
               <h3 className="mt-3 text-lg font-semibold tracking-tight">{title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-fd-muted-foreground">
-                {description}
-              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-fd-muted-foreground">{description}</p>
             </Link>
           ))}
         </div>
@@ -291,9 +269,7 @@ export default async function HomePage() {
       <Band>
         <div className="mb-8 text-center">
           <BandLabel>API</BandLabel>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-            As simple as it gets
-          </h2>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">As simple as it gets</h2>
           <p className="mt-2 text-fd-muted-foreground">
             Just create an instance, insert your data, and start searching. No server, no database, no hassle.
           </p>
@@ -306,11 +282,7 @@ export default async function HomePage() {
             <span className="ml-2 text-xs text-fd-muted-foreground">app.ts</span>
           </div>
           <div className="[&_figure]:m-0 [&_figure]:rounded-none [&_figure]:border-0 [&_pre]:my-0 [&_pre]:rounded-none [&_pre]:border-0 [&_pre]:bg-transparent">
-            <ServerCodeBlock
-              lang="ts"
-              code={exampleCode}
-              codeblock={{ className: 'bg-transparent shadow-none' }}
-            />
+            <ServerCodeBlock lang="ts" code={exampleCode} codeblock={{ className: 'bg-transparent shadow-none' }} />
           </div>
         </div>
       </Band>
@@ -324,9 +296,9 @@ export default async function HomePage() {
             Headless, so it looks like your site
           </h2>
           <p className="mx-auto mt-2 max-w-2xl text-fd-muted-foreground">
-            <code className="font-mono text-[0.9em]">@zbsearch/searchbox-react</code> ships the
-            behaviour - searching, grouping, keyboard nav, a11y. The look is a handful of CSS
-            variables. Switch themes and type; the index is running in your browser.
+            <code className="font-mono text-[0.9em]">@zbsearch/searchbox-react</code> ships the behaviour - searching,
+            grouping, keyboard nav, a11y. The look is a handful of CSS variables. Switch themes and type; the index is
+            running in your browser.
           </p>
         </div>
 
@@ -336,9 +308,7 @@ export default async function HomePage() {
       <Band className="border-b-0">
         <div className="mb-8 text-center">
           <BandLabel>Integrations</BandLabel>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-            ZBSearch for Docs
-          </h2>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">ZBSearch for Docs</h2>
           <p className="mt-2 text-fd-muted-foreground">
             Install one package and your existing site searches like this one.
           </p>
@@ -366,7 +336,7 @@ export default async function HomePage() {
         </p>
       </Band>
     </div>
-  );
+  )
 }
 
 function IntegrationCell({ name, tag, description, icon: Icon, install, href }: Integration) {
@@ -374,9 +344,7 @@ function IntegrationCell({ name, tag, description, icon: Icon, install, href }: 
     <>
       <div className="flex items-center gap-2.5">
         {Icon && <Icon className="size-5 shrink-0 object-contain" />}
-        <span className="font-mono text-[0.6875rem] uppercase tracking-[0.12em] text-fd-muted-foreground">
-          {tag}
-        </span>
+        <span className="font-mono text-[0.6875rem] uppercase tracking-[0.12em] text-fd-muted-foreground">{tag}</span>
         {!href && (
           <span className="rounded-sm border border-fd-border px-1.5 py-0.5 font-mono text-[0.625rem] uppercase tracking-[0.08em] text-fd-muted-foreground">
             Soon
@@ -385,9 +353,7 @@ function IntegrationCell({ name, tag, description, icon: Icon, install, href }: 
       </div>
 
       <h3 className="mt-3 text-lg font-semibold tracking-tight">{name}</h3>
-      <p className="mt-1.5 flex-1 text-sm leading-relaxed text-fd-muted-foreground">
-        {description}
-      </p>
+      <p className="mt-1.5 flex-1 text-sm leading-relaxed text-fd-muted-foreground">{description}</p>
 
       {install ? (
         <code className="mt-5 block overflow-x-auto whitespace-nowrap rounded-md border border-fd-border bg-fd-muted px-3 py-2 font-mono text-xs text-fd-foreground">
@@ -406,17 +372,17 @@ function IntegrationCell({ name, tag, description, icon: Icon, install, href }: 
         </span>
       )}
     </>
-  );
+  )
 
-  const className = 'flex flex-col bg-fd-background p-6';
+  const className = 'flex flex-col bg-fd-background p-6'
 
   if (!href) {
-    return <div className={className}>{body}</div>;
+    return <div className={className}>{body}</div>
   }
 
   return (
     <Link href={href} className={`group/cell ${className} transition-colors hover:bg-fd-muted/60`}>
       {body}
     </Link>
-  );
+  )
 }

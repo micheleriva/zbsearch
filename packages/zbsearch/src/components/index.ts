@@ -1194,7 +1194,7 @@ export function save<R = unknown>(index: Index): R {
     searchableProperties,
     searchablePropertiesWithTypes,
     frequencies,
-    tokenOccurrences,
+    tokenOccurrences: _tokenOccurrences,
     avgFieldLength,
     fieldLengths
   } = index

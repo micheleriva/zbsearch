@@ -3,15 +3,37 @@
   "version": "3.3.4",
   "description": "Make ZBSearch the search engine of your VitePress site",
   "keywords": [
-    "zbsearch",
-    "vitepress",
-    "vite",
-    "vue",
+    "full-text search",
     "search",
-    "full-text search"
+    "vite",
+    "vitepress",
+    "vue",
+    "zbsearch"
   ],
+  "homepage": "https://github.com/micheleriva/zbsearch#readme",
+  "bugs": {
+    "url": "https://github.com/micheleriva/zbsearch/issues"
+  },
   "license": "Apache-2.0",
+  "author": {
+    "name": "Michele Riva",
+    "email": "riva.michele.95@gmail.com",
+    "url": "https://github.com/MicheleRiva"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/micheleriva/zbsearch.git"
+  },
+  "files": [
+    "dist",
+    "src/theme",
+    "src/options.ts",
+    "src/virtual.d.ts"
+  ],
   "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -22,31 +44,13 @@
     "./SearchBox.vue": "./src/theme/SearchBox.vue",
     "./package.json": "./package.json"
   },
-  "files": [
-    "dist",
-    "src/theme",
-    "src/options.ts",
-    "src/virtual.d.ts"
-  ],
-  "bugs": {
-    "url": "https://github.com/micheleriva/zbsearch/issues"
-  },
-  "homepage": "https://github.com/micheleriva/zbsearch#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/micheleriva/zbsearch.git"
-  },
-  "scripts": {
-    "build": "node ../../scripts/rolldown-build.mjs && tsc -p tsconfig.build.json --emitDeclarationOnly",
-    "lint": "exit 0",
-    "test": "vitest run"
-  },
   "publishConfig": {
     "access": "public"
   },
-  "peerDependencies": {
-    "vitepress": ">=1.0.0",
-    "vue": "^3.4.0"
+  "scripts": {
+    "build": "node ../../scripts/rolldown-build.mjs && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "lint": "oxlint --fix --fix-suggestions",
+    "test": "vitest run"
   },
   "dependencies": {
     "@zbsearch/docs-index": "workspace:*",
@@ -63,12 +67,8 @@
     "vitepress": "^1.6.4",
     "vue": "^3.5.40"
   },
-  "author": {
-    "name": "Michele Riva",
-    "email": "riva.michele.95@gmail.com",
-    "url": "https://github.com/MicheleRiva"
-  },
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts"
+  "peerDependencies": {
+    "vitepress": ">=1.0.0",
+    "vue": "^3.4.0"
+  }
 }

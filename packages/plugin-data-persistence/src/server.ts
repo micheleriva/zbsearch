@@ -4,7 +4,7 @@ import { encode, decode } from '@msgpack/msgpack'
 import * as dpack from './dpack.js'
 import type { FileSystem, PersistenceFormat, Runtime } from './types.js'
 import { FILESYSTEM_NOT_SUPPORTED_ON_RUNTIME, UNSUPPORTED_FORMAT } from './errors.js'
-import { persist, restore } from './index.js'
+import { restore } from './index.js'
 import { detectRuntime } from './utils.js'
 import { serializeZBSearchInstance } from './seqproto.js'
 
@@ -275,7 +275,7 @@ async function streamBinaryToFile(data: any, filePath: string, runtime: Runtime)
 }
 
 // Helper function to restore from binary data directly
-async function restoreFromBinaryData<T extends AnyZBSearch>(data: Buffer, runtime: Runtime): Promise<T> {
+async function restoreFromBinaryData<T extends AnyZBSearch>(data: Buffer, _runtime: Runtime): Promise<T> {
   const db = create({
     schema: {
       __placeholder: 'string'

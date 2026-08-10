@@ -3,14 +3,30 @@
   "version": "3.3.4",
   "description": "Accessible, unstyled-by-default React search box UI for ZBSearch",
   "keywords": [
-    "zbsearch",
+    "autocomplete",
+    "command palette",
+    "react",
     "search",
     "searchbox",
-    "react",
-    "command palette",
-    "autocomplete"
+    "zbsearch"
   ],
+  "homepage": "https://github.com/micheleriva/zbsearch#readme",
+  "bugs": {
+    "url": "https://github.com/micheleriva/zbsearch/issues"
+  },
   "license": "Apache-2.0",
+  "author": {
+    "name": "Michele Riva",
+    "email": "riva.michele.95@gmail.com",
+    "url": "https://github.com/MicheleRiva"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/micheleriva/zbsearch.git"
+  },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "sideEffects": [
     "*.css"
@@ -27,28 +43,16 @@
     "./styles.css": "./dist/styles.css",
     "./package.json": "./package.json"
   },
-  "files": [
-    "dist"
-  ],
-  "bugs": {
-    "url": "https://github.com/micheleriva/zbsearch/issues"
-  },
-  "homepage": "https://github.com/micheleriva/zbsearch#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/micheleriva/zbsearch.git"
-  },
-  "scripts": {
-    "build": "node ../../scripts/rolldown-build.mjs && tsc -p . --emitDeclarationOnly",
-    "lint": "exit 0",
-    "test": "vitest run"
-  },
   "publishConfig": {
     "access": "public"
   },
-  "peerDependencies": {
-    "react": "^18.0.0 || ^19.0.0",
-    "react-dom": "^18.0.0 || ^19.0.0"
+  "scripts": {
+    "build": "node ../../scripts/rolldown-build.mjs && tsc -p . --emitDeclarationOnly",
+    "lint": "oxlint --fix --fix-suggestions",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@zbsearch/searchbox-core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.7.0",
@@ -61,12 +65,8 @@
     "tsx": "^4.20.6",
     "typescript": "^7.0.2"
   },
-  "author": {
-    "name": "Michele Riva",
-    "email": "riva.michele.95@gmail.com",
-    "url": "https://github.com/MicheleRiva"
-  },
-  "dependencies": {
-    "@zbsearch/searchbox-core": "workspace:*"
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
   }
 }

@@ -1,6 +1,6 @@
 import type { InternalDocumentID } from '../components/internal-document-id-store.js'
 import type { VectorIndexContext, VectorIndexFactory, VectorIndexLike } from '../types.js'
-import { dotProduct, getMagnitude, normalizeVector } from './vector-math.js'
+import { dotProduct, normalizeVector } from './vector-math.js'
 
 export type Magnitude = number
 export type VectorType = Float32Array

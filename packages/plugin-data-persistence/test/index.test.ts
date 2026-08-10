@@ -708,8 +708,8 @@ describe('pinning rules persistence', () => {
       } as const
     })
 
-    const id1 = await insert(db, { id: '1', quote: 'I am a great programmer', author: 'Bill Gates' })
-    const id2 = await insert(db, {
+    const _id1 = await insert(db, { id: '1', quote: 'I am a great programmer', author: 'Bill Gates' })
+    const _id2 = await insert(db, {
       id: '2',
       quote: 'Be yourself; everyone else is already taken.',
       author: 'Oscar Wilde'
@@ -849,6 +849,6 @@ function rmTeardown(p: string) {
   return async () => {
     try {
       await rm(p)
-    } catch (e) {}
+    } catch {}
   }
 }

@@ -6,10 +6,5 @@
     "es": ".js",
     "cjs": ".cjs"
   },
-  "copy": [
-    [
-      "src/styles.css",
-      "dist/styles.css"
-    ]
-  ]
+  "copy": [["src/styles.css", "dist/styles.css"]]
 }

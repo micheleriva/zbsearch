@@ -16,7 +16,7 @@ export function Panel({
   title,
   hint,
   action,
-  children,
+  children
 }: {
   title: string
   hint?: ReactNode
@@ -42,7 +42,7 @@ export function Panel({
 export function ConsoleButton({
   children,
   onClick,
-  disabled,
+  disabled
 }: {
   children: ReactNode
   onClick?: () => void
@@ -77,7 +77,7 @@ export function Slider({
   max,
   step,
   value,
-  onChange,
+  onChange
 }: {
   min: number
   max: number
@@ -92,7 +92,7 @@ export function Slider({
       max={max}
       step={step}
       value={value}
-      onChange={event => onChange(Number(event.target.value))}
+      onChange={(event) => onChange(Number(event.target.value))}
     />
   )
 }
@@ -101,7 +101,7 @@ export function Toggle({
   label,
   description,
   checked,
-  onChange,
+  onChange
 }: {
   label: string
   description?: string
@@ -156,7 +156,7 @@ export function Stat({
   label,
   value,
   tone,
-  title,
+  title
 }: {
   label: string
   value: ReactNode

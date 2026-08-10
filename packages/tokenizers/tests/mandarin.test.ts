@@ -1,5 +1,4 @@
 import { expect, it } from "vitest";
-import fs from 'fs'
 import { create, insert, search } from 'zbsearch'
 import { createTokenizer } from '../src/mandarin.js'
 

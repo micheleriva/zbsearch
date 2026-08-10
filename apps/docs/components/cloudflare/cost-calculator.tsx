@@ -1,8 +1,7 @@
-'use client';
+'use client'
 
-import { cn } from '@/lib/cn';
-import { TriangleAlert } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { TriangleAlert } from 'lucide-react'
+import { useMemo, useState } from 'react'
 
 /**
  * Cloudflare pricing constants (verified 2026-07-21):
@@ -23,8 +22,8 @@ const PRICING = {
   r2IncludedClassB: 10_000_000,
   r2ClassBPerMillion: 0.36,
   doIncludedRequests: 1_000_000,
-  doRequestPerMillion: 0.15,
-} as const;
+  doRequestPerMillion: 0.15
+} as const
 
 /** Measured model inputs (see content/docs/cloudflare/benchmarks). */
 const MODEL = {
@@ -38,73 +37,66 @@ const MODEL = {
   rebuildCpuMsPerDoc: 0.0625, // 96k docs rebuilt in ~6s CPU, measured
   walReadsPerRebuild: 10,
   metaGetsPerSearchUncached: 1, // per shard (+1 for the group)
-  metaCacheHitRatio: 0.99, // with in-isolate meta cache enabled
-} as const;
+  metaCacheHitRatio: 0.99 // with in-isolate meta cache enabled
+} as const
 
 interface Inputs {
-  docs: number;
-  searches: number;
-  writes: number;
-  shards: number;
-  coldPct: number;
-  metaCache: boolean;
+  docs: number
+  searches: number
+  writes: number
+  shards: number
+  coldPct: number
+  metaCache: boolean
 }
 
 function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
+  return Math.min(max, Math.max(min, value))
 }
 
 function suggestedShards(docs: number): number {
-  return clamp(Math.round(docs / 25_000) || 1, 1, 32);
+  return clamp(Math.round(docs / 25_000) || 1, 1, 32)
 }
 
 function compute(inputs: Inputs) {
-  const { docs, searches, writes, shards, coldPct, metaCache } = inputs;
+  const { docs, searches, writes, shards, coldPct, metaCache } = inputs
 
-  const coldRatio = coldPct / 100;
-  const batches = writes / MODEL.batchSize;
-  const shardRebuilds = writes / MODEL.rebuildThresholdOps;
+  const coldRatio = coldPct / 100
+  const batches = writes / MODEL.batchSize
+  const shardRebuilds = writes / MODEL.rebuildThresholdOps
 
   // Workers CPU
-  const warmCpuMs = Math.max(1, (docs / 1000) * MODEL.warmCpuMsPer1kDocs);
-  const coldExtraCpuMs = docs * MODEL.coldCpuMsPerDoc;
-  const searchCpuMs = searches * (warmCpuMs + coldRatio * coldExtraCpuMs);
-  const batchCpuMs = batches * MODEL.batchCpuMs;
-  const rebuildCpuMs = shardRebuilds * (docs / shards) * MODEL.rebuildCpuMsPerDoc;
-  const totalCpuMs = searchCpuMs + batchCpuMs + rebuildCpuMs;
+  const warmCpuMs = Math.max(1, (docs / 1000) * MODEL.warmCpuMsPer1kDocs)
+  const coldExtraCpuMs = docs * MODEL.coldCpuMsPerDoc
+  const searchCpuMs = searches * (warmCpuMs + coldRatio * coldExtraCpuMs)
+  const batchCpuMs = batches * MODEL.batchCpuMs
+  const rebuildCpuMs = shardRebuilds * (docs / shards) * MODEL.rebuildCpuMsPerDoc
+  const totalCpuMs = searchCpuMs + batchCpuMs + rebuildCpuMs
 
   // Workers requests
-  const workerRequests = searches + batches + shardRebuilds * 2;
+  const workerRequests = searches + batches + shardRebuilds * 2
 
   // R2 operations
   const metaGetsPerSearch = metaCache
     ? (1 - MODEL.metaCacheHitRatio) * (shards + 1)
-    : (shards + 1) * MODEL.metaGetsPerSearchUncached;
+    : (shards + 1) * MODEL.metaGetsPerSearchUncached
   const classB =
     searches * metaGetsPerSearch +
     searches * coldRatio * shards + // snapshot downloads on cold isolates
-    shardRebuilds * MODEL.walReadsPerRebuild;
-  const classA = batches * 2 + shardRebuilds * 2; // WAL segment + head, snapshot + meta
-  const storageGb = (docs * (MODEL.indexBytesPerDoc + MODEL.rawBytesPerDoc)) / 1e9;
-  const doRequests = batches + shardRebuilds * 2 + (shards >= 2 ? searches * shards : 0);
+    shardRebuilds * MODEL.walReadsPerRebuild
+  const classA = batches * 2 + shardRebuilds * 2 // WAL segment + head, snapshot + meta
+  const storageGb = (docs * (MODEL.indexBytesPerDoc + MODEL.rawBytesPerDoc)) / 1e9
+  const doRequests = batches + shardRebuilds * 2 + (shards >= 2 ? searches * shards : 0)
 
   // Costs
   const requestsCost =
-    (Math.max(0, workerRequests - PRICING.workersIncludedRequests) / 1e6) *
-    PRICING.workersRequestPerMillion;
-  const cpuCost =
-    (Math.max(0, totalCpuMs - PRICING.workersIncludedCpuMs) / 1e6) *
-    PRICING.workersCpuPerMillionMs;
-  const r2StorageCost = Math.max(0, storageGb - PRICING.r2IncludedGb) * PRICING.r2GbMonth;
-  const r2ClassACost =
-    (Math.max(0, classA - PRICING.r2IncludedClassA) / 1e6) * PRICING.r2ClassAPerMillion;
-  const r2ClassBCost =
-    (Math.max(0, classB - PRICING.r2IncludedClassB) / 1e6) * PRICING.r2ClassBPerMillion;
-  const doCost =
-    (Math.max(0, doRequests - PRICING.doIncludedRequests) / 1e6) * PRICING.doRequestPerMillion;
+    (Math.max(0, workerRequests - PRICING.workersIncludedRequests) / 1e6) * PRICING.workersRequestPerMillion
+  const cpuCost = (Math.max(0, totalCpuMs - PRICING.workersIncludedCpuMs) / 1e6) * PRICING.workersCpuPerMillionMs
+  const r2StorageCost = Math.max(0, storageGb - PRICING.r2IncludedGb) * PRICING.r2GbMonth
+  const r2ClassACost = (Math.max(0, classA - PRICING.r2IncludedClassA) / 1e6) * PRICING.r2ClassAPerMillion
+  const r2ClassBCost = (Math.max(0, classB - PRICING.r2IncludedClassB) / 1e6) * PRICING.r2ClassBPerMillion
+  const doCost = (Math.max(0, doRequests - PRICING.doIncludedRequests) / 1e6) * PRICING.doRequestPerMillion
 
-  const usageCost =
-    requestsCost + cpuCost + r2StorageCost + r2ClassACost + r2ClassBCost + doCost;
+  const usageCost = requestsCost + cpuCost + r2StorageCost + r2ClassACost + r2ClassBCost + doCost
 
   return {
     workerRequests,
@@ -119,68 +111,67 @@ function compute(inputs: Inputs) {
       {
         label: 'Workers base plan',
         cost: PRICING.workersBaseUsd,
-        usage: 'includes 10M req + 30M CPU-ms',
+        usage: 'includes 10M req + 30M CPU-ms'
       },
       {
         label: 'Workers requests',
         cost: requestsCost,
-        usage: `${formatCompact(workerRequests)} req`,
+        usage: `${formatCompact(workerRequests)} req`
       },
       {
         label: 'Workers CPU',
         cost: cpuCost,
-        usage: `${formatCompact(totalCpuMs)} CPU-ms`,
+        usage: `${formatCompact(totalCpuMs)} CPU-ms`
       },
       {
         label: 'R2 storage',
         cost: r2StorageCost,
-        usage:
-          storageGb < 1 ? `${(storageGb * 1000).toFixed(0)} MB` : `${storageGb.toFixed(2)} GB`,
+        usage: storageGb < 1 ? `${(storageGb * 1000).toFixed(0)} MB` : `${storageGb.toFixed(2)} GB`
       },
       {
         label: 'R2 Class A (writes)',
         cost: r2ClassACost,
-        usage: `${formatCompact(classA)} ops`,
+        usage: `${formatCompact(classA)} ops`
       },
       {
         label: 'R2 Class B (reads)',
         cost: r2ClassBCost,
-        usage: `${formatCompact(classB)} ops`,
+        usage: `${formatCompact(classB)} ops`
       },
       {
         label: 'Durable Objects',
         cost: doCost,
-        usage: `${formatCompact(doRequests)} req`,
-      },
+        usage: `${formatCompact(doRequests)} req`
+      }
     ],
     total: PRICING.workersBaseUsd + usageCost,
     perMillionSearches: ((PRICING.workersBaseUsd + usageCost) / searches) * 1e6,
     fitsFreePlan: warmCpuMs <= 10 && searches <= 3_000_000 && writes <= 3_000_000,
-    exceedsCpuLimit: warmCpuMs + coldExtraCpuMs > 300_000,
-  };
+    exceedsCpuLimit: warmCpuMs + coldExtraCpuMs > 300_000
+  }
 }
 
 function formatCompact(value: number): string {
-  if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
-  if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
-  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}k`;
-  return `${Math.round(value)}`;
+  if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`
+  if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`
+  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}k`
+  return `${Math.round(value)}`
 }
 
 function formatUsd(value: number): string {
-  if (value >= 1000) return `$${Math.round(value).toLocaleString()}`;
-  return `$${value.toFixed(2)}`;
+  if (value >= 1000) return `$${Math.round(value).toLocaleString()}`
+  return `$${value.toFixed(2)}`
 }
 
 function toSlider(value: number, min: number, max: number): number {
-  return ((Math.log(value) - Math.log(min)) / (Math.log(max) - Math.log(min))) * 100;
+  return ((Math.log(value) - Math.log(min)) / (Math.log(max) - Math.log(min))) * 100
 }
 
 function fromSlider(pos: number, min: number, max: number): number {
-  const value = Math.exp(Math.log(min) + (pos / 100) * (Math.log(max) - Math.log(min)));
+  const value = Math.exp(Math.log(min) + (pos / 100) * (Math.log(max) - Math.log(min)))
   // Round to 2 significant digits for readable values
-  const magnitude = 10 ** Math.floor(Math.log10(value));
-  return Math.round(value / (magnitude / 10)) * (magnitude / 10);
+  const magnitude = 10 ** Math.floor(Math.log10(value))
+  return Math.round(value / (magnitude / 10)) * (magnitude / 10)
 }
 
 function Slider({
@@ -191,18 +182,18 @@ function Slider({
   max,
   log = true,
   format,
-  onChange,
+  onChange
 }: {
-  label: string;
-  hint?: string;
-  value: number;
-  min: number;
-  max: number;
-  log?: boolean;
-  format: (value: number) => string;
-  onChange: (value: number) => void;
+  label: string
+  hint?: string
+  value: number
+  min: number
+  max: number
+  log?: boolean
+  format: (value: number) => string
+  onChange: (value: number) => void
 }) {
-  const pos = log ? toSlider(value, min, max) : ((value - min) / (max - min)) * 100;
+  const pos = log ? toSlider(value, min, max) : ((value - min) / (max - min)) * 100
   return (
     <label className="block">
       <span className="flex items-baseline justify-between gap-2">
@@ -221,39 +212,37 @@ function Slider({
         step={0.5}
         value={pos}
         onChange={(event) => {
-          const next = Number.parseFloat(event.target.value);
-          onChange(
-            log ? fromSlider(next, min, max) : Math.round(min + (next / 100) * (max - min)),
-          );
+          const next = Number.parseFloat(event.target.value)
+          onChange(log ? fromSlider(next, min, max) : Math.round(min + (next / 100) * (max - min)))
         }}
         className="mt-2 w-full accent-fd-primary"
       />
     </label>
-  );
+  )
 }
 
 export function CostCalculator() {
-  const [docs, setDocs] = useState(5_000);
-  const [searches, setSearches] = useState(10_000_000);
-  const [writes, setWrites] = useState(5_000);
-  const [shards, setShards] = useState(5);
-  const [coldPct, setColdPct] = useState(4);
-  const [metaCache, setMetaCache] = useState(true);
+  const [docs, setDocs] = useState(5_000)
+  const [searches, setSearches] = useState(10_000_000)
+  const [writes, setWrites] = useState(5_000)
+  const [shards, setShards] = useState(5)
+  const [coldPct, setColdPct] = useState(4)
+  const [metaCache, setMetaCache] = useState(true)
 
   const result = useMemo(
     () => compute({ docs, searches, writes, shards, coldPct, metaCache }),
-    [docs, searches, writes, shards, coldPct, metaCache],
-  );
+    [docs, searches, writes, shards, coldPct, metaCache]
+  )
 
-  const maxRowCost = Math.max(...result.breakdown.map((row) => row.cost));
+  const maxRowCost = Math.max(...result.breakdown.map((row) => row.cost))
 
   return (
     <div className="not-prose overflow-hidden rounded-2xl border border-fd-border bg-fd-card">
       <div className="flex items-center gap-2 border-b border-fd-border bg-fd-warning/10 px-4 py-2.5 sm:px-6">
         <TriangleAlert aria-hidden className="size-3.5 shrink-0 text-fd-warning" />
         <p className="text-xs leading-relaxed text-fd-foreground">
-          ZBSearch Edge is unoptimized right now. Real-world costs are higher than they should be, and we&apos;re actively
-          working to make it <strong className="font-semibold">way cheaper</strong>.
+          ZBSearch Edge is unoptimized right now. Real-world costs are higher than they should be, and we&apos;re
+          actively working to make it <strong className="font-semibold">way cheaper</strong>.
         </p>
       </div>
 
@@ -266,8 +255,8 @@ export function CostCalculator() {
             max={10_000_000}
             format={formatCompact}
             onChange={(value) => {
-              setDocs(value);
-              setShards(suggestedShards(value));
+              setDocs(value)
+              setShards(suggestedShards(value))
             }}
           />
           <Slider
@@ -317,8 +306,8 @@ export function CostCalculator() {
             <span>
               <span className="font-medium text-fd-foreground">In-isolate index-meta cache</span>
               <span className="mt-0.5 block text-fd-muted-foreground/80">
-                Caches per-shard <code>meta.json</code> reads instead of hitting R2 on every
-                search. Biggest single cost lever at high QPS.
+                Caches per-shard <code>meta.json</code> reads instead of hitting R2 on every search. Biggest single cost
+                lever at high QPS.
               </span>
             </span>
           </label>
@@ -327,9 +316,7 @@ export function CostCalculator() {
         <div className="flex flex-col">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <div className="text-xs font-medium text-fd-muted-foreground">
-                Estimated monthly cost
-              </div>
+              <div className="text-xs font-medium text-fd-muted-foreground">Estimated monthly cost</div>
               <div className="text-3xl font-bold tabular-nums tracking-tight text-fd-primary">
                 {formatUsd(result.total)}
                 <span className="ml-1 text-sm font-normal text-fd-muted-foreground">/mo</span>
@@ -345,16 +332,11 @@ export function CostCalculator() {
               <div key={row.label}>
                 <div className="flex items-baseline justify-between gap-2 text-xs">
                   <span className="inline-flex items-center gap-1.5 text-fd-muted-foreground">
-                    <span
-                      aria-hidden
-                      className="inline-block size-2 shrink-0 rounded-full bg-chart-subject"
-                    />
+                    <span aria-hidden className="inline-block size-2 shrink-0 rounded-full bg-chart-subject" />
                     {row.label}
                   </span>
                   <span className="tabular-nums">
-                    <span className="font-semibold text-fd-foreground">
-                      {formatUsd(row.cost)}
-                    </span>
+                    <span className="font-semibold text-fd-foreground">{formatUsd(row.cost)}</span>
                     <span className="ml-2 text-fd-muted-foreground/70">{row.usage}</span>
                   </span>
                 </div>
@@ -362,7 +344,7 @@ export function CostCalculator() {
                   <div
                     className="h-full rounded-xs bg-chart-subject"
                     style={{
-                      width: `${maxRowCost > 0 ? Math.max(1.5, (row.cost / maxRowCost) * 100) : 1.5}%`,
+                      width: `${maxRowCost > 0 ? Math.max(1.5, (row.cost / maxRowCost) * 100) : 1.5}%`
                     }}
                   />
                 </div>
@@ -373,13 +355,13 @@ export function CostCalculator() {
           <div className="mt-5 flex flex-col gap-1.5 text-xs leading-relaxed text-fd-muted-foreground">
             {result.fitsFreePlan ? (
               <p className="rounded-lg bg-fd-info/10 px-3 py-2">
-                Fits the Workers Free plan for requests, but note the free plan caps CPU at
-                10ms per invocation - searches on larger corpora will fail there.
+                Fits the Workers Free plan for requests, but note the free plan caps CPU at 10ms per invocation -
+                searches on larger corpora will fail there.
               </p>
             ) : (
               <p className="rounded-lg bg-fd-info/10 px-3 py-2">
-                Requires Workers Paid ($5/mo base, included above). The free plan caps CPU at
-                10ms per invocation, which search workloads exceed.
+                Requires Workers Paid ($5/mo base, included above). The free plan caps CPU at 10ms per invocation, which
+                search workloads exceed.
               </p>
             )}
             {result.exceedsCpuLimit ? (
@@ -396,5 +378,5 @@ export function CostCalculator() {
         </div>
       </div>
     </div>
-  );
+  )
 }

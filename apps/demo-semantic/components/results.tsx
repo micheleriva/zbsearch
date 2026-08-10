@@ -16,9 +16,9 @@ import { MODE_COLOR, cx } from './ui'
  */
 function Empty({
   mode,
-  term,
+  _term,
   settings,
-  onMode,
+  onMode
 }: {
   mode: Mode
   term: string
@@ -30,19 +30,19 @@ function Empty({
       headline: 'No article contains those words.',
       detail:
         'An inverted index can only find terms that are literally present, and nothing in the corpus uses this wording.',
-      suggest: 'vector',
+      suggest: 'vector'
     },
     vector: {
       headline: `Nothing reached a cosine of ${settings.similarity.toFixed(2)}.`,
       detail:
         'Every article was compared against the query and none came close enough. Lower the similarity floor in the console, or search by keyword if this is an identifier rather than a sentence.',
-      suggest: 'fulltext',
+      suggest: 'fulltext'
     },
     hybrid: {
       headline: 'Neither half of the query matched.',
       detail:
-        'No lexical hit, and nothing above the similarity floor. This is the rare case where hybrid has nothing to blend.',
-    },
+        'No lexical hit, and nothing above the similarity floor. This is the rare case where hybrid has nothing to blend.'
+    }
   }
 
   const { headline, detail, suggest } = copy[mode]
@@ -73,7 +73,7 @@ export function Results({
   comparison,
   settings,
   example,
-  onOpen,
+  onOpen
 }: {
   view: View
   onView: (view: View) => void
@@ -119,7 +119,7 @@ export function Results({
         <Empty mode={result.mode} term={term} settings={settings} onMode={onView} />
       ) : result ? (
         <ul>
-          {result.hits.map(hit => (
+          {result.hits.map((hit) => (
             <ResultRow
               key={hit.id}
               hit={hit}

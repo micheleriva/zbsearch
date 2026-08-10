@@ -22,10 +22,10 @@ npx zbsearch-edge-setup
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `npx zbsearch-edge-setup` | Configure, provision, and deploy |
-| `npx zbsearch-edge-teardown` | Remove Worker and R2 buckets |
+| Command                                   | Purpose                                               |
+| ----------------------------------------- | ----------------------------------------------------- |
+| `npx zbsearch-edge-setup`                 | Configure, provision, and deploy                      |
+| `npx zbsearch-edge-teardown`              | Remove Worker and R2 buckets                          |
 | `npx zbsearch-edge-builder rebuild --all` | Rebuild indexes (from `@zbsearch/edge-index-builder`) |
 
 ## Generated files

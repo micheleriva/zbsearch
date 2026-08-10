@@ -21,7 +21,7 @@ const TERMS = [
   'dell xps',
   'gold earring',
   'motorcycle helmet',
-  'cotton dress',
+  'cotton dress'
 ]
 
 const ROUNDS = 250
@@ -61,9 +61,8 @@ export function BenchmarkPanel({ db }: { db: CatalogDB }) {
             <Stat label="p95" value={formatMs(result.p95)} />
           </div>
           <p className="mt-3 border-t border-console-line pt-2 text-[10.5px] leading-relaxed text-console-muted">
-            Browsers clamp <code className="font-mono">performance.now()</code> to about 100μs, so a single query is
-            too fast to time directly. Each pass over the {TERMS.length} terms is timed as one sample and divided
-            back down.
+            Browsers clamp <code className="font-mono">performance.now()</code> to about 100μs, so a single query is too
+            fast to time directly. Each pass over the {TERMS.length} terms is timed as one sample and divided back down.
           </p>
         </>
       ) : (

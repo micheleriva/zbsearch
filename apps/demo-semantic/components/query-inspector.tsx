@@ -18,7 +18,7 @@ function render(params: Record<string, unknown>, expandVector: boolean): string 
     params,
     (key, value) => {
       if (key === 'value' && Array.isArray(value) && value.length > 8 && !expandVector) {
-        const head = value.slice(0, 4).map(component => Number(component.toFixed(4)))
+        const head = value.slice(0, 4).map((component) => Number(component.toFixed(4)))
         return `[${head.join(', ')}, … ${value.length - 4} more]`
       }
 
@@ -34,7 +34,7 @@ function render(params: Record<string, unknown>, expandVector: boolean): string 
 export function QueryInspector({
   mode,
   params,
-  elapsed,
+  elapsed
 }: {
   mode: Mode
   params: Record<string, unknown>

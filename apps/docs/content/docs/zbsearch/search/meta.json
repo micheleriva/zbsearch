@@ -1,19 +1,19 @@
 {
-	"title": "Search",
-	"pages": [
-		"index",
-		"autocomplete",
-		"changing-default-search-algorithm",
-		"vector-search",
-		"hybrid-search",
-		"fields-boosting",
-		"facets",
-		"filters",
-		"geosearch",
-		"sorting",
-		"grouping",
-		"threshold",
-		"preflight",
-		"bm25"
-	]
+  "title": "Search",
+  "pages": [
+    "index",
+    "autocomplete",
+    "changing-default-search-algorithm",
+    "vector-search",
+    "hybrid-search",
+    "fields-boosting",
+    "facets",
+    "filters",
+    "geosearch",
+    "sorting",
+    "grouping",
+    "threshold",
+    "preflight",
+    "bm25"
+  ]
 }

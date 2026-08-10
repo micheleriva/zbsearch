@@ -6,10 +6,7 @@
     "es": ".js",
     "cjs": ".cjs"
   },
-  "external": [
-    "vitepress",
-    "vite"
-  ],
+  "external": ["vitepress", "vite"],
   "platform": "node",
   "target": "node20"
 }

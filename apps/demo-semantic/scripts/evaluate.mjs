@@ -21,17 +21,17 @@ import {
   SCHEMA,
   TOKENIZER,
   dequantise,
-  toDocument,
+  toDocument
 } from '../lib/schema.mjs'
 import { hashCorpus } from '../lib/embedding-text.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const read = async name => JSON.parse(await readFile(join(here, '..', 'data', name), 'utf8'))
+const read = async (name) => JSON.parse(await readFile(join(here, '..', 'data', name), 'utf8'))
 
 const [articles, embeddings, queries] = await Promise.all([
   read('articles.json'),
   read('embeddings.json'),
-  read('queries.json'),
+  read('queries.json')
 ])
 
 if (hashCorpus(articles) !== embeddings.sourceHash) {
@@ -39,18 +39,21 @@ if (hashCorpus(articles) !== embeddings.sourceHash) {
   process.exit(1)
 }
 
-const vectors = dequantise(embeddings, base64 => Buffer.from(base64, 'base64'))
+const vectors = dequantise(embeddings, (base64) => Buffer.from(base64, 'base64'))
 const db = create({ schema: SCHEMA, components: { tokenizer: TOKENIZER } })
-await insertMultiple(db, articles.map((article, i) => toDocument(article, vectors[i])))
+await insertMultiple(
+  db,
+  articles.map((article, i) => toDocument(article, vectors[i]))
+)
 
 const extract = await pipeline('feature-extraction', embeddings.model, { dtype: 'q8' })
-const encode = async term => (await extract([term], { pooling: 'mean', normalize: true })).tolist()[0]
+const encode = async (term) => (await extract([term], { pooling: 'mean', normalize: true })).tolist()[0]
 
 const MODES = ['fulltext', 'vector', 'hybrid']
 
 /** Where the first expected article lands, or null if it is outside the top 10. */
 function rankOf(results, expect) {
-  const at = results.hits.findIndex(hit => expect.includes(String(hit.id)))
+  const at = results.hits.findIndex((hit) => expect.includes(String(hit.id)))
   return at === -1 ? null : at + 1
 }
 
@@ -69,7 +72,7 @@ for (const query of queries) {
       boost: DEFAULT_BOOST,
       ...(DEFAULT_TOLERANCE > 0 && mode !== 'vector' ? { tolerance: DEFAULT_TOLERANCE } : {}),
       ...(mode === 'fulltext' ? {} : { vector, similarity: DEFAULT_SIMILARITY }),
-      ...(mode === 'hybrid' ? { hybridWeights: DEFAULT_HYBRID_WEIGHTS } : {}),
+      ...(mode === 'hybrid' ? { hybridWeights: DEFAULT_HYBRID_WEIGHTS } : {})
     })
 
     const rank = rankOf(results, query.expect)
@@ -88,7 +91,7 @@ console.log('-'.repeat(78))
 
 for (const row of rows) {
   const best = MODES.reduce((a, b) => ((row[b].rank ?? 99) < (row[a].rank ?? 99) ? b : a))
-  const tied = MODES.filter(m => (row[m].rank ?? 99) === (row[best].rank ?? 99))
+  const tied = MODES.filter((m) => (row[m].rank ?? 99) === (row[best].rank ?? 99))
   console.log(
     `${row.term.slice(0, 45).padEnd(46)}${cell(row.fulltext)} ${cell(row.vector)} ${cell(row.hybrid)}` +
       `   ${tied.length === MODES.length ? 'all' : tied.join('+')}`
@@ -97,11 +100,11 @@ for (const row of rows) {
 
 console.log('-'.repeat(78))
 
-const summarise = mode => {
+const summarise = (mode) => {
   const values = ranks[mode]
-  const found = values.filter(rank => rank !== null)
+  const found = values.filter((rank) => rank !== null)
   const mrr = values.reduce((sum, rank) => sum + (rank ? 1 / rank : 0), 0) / values.length
-  const top1 = values.filter(rank => rank === 1).length
+  const top1 = values.filter((rank) => rank === 1).length
   return `${mode.padEnd(9)} top-1 ${String(top1).padStart(2)}/${values.length}   in top-10 ${String(found.length).padStart(2)}/${values.length}   MRR ${mrr.toFixed(3)}`
 }
 

@@ -45,25 +45,25 @@ export default {
 }
 ```
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `language` | `'english'` | Language used to tokenize and stem the index |
-| `docs` | `true` | Index every docs plugin instance |
-| `blog` | `true` | Index every blog plugin instance |
-| `pages` | `true` | Index standalone MDX pages |
-| `indexAllDocsVersions` | `false` | Index older docs versions as well as the current one |
-| `excludeRoutes` | `[]` | Routes to leave out, with `*` and `**` wildcards |
-| `categoryLabels` | `{ docs: 'Docs', blog: 'Blog', pages: 'Pages' }` | Labels used to tag results |
-| `maxResults` | `12` | Maximum number of hits shown at once |
-| `boost` | `{ title: 4, section: 3, hierarchy: 1.5, content: 1 }` | Per-property ranking weights |
-| `tolerance` | `1` | Edit distance tolerated per term |
-| `threshold` | `0` | Minimum share of query terms a document must match |
-| `snippetLength` | `140` | Maximum length of the excerpt under a hit |
-| `recentSearches` | `true` | Remember and replay recently opened results |
-| `hotkeys` | `true` | Bind the ⌘K / Ctrl+K and `/` shortcuts |
-| `searchButtonLabel` | `'Search'` | Text of the navbar button |
-| `placeholder` | `'Search documentation…'` | Placeholder of the search input |
-| `labels` | `{}` | Copy overrides for the dialog |
+| Option                 | Default                                                | Description                                          |
+| ---------------------- | ------------------------------------------------------ | ---------------------------------------------------- |
+| `language`             | `'english'`                                            | Language used to tokenize and stem the index         |
+| `docs`                 | `true`                                                 | Index every docs plugin instance                     |
+| `blog`                 | `true`                                                 | Index every blog plugin instance                     |
+| `pages`                | `true`                                                 | Index standalone MDX pages                           |
+| `indexAllDocsVersions` | `false`                                                | Index older docs versions as well as the current one |
+| `excludeRoutes`        | `[]`                                                   | Routes to leave out, with `*` and `**` wildcards     |
+| `categoryLabels`       | `{ docs: 'Docs', blog: 'Blog', pages: 'Pages' }`       | Labels used to tag results                           |
+| `maxResults`           | `12`                                                   | Maximum number of hits shown at once                 |
+| `boost`                | `{ title: 4, section: 3, hierarchy: 1.5, content: 1 }` | Per-property ranking weights                         |
+| `tolerance`            | `1`                                                    | Edit distance tolerated per term                     |
+| `threshold`            | `0`                                                    | Minimum share of query terms a document must match   |
+| `snippetLength`        | `140`                                                  | Maximum length of the excerpt under a hit            |
+| `recentSearches`       | `true`                                                 | Remember and replay recently opened results          |
+| `hotkeys`              | `true`                                                 | Bind the ⌘K / Ctrl+K and `/` shortcuts               |
+| `searchButtonLabel`    | `'Search'`                                             | Text of the navbar button                            |
+| `placeholder`          | `'Search documentation…'`                              | Placeholder of the search input                      |
+| `labels`               | `{}`                                                   | Copy overrides for the dialog                        |
 
 ## How it works
 

@@ -2,9 +2,24 @@
   "name": "@zbsearch/plugin-data-persistence",
   "version": "3.3.4",
   "description": "Data persistence plugin for ZBSearch",
+  "keywords": [
+    "disk persistence",
+    "full-text search",
+    "zbsearch"
+  ],
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Michele Riva",
+    "email": "michele@zbsearch.com",
+    "url": "https://github.com/MicheleRiva"
+  },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "sideEffects": false,
   "main": "./dist/commonjs.cjs",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -23,27 +38,16 @@
       "import": "./dist/indexeddb.js"
     }
   },
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "dev": "swc --delete-dir-on-start -s -w --extensions .ts,.cts -d dist src",
     "build": "node ../../scripts/mixed-build.mjs",
     "test": "vitest run",
-    "benchmark": "tsx benchmark/index.ts"
+    "benchmark": "tsx benchmark/index.ts",
+    "lint": "oxlint --fix --fix-suggestions"
   },
-  "keywords": [
-    "zbsearch",
-    "disk persistence",
-    "full-text search"
-  ],
-  "author": {
-    "email": "michele@zbsearch.com",
-    "name": "Michele Riva",
-    "url": "https://github.com/MicheleRiva"
-  },
-  "license": "Apache-2.0",
   "dependencies": {
     "@msgpack/msgpack": "^3.1.2",
     "dpack": "^0.6.22",
@@ -64,8 +68,5 @@
     "tsx": "^4.20.6",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-7": "npm:typescript@7.0.2"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }

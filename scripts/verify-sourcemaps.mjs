@@ -52,12 +52,12 @@ for (const dir of process.argv.slice(2)) {
         continue
       }
 
-      const hasContent = Array.isArray(m.sourcesContent) && m.sourcesContent.some(Boolean)
-      if (hasContent) continue
+      for (const [index, source] of m.sources.entries()) {
+        const embedded = Array.isArray(m.sourcesContent) && typeof m.sourcesContent[index] === 'string'
+        if (embedded) continue
 
-      for (const s of m.sources) {
-        const target = resolve(dirname(map), s)
-        if (!existsSync(target)) problems.push(`  ${map}: source not found -> ${s}`)
+        const target = resolve(dirname(map), m.sourceRoot ?? '', source)
+        if (!existsSync(target)) problems.push(`  ${map}: source not found -> ${source}`)
       }
     }
   }

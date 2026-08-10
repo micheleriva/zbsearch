@@ -36,3 +36,4 @@ zbsearch.edge.config.yaml
 zbsearch.edge.config.yml
 packages/runtime-cloudflare/deploy/.wrangler/
 packages/runtime-cloudflare/deploy/dist/
+scripts/dist-contract/

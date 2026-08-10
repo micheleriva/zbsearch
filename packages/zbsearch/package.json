@@ -114,7 +114,7 @@
     "predev": "rm -rf dist && mkdir dist",
     "dev": "swc -s -w --extensions .ts,.cts -d dist src",
     "prebuild": "npm run lint && cp ../../README.md ./README.md",
-    "build": "tshy",
+    "build": "node ../../scripts/dialects-build.mjs --esm-target esnext --copies browser,deno",
     "lint": "exit 0;",
     "test": "vitest run --coverage",
     "test:ci": "vitest run --coverage",
@@ -151,35 +151,20 @@
   ],
   "license": "Apache-2.0",
   "devDependencies": {
-    "@playwright/test": "^1.29.2",
-    "@swc/cli": "^0.1.59",
-    "@swc/core": "^1.3.27",
+    "@swc/cli": "^0.7.10",
+    "@swc/core": "^1.15.47",
     "@types/node": "^20.9.0",
     "@zbsearch/stemmers": "workspace:*",
     "@zbsearch/stopwords": "workspace:*",
     "auto-changelog": "^2.4.0",
     "esbuild": "^0.28.1",
     "glob": "^9.2.3",
+    "oxc-transform": "^0.143.0",
     "resolve-import": "^2.4.0",
-    "tshy": "^3.0.2",
     "typescript": "^7.0.2"
   },
   "engines": {
     "node": ">= 20.0.0"
-  },
-  "tshy": {
-    "exports": {
-      "./package.json": "./package.json",
-      ".": "./src/index.ts",
-      "./internals": "./src/internals.ts",
-      "./components": "./src/components.ts",
-      "./trees": "./src/trees.ts",
-      "./trees/vector-ivf": "./src/trees/vector-ivf.ts"
-    },
-    "esmDialects": [
-      "deno",
-      "browser"
-    ]
   },
   "module": "./dist/esm/index.js"
 }

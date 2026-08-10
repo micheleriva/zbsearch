@@ -51,7 +51,7 @@
     "url": "https://github.com/micheleriva/zbsearch"
   },
   "scripts": {
-    "build": "tshy",
+    "build": "node ../../scripts/dialects-build.mjs",
     "test": "vitest run"
   },
   "keywords": [
@@ -77,20 +77,8 @@
   "engines": {
     "node": ">= 20.0.0"
   },
-  "tshy": {
-    "dialects": [
-      "esm",
-      "commonjs"
-    ],
-    "exports": {
-      "./japanese": "./src/japanese.ts",
-      "./mandarin": "./src/mandarin.ts",
-      "./korean": "./src/korean.ts",
-      "./package.json": "./package.json"
-    }
-  },
   "devDependencies": {
-    "tshy": "^3.0.2",
+    "oxc-transform": "^0.143.0",
     "tsx": "^4.19.2",
     "typescript": "^7.0.2"
   }

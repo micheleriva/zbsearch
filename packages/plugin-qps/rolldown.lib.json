@@ -1,0 +1,12 @@
+{
+  "entry": {
+    "index": "src/index.ts"
+  },
+  "formats": {
+    "es": ".js",
+    "cjs": ".cjs",
+    "iife": ".global.js"
+  },
+  "name": "zbsearch.plugin.qps",
+  "minify": true
+}

@@ -1,0 +1,8 @@
+{
+  "entry": { "index": "src/index.ts" },
+  "formats": { "es": ".js", "cjs": ".cjs" },
+  "outDir": "lib",
+  "platform": "node",
+  "target": "node20",
+  "noExternal": ["^github-slugger$"]
+}

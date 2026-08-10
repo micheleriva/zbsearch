@@ -1,0 +1,15 @@
+{
+  "entry": {
+    "index": "src/index.ts"
+  },
+  "formats": {
+    "es": ".js",
+    "cjs": ".cjs"
+  },
+  "external": [
+    "vitepress",
+    "vite"
+  ],
+  "platform": "node",
+  "target": "node20"
+}

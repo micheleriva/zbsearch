@@ -1,0 +1,29 @@
+{
+  "entry": {
+    "index": "src/index.ts",
+    "node": "src/node.ts"
+  },
+  "formats": {
+    "es": ".js",
+    "cjs": ".cjs"
+  },
+  "noExternal": [
+    "^github-slugger$",
+    "^mdast-util-",
+    "^micromark",
+    "^unist-util-",
+    "^ccount$",
+    "^devlop$",
+    "^escape-string-regexp$",
+    "^longest-streak$",
+    "^markdown-table$",
+    "^parse-entities$",
+    "^character-entities",
+    "^decode-named-character-reference$",
+    "^stringify-entities$",
+    "^zwitch$",
+    "^trim-lines$",
+    "^vfile-message$",
+    "^unist-util-stringify-position$"
+  ]
+}

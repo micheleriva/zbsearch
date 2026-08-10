@@ -1,9 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "outDir": "dist/commonjs"
+    "rootDir": "src"
   },
   "include": ["src/*.ts", "src/**/*.ts"],
   "exclude": ["src/package.json"]

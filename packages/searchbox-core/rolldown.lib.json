@@ -1,0 +1,15 @@
+{
+  "entry": {
+    "index": "src/index.ts"
+  },
+  "formats": {
+    "es": ".js",
+    "cjs": ".cjs"
+  },
+  "copy": [
+    [
+      "src/styles.css",
+      "dist/styles.css"
+    ]
+  ]
+}

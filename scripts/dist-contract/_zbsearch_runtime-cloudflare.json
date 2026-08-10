@@ -1,0 +1,25 @@
+{
+  "name": "@zbsearch/runtime-cloudflare",
+  "files": [
+    "dist/README.md"
+  ],
+  "types": {},
+  "targets": [
+    {
+      "condition": "..import",
+      "target": "./src/worker.ts",
+      "exists": true
+    },
+    {
+      "condition": "..types",
+      "target": "./src/worker.ts",
+      "exists": true
+    },
+    {
+      "condition": "#main",
+      "target": "./src/worker.ts",
+      "exists": true
+    }
+  ],
+  "markers": {}
+}

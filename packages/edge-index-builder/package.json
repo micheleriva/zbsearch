@@ -18,7 +18,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "swc --delete-dir-on-start --extensions .ts -d dist src && tsc -p . --emitDeclarationOnly",
+    "build": "node ../../scripts/oxc-build.mjs && tsc -p . --emitDeclarationOnly",
     "rebuild": "node dist/cli.js rebuild",
     "test": "vitest run"
   },
@@ -28,9 +28,8 @@
     "@zbsearch/storage-s3": "workspace:*"
   },
   "devDependencies": {
-    "@swc/cli": "^0.1.59",
-    "@swc/core": "^1.3.27",
     "@types/node": "^20.19.43",
+    "oxc-transform": "^0.143.0",
     "tsx": "^4.20.6",
     "typescript": "npm:@typescript/typescript6@^6.0.2"
   }

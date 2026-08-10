@@ -1,0 +1,64 @@
+{
+  "name": "@zbsearch/plugin-pt15",
+  "files": [
+    "dist/algorithm.d.ts",
+    "dist/index.cjs",
+    "dist/index.cjs.map",
+    "dist/index.d.ts",
+    "dist/index.global.js",
+    "dist/index.global.js.map",
+    "dist/index.js",
+    "dist/index.js.map"
+  ],
+  "types": {
+    "dist/algorithm.d.ts": [
+      "PT15IndexStore",
+      "PositionStorage",
+      "PositionsStorage",
+      "TTree",
+      "Tree",
+      "TreeType",
+      "get_position",
+      "insertString",
+      "recursiveCreate",
+      "removeString",
+      "searchString"
+    ],
+    "dist/index.d.ts": [
+      "pluginPT15"
+    ]
+  },
+  "targets": [
+    {
+      "condition": "..browser",
+      "target": "./dist/index.global.js",
+      "exists": true
+    },
+    {
+      "condition": "..import",
+      "target": "./dist/index.js",
+      "exists": true
+    },
+    {
+      "condition": "..require",
+      "target": "./dist/index.cjs",
+      "exists": true
+    },
+    {
+      "condition": "..types",
+      "target": "./dist/index.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "#main",
+      "target": "./dist/index.js",
+      "exists": true
+    },
+    {
+      "condition": "#types",
+      "target": "./dist/index.d.ts",
+      "exists": true
+    }
+  ],
+  "markers": {}
+}

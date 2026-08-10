@@ -1,0 +1,115 @@
+{
+  "name": "@zbsearch/plugin-docusaurus",
+  "files": [
+    "lib/client/index.d.ts",
+    "lib/client/index.js",
+    "lib/client/index.js.map",
+    "lib/index.cjs",
+    "lib/index.cjs.map",
+    "lib/index.d.ts",
+    "lib/index.js",
+    "lib/index.js.map",
+    "lib/node/build-index.d.ts",
+    "lib/node/collect.d.ts",
+    "lib/node/options.d.ts",
+    "lib/shared/index.d.ts",
+    "lib/shared/index.js",
+    "lib/shared/index.js.map",
+    "lib/theme/SearchBar/index.d.ts",
+    "lib/theme/SearchBar/index.js",
+    "lib/theme/SearchBar/index.js.map",
+    "lib/theme/SearchBar/navbar.css"
+  ],
+  "types": {
+    "lib/client/index.d.ts": [
+      "LoadedIndex",
+      "SearcherOptions",
+      "createDocusaurusIndexLoader",
+      "createSearcher"
+    ],
+    "lib/index.d.ts": [
+      "SearchRecord",
+      "ZBSearchDocusaurusOptions",
+      "ZBSearchGlobalData",
+      "default",
+      "zbsearchDocusaurus"
+    ],
+    "lib/node/build-index.d.ts": [
+      "writePayload"
+    ],
+    "lib/node/collect.d.ts": [
+      "AllContent",
+      "CollectResult",
+      "SourceDocument",
+      "collectRecords",
+      "collectSourceDocuments",
+      "readRecords",
+      "resolveSourcePath"
+    ],
+    "lib/node/options.d.ts": [
+      "CategoryLabels",
+      "ResolvedOptions",
+      "ZBSearchDocusaurusOptions",
+      "createRouteFilter",
+      "resolveOptions"
+    ],
+    "lib/shared/index.d.ts": [
+      "GENERATED_DIR",
+      "PAYLOAD_FILE",
+      "PLUGIN_NAME",
+      "ZBSearchGlobalData"
+    ],
+    "lib/theme/SearchBar/index.d.ts": [
+      "SearchBar",
+      "default"
+    ]
+  },
+  "targets": [
+    {
+      "condition": "..import",
+      "target": "./lib/index.js",
+      "exists": true
+    },
+    {
+      "condition": "..require",
+      "target": "./lib/index.cjs",
+      "exists": true
+    },
+    {
+      "condition": "..types",
+      "target": "./lib/index.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./client.import",
+      "target": "./lib/client/index.js",
+      "exists": true
+    },
+    {
+      "condition": "./client.types",
+      "target": "./lib/client/index.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./package.json",
+      "target": "./package.json",
+      "exists": true
+    },
+    {
+      "condition": "#main",
+      "target": "./lib/index.cjs",
+      "exists": true
+    },
+    {
+      "condition": "#module",
+      "target": "./lib/index.js",
+      "exists": true
+    },
+    {
+      "condition": "#types",
+      "target": "./lib/index.d.ts",
+      "exists": true
+    }
+  ],
+  "markers": {}
+}

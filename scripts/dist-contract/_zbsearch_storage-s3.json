@@ -1,0 +1,38 @@
+{
+  "name": "@zbsearch/storage-s3",
+  "files": [
+    "dist/index.d.ts",
+    "dist/index.d.ts.map",
+    "dist/index.js"
+  ],
+  "types": {
+    "dist/index.d.ts": [
+      "S3ObjectStorage",
+      "S3StorageConfig",
+      "createS3StorageFromEnv"
+    ]
+  },
+  "targets": [
+    {
+      "condition": "..import",
+      "target": "./dist/index.js",
+      "exists": true
+    },
+    {
+      "condition": "..types",
+      "target": "./dist/index.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "#main",
+      "target": "./dist/index.js",
+      "exists": true
+    },
+    {
+      "condition": "#types",
+      "target": "./dist/index.d.ts",
+      "exists": true
+    }
+  ],
+  "markers": {}
+}

@@ -40,7 +40,7 @@
     "url": "git+https://github.com/micheleriva/zbsearch.git"
   },
   "scripts": {
-    "build": "tsup --config tsup.lib.js && tsup --config tsup.theme.js && tsc -p . --emitDeclarationOnly",
+    "build": "node build.mjs && tsc -p . --emitDeclarationOnly",
     "lint": "exit 0",
     "test": "vitest run"
   },
@@ -64,9 +64,10 @@
     "@types/node": "^24.7.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "oxc-transform": "^0.143.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "tsup": "^8.5.1",
+    "rolldown": "^1.2.3",
     "tsx": "^4.20.6",
     "typescript": "^7.0.2"
   },

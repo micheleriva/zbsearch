@@ -1,0 +1,111 @@
+{
+  "name": "@zbsearch/searchbox-core",
+  "files": [
+    "dist/group.d.ts",
+    "dist/highlight.d.ts",
+    "dist/index.cjs",
+    "dist/index.cjs.map",
+    "dist/index.d.ts",
+    "dist/index.js",
+    "dist/index.js.map",
+    "dist/labels.d.ts",
+    "dist/recent-searches.d.ts",
+    "dist/styles.css",
+    "dist/types.d.ts"
+  ],
+  "types": {
+    "dist/group.d.ts": [
+      "flattenGroups",
+      "groupHits",
+      "wrapIndex"
+    ],
+    "dist/highlight.d.ts": [
+      "HighlightSegment",
+      "highlight",
+      "snippetAround"
+    ],
+    "dist/index.d.ts": [
+      "DEFAULT_RECENT_SEARCHES_KEY",
+      "HighlightSegment",
+      "MAX_RECENT_SEARCHES",
+      "RecentSearch",
+      "RecentSearchStorage",
+      "SearchBoxLabels",
+      "SearchHit",
+      "SearchHitGroup",
+      "Searcher",
+      "addRecentSearch",
+      "defaultLabels",
+      "flattenGroups",
+      "groupHits",
+      "highlight",
+      "readRecentSearches",
+      "removeRecentSearch",
+      "resolveLabels",
+      "snippetAround",
+      "wrapIndex"
+    ],
+    "dist/labels.d.ts": [
+      "defaultLabels",
+      "resolveLabels"
+    ],
+    "dist/recent-searches.d.ts": [
+      "DEFAULT_RECENT_SEARCHES_KEY",
+      "MAX_RECENT_SEARCHES",
+      "RecentSearch",
+      "RecentSearchStorage",
+      "addRecentSearch",
+      "readRecentSearches",
+      "removeRecentSearch"
+    ],
+    "dist/types.d.ts": [
+      "SearchBoxLabels",
+      "SearchHit",
+      "SearchHitGroup",
+      "Searcher"
+    ]
+  },
+  "targets": [
+    {
+      "condition": "..import",
+      "target": "./dist/index.js",
+      "exists": true
+    },
+    {
+      "condition": "..require",
+      "target": "./dist/index.cjs",
+      "exists": true
+    },
+    {
+      "condition": "..types",
+      "target": "./dist/index.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./package.json",
+      "target": "./package.json",
+      "exists": true
+    },
+    {
+      "condition": "./styles.css",
+      "target": "./dist/styles.css",
+      "exists": true
+    },
+    {
+      "condition": "#main",
+      "target": "./dist/index.cjs",
+      "exists": true
+    },
+    {
+      "condition": "#module",
+      "target": "./dist/index.js",
+      "exists": true
+    },
+    {
+      "condition": "#types",
+      "target": "./dist/index.d.ts",
+      "exists": true
+    }
+  ],
+  "markers": {}
+}

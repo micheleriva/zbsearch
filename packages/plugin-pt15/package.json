@@ -33,7 +33,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup --config tsup.lib.js && tsc -p . --emitDeclarationOnly",
+    "build": "node ../../scripts/rolldown-build.mjs && tsc -p . --emitDeclarationOnly",
     "lint": "exit 0",
     "test": "vitest run"
   },
@@ -42,7 +42,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.9.0",
-    "tsup": "^8.5.1",
+    "rolldown": "^1.2.3",
     "tsx": "^4.19.1",
     "typescript": "^7.0.2"
   },

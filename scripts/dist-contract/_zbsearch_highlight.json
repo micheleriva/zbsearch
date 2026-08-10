@@ -1,0 +1,57 @@
+{
+  "name": "@zbsearch/highlight",
+  "files": [
+    "dist/index.cjs",
+    "dist/index.cjs.map",
+    "dist/index.d.ts",
+    "dist/index.js",
+    "dist/index.js.map"
+  ],
+  "types": {
+    "dist/index.d.ts": [
+      "Highlight",
+      "HighlightOptions",
+      "HighlightStrategy",
+      "Position",
+      "highlightStrategy"
+    ]
+  },
+  "targets": [
+    {
+      "condition": "..import",
+      "target": "./dist/index.js",
+      "exists": true
+    },
+    {
+      "condition": "..require",
+      "target": "./dist/index.cjs",
+      "exists": true
+    },
+    {
+      "condition": "..types",
+      "target": "./dist/index.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./package.json",
+      "target": "./package.json",
+      "exists": true
+    },
+    {
+      "condition": "#main",
+      "target": "./dist/index.cjs",
+      "exists": true
+    },
+    {
+      "condition": "#module",
+      "target": "./dist/index.js",
+      "exists": true
+    },
+    {
+      "condition": "#types",
+      "target": "./dist/index.d.ts",
+      "exists": true
+    }
+  ],
+  "markers": {}
+}

@@ -1,0 +1,140 @@
+{
+  "name": "@zbsearch/tokenizers",
+  "files": [
+    "dist/commonjs/index.d.ts",
+    "dist/commonjs/index.d.ts.map",
+    "dist/commonjs/index.js",
+    "dist/commonjs/index.js.map",
+    "dist/commonjs/japanese.d.ts",
+    "dist/commonjs/japanese.d.ts.map",
+    "dist/commonjs/japanese.js",
+    "dist/commonjs/japanese.js.map",
+    "dist/commonjs/korean.d.ts",
+    "dist/commonjs/korean.d.ts.map",
+    "dist/commonjs/korean.js",
+    "dist/commonjs/korean.js.map",
+    "dist/commonjs/mandarin.d.ts",
+    "dist/commonjs/mandarin.d.ts.map",
+    "dist/commonjs/mandarin.js",
+    "dist/commonjs/mandarin.js.map",
+    "dist/commonjs/package.json",
+    "dist/esm/index.d.ts",
+    "dist/esm/index.d.ts.map",
+    "dist/esm/index.js",
+    "dist/esm/index.js.map",
+    "dist/esm/japanese.d.ts",
+    "dist/esm/japanese.d.ts.map",
+    "dist/esm/japanese.js",
+    "dist/esm/japanese.js.map",
+    "dist/esm/korean.d.ts",
+    "dist/esm/korean.d.ts.map",
+    "dist/esm/korean.js",
+    "dist/esm/korean.js.map",
+    "dist/esm/mandarin.d.ts",
+    "dist/esm/mandarin.d.ts.map",
+    "dist/esm/mandarin.js",
+    "dist/esm/mandarin.js.map",
+    "dist/esm/package.json"
+  ],
+  "types": {
+    "dist/commonjs/index.d.ts": [
+      "default"
+    ],
+    "dist/commonjs/japanese.d.ts": [
+      "createTokenizer"
+    ],
+    "dist/commonjs/korean.d.ts": [
+      "createTokenizer"
+    ],
+    "dist/commonjs/mandarin.d.ts": [
+      "createTokenizer"
+    ],
+    "dist/esm/index.d.ts": [
+      "default"
+    ],
+    "dist/esm/japanese.d.ts": [
+      "createTokenizer"
+    ],
+    "dist/esm/korean.d.ts": [
+      "createTokenizer"
+    ],
+    "dist/esm/mandarin.d.ts": [
+      "createTokenizer"
+    ]
+  },
+  "targets": [
+    {
+      "condition": "./japanese.import.default",
+      "target": "./dist/esm/japanese.js",
+      "exists": true
+    },
+    {
+      "condition": "./japanese.import.types",
+      "target": "./dist/esm/japanese.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./japanese.require.default",
+      "target": "./dist/commonjs/japanese.js",
+      "exists": true
+    },
+    {
+      "condition": "./japanese.require.types",
+      "target": "./dist/commonjs/japanese.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./korean.import.default",
+      "target": "./dist/esm/korean.js",
+      "exists": true
+    },
+    {
+      "condition": "./korean.import.types",
+      "target": "./dist/esm/korean.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./korean.require.default",
+      "target": "./dist/commonjs/korean.js",
+      "exists": true
+    },
+    {
+      "condition": "./korean.require.types",
+      "target": "./dist/commonjs/korean.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./mandarin.import.default",
+      "target": "./dist/esm/mandarin.js",
+      "exists": true
+    },
+    {
+      "condition": "./mandarin.import.types",
+      "target": "./dist/esm/mandarin.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./mandarin.require.default",
+      "target": "./dist/commonjs/mandarin.js",
+      "exists": true
+    },
+    {
+      "condition": "./mandarin.require.types",
+      "target": "./dist/commonjs/mandarin.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./package.json",
+      "target": "./package.json",
+      "exists": true
+    }
+  ],
+  "markers": {
+    "dist/commonjs/package.json": {
+      "type": "commonjs"
+    },
+    "dist/esm/package.json": {
+      "type": "module"
+    }
+  }
+}

@@ -1,0 +1,972 @@
+{
+  "name": "@zbsearch/stopwords",
+  "files": [
+    "dist/am.cjs",
+    "dist/am.cjs.map",
+    "dist/am.d.cts",
+    "dist/am.d.ts",
+    "dist/am.js",
+    "dist/am.js.map",
+    "dist/ar.cjs",
+    "dist/ar.cjs.map",
+    "dist/ar.d.cts",
+    "dist/ar.d.ts",
+    "dist/ar.js",
+    "dist/ar.js.map",
+    "dist/bg.cjs",
+    "dist/bg.cjs.map",
+    "dist/bg.d.cts",
+    "dist/bg.d.ts",
+    "dist/bg.js",
+    "dist/bg.js.map",
+    "dist/cs.cjs",
+    "dist/cs.cjs.map",
+    "dist/cs.d.cts",
+    "dist/cs.d.ts",
+    "dist/cs.js",
+    "dist/cs.js.map",
+    "dist/de.cjs",
+    "dist/de.cjs.map",
+    "dist/de.d.cts",
+    "dist/de.d.ts",
+    "dist/de.js",
+    "dist/de.js.map",
+    "dist/dk.cjs",
+    "dist/dk.cjs.map",
+    "dist/dk.d.cts",
+    "dist/dk.d.ts",
+    "dist/dk.js",
+    "dist/dk.js.map",
+    "dist/en.cjs",
+    "dist/en.cjs.map",
+    "dist/en.d.cts",
+    "dist/en.d.ts",
+    "dist/en.js",
+    "dist/en.js.map",
+    "dist/es.cjs",
+    "dist/es.cjs.map",
+    "dist/es.d.cts",
+    "dist/es.d.ts",
+    "dist/es.js",
+    "dist/es.js.map",
+    "dist/fi.cjs",
+    "dist/fi.cjs.map",
+    "dist/fi.d.cts",
+    "dist/fi.d.ts",
+    "dist/fi.js",
+    "dist/fi.js.map",
+    "dist/fr.cjs",
+    "dist/fr.cjs.map",
+    "dist/fr.d.cts",
+    "dist/fr.d.ts",
+    "dist/fr.js",
+    "dist/fr.js.map",
+    "dist/gr.cjs",
+    "dist/gr.cjs.map",
+    "dist/gr.d.cts",
+    "dist/gr.d.ts",
+    "dist/gr.js",
+    "dist/gr.js.map",
+    "dist/hu.cjs",
+    "dist/hu.cjs.map",
+    "dist/hu.d.cts",
+    "dist/hu.d.ts",
+    "dist/hu.js",
+    "dist/hu.js.map",
+    "dist/id.cjs",
+    "dist/id.cjs.map",
+    "dist/id.d.cts",
+    "dist/id.d.ts",
+    "dist/id.js",
+    "dist/id.js.map",
+    "dist/ie.cjs",
+    "dist/ie.cjs.map",
+    "dist/ie.d.cts",
+    "dist/ie.d.ts",
+    "dist/ie.js",
+    "dist/ie.js.map",
+    "dist/in.cjs",
+    "dist/in.cjs.map",
+    "dist/in.d.cts",
+    "dist/in.d.ts",
+    "dist/in.js",
+    "dist/in.js.map",
+    "dist/it.cjs",
+    "dist/it.cjs.map",
+    "dist/it.d.cts",
+    "dist/it.d.ts",
+    "dist/it.js",
+    "dist/it.js.map",
+    "dist/ja.cjs",
+    "dist/ja.cjs.map",
+    "dist/ja.d.cts",
+    "dist/ja.d.ts",
+    "dist/ja.js",
+    "dist/ja.js.map",
+    "dist/lt.cjs",
+    "dist/lt.cjs.map",
+    "dist/lt.d.cts",
+    "dist/lt.d.ts",
+    "dist/lt.js",
+    "dist/lt.js.map",
+    "dist/nl.cjs",
+    "dist/nl.cjs.map",
+    "dist/nl.d.cts",
+    "dist/nl.d.ts",
+    "dist/nl.js",
+    "dist/nl.js.map",
+    "dist/no.cjs",
+    "dist/no.cjs.map",
+    "dist/no.d.cts",
+    "dist/no.d.ts",
+    "dist/no.js",
+    "dist/no.js.map",
+    "dist/np.cjs",
+    "dist/np.cjs.map",
+    "dist/np.d.cts",
+    "dist/np.d.ts",
+    "dist/np.js",
+    "dist/np.js.map",
+    "dist/pt.cjs",
+    "dist/pt.cjs.map",
+    "dist/pt.d.cts",
+    "dist/pt.d.ts",
+    "dist/pt.js",
+    "dist/pt.js.map",
+    "dist/ro.cjs",
+    "dist/ro.cjs.map",
+    "dist/ro.d.cts",
+    "dist/ro.d.ts",
+    "dist/ro.js",
+    "dist/ro.js.map",
+    "dist/rs.cjs",
+    "dist/rs.cjs.map",
+    "dist/rs.d.cts",
+    "dist/rs.d.ts",
+    "dist/rs.js",
+    "dist/rs.js.map",
+    "dist/ru.cjs",
+    "dist/ru.cjs.map",
+    "dist/ru.d.cts",
+    "dist/ru.d.ts",
+    "dist/ru.js",
+    "dist/ru.js.map",
+    "dist/se.cjs",
+    "dist/se.cjs.map",
+    "dist/se.d.cts",
+    "dist/se.d.ts",
+    "dist/se.js",
+    "dist/se.js.map",
+    "dist/sk.cjs",
+    "dist/sk.cjs.map",
+    "dist/sk.d.cts",
+    "dist/sk.d.ts",
+    "dist/sk.js",
+    "dist/sk.js.map",
+    "dist/sl.cjs",
+    "dist/sl.cjs.map",
+    "dist/sl.d.cts",
+    "dist/sl.d.ts",
+    "dist/sl.js",
+    "dist/sl.js.map",
+    "dist/svk.cjs",
+    "dist/svk.cjs.map",
+    "dist/svk.d.cts",
+    "dist/svk.d.ts",
+    "dist/svk.js",
+    "dist/svk.js.map",
+    "dist/ta.cjs",
+    "dist/ta.cjs.map",
+    "dist/ta.d.cts",
+    "dist/ta.d.ts",
+    "dist/ta.js",
+    "dist/ta.js.map",
+    "dist/tr.cjs",
+    "dist/tr.cjs.map",
+    "dist/tr.d.cts",
+    "dist/tr.d.ts",
+    "dist/tr.js",
+    "dist/tr.js.map",
+    "dist/uk.cjs",
+    "dist/uk.cjs.map",
+    "dist/uk.d.cts",
+    "dist/uk.d.ts",
+    "dist/uk.js",
+    "dist/uk.js.map",
+    "dist/vi.cjs",
+    "dist/vi.cjs.map",
+    "dist/vi.d.cts",
+    "dist/vi.d.ts",
+    "dist/vi.js",
+    "dist/vi.js.map",
+    "dist/zh.cjs",
+    "dist/zh.cjs.map",
+    "dist/zh.d.cts",
+    "dist/zh.d.ts",
+    "dist/zh.js",
+    "dist/zh.js.map",
+    "lib/am.js",
+    "lib/ar.js",
+    "lib/bg.js",
+    "lib/cs.js",
+    "lib/de.js",
+    "lib/dk.js",
+    "lib/en.js",
+    "lib/es.js",
+    "lib/fi.js",
+    "lib/fr.js",
+    "lib/gr.js",
+    "lib/hu.js",
+    "lib/id.js",
+    "lib/ie.js",
+    "lib/in.js",
+    "lib/it.js",
+    "lib/ja.js",
+    "lib/lt.js",
+    "lib/nl.js",
+    "lib/no.js",
+    "lib/np.js",
+    "lib/pt.js",
+    "lib/ro.js",
+    "lib/rs.js",
+    "lib/ru.js",
+    "lib/se.js",
+    "lib/sk.js",
+    "lib/sl.js",
+    "lib/svk.js",
+    "lib/ta.js",
+    "lib/tr.js",
+    "lib/uk.js",
+    "lib/vi.js",
+    "lib/zh.js"
+  ],
+  "types": {
+    "dist/am.d.cts": [
+      "stopwords"
+    ],
+    "dist/am.d.ts": [
+      "stopwords"
+    ],
+    "dist/ar.d.cts": [
+      "stopwords"
+    ],
+    "dist/ar.d.ts": [
+      "stopwords"
+    ],
+    "dist/bg.d.cts": [
+      "stopwords"
+    ],
+    "dist/bg.d.ts": [
+      "stopwords"
+    ],
+    "dist/cs.d.cts": [
+      "stopwords"
+    ],
+    "dist/cs.d.ts": [
+      "stopwords"
+    ],
+    "dist/de.d.cts": [
+      "stopwords"
+    ],
+    "dist/de.d.ts": [
+      "stopwords"
+    ],
+    "dist/dk.d.cts": [
+      "stopwords"
+    ],
+    "dist/dk.d.ts": [
+      "stopwords"
+    ],
+    "dist/en.d.cts": [
+      "stopwords"
+    ],
+    "dist/en.d.ts": [
+      "stopwords"
+    ],
+    "dist/es.d.cts": [
+      "stopwords"
+    ],
+    "dist/es.d.ts": [
+      "stopwords"
+    ],
+    "dist/fi.d.cts": [
+      "stopwords"
+    ],
+    "dist/fi.d.ts": [
+      "stopwords"
+    ],
+    "dist/fr.d.cts": [
+      "stopwords"
+    ],
+    "dist/fr.d.ts": [
+      "stopwords"
+    ],
+    "dist/gr.d.cts": [
+      "stopwords"
+    ],
+    "dist/gr.d.ts": [
+      "stopwords"
+    ],
+    "dist/hu.d.cts": [
+      "stopwords"
+    ],
+    "dist/hu.d.ts": [
+      "stopwords"
+    ],
+    "dist/id.d.cts": [
+      "stopwords"
+    ],
+    "dist/id.d.ts": [
+      "stopwords"
+    ],
+    "dist/ie.d.cts": [
+      "stopwords"
+    ],
+    "dist/ie.d.ts": [
+      "stopwords"
+    ],
+    "dist/in.d.cts": [
+      "stopwords"
+    ],
+    "dist/in.d.ts": [
+      "stopwords"
+    ],
+    "dist/it.d.cts": [
+      "stopwords"
+    ],
+    "dist/it.d.ts": [
+      "stopwords"
+    ],
+    "dist/ja.d.cts": [
+      "stopwords"
+    ],
+    "dist/ja.d.ts": [
+      "stopwords"
+    ],
+    "dist/lt.d.cts": [
+      "stopwords"
+    ],
+    "dist/lt.d.ts": [
+      "stopwords"
+    ],
+    "dist/nl.d.cts": [
+      "stopwords"
+    ],
+    "dist/nl.d.ts": [
+      "stopwords"
+    ],
+    "dist/no.d.cts": [
+      "stopwords"
+    ],
+    "dist/no.d.ts": [
+      "stopwords"
+    ],
+    "dist/np.d.cts": [
+      "stopwords"
+    ],
+    "dist/np.d.ts": [
+      "stopwords"
+    ],
+    "dist/pt.d.cts": [
+      "stopwords"
+    ],
+    "dist/pt.d.ts": [
+      "stopwords"
+    ],
+    "dist/ro.d.cts": [
+      "stopwords"
+    ],
+    "dist/ro.d.ts": [
+      "stopwords"
+    ],
+    "dist/rs.d.cts": [
+      "stopwords"
+    ],
+    "dist/rs.d.ts": [
+      "stopwords"
+    ],
+    "dist/ru.d.cts": [
+      "stopwords"
+    ],
+    "dist/ru.d.ts": [
+      "stopwords"
+    ],
+    "dist/se.d.cts": [
+      "stopwords"
+    ],
+    "dist/se.d.ts": [
+      "stopwords"
+    ],
+    "dist/sk.d.cts": [
+      "stopwords"
+    ],
+    "dist/sk.d.ts": [
+      "stopwords"
+    ],
+    "dist/sl.d.cts": [
+      "stopwords"
+    ],
+    "dist/sl.d.ts": [
+      "stopwords"
+    ],
+    "dist/svk.d.cts": [
+      "stopwords"
+    ],
+    "dist/svk.d.ts": [
+      "stopwords"
+    ],
+    "dist/ta.d.cts": [
+      "stopwords"
+    ],
+    "dist/ta.d.ts": [
+      "stopwords"
+    ],
+    "dist/tr.d.cts": [
+      "stopwords"
+    ],
+    "dist/tr.d.ts": [
+      "stopwords"
+    ],
+    "dist/uk.d.cts": [
+      "stopwords"
+    ],
+    "dist/uk.d.ts": [
+      "stopwords"
+    ],
+    "dist/vi.d.cts": [
+      "stopwords"
+    ],
+    "dist/vi.d.ts": [
+      "stopwords"
+    ],
+    "dist/zh.d.cts": [
+      "stopwords"
+    ],
+    "dist/zh.d.ts": [
+      "stopwords"
+    ]
+  },
+  "targets": [
+    {
+      "condition": "./arabic.import",
+      "target": "./dist/ar.js",
+      "exists": true
+    },
+    {
+      "condition": "./arabic.require",
+      "target": "./dist/ar.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./arabic.types",
+      "target": "./dist/ar.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./armenian.import",
+      "target": "./dist/am.js",
+      "exists": true
+    },
+    {
+      "condition": "./armenian.require",
+      "target": "./dist/am.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./armenian.types",
+      "target": "./dist/am.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./bulgarian.import",
+      "target": "./dist/bg.js",
+      "exists": true
+    },
+    {
+      "condition": "./bulgarian.require",
+      "target": "./dist/bg.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./bulgarian.types",
+      "target": "./dist/bg.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./czech.import",
+      "target": "./dist/cs.js",
+      "exists": true
+    },
+    {
+      "condition": "./czech.require",
+      "target": "./dist/cs.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./czech.types",
+      "target": "./dist/cs.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./danish.import",
+      "target": "./dist/dk.js",
+      "exists": true
+    },
+    {
+      "condition": "./danish.require",
+      "target": "./dist/dk.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./danish.types",
+      "target": "./dist/dk.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./dutch.import",
+      "target": "./dist/nl.js",
+      "exists": true
+    },
+    {
+      "condition": "./dutch.require",
+      "target": "./dist/nl.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./dutch.types",
+      "target": "./dist/nl.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./english.import",
+      "target": "./dist/en.js",
+      "exists": true
+    },
+    {
+      "condition": "./english.require",
+      "target": "./dist/en.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./english.types",
+      "target": "./dist/en.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./finnish.import",
+      "target": "./dist/fi.js",
+      "exists": true
+    },
+    {
+      "condition": "./finnish.require",
+      "target": "./dist/fi.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./finnish.types",
+      "target": "./dist/fi.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./french.import",
+      "target": "./dist/fr.js",
+      "exists": true
+    },
+    {
+      "condition": "./french.require",
+      "target": "./dist/fr.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./french.types",
+      "target": "./dist/fr.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./german.import",
+      "target": "./dist/de.js",
+      "exists": true
+    },
+    {
+      "condition": "./german.require",
+      "target": "./dist/de.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./german.types",
+      "target": "./dist/de.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./greek.import",
+      "target": "./dist/gr.js",
+      "exists": true
+    },
+    {
+      "condition": "./greek.require",
+      "target": "./dist/gr.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./greek.types",
+      "target": "./dist/gr.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./hungarian.import",
+      "target": "./dist/hu.js",
+      "exists": true
+    },
+    {
+      "condition": "./hungarian.require",
+      "target": "./dist/hu.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./hungarian.types",
+      "target": "./dist/hu.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./indian.import",
+      "target": "./dist/in.js",
+      "exists": true
+    },
+    {
+      "condition": "./indian.require",
+      "target": "./dist/in.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./indian.types",
+      "target": "./dist/in.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./indonesian.import",
+      "target": "./dist/id.js",
+      "exists": true
+    },
+    {
+      "condition": "./indonesian.require",
+      "target": "./dist/id.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./indonesian.types",
+      "target": "./dist/id.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./irish.import",
+      "target": "./dist/ie.js",
+      "exists": true
+    },
+    {
+      "condition": "./irish.require",
+      "target": "./dist/ie.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./irish.types",
+      "target": "./dist/ie.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./italian.import",
+      "target": "./dist/it.js",
+      "exists": true
+    },
+    {
+      "condition": "./italian.require",
+      "target": "./dist/it.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./italian.types",
+      "target": "./dist/it.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./japanese.import",
+      "target": "./dist/ja.js",
+      "exists": true
+    },
+    {
+      "condition": "./japanese.require",
+      "target": "./dist/ja.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./japanese.types",
+      "target": "./dist/ja.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./lithuanian.import",
+      "target": "./dist/lt.js",
+      "exists": true
+    },
+    {
+      "condition": "./lithuanian.require",
+      "target": "./dist/lt.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./lithuanian.types",
+      "target": "./dist/lt.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./mandarin.import",
+      "target": "./dist/zh.js",
+      "exists": true
+    },
+    {
+      "condition": "./mandarin.require",
+      "target": "./dist/zh.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./mandarin.types",
+      "target": "./dist/zh.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./nepali.import",
+      "target": "./dist/np.js",
+      "exists": true
+    },
+    {
+      "condition": "./nepali.require",
+      "target": "./dist/np.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./nepali.types",
+      "target": "./dist/np.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./norwegian.import",
+      "target": "./dist/no.js",
+      "exists": true
+    },
+    {
+      "condition": "./norwegian.require",
+      "target": "./dist/no.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./norwegian.types",
+      "target": "./dist/no.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./portuguese.import",
+      "target": "./dist/pt.js",
+      "exists": true
+    },
+    {
+      "condition": "./portuguese.require",
+      "target": "./dist/pt.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./portuguese.types",
+      "target": "./dist/pt.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./romanian.import",
+      "target": "./dist/ro.js",
+      "exists": true
+    },
+    {
+      "condition": "./romanian.require",
+      "target": "./dist/ro.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./romanian.types",
+      "target": "./dist/ro.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./russian.import",
+      "target": "./dist/ru.js",
+      "exists": true
+    },
+    {
+      "condition": "./russian.require",
+      "target": "./dist/ru.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./russian.types",
+      "target": "./dist/ru.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./sanskrit.import",
+      "target": "./dist/sk.js",
+      "exists": true
+    },
+    {
+      "condition": "./sanskrit.require",
+      "target": "./dist/sk.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./sanskrit.types",
+      "target": "./dist/sk.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./serbian.import",
+      "target": "./dist/rs.js",
+      "exists": true
+    },
+    {
+      "condition": "./serbian.require",
+      "target": "./dist/rs.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./serbian.types",
+      "target": "./dist/rs.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./slovak.import",
+      "target": "./dist/svk.js",
+      "exists": true
+    },
+    {
+      "condition": "./slovak.require",
+      "target": "./dist/svk.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./slovak.types",
+      "target": "./dist/svk.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./slovenian.import",
+      "target": "./dist/sl.js",
+      "exists": true
+    },
+    {
+      "condition": "./slovenian.require",
+      "target": "./dist/sl.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./slovenian.types",
+      "target": "./dist/sl.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./spanish.import",
+      "target": "./dist/es.js",
+      "exists": true
+    },
+    {
+      "condition": "./spanish.require",
+      "target": "./dist/es.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./spanish.types",
+      "target": "./dist/es.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./swedish.import",
+      "target": "./dist/se.js",
+      "exists": true
+    },
+    {
+      "condition": "./swedish.require",
+      "target": "./dist/se.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./swedish.types",
+      "target": "./dist/se.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./tamil.import",
+      "target": "./dist/ta.js",
+      "exists": true
+    },
+    {
+      "condition": "./tamil.require",
+      "target": "./dist/ta.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./tamil.types",
+      "target": "./dist/ta.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./turkish.import",
+      "target": "./dist/tr.js",
+      "exists": true
+    },
+    {
+      "condition": "./turkish.require",
+      "target": "./dist/tr.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./turkish.types",
+      "target": "./dist/tr.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./ukrainian.import",
+      "target": "./dist/uk.js",
+      "exists": true
+    },
+    {
+      "condition": "./ukrainian.require",
+      "target": "./dist/uk.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./ukrainian.types",
+      "target": "./dist/uk.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "./vietnamese.import",
+      "target": "./dist/vi.js",
+      "exists": true
+    },
+    {
+      "condition": "./vietnamese.require",
+      "target": "./dist/vi.cjs",
+      "exists": true
+    },
+    {
+      "condition": "./vietnamese.types",
+      "target": "./dist/vi.d.ts",
+      "exists": true
+    },
+    {
+      "condition": "#main",
+      "target": "./dist/en.cjs",
+      "exists": true
+    },
+    {
+      "condition": "#types",
+      "target": "./dist/en.d.ts",
+      "exists": true
+    }
+  ],
+  "markers": {}
+}

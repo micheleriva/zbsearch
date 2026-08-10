@@ -1,15 +1,20 @@
-import { copyFileSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { basename } from 'node:path'
 import { createRequire } from 'node:module'
 
 const escape = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-function externals(config, pkg) {
+function externals(config, pkg, format) {
   const bundled = (config.noExternal ?? []).map((source) => new RegExp(source))
-  const declared = [
-    ...Object.keys(pkg.dependencies ?? {}),
-    ...Object.keys(pkg.peerDependencies ?? {}),
-    ...(config.external ?? [])
-  ]
+
+  const declared =
+    format === 'iife'
+      ? (config.external ?? [])
+      : [
+          ...Object.keys(pkg.dependencies ?? {}),
+          ...Object.keys(pkg.peerDependencies ?? {}),
+          ...(config.external ?? [])
+        ]
 
   return declared
     .filter((name) => !bundled.some((pattern) => pattern.test(name)))
@@ -18,17 +23,27 @@ function externals(config, pkg) {
 
 function downlevel(config, outDir) {
   const { transformSync } = createRequire(`${process.cwd()}/`)('@swc/core')
+  const sourcemap = config.sourcemap ?? true
 
   for (const ext of Object.values(config.formats)) {
     for (const name of Object.keys(config.entry)) {
       const file = `${outDir}/${name}${ext}`
-      const { code } = transformSync(readFileSync(file, 'utf8'), {
+      const mapFile = `${file}.map`
+
+      const { code, map } = transformSync(readFileSync(file, 'utf8'), {
         filename: file,
         jsc: { target: config.downlevel, parser: { syntax: 'ecmascript' } },
         minify: Boolean(config.minify),
-        sourceMaps: false
+        sourceMaps: sourcemap,
+        inputSourceMap: sourcemap && existsSync(mapFile) ? readFileSync(mapFile, 'utf8') : undefined
       })
-      writeFileSync(file, code)
+
+      if (sourcemap && map) {
+        writeFileSync(file, `${code}\n//# sourceMappingURL=${basename(mapFile)}\n`)
+        writeFileSync(mapFile, map)
+      } else {
+        writeFileSync(file, code)
+      }
     }
   }
 }
@@ -37,13 +52,14 @@ export async function bundle(config) {
   const { build } = createRequire(`${process.cwd()}/`)('rolldown')
   const pkg = JSON.parse(readFileSync('package.json', 'utf8'))
   const outDir = config.outDir ?? 'dist'
-  const external = externals(config, pkg)
 
   const groups = config.splitting
     ? [config.entry]
     : Object.entries(config.entry).map(([name, input]) => ({ [name]: input }))
 
   for (const [format, ext] of Object.entries(config.formats)) {
+    const external = externals(config, pkg, format)
+
     for (const entry of groups) {
       await build({
         input: entry,

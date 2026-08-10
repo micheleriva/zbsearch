@@ -20,6 +20,7 @@ t.test('language locales', async (t) => {
   t.test('specific language to locale mappings', async (t) => {
     const expectedLocales = {
       czech: 'cs',
+      slovak: 'sk',
       slovenian: 'sl',
       danish: 'da',
       greek: 'el',
@@ -37,8 +38,9 @@ t.test('language locales', async (t) => {
     }
   })
 
-  t.test('supported languages include czech and slovenian', async (t) => {
+  t.test('supported languages include czech, slovak and slovenian', async (t) => {
     t.ok(SUPPORTED_LANGUAGES.includes('czech'))
+    t.ok(SUPPORTED_LANGUAGES.includes('slovak'))
     t.ok(SUPPORTED_LANGUAGES.includes('slovenian'))
     t.strictSame(SUPPORTED_LANGUAGES, Object.keys(SUPPORTED_LANGUAGE_LOCALES))
   })

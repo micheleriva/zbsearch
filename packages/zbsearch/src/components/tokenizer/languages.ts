@@ -29,6 +29,7 @@ export const SUPPORTED_LANGUAGE_LOCALES: Record<string, string> = {
   romanian: 'ro',
   russian: 'ru',
   serbian: 'sr',
+  slovak: 'sk',
   slovenian: 'sl',
   spanish: 'es',
   swedish: 'sv',
@@ -84,8 +85,9 @@ const SPLITTER_ALPHABETS: Record<SupportedLanguage, string> = {
   tamil: 'a-z0-9அ-ஹ',
   sanskrit: 'a-z0-9A-Zāīūṛḷṃṁḥśṣṭḍṇṅñḻḹṝ',
   vietnamese:
-    'a-z0-9A-ZáàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđÁÀẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬÉÈẺẼẸÊẾỀỂỄỆÍÌỈĨỊÓÒỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÚÙỦŨỤƯỨỪỬỮỰÝỲỶỸỴĐ_',
-  czech: 'A-Z0-9a-zěščřžýáíéúůóťďĚŠČŘŽÝÁÍÉÓÚŮŤĎ-'
+    /[^a-z0-9A-ZáàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđÁÀẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬÉÈẺẼẸÊẾỀỂỄỆÍÌỈĨỊÓÒỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÚÙỦŨỤƯỨỪỬỮỰÝỲỶỸỴĐ_]+/gim,
+  czech: /[^A-Z0-9a-zěščřžýáíéúůóťďĚŠČŘŽÝÁÍÉÓÚŮŤĎ-]+/gim,
+  slovak: /[^A-Z0-9a-záäčďéíĺľňóôŕšťúýžÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ-]+/gim
 }
 
 export const SPLITTERS: Record<SupportedLanguage, RegExp> = Object.fromEntries(

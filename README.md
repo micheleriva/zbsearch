@@ -27,7 +27,7 @@ After [Michele's departure](https://www.micheleriva.dev/writings/my-last-day-at-
 - [Typo Tolerance](https://zbsearch.dev/docs/zbsearch/search#typo-tolerance)
 - [Exact Match](https://zbsearch.dev/docs/zbsearch/search#exact-match)
 - [BM25](https://zbsearch.dev/docs/zbsearch/search/bm25)
-- [Stemming and tokenization in 30 languages](https://zbsearch.dev/docs/zbsearch/text-analysis/stemming)
+- [Stemming and tokenization in 32 languages](https://zbsearch.dev/docs/zbsearch/text-analysis/stemming)
 - [Plugin System](https://zbsearch.dev/docs/zbsearch/plugins)
 
 # Installation

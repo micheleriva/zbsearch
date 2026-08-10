@@ -3,7 +3,7 @@
 ZBSearch can analyze the input and perform a `stemming` operation, which allows the engine to perform more optimized queries, as well as save indexing space.
 
 <!-- LANGUAGES:START -->
-Right now, ZBSearch supports 31 languages and stemmers out of the box:
+Right now, ZBSearch supports 32 languages and stemmers out of the box:
 
 - Arabic
 - Armenian
@@ -29,6 +29,7 @@ Right now, ZBSearch supports 31 languages and stemmers out of the box:
 - Russian
 - Sanskrit
 - Serbian
+- Slovak
 - Slovenian
 - Spanish
 - Swedish

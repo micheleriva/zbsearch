@@ -34,10 +34,28 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Resolve Playwright version
+        id: playwright
+        run: |
+          echo "version=$(pnpm --filter @zbsearch/sandbox-starlight exec playwright --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
+
+      # Keyed on the Playwright version because the browser build it pins moves
+      # with it. Each sandbox's `pretest` re-runs `playwright install`, so a
+      # stale or partial restore self-heals rather than failing the test run.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright.outputs.version }}
+
       # Every sandbox needs chromium and its system libraries. Installed once,
       # here, because turbo runs their test tasks in parallel and concurrent
-      # `--with-deps` installs deadlock on the apt lock.
+      # `--with-deps` installs deadlock on the apt lock. Skipped on a cache hit:
+      # the binaries come back from the cache, and the only packages `--with-deps`
+      # adds on top of the runner image are fonts, which nothing here asserts on.
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm --filter @zbsearch/sandbox-starlight exec playwright install --with-deps chromium
 
       - name: Test

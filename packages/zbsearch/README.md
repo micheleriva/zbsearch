@@ -118,18 +118,18 @@ const results = search(db, {
 
 ZBSearch currently supports 10 different data types:
 
-| Type             | Description                                      | Example                           |
-| ---------------- | ------------------------------------------------ | --------------------------------- |
-| `string`         | A string of characters.                          | `'Hello world'`                   |
-| `number`         | A numeric value, either float or integer.        | `42`                              |
-| `boolean`        | A boolean value.                                 | `true`                            |
-| `enum`           | An enum value.                                   | `'drama'`                         |
-| `geopoint`       | A geopoint value.                                | `{ lat: 40.7128, lon: 74.0060 }`  |
-| `string[]`       | An array of strings.                             | `['red', 'green', 'blue']`        |
-| `number[]`       | An array of numbers.                             | `[42, 91, 28.5]`                  |
-| `boolean[]`      | An array of booleans.                            | `[true, false, false]`            |
-| `enum[]`         | An array of enums.                               | `['comedy', 'action', 'romance']` |
-| `vector[<size>]` | A vector of numbers to perform vector search on. | `[0.403, 0.192, 0.830]`           |
+| Type             | Description                                                                 | Example                                                                     |
+| ---------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `string`         | A string of characters.                                                     | `'Hello world'`                                                             |
+| `number`         | A numeric value, either float or integer.                                   | `42`                                                                        |
+| `boolean`        | A boolean value.                                                            | `true`                                                                      |
+| `enum`           | An enum value.                                                              | `'drama'`                                                                   |
+| `geopoint`       | A geopoint value.                                                           | `{ lat: 40.7128, lon: 74.0060 }`                                            |
+| `string[]`       | An array of strings.                                                        | `['red', 'green', 'blue']`                                                  |
+| `number[]`       | An array of numbers.                                                        | `[42, 91, 28.5]`                                                            |
+| `boolean[]`      | An array of booleans.                                                       | `[true, false, false]`                                                      |
+| `enum[]`         | An array of enums.                                                          | `['comedy', 'action', 'romance']`                                           |
+| `vector[<size>]` | A vector of numbers to perform vector search on.                            | `[0.403, 0.192, 0.830]`                                                     |
 
 ## Schema inference (optional schema)
 
@@ -147,7 +147,7 @@ Types lock on first sight (a later conflicting value is rejected with `SCHEMA_VA
 ```js
 const db = create({
   schema: { embedding: 'vector[1536]' },
-  inferSchema: true // a provided schema is strict by default; this opts undeclared fields into inference
+  inferSchema: true, // a provided schema is strict by default; this opts undeclared fields into inference
 })
 ```
 
@@ -165,14 +165,14 @@ import { create, insertMultiple, search } from 'zbsearch'
 const db = create({
   schema: {
     title: 'string',
-    embedding: 'vector[5]' // we are using a 5-dimensional vector.
-  }
-})
+    embedding: 'vector[5]', // we are using a 5-dimensional vector.
+  },
+});
 
 insertMultiple(db, [
   { title: 'The Prestige', embedding: [0.938293, 0.284951, 0.348264, 0.948276, 0.56472] },
   { title: 'Barbie', embedding: [0.192839, 0.028471, 0.284738, 0.937463, 0.092827] },
-  { title: 'Oppenheimer', embedding: [0.827391, 0.927381, 0.001982, 0.983821, 0.294841] }
+  { title: 'Oppenheimer', embedding: [0.827391, 0.927381, 0.001982, 0.983821, 0.294841] },
 ])
 
 const results = search(db, {
@@ -182,12 +182,12 @@ const results = search(db, {
     // The vector (text embedding) to use for search
     value: [0.938292, 0.284961, 0.248264, 0.748276, 0.26472],
     // The schema property where ZBSearch should compare embeddings
-    property: 'embedding'
+    property: 'embedding',
   },
   // Minimum similarity to determine a match. Defaults to `0.8`
   similarity: 0.85,
   // Defaults to `false`. Setting to 'true' will return the embeddings in the response (which can be very large).
-  includeVectors: true
+  includeVectors: true,
 })
 ```
 
@@ -208,7 +208,7 @@ const plugin = await pluginEmbeddings({
       // properties to use for generating embeddings at insert time.
       // Will be concatenated to generate a unique embedding.
       properties: ['description'],
-      verbose: true
+      verbose: true,
     }
   }
 })
@@ -233,7 +233,7 @@ await insert(db, { description: 'Bose QuietComfort Bluetooth Headphones' })
 const searchResults = await search(db, {
   term: 'Headphones for 12th grade students',
   mode: 'vector',
-  similarity: 0.75
+  similarity: 0.75,
 })
 ```
 

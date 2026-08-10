@@ -1,23 +1,22 @@
-import t from 'tap'
-
+import { describe, expect, it } from 'vitest'
 import { getLocale, SUPPORTED_LANGUAGES, SUPPORTED_LANGUAGE_LOCALES } from '../src/components/tokenizer/languages.js'
 
-t.test('language locales', async (t) => {
-  t.test('every supported language maps to a canonical, well-formed BCP-47 locale', async (t) => {
+describe('language locales', () => {
+  it('every supported language maps to a canonical, well-formed BCP-47 locale', async () => {
     for (const language of SUPPORTED_LANGUAGES) {
       const locale = getLocale(language)
 
-      t.type(locale, 'string', `getLocale('${language}') returns a locale`)
+      expect(typeof locale, `getLocale('${language}') returns a locale`).toBe('string')
 
       let canonical: string[] = []
-      t.doesNotThrow(() => {
+      expect(() => {
         canonical = Intl.getCanonicalLocales(locale)
-      }, `'${locale}' (${language}) is a well-formed BCP-47 tag`)
-      t.strictSame(canonical, [locale], `'${locale}' (${language}) is already in canonical form`)
+      }, `'${locale}' (${language}) is a well-formed BCP-47 tag`).not.toThrow()
+      expect(canonical, `'${locale}' (${language}) is already in canonical form`).toStrictEqual([locale])
     }
   })
 
-  t.test('specific language to locale mappings', async (t) => {
+  it('specific language to locale mappings', async () => {
     const expectedLocales = {
       czech: 'cs',
       slovenian: 'sl',
@@ -33,23 +32,23 @@ t.test('language locales', async (t) => {
     }
 
     for (const [language, locale] of Object.entries(expectedLocales)) {
-      t.equal(getLocale(language), locale, `getLocale('${language}') returns '${locale}'`)
+      expect(getLocale(language), `getLocale('${language}') returns '${locale}'`).toBe(locale)
     }
   })
 
-  t.test('supported languages include czech and slovenian', async (t) => {
-    t.ok(SUPPORTED_LANGUAGES.includes('czech'))
-    t.ok(SUPPORTED_LANGUAGES.includes('slovenian'))
-    t.strictSame(SUPPORTED_LANGUAGES, Object.keys(SUPPORTED_LANGUAGE_LOCALES))
+  it('supported languages include czech and slovenian', async () => {
+    expect(SUPPORTED_LANGUAGES.includes('czech')).toBeTruthy()
+    expect(SUPPORTED_LANGUAGES.includes('slovenian')).toBeTruthy()
+    expect(SUPPORTED_LANGUAGES).toStrictEqual(Object.keys(SUPPORTED_LANGUAGE_LOCALES))
   })
 
-  t.test('unknown or missing languages return undefined', async (t) => {
-    t.equal(getLocale(undefined), undefined)
-    t.equal(getLocale('klingon'), undefined)
-    t.equal(getLocale('multilingual'), undefined)
+  it('unknown or missing languages return undefined', async () => {
+    expect(getLocale(undefined)).toBe(undefined)
+    expect(getLocale('klingon')).toBe(undefined)
+    expect(getLocale('multilingual')).toBe(undefined)
   })
 
-  t.test('multilingual is a tokenizer mode, not a supported language', async (t) => {
-    t.notOk(SUPPORTED_LANGUAGES.includes('multilingual'))
+  it('multilingual is a tokenizer mode, not a supported language', async () => {
+    expect(SUPPORTED_LANGUAGES.includes('multilingual')).toBeFalsy()
   })
 })

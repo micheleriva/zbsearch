@@ -1,4 +1,4 @@
-import { describe, it } from 'node:test'
+import { describe, it } from 'vitest'
 import assert from 'node:assert/strict'
 
 import { concatBytes, decodeJson, encodeJson, encodeNdjsonLine, parseNdjson } from '../src/codec.js'

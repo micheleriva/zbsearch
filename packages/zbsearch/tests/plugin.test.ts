@@ -1,4 +1,4 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import {
   ZBSearchPlugin,
   create,
@@ -12,8 +12,8 @@ import {
 } from '../src/index.js'
 import { getAllPluginsByHook } from '../src/components/plugins.js'
 
-t.only('getAllPluginsByHook', async (t) => {
-  t.only('should return all the plugins that includes a given hook name', async (t) => {
+describe('getAllPluginsByHook', () => {
+  it('should return all the plugins that includes a given hook name', async () => {
     function plugin1() {
       return {
         name: 'plugin1',
@@ -52,12 +52,12 @@ t.only('getAllPluginsByHook', async (t) => {
     const beforeInsertPlugins = getAllPluginsByHook(db, 'beforeInsert')
     const afterSearchPlugins = getAllPluginsByHook(db, 'afterSearch')
 
-    t.equal(beforeInsertPlugins.length, 3)
-    t.equal(afterSearchPlugins.length, 2)
+    expect(beforeInsertPlugins.length).toBe(3)
+    expect(afterSearchPlugins.length).toBe(2)
   })
 })
 
-t.only('plugin', async (t) => {
+describe('plugin', () => {
   const data: string[] = []
 
   function loggerPlugin(): ZBSearchPlugin {
@@ -111,7 +111,7 @@ t.only('plugin', async (t) => {
     }
   }
 
-  t.only('should run all the hooks of a plugin', async (t) => {
+  it('should run all the hooks of a plugin', async () => {
     const db = create({
       id: 'zbsearch-1',
       schema: {
@@ -195,12 +195,9 @@ t.only('plugin', async (t) => {
     ]
 
     for (let i = 0; i < log.length; i++) {
-      t.equal(data[i], log[i])
+      expect(data[i]).toBe(log[i])
     }
 
-    t.equal(data.length, 40)
-    t.end()
+    expect(data.length).toBe(40)
   })
-
-  t.end()
 })

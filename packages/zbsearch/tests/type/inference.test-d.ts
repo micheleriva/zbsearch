@@ -1,5 +1,6 @@
+import { expectTypeOf } from 'vitest'
+
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { expectAssignable, expectType } from 'tsd'
 import { create, insert, search } from '../../src/index.js'
 import type { Results, TypedDocument, ZBSearch } from '../../src/types.d.ts'
 
@@ -10,13 +11,13 @@ const schemalessDB2 = create({})
 
 // insert accepts any document shape on a schemaless instance
 const idP = insert(schemalessDB, { anything: 'goes', nested: { deep: 1 }, list: [1, 2, 3] })
-expectType<string | Promise<string>>(idP)
+expectTypeOf(idP).toEqualTypeOf<string | Promise<string>>()
 
 // search stays callable with free-form parameters, results keep their shape
 const resultP = search(schemalessDB, { term: 'anything' })
-expectAssignable<Results<unknown> | Promise<Results<unknown>>>(resultP)
+expectTypeOf(resultP).toExtend<Results<unknown> | Promise<Results<unknown>>>()
 const result = resultP instanceof Promise ? await resultP : resultP
-expectAssignable<string | number>(result.hits[0].id)
+expectTypeOf(result.hits[0].id).toExtend<string | number>()
 
 // Inference can be explicitly disabled
 const strictEmptyDB = create({ inferSchema: false })
@@ -27,15 +28,15 @@ const hybridDB = create({
   schema: { embedding: 'vector[3]' },
   inferSchema: true
 })
-expectType<ZBSearch<{ embedding: 'vector[3]' }>>(hybridDB)
+expectTypeOf(hybridDB).toEqualTypeOf<ZBSearch<{ embedding: 'vector[3]' }>>()
 
 const hybridIdP = insert(hybridDB, { embedding: [1, 0, 0], title: 'inferred at runtime' })
-expectType<string | Promise<string>>(hybridIdP)
+expectTypeOf(hybridIdP).toEqualTypeOf<string | Promise<string>>()
 
 // A full schema without inference keeps the existing strict typing
 const movieSchema = { title: 'string', year: 'number' } as const
 const movieDB = create({ schema: movieSchema })
-expectType<ZBSearch<typeof movieSchema>>(movieDB)
+expectTypeOf(movieDB).toEqualTypeOf<ZBSearch<typeof movieSchema>>()
 const movieResultP = search(movieDB, { term: 'godfather' })
 const movieResult = movieResultP instanceof Promise ? await movieResultP : movieResultP
-expectType<string>(movieResult.hits[0].document.title)
+expectTypeOf(movieResult.hits[0].document.title).toEqualTypeOf<string>()

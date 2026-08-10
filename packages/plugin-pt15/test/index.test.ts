@@ -1,42 +1,42 @@
-import t from 'tap'
+import { expect, it } from 'vitest'
 import { create, insertMultiple, load, remove, save, search } from 'zbsearch'
 import { pluginPT15 } from '../src/index.js'
 import { get_position } from '../src/algorithm.js'
 
-t.test('get_position', async (t) => {
-  t.equal(get_position(0, 1), 0)
-  t.equal(get_position(1, 1), 1)
+it('get_position', async () => {
+  expect(get_position(0, 1)).toBe(0)
+  expect(get_position(1, 1)).toBe(1)
 
-  t.equal(get_position(0, 50), 0)
-  t.equal(get_position(1, 50), 0)
-  t.equal(get_position(2, 50), 0)
-  t.equal(get_position(3, 50), 0)
+  expect(get_position(0, 50)).toBe(0)
+  expect(get_position(1, 50)).toBe(0)
+  expect(get_position(2, 50)).toBe(0)
+  expect(get_position(3, 50)).toBe(0)
 
-  t.equal(get_position(4, 50), 1)
-  t.equal(get_position(5, 50), 1)
-  t.equal(get_position(6, 50), 1)
+  expect(get_position(4, 50)).toBe(1)
+  expect(get_position(5, 50)).toBe(1)
+  expect(get_position(6, 50)).toBe(1)
 
-  t.equal(get_position(7, 50), 2)
-  t.equal(get_position(8, 50), 2)
-  t.equal(get_position(9, 50), 2)
+  expect(get_position(7, 50)).toBe(2)
+  expect(get_position(8, 50)).toBe(2)
+  expect(get_position(9, 50)).toBe(2)
 
-  t.equal(get_position(10, 50), 3)
-  t.equal(get_position(11, 50), 3)
-  t.equal(get_position(12, 50), 3)
-  t.equal(get_position(13, 50), 3)
+  expect(get_position(10, 50)).toBe(3)
+  expect(get_position(11, 50)).toBe(3)
+  expect(get_position(12, 50)).toBe(3)
+  expect(get_position(13, 50)).toBe(3)
 
-  t.equal(get_position(14, 50), 4)
+  expect(get_position(14, 50)).toBe(4)
 
   // skip some...
 
-  t.equal(get_position(46, 50), 13)
+  expect(get_position(46, 50)).toBe(13)
 
-  t.equal(get_position(47, 50), 14)
-  t.equal(get_position(48, 50), 14)
-  t.equal(get_position(49, 50), 14)
+  expect(get_position(47, 50)).toBe(14)
+  expect(get_position(48, 50)).toBe(14)
+  expect(get_position(49, 50)).toBe(14)
 })
 
-t.test('plugin-pt15', async (t) => {
+it('plugin-pt15', async () => {
   const db = create({
     schema: {
       name: 'string',
@@ -65,7 +65,7 @@ t.test('plugin-pt15', async (t) => {
     term: 't'
   })
 
-  t.equal(result.count, 3)
+  expect(result.count).toBe(3)
 
   const dump = await save(db)
   const restored = JSON.parse(JSON.stringify(dump))
@@ -85,17 +85,17 @@ t.test('plugin-pt15', async (t) => {
   const result2 = await search(db2, {
     term: 't'
   })
-  t.equal(result2.count, 3)
+  expect(result2.count).toBe(3)
 
   await remove(db2, '1')
 
   const result3 = await search(db2, {
     term: 't'
   })
-  t.equal(result3.count, 2)
+  expect(result3.count).toBe(2)
 })
 
-t.test('where string', async (t) => {
+it('where string', async () => {
   const db = create({
     schema: {
       name: 'string',
@@ -120,7 +120,7 @@ t.test('where string', async (t) => {
     { id: '3', name: 'My table is cool', age: 22, isCool: false, algo: ['algo4'], preferredNumbers: [22] }
   ])
 
-  t.throws(
+  expect(
     () =>
       search(db, {
         where: {
@@ -128,11 +128,11 @@ t.test('where string', async (t) => {
         }
       }),
     'String filters are not supported'
-  )
+  ).toThrow()
 })
 
 // https://github.com/oramasearch/orama/issues/995
-t.test('matches accented content when the query is typed without accents', async (t) => {
+it('matches accented content when the query is typed without accents', async () => {
   const db = create({
     schema: { title: 'string' } as const,
     plugins: [pluginPT15()]
@@ -145,13 +145,13 @@ t.test('matches accented content when the query is typed without accents', async
 
   for (const term of ['Gateau', 'Gâteau', 'gateau au chocolat']) {
     const result = search(db, { term })
-    t.equal(result.count, 1, `"${term}" finds the gâteau document`)
-    t.equal(result.hits[0].id, '1')
+    expect(result.count, `"${term}" finds the gâteau document`).toBe(1)
+    expect(result.hits[0].id).toBe('1')
   }
 
   for (const term of ['creme brulee', 'Crème brûlée']) {
     const result = search(db, { term })
-    t.equal(result.count, 1, `"${term}" finds the crème brûlée document`)
-    t.equal(result.hits[0].id, '2')
+    expect(result.count, `"${term}" finds the crème brûlée document`).toBe(1)
+    expect(result.hits[0].id).toBe('2')
   }
 })

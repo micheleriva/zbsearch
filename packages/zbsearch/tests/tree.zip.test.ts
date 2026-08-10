@@ -1,20 +1,16 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { ZipTree } from '../src/trees/zip.js'
 
-t.test('ZIP Tree', async (t) => {
-  t.test('create', (t) => {
-    t.plan(3)
-
+describe('ZIP Tree', () => {
+  it('create', () => {
     const tree = new ZipTree()
     tree.insert(1, 'foo')
-    t.equal(tree.getSize(), 1)
-    t.equal(tree.find(1), 'foo')
-    t.equal(tree.find(4), null)
+    expect(tree.getSize()).toBe(1)
+    expect(tree.find(1)).toBe('foo')
+    expect(tree.find(4)).toBe(null)
   })
 
-  t.test('insert', (t) => {
-    t.plan(1)
-
+  it('insert', () => {
     const tree = new ZipTree()
 
     tree.insert(1, 'foo')
@@ -25,10 +21,10 @@ t.test('ZIP Tree', async (t) => {
     tree.insert(20, 'quuz')
     tree.insert(12, 'corge')
 
-    t.equal(tree.getSize(), 7)
+    expect(tree.getSize()).toBe(7)
   })
 
-  t.test('find', async (t) => {
+  it('find', async () => {
     const tree = new ZipTree()
     tree.insert(1, [1, 2, 3])
 
@@ -39,11 +35,11 @@ t.test('ZIP Tree', async (t) => {
     tree.insert(20, [16, 17, 18])
     tree.insert(12, [19, 20, 21])
 
-    t.same(tree.contains(20), true)
-    t.same(tree.find(20), [16, 17, 18])
+    expect(tree.contains(20)).toEqual(true)
+    expect(tree.find(20)).toEqual([16, 17, 18])
   })
 
-  t.test('remove', async (t) => {
+  it('remove', async () => {
     const tree = new ZipTree()
     tree.insert(1, 'foo')
 
@@ -56,11 +52,11 @@ t.test('ZIP Tree', async (t) => {
 
     tree.remove(20)
 
-    t.equal(tree.getSize(), 6)
-    t.equal(tree.contains(20), false)
+    expect(tree.getSize()).toBe(6)
+    expect(tree.contains(20)).toBe(false)
   })
 
-  t.test('rangeSearch', async (t) => {
+  it('rangeSearch', async () => {
     const tree = new ZipTree()
     tree.insert(1, 'foo')
 
@@ -71,10 +67,10 @@ t.test('ZIP Tree', async (t) => {
     tree.insert(20, 'quuz')
     tree.insert(12, 'corge')
 
-    t.same(tree.rangeSearch(5, 20), ['quux', 'baz', 'corge', 'quuz'])
+    expect(tree.rangeSearch(5, 20)).toEqual(['quux', 'baz', 'corge', 'quuz'])
   })
 
-  t.test('greaterThan', async (t) => {
+  it('greaterThan', async () => {
     const tree = new ZipTree()
     tree.insert(1, 'foo')
 
@@ -85,10 +81,10 @@ t.test('ZIP Tree', async (t) => {
     tree.insert(20, 'quuz')
     tree.insert(12, 'corge')
 
-    t.same(tree.greaterThan(10), ['corge', 'quuz', 'qux'])
+    expect(tree.greaterThan(10)).toEqual(['corge', 'quuz', 'qux'])
   })
 
-  t.test('lessThan', async (t) => {
+  it('lessThan', async () => {
     const tree = new ZipTree()
     tree.insert(1, 'foo')
 
@@ -99,6 +95,6 @@ t.test('ZIP Tree', async (t) => {
     tree.insert(20, 'quuz')
     tree.insert(12, 'corge')
 
-    t.same(tree.lessThan(10), ['foo', 'bar', 'quux'])
+    expect(tree.lessThan(10)).toEqual(['foo', 'bar', 'quux'])
   })
 })

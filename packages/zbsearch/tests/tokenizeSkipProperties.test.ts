@@ -1,8 +1,8 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { ZBSearch, create, insert, search } from '../src/index.js'
 
-t.test('tokenizeSkipProperties', async (t) => {
-  t.test('skipProperties', async (t) => {
+describe('tokenizeSkipProperties', () => {
+  it('skipProperties', async () => {
     const [db, id1] = await createSimpleDB(true)
 
     const result = await search(db, {
@@ -11,16 +11,14 @@ t.test('tokenizeSkipProperties', async (t) => {
       }
     })
 
-    t.ok(result.elapsed)
-    t.ok(result.elapsed.raw)
-    t.ok(result.elapsed.formatted)
-    t.equal(result.count, 1)
-    t.equal(result.hits[0].id, id1)
-
-    t.end()
+    expect(result.elapsed).toBeTruthy()
+    expect(result.elapsed.raw).toBeTruthy()
+    expect(result.elapsed.formatted).toBeTruthy()
+    expect(result.count).toBe(1)
+    expect(result.hits[0].id).toBe(id1)
   })
 
-  t.test('noSkipProperties', async (t) => {
+  it('noSkipProperties', async () => {
     const [db, id1, id2, , id4] = await createSimpleDB(false)
 
     const result = await search(db, {
@@ -29,18 +27,15 @@ t.test('tokenizeSkipProperties', async (t) => {
       }
     })
 
-    t.ok(result.elapsed)
-    t.ok(result.elapsed.raw)
-    t.ok(result.elapsed.formatted)
-    t.equal(result.count, 3)
+    expect(result.elapsed).toBeTruthy()
+    expect(result.elapsed.raw).toBeTruthy()
+    expect(result.elapsed.formatted).toBeTruthy()
+    expect(result.count).toBe(3)
 
     for (const id of [id1, id2, id4]) {
-      t.ok(result.hits.find((d) => d.id === id))
+      expect(result.hits.find((d) => d.id === id)).toBeTruthy()
     }
-
-    t.end()
   })
-  t.end()
 })
 
 async function createSimpleDB(skipProperties: boolean) {

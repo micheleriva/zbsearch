@@ -1,9 +1,9 @@
-import t from 'tap'
+import { expect, it } from 'vitest'
 import { create } from '../src/methods/create.js'
 import { insert } from '../src/methods/insert.js'
 import { search } from '../src/methods/search.js'
 
-t.test('preflight request', async (t) => {
+it('preflight request', async () => {
   const db = await create({
     schema: {
       title: 'string'
@@ -25,8 +25,8 @@ t.test('preflight request', async (t) => {
     term: 'headphones'
   })
 
-  t.same(results.count, 5)
-  t.same(results.hits, [])
-  t.same(fullResults.count, 5)
-  t.same(fullResults.hits.length, 5)
+  expect(results.count).toEqual(5)
+  expect(results.hits).toEqual([])
+  expect(fullResults.count).toEqual(5)
+  expect(fullResults.hits.length).toEqual(5)
 })

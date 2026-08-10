@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { test } from 'node:test'
+import { test } from 'vitest'
 import type { SearchHit } from '../src/types.js'
 import { flattenGroups, groupHits, wrapIndex } from '../src/group.js'
 

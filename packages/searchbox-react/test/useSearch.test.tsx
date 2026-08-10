@@ -1,23 +1,6 @@
 import assert from 'node:assert/strict'
-import { before, test } from 'node:test'
+import { test } from 'vitest'
 import type { SearchHit } from '@zbsearch/searchbox-core'
-import { JSDOM } from 'jsdom'
-
-// The hook runs effects, so it needs a DOM before React is imported.
-before(() => {
-  const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost' })
-
-  // `navigator` is deliberately left alone: Node defines it as a getter-only
-  // global, and nothing on this path reads it.
-  Object.assign(globalThis, {
-    window: dom.window,
-    document: dom.window.document,
-    HTMLElement: dom.window.HTMLElement,
-    Element: dom.window.Element,
-    Node: dom.window.Node
-  })
-  ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
-})
 
 function hit(id: string): SearchHit {
   return { id, url: `/${id}`, title: id }

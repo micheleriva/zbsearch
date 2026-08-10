@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { test } from 'node:test'
+import { test } from 'vitest'
 import { type AllContent, collectRecords, collectSourceDocuments, resolveSourcePath } from '../src/node/collect.js'
 import { resolveOptions } from '../src/node/options.js'
 

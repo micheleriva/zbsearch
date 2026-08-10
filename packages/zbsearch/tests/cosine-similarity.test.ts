@@ -1,4 +1,4 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_SIMILARITY,
   findSimilarVectors,
@@ -13,34 +13,34 @@ function toF32(vector: number[]): Float32Array {
   return new Float32Array(vector)
 }
 
-t.test('cosine similarity', async (t) => {
-  t.test('getMagnitude', async (t) => {
-    t.test('should return the magnitude of a vector', async (t) => {
+describe('cosine similarity', () => {
+  describe('getMagnitude', () => {
+    it('should return the magnitude of a vector', async () => {
       {
         const vector = toF32([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
         const magnitude = getMagnitude(vector, vector.length)
 
-        t.equal(magnitude, 1)
+        expect(magnitude).toBe(1)
       }
 
       {
         const vector = toF32([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
         const magnitude = getMagnitude(vector, vector.length)
 
-        t.equal(magnitude, Math.sqrt(10))
+        expect(magnitude).toBe(Math.sqrt(10))
       }
 
       {
         const vector = toF32([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
         const magnitude = getMagnitude(vector, vector.length)
 
-        t.equal(magnitude, Math.sqrt(385))
+        expect(magnitude).toBe(Math.sqrt(385))
       }
     })
   })
 
-  t.test('findSimilarVectors', async (t) => {
-    t.test('should return the most similar vectors', async (t) => {
+  describe('findSimilarVectors', () => {
+    it('should return the most similar vectors', async () => {
       const targetVector = toF32([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
       normalizeVector(targetVector, targetVector.length)
 
@@ -64,9 +64,9 @@ t.test('cosine similarity', async (t) => {
         DEFAULT_SIMILARITY
       )
 
-      t.same(similarVectors.length, 2)
-      t.same(similarVectors[0][0], 2)
-      t.same(similarVectors[1][0], 3)
+      expect(similarVectors.length).toEqual(2)
+      expect(similarVectors[0][0]).toEqual(2)
+      expect(similarVectors[1][0]).toEqual(3)
     })
   })
 })

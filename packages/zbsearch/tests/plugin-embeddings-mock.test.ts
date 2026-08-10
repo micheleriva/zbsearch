@@ -1,8 +1,8 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { create, insert, search } from '../src/index.js'
 
-t.test('Plugin embeddings fix test', async (t) => {
-  t.test('should handle vector search with term parameter (no vector.property error)', async (t) => {
+describe('Plugin embeddings fix test', () => {
+  it('should handle vector search with term parameter (no vector.property error)', async () => {
     function mockEmbeddingsPlugin() {
       return {
         name: 'mock-embeddings-plugin',
@@ -58,14 +58,12 @@ t.test('Plugin embeddings fix test', async (t) => {
       term: 'quick brown fox'
     })
 
-    t.ok(results, 'search completed successfully')
-    t.ok(results.hits, 'search results have hits')
-    t.ok(results.count >= 0, 'search results have count')
-
-    t.pass('Vector search with term parameter works without property undefined error')
+    expect(results, 'search completed successfully').toBeTruthy()
+    expect(results.hits, 'search results have hits').toBeTruthy()
+    expect(results.count >= 0, 'search results have count').toBeTruthy()
   })
 
-  t.test('should still work with explicit vector parameter', async (t) => {
+  it('should still work with explicit vector parameter', async () => {
     const db = create({
       schema: {
         title: 'string',
@@ -86,8 +84,8 @@ t.test('Plugin embeddings fix test', async (t) => {
       }
     })
 
-    t.ok(results, 'explicit vector search works')
-    t.same(results.count, 1, 'found exact match')
-    t.ok(Math.abs(results.hits[0].score - 1) < 0.0001, 'perfect similarity score')
+    expect(results, 'explicit vector search works').toBeTruthy()
+    expect(results.count, 'found exact match').toEqual(1)
+    expect(Math.abs(results.hits[0].score - 1) < 0.0001, 'perfect similarity score').toBeTruthy()
   })
 })

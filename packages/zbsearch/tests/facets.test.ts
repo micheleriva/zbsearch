@@ -1,8 +1,8 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { create, insert, insertMultiple, search } from '../src/index.js'
 
-t.test('facets', (t) => {
-  t.test('should generate correct facets', async (t) => {
+describe('facets', () => {
+  it('should generate correct facets', async () => {
     const db = await create({
       schema: {
         author: 'string',
@@ -81,15 +81,15 @@ t.test('facets', (t) => {
       }
     })
 
-    t.same(results.facets?.['meta.isFavorite'].count, 2)
-    t.same(results.facets?.['meta.isFavorite'].values, { true: 1, false: 2 })
-    t.same(results.facets?.['meta.tag'].count, 1)
-    t.same(results.facets?.['meta.tag'].values, { inspirational: 3 })
-    t.same(results.facets?.author.count, 2)
-    t.same(results.facets?.author.values, { 'Steve Jobs': 2, 'Thomas A. Edison': 1 })
+    expect(results.facets?.['meta.isFavorite'].count).toEqual(2)
+    expect(results.facets?.['meta.isFavorite'].values).toEqual({ true: 1, false: 2 })
+    expect(results.facets?.['meta.tag'].count).toEqual(1)
+    expect(results.facets?.['meta.tag'].values).toEqual({ inspirational: 3 })
+    expect(results.facets?.author.count).toEqual(2)
+    expect(results.facets?.author.values).toEqual({ 'Steve Jobs': 2, 'Thomas A. Edison': 1 })
   })
 
-  t.test('should correctly handle range facets', async (t) => {
+  it('should correctly handle range facets', async () => {
     const db = await create({
       schema: {
         name: 'string',
@@ -149,14 +149,14 @@ t.test('facets', (t) => {
       }
     })
 
-    t.same(results.facets?.price.count, 4)
-    t.same(results.facets?.price.values['0-2'], 1)
-    t.same(results.facets?.price.values['2-4'], 2)
-    t.same(results.facets?.price.values['4-6'], 2)
-    t.same(results.facets?.price.values['6-8'], 1)
+    expect(results.facets?.price.count).toEqual(4)
+    expect(results.facets?.price.values['0-2']).toEqual(1)
+    expect(results.facets?.price.values['2-4']).toEqual(2)
+    expect(results.facets?.price.values['4-6']).toEqual(2)
+    expect(results.facets?.price.values['6-8']).toEqual(1)
   })
 
-  t.test('should work with `enum` and `enum[]`', async (t) => {
+  it('should work with `enum` and `enum[]`', async () => {
     const db = await create({
       schema: {
         category: 'enum',
@@ -187,7 +187,7 @@ t.test('facets', (t) => {
       }
     })
 
-    t.strictSame(results.facets, {
+    expect(results.facets).toStrictEqual({
       category: {
         count: 3,
         values: {
@@ -208,8 +208,6 @@ t.test('facets', (t) => {
         }
       }
     })
-
-    t.end()
   })
 
   const insertQuotesForOrderedAuthors = async () => {
@@ -245,7 +243,7 @@ t.test('facets', (t) => {
     return { db, orderedAuthors }
   }
 
-  t.test('should generate correct facets with 10 items if limit is not set', async (t) => {
+  it('should generate correct facets with 10 items if limit is not set', async () => {
     const { db, orderedAuthors } = await insertQuotesForOrderedAuthors()
 
     const results = await search(db, {
@@ -255,11 +253,11 @@ t.test('facets', (t) => {
       }
     })
 
-    t.same(results.facets?.['author'].count, orderedAuthors.length)
-    t.same(Object.keys(results.facets!['author'].values).length, 10)
+    expect(results.facets?.['author'].count).toEqual(orderedAuthors.length)
+    expect(Object.keys(results.facets!['author'].values).length).toEqual(10)
   })
 
-  t.test('should generate correct facets with correct number of items', async (t) => {
+  it('should generate correct facets with correct number of items', async () => {
     const { db, orderedAuthors } = await insertQuotesForOrderedAuthors()
 
     const results = await search(db, {
@@ -271,11 +269,11 @@ t.test('facets', (t) => {
       }
     })
 
-    t.same(results.facets?.['author'].count, orderedAuthors.length)
-    t.same(Object.keys(results.facets!['author'].values).length, orderedAuthors.length)
+    expect(results.facets?.['author'].count).toEqual(orderedAuthors.length)
+    expect(Object.keys(results.facets!['author'].values).length).toEqual(orderedAuthors.length)
   })
 
-  t.test('should generate correct facets when limit is lower than total values', async (t) => {
+  it('should generate correct facets when limit is lower than total values', async () => {
     const { db, orderedAuthors } = await insertQuotesForOrderedAuthors()
 
     const results = await search(db, {
@@ -287,9 +285,7 @@ t.test('facets', (t) => {
       }
     })
 
-    t.same(results.facets?.['author'].count, orderedAuthors.length)
-    t.same(Object.keys(results.facets!['author'].values).length, orderedAuthors.length - 1)
+    expect(results.facets?.['author'].count).toEqual(orderedAuthors.length)
+    expect(Object.keys(results.facets!['author'].values).length).toEqual(orderedAuthors.length - 1)
   })
-
-  t.end()
 })

@@ -32,7 +32,7 @@
   "scripts": {
     "build": "exit 0",
     "lint": "exit 0",
-    "test": "node --test --import tsx test/*.test.ts"
+    "test": "vitest run"
   },
   "publishConfig": {
     "access": "public"

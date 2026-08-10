@@ -1,4 +1,4 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { DocumentsStore } from '../src/components/documents-store.js'
 import { Index } from '../src/components/index.js'
 import { getInternalDocumentId } from '../src/components/internal-document-id-store.js'
@@ -10,8 +10,8 @@ function extractOriginalDoc(result: Result<AnyDocument>[]): AnyDocument[] {
   return result.map(({ document }: AnyDocument) => document)
 }
 
-t.test('Edge getters', async (t) => {
-  t.test('should correctly enable edge index getter', async (t) => {
+describe('Edge getters', () => {
+  it('should correctly enable edge index getter', async () => {
     const db = create({
       schema: {
         name: 'string',
@@ -34,11 +34,11 @@ t.test('Edge getters', async (t) => {
     const newNameIndex = RadixTree.fromJSON(nameIndex.node)
 
     // Remember that tokenizers an stemmers sets content to lowercase
-    t.ok(newNameIndex.contains('john'))
-    t.ok(newNameIndex.contains('jane'))
+    expect(newNameIndex.contains('john')).toBeTruthy()
+    expect(newNameIndex.contains('jane')).toBeTruthy()
   })
 
-  t.test('should correctly enable edge docs getter', async (t) => {
+  it('should correctly enable edge docs getter', async () => {
     const db = create({
       schema: {
         name: 'string',
@@ -58,17 +58,17 @@ t.test('Edge getters', async (t) => {
 
     const { docs } = save(db)
 
-    t.strictSame((docs as DocumentsStore).docs[getInternalDocumentId(db.internalDocumentIDStore, doc1)], {
+    expect((docs as DocumentsStore).docs[getInternalDocumentId(db.internalDocumentIDStore, doc1)]).toStrictEqual({
       name: 'John',
       age: 30
     })
-    t.strictSame((docs as DocumentsStore).docs[getInternalDocumentId(db.internalDocumentIDStore, doc2)], {
+    expect((docs as DocumentsStore).docs[getInternalDocumentId(db.internalDocumentIDStore, doc2)]).toStrictEqual({
       name: 'Jane',
       age: 25
     })
   })
 
-  t.test('should correctly enable index setter', async (t) => {
+  it('should correctly enable index setter', async () => {
     const db = create({
       schema: {
         name: 'string',
@@ -117,16 +117,16 @@ t.test('Edge getters', async (t) => {
     const search3 = await search(db, { term: 'Paolo' })
     const search4 = await search(db, { term: 'Michele' })
 
-    t.equal(search1.count, 0)
-    t.equal(search2.count, 0)
-    t.equal(search3.count, 1)
-    t.equal(search4.count, 1)
+    expect(search1.count).toBe(0)
+    expect(search2.count).toBe(0)
+    expect(search3.count).toBe(1)
+    expect(search4.count).toBe(1)
 
-    t.strictSame(extractOriginalDoc(search3.hits), [paolo])
-    t.strictSame(extractOriginalDoc(search4.hits), [michele])
+    expect(extractOriginalDoc(search3.hits)).toStrictEqual([paolo])
+    expect(extractOriginalDoc(search4.hits)).toStrictEqual([michele])
   })
 
-  t.test('should correctly save and load data', async (t) => {
+  it('should correctly save and load data', async () => {
     const originalDB = await create({
       schema: {
         name: 'string',
@@ -161,7 +161,7 @@ t.test('Edge getters', async (t) => {
     const search3 = await search(originalDB, { term: 'P' })
     const search4 = await search(newDB, { term: 'P' })
 
-    t.strictSame(search1.hits, search2.hits)
-    t.strictSame(search3.hits, search4.hits)
+    expect(search1.hits).toStrictEqual(search2.hits)
+    expect(search3.hits).toStrictEqual(search4.hits)
   })
 })

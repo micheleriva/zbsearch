@@ -1,4 +1,4 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import {
   create,
   insert,
@@ -14,8 +14,8 @@ import type { PinRule } from '../src/components/pinning.js'
 import type { TokenScore } from '../src/types.js'
 import { applyPinningRules } from '../src/components/pinning-manager.js'
 
-t.test('pinning public API', async (t) => {
-  t.test('should add a pin rule', async (t) => {
+describe('pinning public API', () => {
+  it('should add a pin rule', async () => {
     const db = create({
       schema: {
         title: 'string',
@@ -44,10 +44,10 @@ t.test('pinning public API', async (t) => {
     insertPin(db, rule)
 
     const retrieved = getPin(db, 'test_rule')
-    t.strictSame(retrieved, rule)
+    expect(retrieved).toStrictEqual(rule)
   })
 
-  t.test('should remove a pin rule', async (t) => {
+  it('should remove a pin rule', async () => {
     const db = create({
       schema: {
         title: 'string',
@@ -74,14 +74,14 @@ t.test('pinning public API', async (t) => {
     }
 
     insertPin(db, rule)
-    t.ok(getPin(db, 'test_rule'))
+    expect(getPin(db, 'test_rule')).toBeTruthy()
 
     const removed = deletePin(db, 'test_rule')
-    t.equal(removed, true)
-    t.equal(getPin(db, 'test_rule'), undefined)
+    expect(removed).toBe(true)
+    expect(getPin(db, 'test_rule')).toBe(undefined)
   })
 
-  t.test('should return all pin rules', async (t) => {
+  it('should return all pin rules', async () => {
     const db = create({
       schema: {
         title: 'string',
@@ -105,12 +105,12 @@ t.test('pinning public API', async (t) => {
     insertPin(db, rule2)
 
     const allRules = getAllPins(db)
-    t.equal(allRules.length, 2)
-    t.ok(allRules.find((r) => r.id === 'rule1'))
-    t.ok(allRules.find((r) => r.id === 'rule2'))
+    expect(allRules.length).toBe(2)
+    expect(allRules.find((r) => r.id === 'rule1')).toBeTruthy()
+    expect(allRules.find((r) => r.id === 'rule2')).toBeTruthy()
   })
 
-  t.test('should throw error when inserting duplicate rule ID', async (t) => {
+  it('should throw error when inserting duplicate rule ID', async () => {
     const db = create({
       schema: {
         title: 'string',
@@ -127,12 +127,12 @@ t.test('pinning public API', async (t) => {
     insertPin(db, rule)
 
     // Attempting to insert the same rule ID should throw
-    t.throws(() => {
+    expect(() => {
       insertPin(db, rule)
-    }, /PINNING_RULE_ALREADY_EXISTS/)
+    }).toThrow(/PINNING_RULE_ALREADY_EXISTS/)
   })
 
-  t.test('should update existing pin rule with updatePin', async (t) => {
+  it('should update existing pin rule with updatePin', async () => {
     const db = create({
       schema: {
         title: 'string',
@@ -158,12 +158,12 @@ t.test('pinning public API', async (t) => {
     updatePin(db, updatedRule)
 
     const retrieved = getPin(db, 'update_rule')
-    t.strictSame(retrieved, updatedRule)
-    t.equal(retrieved?.conditions[0].pattern, 'updated')
-    t.equal(retrieved?.consequence.promote[0].doc_id, 'doc2')
+    expect(retrieved).toStrictEqual(updatedRule)
+    expect(retrieved?.conditions[0].pattern).toBe('updated')
+    expect(retrieved?.consequence.promote[0].doc_id).toBe('doc2')
   })
 
-  t.test('should throw error when updating non-existent rule', async (t) => {
+  it('should throw error when updating non-existent rule', async () => {
     const db = create({
       schema: {
         title: 'string',
@@ -178,16 +178,14 @@ t.test('pinning public API', async (t) => {
     }
 
     // Attempting to update a non-existent rule should throw
-    t.throws(() => {
+    expect(() => {
       updatePin(db, rule)
-    }, /PINNING_RULE_NOT_FOUND/)
+    }).toThrow(/PINNING_RULE_NOT_FOUND/)
   })
-
-  t.end()
 })
 
-t.test('pinning in search results', async (t) => {
-  t.test('should pin a document to position 0 in search results', async (t) => {
+describe('pinning in search results', () => {
+  it('should pin a document to position 0 in search results', async () => {
     const db = create({
       schema: {
         title: 'string',
@@ -212,11 +210,11 @@ t.test('pinning in search results', async (t) => {
     const results = await search(db, { term: 'shirt' })
 
     // Document '3' should be at position 0 even though it doesn't match 'shirt'
-    t.equal(results.hits[0].id, '3')
-    t.equal(results.hits[1].id, '1') // Original match
+    expect(results.hits[0].id).toBe('3')
+    expect(results.hits[1].id).toBe('1') // Original match
   })
 
-  t.test('should pin multiple documents to different positions', async (t) => {
+  it('should pin multiple documents to different positions', async () => {
     const db = create({
       schema: {
         title: 'string',
@@ -247,14 +245,14 @@ t.test('pinning in search results', async (t) => {
     const results = await search(db, { term: 'product' })
 
     // Check pinned positions
-    t.equal(results.hits[0].id, '5') // Position 0
-    t.equal(results.hits[1].id, '3') // Position 1
-    t.equal(results.hits[2].id, '1') // Position 2
+    expect(results.hits[0].id).toBe('5') // Position 0
+    expect(results.hits[1].id).toBe('3') // Position 1
+    expect(results.hits[2].id).toBe('1') // Position 2
     // Unpinned documents should follow
-    t.equal(results.count, 5)
+    expect(results.count).toBe(5)
   })
 
-  t.test('should pin document from outside the result set', async (t) => {
+  it('should pin document from outside the result set', async () => {
     const db = create({
       schema: {
         title: 'string',
@@ -281,13 +279,13 @@ t.test('pinning in search results', async (t) => {
     const results = await search(db, { term: 'shirt' })
 
     // Document 3 should be promoted to position 0 with score 0
-    t.equal(results.count, 2)
-    t.equal(results.hits[0].id, '3')
-    t.equal(results.hits[0].score, 0) // Score should be 0 for promoted docs outside result set
-    t.equal(results.hits[1].id, '1')
+    expect(results.count).toBe(2)
+    expect(results.hits[0].id).toBe('3')
+    expect(results.hits[0].score).toBe(0) // Score should be 0 for promoted docs outside result set
+    expect(results.hits[1].id).toBe('1')
   })
 
-  t.test('should not apply pinning when no rules match', async (t) => {
+  it('should not apply pinning when no rules match', async () => {
     const db = create({
       schema: {
         title: 'string'
@@ -311,10 +309,10 @@ t.test('pinning in search results', async (t) => {
     const results = await search(db, { term: 'product' })
 
     // Results should be in natural order (no pinning applied)
-    t.equal(results.count, 3)
+    expect(results.count).toBe(3)
   })
 
-  t.test('should handle empty search results', async (t) => {
+  it('should handle empty search results', async () => {
     const db = create({
       schema: {
         title: 'string'
@@ -332,14 +330,12 @@ t.test('pinning in search results', async (t) => {
     const results = await search(db, { term: 'nonexistent' })
 
     // Should remain empty since the term doesn't match and the pinned document doesn't exist
-    t.equal(results.count, 0)
+    expect(results.count).toBe(0)
   })
-
-  t.end()
 })
 
-t.test('pin condition matching', async (t) => {
-  t.test('should match exact pattern with "is" anchoring', async (t) => {
+describe('pin condition matching', () => {
+  it('should match exact pattern with "is" anchoring', async () => {
     const db = create({
       schema: {
         title: 'string'
@@ -362,13 +358,13 @@ t.test('pin condition matching', async (t) => {
     const results3 = await search(db, { term: 'blue' })
 
     // Should apply pinning for exact match
-    t.equal(results1.hits[0].id, '2')
-    t.equal(results2.hits[0].id, '2')
+    expect(results1.hits[0].id).toBe('2')
+    expect(results2.hits[0].id).toBe('2')
     // Should not apply pinning for partial match
-    t.equal(results3.hits[0].id, '1')
+    expect(results3.hits[0].id).toBe('1')
   })
 
-  t.test('should match pattern with "starts_with" anchoring', async (t) => {
+  it('should match pattern with "starts_with" anchoring', async () => {
     const db = create({
       schema: {
         title: 'string'
@@ -392,13 +388,13 @@ t.test('pin condition matching', async (t) => {
     const results3 = await search(db, { term: 'wireless headphones' })
 
     // Should apply pinning for starts_with match
-    t.equal(results1.hits[0].id, '3')
-    t.equal(results2.hits[0].id, '3')
+    expect(results1.hits[0].id).toBe('3')
+    expect(results2.hits[0].id).toBe('3')
     // Should not apply pinning when term doesn't start with pattern
-    t.not(results3.hits[0].id === '3', 'should not pin when term does not start with pattern')
+    expect(results3.hits[0].id === '3').not.toBe('should not pin when term does not start with pattern')
   })
 
-  t.test('should match pattern with "contains" anchoring', async (t) => {
+  it('should match pattern with "contains" anchoring', async () => {
     const db = create({
       schema: {
         title: 'string'
@@ -422,12 +418,12 @@ t.test('pin condition matching', async (t) => {
     const results3 = await search(db, { term: 'best wireless earbuds' })
 
     // Should apply pinning for contains match
-    t.equal(results1.hits[0].id, '3')
-    t.equal(results2.hits[0].id, '3')
-    t.equal(results3.hits[0].id, '3')
+    expect(results1.hits[0].id).toBe('3')
+    expect(results2.hits[0].id).toBe('3')
+    expect(results3.hits[0].id).toBe('3')
   })
 
-  t.test('should match rule with multiple conditions (AND logic)', async (t) => {
+  it('should match rule with multiple conditions (AND logic)', async () => {
     const db = create({
       schema: {
         title: 'string'
@@ -454,17 +450,15 @@ t.test('pin condition matching', async (t) => {
     const results3 = await search(db, { term: 'jacket' })
 
     // Should apply pinning only when all conditions match
-    t.equal(results1.hits[0].id, '3')
+    expect(results1.hits[0].id).toBe('3')
     // Should not apply when one condition doesn't match
-    t.not(results2.hits[0].id === '3', 'should not pin when one condition does not match')
-    t.not(results3.hits[0].id === '3', 'should not pin when one condition does not match')
+    expect(results2.hits[0].id === '3').not.toBe('should not pin when one condition does not match')
+    expect(results3.hits[0].id === '3').not.toBe('should not pin when one condition does not match')
   })
-
-  t.end()
 })
 
-t.test('pinning serialization', async (t) => {
-  t.test('should persist pinning rules through save/load', async (t) => {
+describe('pinning serialization', () => {
+  it('should persist pinning rules through save/load', async () => {
     const { save, load } = await import('../src/index.js')
 
     const db = create({
@@ -513,22 +507,20 @@ t.test('pinning serialization', async (t) => {
 
     // Verify loaded db has the same rules
     const allRules = getAllPins(db2)
-    t.equal(allRules.length, 2)
+    expect(allRules.length).toBe(2)
 
     const loadedRule1 = getPin(db2, 'rule1')
     const loadedRule2 = getPin(db2, 'rule2')
 
-    t.ok(loadedRule1)
-    t.ok(loadedRule2)
-    t.equal(loadedRule1?.id, 'rule1')
-    t.equal(loadedRule2?.id, 'rule2')
+    expect(loadedRule1).toBeTruthy()
+    expect(loadedRule2).toBeTruthy()
+    expect(loadedRule1?.id).toBe('rule1')
+    expect(loadedRule2?.id).toBe('rule2')
   })
-
-  t.end()
 })
 
-t.test('pinning edge cases', async (t) => {
-  t.test('should handle conflicting pin positions (first wins)', async (t) => {
+describe('pinning edge cases', () => {
+  it('should handle conflicting pin positions (first wins)', async () => {
     const db = create({
       schema: {
         title: 'string'
@@ -556,11 +548,11 @@ t.test('pinning edge cases', async (t) => {
     const results = await search(db, { term: 'product' })
 
     // First promotion in the list should take precedence
-    t.equal(results.hits[0].id, '1')
-    t.equal(results.count, 3)
+    expect(results.hits[0].id).toBe('1')
+    expect(results.count).toBe(3)
   })
 
-  t.test('should handle pin position beyond result set length', async (t) => {
+  it('should handle pin position beyond result set length', async () => {
     const db = create({
       schema: {
         title: 'string'
@@ -583,10 +575,10 @@ t.test('pinning edge cases', async (t) => {
     const results = await search(db, { term: 'product' })
 
     // All documents should still be present
-    t.equal(results.count, 2)
+    expect(results.count).toBe(2)
   })
 
-  t.test('should handle pinning the same document multiple times', async (t) => {
+  it('should handle pinning the same document multiple times', async () => {
     const db = create({
       schema: {
         title: 'string'
@@ -614,16 +606,14 @@ t.test('pinning edge cases', async (t) => {
 
     // Document should only appear once
     const doc1Count = results.hits.filter((hit) => hit.id === '1').length
-    t.equal(doc1Count, 1)
-    t.equal(results.count, 3)
+    expect(doc1Count).toBe(1)
+    expect(results.count).toBe(3)
   })
-
-  t.end()
 })
 
 // Test internal applyPinningRules function for lower-level testing
-t.test('internal pinning logic', async (t) => {
-  t.test('should apply pinning rules to TokenScore array', async (t) => {
+describe('internal pinning logic', () => {
+  it('should apply pinning rules to TokenScore array', async () => {
     const db = create({
       schema: {
         title: 'string'
@@ -652,9 +642,7 @@ t.test('internal pinning logic', async (t) => {
 
     const pinnedResults = applyPinningRules(db, db.data.pinning, mockResults, 'test')
 
-    t.equal(pinnedResults[0][0], 3)
-    t.equal(pinnedResults.length, 3)
+    expect(pinnedResults[0][0]).toBe(3)
+    expect(pinnedResults.length).toBe(3)
   })
-
-  t.end()
 })

@@ -1,8 +1,8 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { create, insert, getByID, update, updateMultiple, count } from '../src/index.js'
 
-t.test('update method', async (t) => {
-  t.test('should remove a document the old document and insert the new one', async (t) => {
+describe('update method', () => {
+  it('should remove a document the old document and insert the new one', async () => {
     const db = create({
       schema: {
         quote: 'string',
@@ -30,17 +30,17 @@ t.test('update method', async (t) => {
     })
 
     const oldDoc = getByID(db, oldDocId)
-    t.notOk(oldDoc)
+    expect(oldDoc).toBeFalsy()
 
     const newDoc = getByID(db, newDocId)
-    t.ok(newDoc)
+    expect(newDoc).toBeTruthy()
 
-    t.equal(count(db), 1)
+    expect(count(db)).toBe(1)
   })
 })
 
-t.test('updateMultiple', async (t) => {
-  t.test('should update the documents', async (t) => {
+describe('updateMultiple', () => {
+  it('should update the documents', async () => {
     const db = create({
       schema: {
         quote: 'string',
@@ -71,16 +71,14 @@ t.test('updateMultiple', async (t) => {
       ]
     )
 
-    t.notOk(getByID(db, oldDocId1))
-    t.notOk(getByID(db, oldDocId2))
+    expect(getByID(db, oldDocId1)).toBeFalsy()
+    expect(getByID(db, oldDocId2)).toBeFalsy()
 
-    t.ok(getByID(db, id1))
-    t.ok(getByID(db, id2))
-
-    t.end()
+    expect(getByID(db, id1)).toBeTruthy()
+    expect(getByID(db, id2)).toBeTruthy()
   })
 
-  t.test('should skip the update if a document is not valid', async (t) => {
+  it('should skip the update if a document is not valid', async () => {
     const db = create({
       schema: {
         quote: 'string'
@@ -92,13 +90,9 @@ t.test('updateMultiple', async (t) => {
       author: 'John Lennon'
     })
 
-    t.throws(() => updateMultiple(db, [oldDocId], [{ quote: 55 }] as any))
+    expect(() => updateMultiple(db, [oldDocId], [{ quote: 55 }] as any)).toThrow()
 
-    t.ok(getByID(db, oldDocId))
-    t.equal(count(db), 1)
-
-    t.end()
+    expect(getByID(db, oldDocId)).toBeTruthy()
+    expect(count(db)).toBe(1)
   })
-
-  t.end()
 })

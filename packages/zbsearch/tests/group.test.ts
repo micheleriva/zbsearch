@@ -1,11 +1,11 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { GroupResult, create, insertMultiple, search } from '../src/index.js'
 
-t.test('search with groupBy', async (t) => {
+describe('search with groupBy', () => {
   const [db] = createDb()
 
-  t.test('should group by a single property', async (t) => {
-    t.test('', async (t) => {
+  describe('should group by a single property', () => {
+    it('', async () => {
       const results = await search(db, {
         term: 't-shirt',
         groupBy: {
@@ -17,15 +17,13 @@ t.test('search with groupBy', async (t) => {
         }
       })
 
-      compareGroupResults(t as unknown as Tap.Test, results.groups!, [
+      compareGroupResults(results.groups!, [
         { values: ['A'], result: ['0', '1', '2'] },
         { values: ['B'], result: ['3', '4', '5', '6'] }
       ])
-
-      t.end()
     })
 
-    t.test('in right order', async (t) => {
+    it('in right order', async () => {
       const results = await search(db, {
         term: 't-shirt',
         groupBy: {
@@ -37,15 +35,13 @@ t.test('search with groupBy', async (t) => {
         }
       })
 
-      compareGroupResults(t as unknown as Tap.Test, results.groups!, [
+      compareGroupResults(results.groups!, [
         { values: ['A'], result: ['2', '1', '0'] },
         { values: ['B'], result: ['6', '5', '4', '3'] }
       ])
-
-      t.end()
     })
 
-    t.test('with limit', async (t) => {
+    it('with limit', async () => {
       const results = await search(db, {
         term: 't-shirt',
         groupBy: {
@@ -54,15 +50,13 @@ t.test('search with groupBy', async (t) => {
         }
       })
 
-      compareGroupResults(t as unknown as Tap.Test, results.groups!, [
+      compareGroupResults(results.groups!, [
         { values: ['A'], result: ['0', '1'] },
         { values: ['B'], result: ['3', '4'] }
       ])
-
-      t.end()
     })
 
-    t.test('in right order with limit', async (t) => {
+    it('in right order with limit', async () => {
       const results = await search(db, {
         term: 't-shirt',
         groupBy: {
@@ -75,17 +69,15 @@ t.test('search with groupBy', async (t) => {
         }
       })
 
-      compareGroupResults(t as unknown as Tap.Test, results.groups!, [
+      compareGroupResults(results.groups!, [
         { values: ['A'], result: ['2', '1'] },
         { values: ['B'], result: ['6', '5'] }
       ])
-
-      t.end()
     })
   })
 
-  t.test('should group by a 2 properties', async (t) => {
-    t.test('', async (t) => {
+  describe('should group by a 2 properties', () => {
+    it('', async () => {
       const results = await search(db, {
         groupBy: {
           properties: ['design', 'rank']
@@ -96,7 +88,7 @@ t.test('search with groupBy', async (t) => {
         }
       })
 
-      compareGroupResults(t as unknown as Tap.Test, results.groups!, [
+      compareGroupResults(results.groups!, [
         { values: ['A', 3], result: ['0', '7'] },
         { values: ['A', 4], result: ['2', '8'] },
         { values: ['A', 5], result: ['1'] },
@@ -105,11 +97,9 @@ t.test('search with groupBy', async (t) => {
         { values: ['B', 4], result: ['3', '4'] },
         { values: ['B', 5], result: ['5', '6'] }
       ])
-
-      t.end()
     })
 
-    t.test('in the right order', async (t) => {
+    it('in the right order', async () => {
       const results = await search(db, {
         groupBy: {
           properties: ['design', 'rank']
@@ -120,20 +110,18 @@ t.test('search with groupBy', async (t) => {
         }
       })
 
-      compareGroupResults(t as unknown as Tap.Test, results.groups!, [
+      compareGroupResults(results.groups!, [
         { values: ['A', 3], result: ['7', '0'] },
         { values: ['A', 4], result: ['8', '2'] },
         { values: ['A', 5], result: ['1'] },
         { values: ['B', 4], result: ['4', '3'] },
         { values: ['B', 5], result: ['6', '5'] }
       ])
-
-      t.end()
     })
   })
 
-  t.test('should group by a 3 properties', async (t) => {
-    t.test('', async (t) => {
+  describe('should group by a 3 properties', () => {
+    it('', async () => {
       const results = await search(db, {
         groupBy: {
           properties: ['design', 'rank', 'isPromoted']
@@ -144,7 +132,7 @@ t.test('search with groupBy', async (t) => {
         }
       })
 
-      compareGroupResults(t as unknown as Tap.Test, results.groups!, [
+      compareGroupResults(results.groups!, [
         { values: ['A', 3, true], result: ['0', '7'] },
         { values: ['B', 4, true], result: ['4'] },
         { values: ['B', 5, true], result: ['6'] },
@@ -153,11 +141,9 @@ t.test('search with groupBy', async (t) => {
         { values: ['B', 4, false], result: ['3'] },
         { values: ['B', 5, false], result: ['5'] }
       ])
-
-      t.end()
     })
 
-    t.test('with custom order', async (t) => {
+    it('with custom order', async () => {
       const results = await search(db, {
         groupBy: {
           properties: ['design', 'rank', 'isPromoted']
@@ -167,7 +153,7 @@ t.test('search with groupBy', async (t) => {
         }
       })
 
-      compareGroupResults(t as unknown as Tap.Test, results.groups!, [
+      compareGroupResults(results.groups!, [
         { values: ['A', 3, true], result: ['7', '0'] },
         { values: ['B', 4, true], result: ['4'] },
         { values: ['B', 5, true], result: ['6'] },
@@ -176,12 +162,10 @@ t.test('search with groupBy', async (t) => {
         { values: ['B', 4, false], result: ['3'] },
         { values: ['B', 5, false], result: ['5'] }
       ])
-
-      t.end()
     })
   })
 
-  t.test('with custom aggregator', async (t) => {
+  it('with custom aggregator', async () => {
     interface AggregationValue {
       type: string
       design: string
@@ -212,8 +196,7 @@ t.test('search with groupBy', async (t) => {
       }
     })
 
-    t.strictSame(
-      new Set(results.groups!),
+    expect(new Set(results.groups!)).toStrictEqual(
       new Set([
         {
           values: ['t-shirt', 'B'],
@@ -243,40 +226,42 @@ t.test('search with groupBy', async (t) => {
     )
   })
 
-  t.test('only scalar values are supported', async (t) => {
+  it('only scalar values are supported', async () => {
     const db = create({
       schema: {
         tags: 'string[]'
       } as const
     })
 
-    t.throws(
-      () =>
-        search(db, {
-          groupBy: {
-            properties: ['unknown-property']
-          }
-        }),
-      {
-        message: 'Unknown groupBy property "unknown-property"'
-      }
+    expect(() =>
+      search(db, {
+        groupBy: {
+          properties: ['unknown-property']
+        }
+      })
+    ).toThrow(
+      expect.objectContaining({
+        message: expect.stringContaining('Unknown groupBy property "unknown-property"')
+      })
     )
 
-    t.throws(
-      () =>
-        search(db, {
-          groupBy: {
-            properties: ['tags']
-          }
-        }),
-      {
-        message: 'Invalid groupBy property "tags". Allowed types: "string, number, boolean", but given "string[]"'
-      }
+    expect(() =>
+      search(db, {
+        groupBy: {
+          properties: ['tags']
+        }
+      })
+    ).toThrow(
+      expect.objectContaining({
+        message: expect.stringContaining(
+          'Invalid groupBy property "tags". Allowed types: "string, number, boolean", but given "string[]"'
+        )
+      })
     )
   })
 })
 
-t.test('real test', async (t) => {
+it('real test', async () => {
   const [db] = createDb()
   const results = await search(db, {
     term: 't-shirt',
@@ -290,23 +275,22 @@ t.test('real test', async (t) => {
     }
   })
 
-  compareGroupResults(t as unknown as Tap.Test, results.groups!, [
+  compareGroupResults(results.groups!, [
     { values: ['A'], result: ['1'] },
     { values: ['B'], result: ['6'] }
   ])
 })
 
-function compareGroupResults(t: Tap.Test, groups: GroupResult<any>, expected) {
+function compareGroupResults(groups: GroupResult<any>, expected) {
   // We don't care about the order of the groups
-  t.strictSame(
+  expect(
     new Set(
       groups.map((g) => ({
         values: g.values,
         result: g.result.map((d) => d.id)
       }))
-    ),
-    new Set(expected)
-  )
+    )
+  ).toStrictEqual(new Set(expected))
 }
 
 function createDb() {

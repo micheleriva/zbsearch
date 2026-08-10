@@ -1,4 +1,4 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { index as defaultIndex } from '../src/components.js'
 import { autoSuggest, count, create, insertMultiple, suggest } from '../src/index.js'
 
@@ -21,269 +21,208 @@ function createProductsDB() {
   return db
 }
 
-t.test('suggest method', (t) => {
-  t.test('should complete a single word and report the elapsed time', (t) => {
+describe('suggest method', () => {
+  it('should complete a single word and report the elapsed time', () => {
     const db = createProductsDB()
     const result = suggest(db, { term: 'head' })
 
-    t.equal(result.count, 1)
-    t.strictSame(
-      result.suggestions.map(({ suggestion, terms, count }) => ({ suggestion, terms, count })),
-      [{ suggestion: 'headphones', terms: ['headphones'], count: 2 }]
-    )
-    t.ok(result.suggestions[0].score > 0)
-    t.ok(result.elapsed.raw > 0)
-    t.ok(result.elapsed.formatted)
-
-    t.end()
+    expect(result.count).toBe(1)
+    expect(result.suggestions.map(({ suggestion, terms, count }) => ({ suggestion, terms, count }))).toStrictEqual([
+      { suggestion: 'headphones', terms: ['headphones'], count: 2 }
+    ])
+    expect(result.suggestions[0].score > 0).toBeTruthy()
+    expect(result.elapsed.raw > 0).toBeTruthy()
+    expect(result.elapsed.formatted).toBeTruthy()
   })
 
-  t.test('should rank the suggestions by aggregated document relevance', (t) => {
+  it('should rank the suggestions by aggregated document relevance', () => {
     const db = createProductsDB()
     const result = suggest(db, { term: 'noi' })
 
-    t.strictSame(
-      result.suggestions.map(({ suggestion }) => suggestion),
-      ['noise', 'noisy']
-    )
-    t.ok(result.suggestions[0].score > result.suggestions[1].score)
-    t.equal(result.suggestions[0].count, 2)
-    t.equal(result.suggestions[1].count, 1)
-
-    t.end()
+    expect(result.suggestions.map(({ suggestion }) => suggestion)).toStrictEqual(['noise', 'noisy'])
+    expect(result.suggestions[0].score > result.suggestions[1].score).toBeTruthy()
+    expect(result.suggestions[0].count).toBe(2)
+    expect(result.suggestions[1].count).toBe(1)
   })
 
-  t.test('should complete the last word of a phrase, keeping the previous ones', (t) => {
+  it('should complete the last word of a phrase, keeping the previous ones', () => {
     const db = createProductsDB()
     const result = suggest(db, { term: 'noise can' })
 
-    t.strictSame(
-      result.suggestions.map(({ suggestion, count }) => ({ suggestion, count })),
-      [
-        { suggestion: 'noise cancelling', count: 2 },
-        { suggestion: 'noise cancellation', count: 1 }
-      ]
-    )
-
-    t.end()
+    expect(result.suggestions.map(({ suggestion, count }) => ({ suggestion, count }))).toStrictEqual([
+      { suggestion: 'noise cancelling', count: 2 },
+      { suggestion: 'noise cancellation', count: 1 }
+    ])
   })
 
-  t.test('should not suggest words that never appear together in a document', (t) => {
+  it('should not suggest words that never appear together in a document', () => {
     const db = createProductsDB()
     const result = suggest(db, { term: 'noi shirt' })
 
     // "noisy" and "shirt" share a document, "noise" and "shirt" do not.
-    t.strictSame(
-      result.suggestions.map(({ suggestion }) => suggestion),
-      ['noisy shirt']
-    )
-
-    t.end()
+    expect(result.suggestions.map(({ suggestion }) => suggestion)).toStrictEqual(['noisy shirt'])
   })
 
-  t.test('should expand only the last word when prefix is "last"', (t) => {
+  it('should expand only the last word when prefix is "last"', () => {
     const db = createProductsDB()
 
-    t.strictSame(
+    expect(
       suggest(db, { term: 'noi cancelling', prefix: 'last' }).suggestions,
-      [],
       'the previous words must match a whole indexed word'
-    )
-    t.strictSame(
-      suggest(db, { term: 'noise can', prefix: 'last' }).suggestions.map(({ suggestion }) => suggestion),
-      ['noise cancelling', 'noise cancellation']
-    )
-
-    t.end()
+    ).toStrictEqual([])
+    expect(
+      suggest(db, { term: 'noise can', prefix: 'last' }).suggestions.map(({ suggestion }) => suggestion)
+    ).toStrictEqual(['noise cancelling', 'noise cancellation'])
   })
 
-  t.test('should only match whole indexed words when prefix is false', (t) => {
+  it('should only match whole indexed words when prefix is false', () => {
     const db = createProductsDB()
 
-    t.strictSame(suggest(db, { term: 'head', prefix: false }).suggestions, [])
-    t.strictSame(
-      suggest(db, { term: 'headphones', prefix: false }).suggestions.map(({ suggestion }) => suggestion),
-      ['headphones']
-    )
-
-    t.end()
+    expect(suggest(db, { term: 'head', prefix: false }).suggestions).toStrictEqual([])
+    expect(
+      suggest(db, { term: 'headphones', prefix: false }).suggestions.map(({ suggestion }) => suggestion)
+    ).toStrictEqual(['headphones'])
   })
 
-  t.test('should tolerate typos', (t) => {
+  it('should tolerate typos', () => {
     const db = createProductsDB()
 
-    t.strictSame(suggest(db, { term: 'hedphones' }).suggestions, [], 'no tolerance, no suggestion')
-    t.strictSame(
-      suggest(db, { term: 'hedphones', tolerance: 1 }).suggestions.map(({ suggestion }) => suggestion),
-      ['headphones']
-    )
-    t.strictSame(
+    expect(suggest(db, { term: 'hedphones' }).suggestions, 'no tolerance, no suggestion').toStrictEqual([])
+    expect(
+      suggest(db, { term: 'hedphones', tolerance: 1 }).suggestions.map(({ suggestion }) => suggestion)
+    ).toStrictEqual(['headphones'])
+    expect(
       suggest(db, { term: 'hedphones', tolerance: 1, prefix: false }).suggestions.map(({ suggestion }) => suggestion),
-      ['headphones'],
       'tolerance applies to fully typed words too'
-    )
-
-    t.end()
+    ).toStrictEqual(['headphones'])
   })
 
-  t.test('should keep the context words whole when a tolerance is combined with prefix', (t) => {
+  it('should keep the context words whole when a tolerance is combined with prefix', () => {
     const db = create({ schema: { title: 'string' } as const })
 
     insertMultiple(db, [{ title: 'cancel policy' }, { title: 'cancellation policy' }])
 
-    t.strictSame(
+    expect(
       suggest(db, { term: 'cancel poli', prefix: 'last', tolerance: 1 }).suggestions.map(
         ({ suggestion }) => suggestion
       ),
-      ['cancel policy'],
       'a tolerance must not turn a context word into a prefix expansion'
-    )
-    t.strictSame(
+    ).toStrictEqual(['cancel policy'])
+    expect(
       suggest(db, { term: 'cancel poli', prefix: 'last' }).suggestions.map(({ suggestion }) => suggestion),
-      ['cancel policy'],
       'same suggestions as without the tolerance'
-    )
-    t.strictSame(
+    ).toStrictEqual(['cancel policy'])
+    expect(
       suggest(db, { term: 'cancel poli', prefix: true, tolerance: 1 }).suggestions.map(({ suggestion }) => suggestion),
-      ['cancel policy', 'cancellation policy'],
       'prefix true still expands the context words'
-    )
-    t.strictSame(
+    ).toStrictEqual(['cancel policy', 'cancellation policy'])
+    expect(
       suggest(db, { term: 'cancl poli', prefix: 'last', tolerance: 1 }).suggestions.map(({ suggestion }) => suggestion),
-      ['cancel policy'],
       'a whole context word within the tolerated distance still matches'
-    )
-
-    t.end()
+    ).toStrictEqual(['cancel policy'])
   })
 
-  t.test('should only take the suggestions from the given properties', (t) => {
+  it('should only take the suggestions from the given properties', () => {
     const db = createProductsDB()
 
-    t.strictSame(
-      suggest(db, { term: 'wire', properties: ['title'] }).suggestions.map(({ suggestion }) => suggestion),
-      ['wired']
-    )
-    t.strictSame(
-      suggest(db, { term: 'wire', properties: ['description'] }).suggestions.map(({ suggestion }) => suggestion),
-      ['wireless']
-    )
+    expect(
+      suggest(db, { term: 'wire', properties: ['title'] }).suggestions.map(({ suggestion }) => suggestion)
+    ).toStrictEqual(['wired'])
+    expect(
+      suggest(db, { term: 'wire', properties: ['description'] }).suggestions.map(({ suggestion }) => suggestion)
+    ).toStrictEqual(['wireless'])
 
     const both = suggest(db, { term: 'wire' })
-    t.equal(both.count, 2)
-
-    t.end()
+    expect(both.count).toBe(2)
   })
 
-  t.test('should throw on unknown properties', (t) => {
+  it('should throw on unknown properties', () => {
     const db = createProductsDB()
 
-    t.throws(() => suggest(db, { term: 'head', properties: ['unknown'] as never[] }), {
-      code: 'UNKNOWN_INDEX'
-    })
-
-    t.end()
+    expect(() => suggest(db, { term: 'head', properties: ['unknown'] as never[] })).toThrow(
+      expect.objectContaining({
+        code: 'UNKNOWN_INDEX'
+      })
+    )
   })
 
-  t.test('should boost the properties', (t) => {
+  it('should boost the properties', () => {
     const db = createProductsDB()
 
     const unboosted = suggest(db, { term: 'wire' })
     const boosted = suggest(db, { term: 'wire', boost: { description: 5 } })
 
-    t.strictSame(
-      unboosted.suggestions.map(({ suggestion }) => suggestion),
-      ['wired', 'wireless']
-    )
-    t.strictSame(
+    expect(unboosted.suggestions.map(({ suggestion }) => suggestion)).toStrictEqual(['wired', 'wireless'])
+    expect(
       boosted.suggestions.map(({ suggestion }) => suggestion),
-      ['wireless', 'wired'],
       'boosting the description promotes the word found in it'
-    )
-
-    t.end()
+    ).toStrictEqual(['wireless', 'wired'])
   })
 
-  t.test('should only aggregate the documents matching the filters', (t) => {
+  it('should only aggregate the documents matching the filters', () => {
     const db = createProductsDB()
     const result = suggest(db, { term: 'head', where: { price: { lt: 100 } } })
 
-    t.strictSame(
-      result.suggestions.map(({ suggestion, count }) => ({ suggestion, count })),
-      [{ suggestion: 'headphones', count: 1 }]
-    )
+    expect(result.suggestions.map(({ suggestion, count }) => ({ suggestion, count }))).toStrictEqual([
+      { suggestion: 'headphones', count: 1 }
+    ])
 
-    t.strictSame(suggest(db, { term: 'head', where: { price: { lt: 10 } } }).suggestions, [])
-
-    t.end()
+    expect(suggest(db, { term: 'head', where: { price: { lt: 10 } } }).suggestions).toStrictEqual([])
   })
 
-  t.test('should ignore partially matching documents unless a threshold is given', (t) => {
+  it('should ignore partially matching documents unless a threshold is given', () => {
     const db = createProductsDB()
 
-    t.strictSame(suggest(db, { term: 'noise shir' }).suggestions, [])
+    expect(suggest(db, { term: 'noise shir' }).suggestions).toStrictEqual([])
 
     const withThreshold = suggest(db, { term: 'noise shir', threshold: 1 })
-    t.strictSame(
+    expect(
       withThreshold.suggestions.map(({ suggestion, terms }) => ({ suggestion, terms })).sort(),
+      'the words with no match are kept verbatim'
+    ).toStrictEqual(
       [
         // The documents matching "noise" only keep the unmatched word verbatim, the one matching "shir" only completes it.
         { suggestion: 'noise shir', terms: ['noise', 'shir'] },
         { suggestion: 'noise shirt', terms: ['noise', 'shirt'] }
-      ].sort(),
-      'the words with no match are kept verbatim'
+      ].sort()
     )
-
-    t.end()
   })
 
-  t.test('should paginate the suggestions', (t) => {
+  it('should paginate the suggestions', () => {
     const db = createProductsDB()
 
     const all = suggest(db, { term: 'noi' })
-    t.equal(all.count, 2)
-    t.equal(all.suggestions.length, 2)
+    expect(all.count).toBe(2)
+    expect(all.suggestions.length).toBe(2)
 
     const first = suggest(db, { term: 'noi', limit: 1 })
-    t.equal(first.count, 2, 'count ignores limit and offset')
-    t.strictSame(
-      first.suggestions.map(({ suggestion }) => suggestion),
-      ['noise']
-    )
+    expect(first.count, 'count ignores limit and offset').toBe(2)
+    expect(first.suggestions.map(({ suggestion }) => suggestion)).toStrictEqual(['noise'])
 
     const second = suggest(db, { term: 'noi', limit: 1, offset: 1 })
-    t.strictSame(
-      second.suggestions.map(({ suggestion }) => suggestion),
-      ['noisy']
-    )
+    expect(second.suggestions.map(({ suggestion }) => suggestion)).toStrictEqual(['noisy'])
 
-    t.strictSame(suggest(db, { term: 'noi', offset: 2 }).suggestions, [])
-
-    t.end()
+    expect(suggest(db, { term: 'noi', offset: 2 }).suggestions).toStrictEqual([])
   })
 
-  t.test('should return no suggestion for an empty or unknown term', (t) => {
+  it('should return no suggestion for an empty or unknown term', () => {
     const db = createProductsDB()
 
     for (const term of ['', '   ', 'zzz']) {
       const result = suggest(db, { term })
-      t.equal(result.count, 0, `no suggestion for "${term}"`)
-      t.strictSame(result.suggestions, [])
-      t.ok(result.elapsed.formatted)
+      expect(result.count, `no suggestion for "${term}"`).toBe(0)
+      expect(result.suggestions).toStrictEqual([])
+      expect(result.elapsed.formatted).toBeTruthy()
     }
-
-    t.end()
   })
 
-  t.test('should be exposed as autoSuggest too', (t) => {
+  it('should be exposed as autoSuggest too', () => {
     const db = createProductsDB()
 
-    t.strictSame(autoSuggest(db, { term: 'head' }).suggestions, suggest(db, { term: 'head' }).suggestions)
-
-    t.end()
+    expect(autoSuggest(db, { term: 'head' }).suggestions).toStrictEqual(suggest(db, { term: 'head' }).suggestions)
   })
 
-  t.test('should score the documents exactly as search does', (t) => {
+  it('should score the documents exactly as search does', () => {
     const db = create({ schema: { title: 'string', description: 'string' } as const })
 
     insertMultiple(db, [
@@ -322,16 +261,13 @@ t.test('suggest method', (t) => {
       undefined
     )
 
-    t.strictSame(
+    expect(
       searchScores.map(([id, score]) => [id, score]).sort(),
-      Array.from(matches, ([id, match]) => [id, match.score]).sort(),
       'every expansion of a token contributes to the document score, as in search'
-    )
-
-    t.end()
+    ).toStrictEqual(Array.from(matches, ([id, match]) => [id, match.score]).sort())
   })
 
-  t.test('should throw when the index component cannot expand a token', (t) => {
+  it('should throw when the index component cannot expand a token', () => {
     const { supportsSuggestions, ...index } = defaultIndex.createIndex()
 
     const db = create({
@@ -341,13 +277,14 @@ t.test('suggest method', (t) => {
 
     insertMultiple(db, [{ title: 'Noise cancelling headphones' }])
 
-    t.notOk(index.searchSuggestions, 'the default component declares the capability instead of the implementation')
-    t.throws(() => suggest(db, { term: 'head' }), { code: 'SUGGEST_NOT_SUPPORTED' })
-
-    t.end()
+    expect(
+      index.searchSuggestions,
+      'the default component declares the capability instead of the implementation'
+    ).toBeFalsy()
+    expect(() => suggest(db, { term: 'head' })).toThrow(expect.objectContaining({ code: 'SUGGEST_NOT_SUPPORTED' }))
   })
 
-  t.test('should let an index component provide its own expansion', (t) => {
+  it('should let an index component provide its own expansion', () => {
     let calls = 0
     const index = {
       ...defaultIndex.createIndex(),
@@ -364,15 +301,10 @@ t.test('suggest method', (t) => {
 
     insertMultiple(db, [{ title: 'Noise cancelling headphones' }])
 
-    t.strictSame(
+    expect(
       suggest(db, { term: 'head' }).suggestions,
-      [{ suggestion: 'custom', terms: ['custom'], score: 3, count: 1 }],
       'the component implementation wins over the default one'
-    )
-    t.equal(calls, 1)
-
-    t.end()
+    ).toStrictEqual([{ suggestion: 'custom', terms: ['custom'], score: 3, count: 1 }])
+    expect(calls).toBe(1)
   })
-
-  t.end()
 })

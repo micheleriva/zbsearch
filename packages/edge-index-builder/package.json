@@ -20,7 +20,7 @@
   "scripts": {
     "build": "swc --delete-dir-on-start --extensions .ts -d dist src && tsc -p . --emitDeclarationOnly",
     "rebuild": "node dist/cli.js rebuild",
-    "test": "node --import tsx --test tests/**/*.test.ts"
+    "test": "vitest run"
   },
   "license": "Apache-2.0",
   "dependencies": {

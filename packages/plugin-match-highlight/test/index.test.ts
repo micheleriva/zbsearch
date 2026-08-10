@@ -1,5 +1,5 @@
+import { expect, it } from 'vitest'
 import { create, insert, Tokenizer } from 'zbsearch'
-import t from 'tap'
 import {
   afterInsert,
   loadWithHighlight,
@@ -8,7 +8,7 @@ import {
   searchWithHighlight
 } from '../src/index.js'
 
-t.test('it should store the position of tokens', async (t) => {
+it('it should store the position of tokens', async () => {
   const db = create({
     schema: {
       text: 'string'
@@ -23,12 +23,12 @@ t.test('it should store the position of tokens', async (t) => {
 
   const id = await insert(db, { text: 'hello world' })
 
-  t.same((db as ZBSearchWithHighlight<typeof db>).data.positions[id], {
+  expect((db as ZBSearchWithHighlight<typeof db>).data.positions[id]).toEqual({
     text: { hello: [{ start: 0, length: 5 }], world: [{ start: 6, length: 5 }] }
   })
 })
 
-t.test('it should manage nested schemas', async (t) => {
+it('it should manage nested schemas', async () => {
   const schema = {
     other: {
       text: 'string'
@@ -39,12 +39,12 @@ t.test('it should manage nested schemas', async (t) => {
 
   const id = await insert(db, { other: { text: 'hello world' } })
 
-  t.same((db as ZBSearchWithHighlight<typeof db>).data.positions[id], {
+  expect((db as ZBSearchWithHighlight<typeof db>).data.positions[id]).toEqual({
     'other.text': { hello: [{ start: 0, length: 5 }], world: [{ start: 6, length: 5 }] }
   })
 })
 
-t.test("it shouldn't stem tokens", async (t) => {
+it("it shouldn't stem tokens", async () => {
   const schema = {
     text: 'string'
   } as const
@@ -62,12 +62,12 @@ t.test("it shouldn't stem tokens", async (t) => {
 
   const id = await insert(db, { text: 'hello personalization' })
 
-  t.same((db as ZBSearchWithHighlight<typeof db>).data.positions[id], {
+  expect((db as ZBSearchWithHighlight<typeof db>).data.positions[id]).toEqual({
     text: { hello: [{ start: 0, length: 5 }], personalization: [{ start: 6, length: 15 }] }
   })
 })
 
-t.test('should retrieve positions', async (t) => {
+it('should retrieve positions', async () => {
   const schema = {
     text: 'string'
   } as const
@@ -77,10 +77,10 @@ t.test('should retrieve positions', async (t) => {
   await insert(db, { text: 'hello world' })
 
   const results = await searchWithHighlight(db, { term: 'hello' })
-  t.same(results.hits[0].positions, { text: { hello: [{ start: 0, length: 5 }] } })
+  expect(results.hits[0].positions).toEqual({ text: { hello: [{ start: 0, length: 5 }] } })
 })
 
-t.test('should retrieve positions also with typo, if tolerance is used', async (t) => {
+it('should retrieve positions also with typo, if tolerance is used', async () => {
   const schema = {
     title: 'string',
     summary: 'string',
@@ -100,7 +100,7 @@ t.test('should retrieve positions also with typo, if tolerance is used', async (
 
   const results = await searchWithHighlight(db, { term: 'reat', tolerance: 1 })
 
-  t.same(results.hits[0].positions, {
+  expect(results.hits[0].positions).toEqual({
     title: { react: [{ start: 16, length: 5 }] },
     summary: { react: [{ start: 0, length: 5 }] },
     id: {},
@@ -108,7 +108,7 @@ t.test('should retrieve positions also with typo, if tolerance is used', async (
   })
 })
 
-t.test('should work with texts containing constructor and __proto__ properties', async (t) => {
+it('should work with texts containing constructor and __proto__ properties', async () => {
   const schema = {
     text: 'string'
   } as const
@@ -119,12 +119,12 @@ t.test('should work with texts containing constructor and __proto__ properties',
 
   const results = await searchWithHighlight(db, { term: 'constructor' })
 
-  t.same(results.hits[0].positions, {
+  expect(results.hits[0].positions).toEqual({
     text: { constructor: [{ start: 0, length: 11 }] }
   })
 })
 
-t.test('should correctly save and load data with positions', async (t) => {
+it('should correctly save and load data with positions', async () => {
   const schema = {
     text: 'string'
   } as const
@@ -139,7 +139,7 @@ t.test('should correctly save and load data with positions', async (t) => {
 
   loadWithHighlight(newDB, DBData)
 
-  t.same((newDB as ZBSearchWithHighlight<typeof newDB>).data.positions[id], {
+  expect((newDB as ZBSearchWithHighlight<typeof newDB>).data.positions[id]).toEqual({
     text: { hello: [{ start: 0, length: 5 }], world: [{ start: 6, length: 5 }] }
   })
 })
@@ -163,7 +163,7 @@ function createCjkTokenizer(): Tokenizer {
   }
 }
 
-t.test('it should record a position for every token of a multi-token word (CJK)', async (t) => {
+it('it should record a position for every token of a multi-token word (CJK)', async () => {
   const tokenizer = createCjkTokenizer()
   const db = create({
     schema: { text: 'string' } as const,
@@ -173,16 +173,16 @@ t.test('it should record a position for every token of a multi-token word (CJK)'
 
   const text = '我喜欢编程'
   const expected = new Set(tokenizer.tokenize(text))
-  t.ok(expected.size > 1, 'the tokenizer splits the run into multiple tokens')
+  expect(expected.size > 1, 'the tokenizer splits the run into multiple tokens').toBeTruthy()
 
   const id = await insert(db, { text })
   const recorded = (db as ZBSearchWithHighlight<typeof db>).data.positions[id].text
 
-  t.same(new Set(Object.keys(recorded)), expected, 'every token has a recorded position')
+  expect(new Set(Object.keys(recorded)), 'every token has a recorded position').toEqual(expected)
 
   // a token other than the first one is found by search and can be highlighted
   const lastToken = [...expected][expected.size - 1]
   const results = await searchWithHighlight(db, { term: lastToken })
-  t.ok(results.hits.length > 0, 'search finds the document')
-  t.ok(Array.isArray(results.hits[0].positions.text[lastToken]), 'a non-leading token is highlightable')
+  expect(results.hits.length > 0, 'search finds the document').toBeTruthy()
+  expect(Array.isArray(results.hits[0].positions.text[lastToken]), 'a non-leading token is highlightable').toBeTruthy()
 })

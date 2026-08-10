@@ -1,8 +1,8 @@
-import t from 'tap'
+import { expect, it } from 'vitest'
 import { create, insertMultiple, load, remove, save, search } from 'zbsearch'
 import { pluginQPS } from '../src/index.js'
 
-t.test('plugin-qps', async (t) => {
+it('plugin-qps', async () => {
   const db = create({
     schema: {
       name: 'string',
@@ -24,7 +24,7 @@ t.test('plugin-qps', async (t) => {
     term: 'b'
   })
 
-  t.equal(result.count, 2)
+  expect(result.count).toBe(2)
 
   const dump = await save(db)
   const restored = JSON.parse(JSON.stringify(dump))
@@ -44,7 +44,7 @@ t.test('plugin-qps', async (t) => {
   const result2 = await search(db, {
     term: 'b'
   })
-  t.equal(result2.count, 2)
+  expect(result2.count).toBe(2)
 
   await remove(db2, '2')
 
@@ -52,10 +52,10 @@ t.test('plugin-qps', async (t) => {
     term: 'b'
   })
 
-  t.equal(result3.count, 1)
+  expect(result3.count).toBe(1)
 })
 
-t.test('filter on string', async (t) => {
+it('filter on string', async () => {
   const db = create({
     schema: {
       name: 'string',
@@ -73,7 +73,7 @@ t.test('filter on string', async (t) => {
     }
   })
 
-  t.equal(result1.count, 1)
+  expect(result1.count).toBe(1)
 
   const result2 = await search(db, {
     term: '',
@@ -83,7 +83,7 @@ t.test('filter on string', async (t) => {
     }
   })
 
-  t.equal(result2.count, 1)
+  expect(result2.count).toBe(1)
 
   const result3 = await search(db, {
     term: '',
@@ -93,10 +93,10 @@ t.test('filter on string', async (t) => {
     }
   })
 
-  t.equal(result3.count, 0)
+  expect(result3.count).toBe(0)
 })
 
-t.test('string[] is allowed by this plugin', { only: true }, async (t) => {
+it('string[] is allowed by this plugin', async () => {
   const db = create({
     schema: {
       title: 'string',
@@ -150,11 +150,11 @@ t.test('string[] is allowed by this plugin', { only: true }, async (t) => {
     }
   })
 
-  t.equal(found.count, found2.count)
+  expect(found.count).toBe(found2.count)
 })
 
 // https://github.com/oramasearch/orama/issues/995
-t.test('matches accented content when the query is typed without accents', async (t) => {
+it('matches accented content when the query is typed without accents', async () => {
   const db = create({
     schema: { title: 'string' } as const,
     plugins: [pluginQPS()]
@@ -167,13 +167,13 @@ t.test('matches accented content when the query is typed without accents', async
 
   for (const term of ['Gateau', 'Gâteau', 'gateau au chocolat']) {
     const result = await search(db, { term })
-    t.equal(result.count, 1, `"${term}" finds the gâteau document`)
-    t.equal(result.hits[0].id, '1')
+    expect(result.count, `"${term}" finds the gâteau document`).toBe(1)
+    expect(result.hits[0].id).toBe('1')
   }
 
   for (const term of ['creme brulee', 'Crème brûlée']) {
     const result = await search(db, { term })
-    t.equal(result.count, 1, `"${term}" finds the crème brûlée document`)
-    t.equal(result.hits[0].id, '2')
+    expect(result.count, `"${term}" finds the crème brûlée document`).toBe(1)
+    expect(result.hits[0].id).toBe('2')
   }
 })

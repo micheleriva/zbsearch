@@ -1,4 +1,4 @@
-import { describe, it } from 'node:test'
+import { describe, it } from 'vitest'
 import assert from 'node:assert/strict'
 
 import { createS3StorageFromEnv, S3ObjectStorage } from '../src/index.js'

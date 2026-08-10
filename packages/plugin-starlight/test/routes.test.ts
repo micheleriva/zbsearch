@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { test } from 'node:test'
+import { test } from 'vitest'
 import type { RouteOptions } from '../src/options.js'
 import { createPathFormatter, slugToPathname } from '../src/routes.js'
 

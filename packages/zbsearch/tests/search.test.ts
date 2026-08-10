@@ -1,9 +1,9 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { stopwords as englishStopwords } from '@zbsearch/stopwords/english'
 import { create, getByID, insert, insertMultiple, search } from '../src/index.js'
 
-t.test('search method', async (t) => {
-  t.test('with a multilingual index', async (t) => {
+describe('search method', () => {
+  it('with a multilingual index', async () => {
     const db = create({
       schema: { text: 'string' },
       language: 'multilingual'
@@ -14,62 +14,52 @@ t.test('search method', async (t) => {
     insert(db, { text: '日本語のテキストを検索する' })
     insert(db, { text: "Un café crème et deux croissants, s'il vous plaît" })
 
-    t.equal((await search(db, { term: 'fox' })).count, 1, 'finds English text')
-    t.equal((await search(db, { term: 'мягких' })).count, 1, 'finds Cyrillic text')
-    t.equal((await search(db, { term: 'СЪЕШЬ' })).count, 1, 'is case-insensitive across scripts')
-    t.equal((await search(db, { term: 'cafe' })).count, 1, 'folds diacritics')
-    t.equal((await search(db, { term: 'テキスト' })).count, 1, 'finds CJK text')
+    expect((await search(db, { term: 'fox' })).count, 'finds English text').toBe(1)
+    expect((await search(db, { term: 'мягких' })).count, 'finds Cyrillic text').toBe(1)
+    expect((await search(db, { term: 'СЪЕШЬ' })).count, 'is case-insensitive across scripts').toBe(1)
+    expect((await search(db, { term: 'cafe' })).count, 'folds diacritics').toBe(1)
+    expect((await search(db, { term: 'テキスト' })).count, 'finds CJK text').toBe(1)
     // '日本' is a prefix of an indexed CJK token, so opt into prefix expansion.
-    t.equal((await search(db, { term: '日本', prefix: true })).count, 1, 'prefix-matches CJK text')
-    t.equal((await search(db, { term: 'nonexistent' })).count, 0, 'returns nothing for absent terms')
+    expect((await search(db, { term: '日本', prefix: true })).count, 'prefix-matches CJK text').toBe(1)
+    expect((await search(db, { term: 'nonexistent' })).count, 'returns nothing for absent terms').toBe(0)
   })
 
-  t.test('with term', async (t) => {
+  describe('with term', () => {
     const [db, id1, id2, id3, id4] = createSimpleDB()
 
-    t.test('should return all the document on empty string', async (t) => {
+    it('should return all the document on empty string', async () => {
       const result = await search(db, {
         term: ''
       })
 
-      t.ok(result.elapsed)
-      t.ok(result.elapsed.raw)
-      t.ok(result.elapsed.formatted)
+      expect(result.elapsed).toBeTruthy()
+      expect(result.elapsed.raw).toBeTruthy()
+      expect(result.elapsed.formatted).toBeTruthy()
 
       for (const id of [id1, id2, id3, id4]) {
         const doc = getByID(db, id as string)
-        t.strictSame(
-          result.hits.find((d) => d.id === id),
-          {
-            id,
-            score: 0,
-            document: doc
-          }
-        )
+        expect(result.hits.find((d) => d.id === id)).toStrictEqual({
+          id,
+          score: 0,
+          document: doc
+        })
       }
-
-      t.end()
     })
 
-    t.test('should return all the document if params is an empty object', async (t) => {
+    it('should return all the document if params is an empty object', async () => {
       const result = await search(db, {})
 
       for (const id of [id1, id2, id3, id4]) {
         const doc = getByID(db, id as string)
-        t.strictSame(
-          result.hits.find((d) => d.id === id),
-          {
-            id,
-            score: 0,
-            document: doc
-          }
-        )
+        expect(result.hits.find((d) => d.id === id)).toStrictEqual({
+          id,
+          score: 0,
+          document: doc
+        })
       }
-
-      t.end()
     })
 
-    t.test('should filter the result based on "term" value', async (t) => {
+    it('should filter the result based on "term" value', async () => {
       const { hits: allDocs } = await search(db, {})
       const docIdsShouldNotMatch = allDocs.filter((d) => !/coffee/.test(d.document.name as string)).map((d) => d.id)
       const docIdsShouldMatch = allDocs.filter((d) => /coffee/.test(d.document.name as string)).map((d) => d.id)
@@ -79,13 +69,11 @@ t.test('search method', async (t) => {
       })
 
       const matchedIds = result.hits.map((d) => d.id)
-      t.strictSame(new Set(docIdsShouldMatch), new Set(matchedIds))
-      t.notOk(docIdsShouldNotMatch.find((id) => matchedIds.includes(id)))
-
-      t.end()
+      expect(new Set(docIdsShouldMatch)).toStrictEqual(new Set(matchedIds))
+      expect(docIdsShouldNotMatch.find((id) => matchedIds.includes(id))).toBeFalsy()
     })
 
-    t.test('should filter the result based on "term" value # 2', async (t) => {
+    it('should filter the result based on "term" value # 2', async () => {
       const db = create({
         schema: {
           quote: 'string',
@@ -109,33 +97,33 @@ t.test('search method', async (t) => {
       const result2 = await search(db, { term: 'dog', exact: true })
 
       // Only lowercase "fox" matches, not "Foxes"
-      t.equal(result1.count, 1)
+      expect(result1.count).toBe(1)
       // "dog" appears in lowercase in 2 documents
-      t.equal(result2.count, 2)
+      expect(result2.count).toBe(2)
 
       // Prefix search
       const result3 = await search(db, { term: 'fox', exact: false })
       const result4 = await search(db, { term: 'dog', exact: false })
 
-      t.equal(result3.count, 2)
-      t.equal(result4.count, 3)
+      expect(result3.count).toBe(2)
+      expect(result4.count).toBe(3)
 
       // Typo-tolerant search
       const result5 = await search(db, { term: 'fx', tolerance: 1 })
       const result6 = await search(db, { term: 'dg', tolerance: 2 })
 
-      t.equal(result5.count, 2)
-      t.equal(result6.count, 4)
+      expect(result5.count).toBe(2)
+      expect(result6.count).toBe(4)
 
       // Long string search (Tests for https://github.com/oramasearch/orama/issues/159 )
       const result7 = await search(db, { term: 'They are the best' })
       const result8 = await search(db, { term: 'Foxes are nice animals' })
 
-      t.equal(result7.count, 2)
-      t.equal(result8.count, 2)
+      expect(result7.count).toBe(2)
+      expect(result8.count).toBe(2)
     })
 
-    t.test('should apply term only on indexed fields', async (t) => {
+    it('should apply term only on indexed fields', async () => {
       const db = create({
         schema: {
           quote: 'string',
@@ -158,26 +146,26 @@ t.test('search method', async (t) => {
       const result1 = await search(db, { term: 'unindexedNestedValue' })
       const result2 = await search(db, { term: 'unindexedValue' })
 
-      t.equal(result1.count, 0)
-      t.equal(result2.count, 0)
+      expect(result1.count).toBe(0)
+      expect(result2.count).toBe(0)
     })
 
-    t.test('should throw an error when searching in non-existing indices', async (t) => {
+    it('should throw an error when searching in non-existing indices', async () => {
       const db = create({ schema: { foo: 'string', baz: 'string' } as const })
 
-      t.throws(
-        () =>
-          search(db, {
-            term: 'foo',
-            properties: ['bar'] as unknown as ('foo' | 'baz')[]
-          }),
-        {
+      expect(() =>
+        search(db, {
+          term: 'foo',
+          properties: ['bar'] as unknown as ('foo' | 'baz')[]
+        })
+      ).toThrow(
+        expect.objectContaining({
           code: 'UNKNOWN_INDEX'
-        }
+        })
       )
     })
 
-    t.test('should return empty array if term is removed by tokenizer', async (t) => {
+    it('should return empty array if term is removed by tokenizer', async () => {
       const [db] = createSimpleDB()
 
       await insert(db, {
@@ -192,16 +180,12 @@ t.test('search method', async (t) => {
         term: 'all'
       })
 
-      t.equal(result.count, 0)
-
-      t.end()
+      expect(result.count).toBe(0)
     })
-
-    t.end()
   })
 
-  t.test('with exact', async (t) => {
-    t.test('should exact match', async (t) => {
+  describe('with exact', () => {
+    it('should exact match', async () => {
       const db = create({
         schema: {
           author: 'string',
@@ -219,26 +203,21 @@ t.test('search method', async (t) => {
         exact: true
       })
 
-      t.equal(partialSearch.count, 0)
-      t.strictSame(partialSearch.hits, [])
+      expect(partialSearch.count).toBe(0)
+      expect(partialSearch.hits).toStrictEqual([])
 
       const exactSearch = await search(db, {
         term: 'already',
         exact: true
       })
 
-      t.equal(exactSearch.count, 1)
-      t.strictSame(
-        exactSearch.hits.map((d) => d.id),
-        [id]
-      )
+      expect(exactSearch.count).toBe(1)
+      expect(exactSearch.hits.map((d) => d.id)).toStrictEqual([id])
     })
-
-    t.end()
   })
 
-  t.test('with tollerate', async (t) => {
-    t.test("shouldn't tolerate typos if set to 0", async (t) => {
+  describe('with tollerate', () => {
+    it("shouldn't tolerate typos if set to 0", async () => {
       const db = create({
         schema: {
           quote: 'string',
@@ -257,10 +236,10 @@ t.test('search method', async (t) => {
         tolerance: 0
       })
 
-      t.equal(searchResult.count, 0)
+      expect(searchResult.count).toBe(0)
     })
 
-    t.test('should tolerate typos', async (t) => {
+    it('should tolerate typos', async () => {
       const db = create({
         schema: {
           quote: 'string',
@@ -284,19 +263,19 @@ t.test('search method', async (t) => {
         tolerance: 2
       })
 
-      t.equal(tolerantSearch.count, 2)
-      t.strictSame(new Set(tolerantSearch.hits.map((d) => d.id)), new Set([id1, id2]))
+      expect(tolerantSearch.count).toBe(2)
+      expect(new Set(tolerantSearch.hits.map((d) => d.id))).toStrictEqual(new Set([id1, id2]))
 
       const moreTolerantSearch = await search(db, {
         term: 'sahrse',
         tolerance: 5
       })
 
-      t.equal(moreTolerantSearch.count, 2)
-      t.strictSame(new Set(tolerantSearch.hits.map((d) => d.id)), new Set([id1, id2]))
+      expect(moreTolerantSearch.count).toBe(2)
+      expect(new Set(tolerantSearch.hits.map((d) => d.id))).toStrictEqual(new Set([id1, id2]))
     })
 
-    t.test('should correctly match with tolerance. even if prefix doesnt match.', async (t) => {
+    it('should correctly match with tolerance. even if prefix doesnt match.', async () => {
       const db = create({
         schema: {
           name: 'string'
@@ -313,9 +292,9 @@ t.test('search method', async (t) => {
       const result1 = await search(db, { term: 'Chris', tolerance: 1 })
       const result2 = await search(db, { term: 'Cgris', tolerance: 1 })
       const result3 = await search(db, { term: 'Cgris', tolerance: 2 })
-      t.equal(result1.count, 1)
-      t.equal(result2.count, 0)
-      t.equal(result3.count, 1)
+      expect(result1.count).toBe(1)
+      expect(result2.count).toBe(0)
+      expect(result3.count).toBe(1)
 
       await insert(db, { name: 'Chris ' })
       await insert(db, { name: 'Craig' })
@@ -324,17 +303,16 @@ t.test('search method', async (t) => {
 
       //issue 480 says following will not match because the prefix "Cr" exists so prefix Ch is not searched.
       const result4 = await search(db, { term: 'Cris', tolerance: 1 })
-      t.equal(result4.count, 1)
+      expect(result4.count).toBe(1)
 
       //should match "Craig" even if prefix "Ca" exists.
       const result5 = await search(db, { term: 'Caig', tolerance: 1 })
-      t.equal(result5.count, 1)
-      t.end()
+      expect(result5.count).toBe(1)
     })
 
     //issue#544
     //bug both words apple and apply arent matching even after PR#580
-    t.test('match exact prefix , along with tolerance', async (t) => {
+    it('match exact prefix , along with tolerance', async () => {
       // Creating the database
       const db = create({
         schema: {
@@ -359,14 +337,12 @@ t.test('search method', async (t) => {
       const result = await search(db, { term: 'app', tolerance: 1 })
 
       //apt,app,apple,apply should match.
-      t.equal(result.count, 4, 'Should match 4 words for "app" with tolerance 1')
-      t.end()
+      expect(result.count, 'Should match 4 words for "app" with tolerance 1').toBe(4)
     })
-    t.end()
   })
 
-  t.test('with pagination', async (t) => {
-    t.test('should correctly paginate results', async (t) => {
+  describe('with pagination', () => {
+    describe('should correctly paginate results', async () => {
       const db = create({
         schema: {
           animal: 'string'
@@ -391,23 +367,19 @@ t.test('search method', async (t) => {
       for (const c of cases) {
         const { limit, offset, expectedIds } = c
         const name = `limit: ${limit}, offset: ${offset}`
-        t.test(name, async (t) => {
+        it(name, async () => {
           // 'f' is a fragment of the indexed words, so opt into prefix expansion.
           const result = await search(db, { term: 'f', limit, offset, prefix: true })
           const actualIds = result.hits.map((d) => d.id)
 
-          t.equal(result.count, 4)
-          t.strictSame(actualIds, expectedIds)
-          t.end()
+          expect(result.count).toBe(4)
+          expect(actualIds).toStrictEqual(expectedIds)
         })
       }
-
-      t.end()
     })
-    t.end()
   })
 
-  t.test('should correctly search without term', async (t) => {
+  it('should correctly search without term', async () => {
     const db = create({
       schema: {
         quote: 'string',
@@ -435,19 +407,13 @@ t.test('search method', async (t) => {
     const result1 = await search(db, { exact: false })
     const result2 = await search(db, { exact: true })
 
-    t.equal(result1.count, 3)
-    t.equal(result2.count, 3)
-    t.strictSame(
-      result1.hits.sort((a, b) => a.id.localeCompare(b.id)).map((h) => h.document),
-      docs
-    )
-    t.strictSame(
-      result1.hits.sort((a, b) => a.id.localeCompare(b.id)).map((h) => h.document),
-      docs
-    )
+    expect(result1.count).toBe(3)
+    expect(result2.count).toBe(3)
+    expect(result1.hits.sort((a, b) => a.id.localeCompare(b.id)).map((h) => h.document)).toStrictEqual(docs)
+    expect(result1.hits.sort((a, b) => a.id.localeCompare(b.id)).map((h) => h.document)).toStrictEqual(docs)
   })
 
-  t.test('should correctly search for data returning doc including with unindexed keys', async (t) => {
+  it('should correctly search for data returning doc including with unindexed keys', async () => {
     const db = create({
       schema: {
         quote: 'string',
@@ -475,28 +441,28 @@ t.test('search method', async (t) => {
     const result1 = await search(db, { term: 'They are the best' })
     const result2 = await search(db, { term: 'Foxes are nice animals' })
 
-    t.equal(result1.count, 1)
-    t.equal(result2.count, 1)
-    t.same(result1.hits[0].document, documentWithUnindexedField)
-    t.same(result2.hits[0].document, documentWithNestedUnindexedField)
+    expect(result1.count).toBe(1)
+    expect(result2.count).toBe(1)
+    expect(result1.hits[0].document).toEqual(documentWithUnindexedField)
+    expect(result2.hits[0].document).toEqual(documentWithNestedUnindexedField)
   })
 
-  t.test('should throw an error when searching in non-existing indices', async (t) => {
+  it('should throw an error when searching in non-existing indices', async () => {
     const db = create({ schema: { foo: 'string', baz: 'string' } })
 
-    t.throws(
-      () =>
-        search(db, {
-          term: 'foo',
-          properties: ['bar'] as unknown as ('foo' | 'baz')[]
-        }),
-      {
+    expect(() =>
+      search(db, {
+        term: 'foo',
+        properties: ['bar'] as unknown as ('foo' | 'baz')[]
+      })
+    ).toThrow(
+      expect.objectContaining({
         code: 'UNKNOWN_INDEX'
-      }
+      })
     )
   })
 
-  t.test('should support nested properties', async (t) => {
+  it('should support nested properties', async () => {
     const db = create({
       schema: {
         quote: 'string',
@@ -543,13 +509,13 @@ t.test('search method', async (t) => {
       properties: ['author.name']
     })
 
-    t.equal(resultSimpsonAuthorName.count, 1)
-    t.equal(resultSimpsonQuote.count, 1)
-    t.equal(resultAuthorSurname.count, 1)
-    t.equal(resultAuthorName.count, 0)
+    expect(resultSimpsonAuthorName.count).toBe(1)
+    expect(resultSimpsonQuote.count).toBe(1)
+    expect(resultAuthorSurname.count).toBe(1)
+    expect(resultAuthorName.count).toBe(0)
   })
 
-  t.test('should support multiple nested properties', async (t) => {
+  it('should support multiple nested properties', async () => {
     const db = create({
       schema: {
         quote: 'string',
@@ -612,13 +578,13 @@ t.test('search method', async (t) => {
       term: 'quotes'
     })
 
-    t.equal(resultAuthor.count, 1)
-    t.equal(resultTag.count, 2)
-    t.equal(resultQuotes.count, 3)
+    expect(resultAuthor.count).toBe(1)
+    expect(resultTag.count).toBe(2)
+    expect(resultQuotes.count).toBe(3)
   })
 
-  t.test('with afterSearchHook', async (t) => {
-    t.test('should run afterSearch hook', async (t) => {
+  describe('with afterSearchHook', () => {
+    it('should run afterSearch hook', async () => {
       let called = 0
       const db = create({
         schema: {
@@ -645,14 +611,11 @@ t.test('search method', async (t) => {
 
       await search(db, { term: 'f' })
 
-      t.equal(called, 1)
-
-      t.end()
+      expect(called).toBe(1)
     })
-    t.end()
   })
 
-  t.test('should return all the documents that contains the property on empty search', async (t) => {
+  it('should return all the documents that contains the property on empty search', async () => {
     const db = create({
       schema: {
         animal: 'string'
@@ -666,12 +629,10 @@ t.test('search method', async (t) => {
       properties: ['animal']
     })
 
-    t.equal(result.count, 1)
-
-    t.end()
+    expect(result.count).toBe(1)
   })
 
-  t.test('with geosearch', async (t) => {
+  it('with geosearch', async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -698,8 +659,8 @@ t.test('search method', async (t) => {
       }
     })
 
-    t.equal(r1.count, 3)
-    t.strictSame(r1.hits.map((h) => h.id).sort(), ['1', '2', '4'])
+    expect(r1.count).toBe(3)
+    expect(r1.hits.map((h) => h.id).sort()).toStrictEqual(['1', '2', '4'])
 
     const r2 = await search(db, {
       term: 'Duomo',
@@ -718,11 +679,11 @@ t.test('search method', async (t) => {
       }
     })
 
-    t.equal(r2.count, 2)
-    t.strictSame(r2.hits.map((h) => h.id).sort(), ['1', '2'])
+    expect(r2.count).toBe(2)
+    expect(r2.hits.map((h) => h.id).sort()).toStrictEqual(['1', '2'])
   })
 
-  t.test('with custom tokenizer', async (t) => {
+  it('with custom tokenizer', async () => {
     const normalizationCache = new Map([['english:foo:dogs', 'Dogs']])
 
     const db = create({
@@ -741,7 +702,7 @@ t.test('search method', async (t) => {
       }
     })
 
-    t.equal(db.tokenizer.normalizationCache.get('english:foo:dogs'), 'Dogs')
+    expect(db.tokenizer.normalizationCache.get('english:foo:dogs')).toBe('Dogs')
 
     await insert(db, { quote: 'the quick, brown fox jumps over the lazy dog. What a fox!', author: 'John Doe' })
     await insert(db, { quote: 'foxes are nice animals. But I prefer having a dog.', author: 'John Doe' })
@@ -752,16 +713,13 @@ t.test('search method', async (t) => {
     const result2 = await search(db, { term: 'cats', exact: true })
     const result3 = await search(db, { term: 'brown', exact: true })
 
-    t.equal(result1.count, 0)
-    t.equal(result2.count, 0)
-    t.equal(result3.count, 1)
-    t.end()
+    expect(result1.count).toBe(0)
+    expect(result2.count).toBe(0)
+    expect(result3.count).toBe(1)
   })
-
-  t.end()
 })
 
-t.test('fix-544', async (t) => {
+it('fix-544', async () => {
   const db = create({
     schema: {
       name: 'string'
@@ -780,18 +738,16 @@ t.test('fix-544', async (t) => {
   // 'Chris' is a prefix of the indexed (stemmed) 'Christopher', so opt into
   // prefix expansion: exact matching is now the default and would not match.
   result = await search(db, { term: 'Chris', tolerance: 0, prefix: true })
-  t.equal(result.count, 1)
+  expect(result.count).toBe(1)
 
   result = await search(db, { term: 'Chris', tolerance: 1 })
-  t.equal(result.count, 1)
+  expect(result.count).toBe(1)
 
   result = await search(db, { term: 'Chris', tolerance: 2 })
-  t.equal(result.count, 1)
-
-  t.end()
+  expect(result.count).toBe(1)
 })
 
-t.test('fix-601', async (t) => {
+it('fix-601', async () => {
   const db = create({
     schema: {
       name: 'string'
@@ -803,12 +759,11 @@ t.test('fix-601', async (t) => {
   await insert(db, { name: 'John Doe' })
   const result = await search(db, { term: 'John Doe' })
 
-  t.equal(result.count, 1)
-  t.end()
+  expect(result.count).toBe(1)
 })
 
-t.test('full-text search with vector properties', async (t) => {
-  t.test("shouldn't return vectors unless explicitly specified", async (t) => {
+describe('full-text search with vector properties', () => {
+  it("shouldn't return vectors unless explicitly specified", async () => {
     const db = create({
       schema: {
         text: 'string',
@@ -839,10 +794,7 @@ t.test('full-text search with vector properties', async (t) => {
       term: 'foo'
     })
 
-    t.strictSame(
-      result2.hits.map((hit) => hit.document.embeddings),
-      [{ first: null, second: null }]
-    )
+    expect(result2.hits.map((hit) => hit.document.embeddings)).toStrictEqual([{ first: null, second: null }])
   })
 })
 

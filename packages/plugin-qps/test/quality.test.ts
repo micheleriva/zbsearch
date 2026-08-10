@@ -1,4 +1,4 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { AnyZBSearch, create, insertMultiple, search } from 'zbsearch'
 import { bitmask_20, calculateTokenQuantum, count, numberOfOnes } from '../src/algorithm.js'
 import { pluginQPS } from '../src/index.js'
@@ -29,7 +29,7 @@ async function searchNew(db: AnyZBSearch, { term }: { term: string }) {
   return searchResult.hits
 }
 
-t.test('order of the results', async (t) => {
+describe('order of the results', async () => {
   const docs = [
     { id: '0', description: 'The pen is on the table. The cat is under the table. The dog is near the table' },
     { id: '1', description: 'The pen is on the table' },
@@ -38,23 +38,23 @@ t.test('order of the results', async (t) => {
   ]
   const s = await createNew(docs)
 
-  t.test('if the document more words, it should be the first result', async (t) => {
+  it('if the document more words, it should be the first result', async () => {
     const results = await searchNew(s, {
       term: 'table'
     })
 
     console.log(s.data.index)
 
-    t.equal(results.length, 4)
-    t.equal(results[0].id, '0')
+    expect(results.length).toBe(4)
+    expect(results[0].id).toBe('0')
     const score = results[0].score
 
     for (let i = 1; i < results.length; i++) {
-      t.ok(results[i].score < score, 'Score should be less than the first result')
+      expect(results[i].score < score, 'Score should be less than the first result').toBeTruthy()
     }
   })
 
-  t.test('every doc permutation has the correct order', async (t) => {
+  it('every doc permutation has the correct order', async () => {
     const docs = permutator([
       { id: '0', description: 'The pen is on the table. The cat is under the table. The dog is near the table' },
       { id: '1', description: 'The pen is on the table' },
@@ -67,58 +67,58 @@ t.test('order of the results', async (t) => {
         term: 'table'
       })
 
-      t.equal(results.length, 4)
-      t.equal(results[0].id, '0')
+      expect(results.length).toBe(4)
+      expect(results[0].id).toBe('0')
       const score = results[0].score
 
       for (let i = 1; i < results.length; i++) {
-        t.ok(results[i].score < score, 'Score should be less than the first result')
+        expect(results[i].score < score, 'Score should be less than the first result').toBeTruthy()
       }
     }
   })
 
-  t.test('multiple words increments score', async (t) => {
+  it('multiple words increments score', async () => {
     const results = await searchNew(s, {
       term: 'table pen'
     })
-    t.equal(results.length, 4)
-    t.equal(results[0].id, '0')
+    expect(results.length).toBe(4)
+    expect(results[0].id).toBe('0')
     const score = results[0].score
 
     for (let i = 1; i < results.length; i++) {
-      t.ok(results[i].score < score, 'Score should be less than the first result')
+      expect(results[i].score < score, 'Score should be less than the first result').toBeTruthy()
     }
 
     const score2 = results[1].score
     for (let i = 2; i < results.length; i++) {
-      t.ok(results[i].score < score2, 'Score should be less than the second result')
+      expect(results[i].score < score2, 'Score should be less than the second result').toBeTruthy()
     }
   })
 
-  t.test('same matches + same length, same score', async (t) => {
+  it('same matches + same length, same score', async () => {
     const results = await searchNew(s, {
       term: 'table pen cat'
     })
-    t.equal(results.length, 4)
-    t.equal(results[0].id, '0')
-    t.equal(results[1].id, '1')
-    t.equal(results[2].id, '2')
-    t.equal(results[3].id, '3')
-    t.equal(results[1].score, results[2].score)
+    expect(results.length).toBe(4)
+    expect(results[0].id).toBe('0')
+    expect(results[1].id).toBe('1')
+    expect(results[2].id).toBe('2')
+    expect(results[3].id).toBe('3')
+    expect(results[1].score).toBe(results[2].score)
   })
 
-  t.test('shorter, more score', async (t) => {
+  it('shorter, more score', async () => {
     const results = await searchNew(s, {
       term: 'table pen dog'
     })
-    t.equal(results.length, 4)
-    t.equal(results[0].id, '0')
-    t.equal(results[1].id, '1')
-    t.equal(results[2].id, '3')
-    t.equal(results[3].id, '2')
+    expect(results.length).toBe(4)
+    expect(results[0].id).toBe('0')
+    expect(results[1].id).toBe('1')
+    expect(results[2].id).toBe('3')
+    expect(results[3].id).toBe('2')
   })
 
-  t.test('matching word score is higher than prefixed word', async (t) => {
+  it('matching word score is higher than prefixed word', async () => {
     const docs = [
       { id: '0', description: 'table' },
       { id: '1', description: 'tab' }
@@ -128,112 +128,112 @@ t.test('order of the results', async (t) => {
     const results = await searchNew(s, {
       term: 'tab'
     })
-    t.equal(results[0].id, '1')
-    t.equal(results[1].id, '0')
-    t.ok(results[1].score < results[0].score)
+    expect(results[0].id).toBe('1')
+    expect(results[1].id).toBe('0')
+    expect(results[1].score < results[0].score).toBeTruthy()
   })
 
-  t.test("prefix score doesn't depend on matched word lenght", async (t) => {
+  it("prefix score doesn't depend on matched word lenght", async () => {
     const docs = [{ description: 'table' }, { description: 'tab' }]
     const s = await createNew(docs)
 
     const results = await searchNew(s, {
       term: 't'
     })
-    t.equal(results[0].score, results[1].score)
+    expect(results[0].score).toBe(results[1].score)
   })
 })
 
-t.test('calculateTokenQuantum', async (t) => {
+it('calculateTokenQuantum', async () => {
   let n = 0
   n = calculateTokenQuantum(n, 0)
-  t.equal(n, 1 + (1 << 20), 'set the 0th bit and the 20th bit')
+  expect(n, 'set the 0th bit and the 20th bit').toBe(1 + (1 << 20))
   n = calculateTokenQuantum(n, 0)
-  t.equal(n, 1 + (2 << 20), 'increment the counter')
+  expect(n, 'increment the counter').toBe(1 + (2 << 20))
   n = calculateTokenQuantum(n, 1)
-  t.equal(n, 3 + (3 << 20), ' 1 + 2 + (3 count)')
+  expect(n, ' 1 + 2 + (3 count)').toBe(3 + (3 << 20))
   n = calculateTokenQuantum(n, 2)
-  t.equal(n, 7 + (4 << 20), ' 1 + 2 + 4 + (4 count)')
+  expect(n, ' 1 + 2 + 4 + (4 count)').toBe(7 + (4 << 20))
 
-  t.equal(bitmask_20(n), 7)
-  t.equal(count(n), 4)
+  expect(bitmask_20(n)).toBe(7)
+  expect(count(n)).toBe(4)
 })
 
-t.test('numberOfOnes', async (t) => {
-  t.equal(0, numberOfOnes(0))
-  t.equal(1, numberOfOnes(1))
-  t.equal(1, numberOfOnes(2))
-  t.equal(2, numberOfOnes(3))
-  t.equal(1, numberOfOnes(4))
-  t.equal(2, numberOfOnes(5))
-  t.equal(2, numberOfOnes(6))
-  t.equal(3, numberOfOnes(7))
-  t.equal(1, numberOfOnes(8))
+it('numberOfOnes', async () => {
+  expect(0).toBe(numberOfOnes(0))
+  expect(1).toBe(numberOfOnes(1))
+  expect(1).toBe(numberOfOnes(2))
+  expect(2).toBe(numberOfOnes(3))
+  expect(1).toBe(numberOfOnes(4))
+  expect(2).toBe(numberOfOnes(5))
+  expect(2).toBe(numberOfOnes(6))
+  expect(3).toBe(numberOfOnes(7))
+  expect(1).toBe(numberOfOnes(8))
 })
 
-t.test('matching criteria', async (t) => {
+describe('matching criteria', async () => {
   const docs = [{ id: '0', description: 'Find your way!' }]
   const s = await createNew(docs)
 
-  t.test('no match', async (t) => {
+  it('no match', async () => {
     const results = await searchNew(s, {
       term: 'unknown words'
     })
-    t.equal(results.length, 0)
+    expect(results.length).toBe(0)
   })
 
-  t.test('match', async (t) => {
+  it('match', async () => {
     const results = await searchNew(s, {
       term: 'way'
     })
-    t.equal(results.length, 1)
-    t.equal(results[0].id, '0')
+    expect(results.length).toBe(1)
+    expect(results[0].id).toBe('0')
   })
 
-  t.test('match with 2 words', async (t) => {
+  it('match with 2 words', async () => {
     const results = await searchNew(s, {
       term: 'way find'
     })
-    t.equal(results.length, 1)
-    t.equal(results[0].id, '0')
+    expect(results.length).toBe(1)
+    expect(results[0].id).toBe('0')
   })
 
-  t.test("the order of the words doesn't matter", async (t) => {
+  it("the order of the words doesn't matter", async () => {
     const results1 = await searchNew(s, {
       term: 'way find'
     })
-    t.equal(results1.length, 1)
-    t.equal(results1[0].id, '0')
+    expect(results1.length).toBe(1)
+    expect(results1[0].id).toBe('0')
     const score = results1[0].score
 
     const results2 = await searchNew(s, {
       term: 'way find'
     })
-    t.equal(results2.length, 1)
-    t.equal(results2[0].id, '0')
+    expect(results2.length).toBe(1)
+    expect(results2[0].id).toBe('0')
 
-    t.equal(results2[0].score, score)
+    expect(results2[0].score).toBe(score)
   })
 
-  t.test('empty string', async (t) => {
+  it('empty string', async () => {
     const results = await searchNew(s, {
       term: ''
     })
-    t.equal(results.length, 1)
-    t.equal(results[0].id, '0')
-    t.equal(results[0].score, 0)
+    expect(results.length).toBe(1)
+    expect(results[0].id).toBe('0')
+    expect(results[0].score).toBe(0)
   })
 
-  t.test('prefix', async (t) => {
+  it('prefix', async () => {
     const results = await searchNew(s, {
       term: 'w'
     })
-    t.equal(results.length, 1)
-    t.equal(results[0].id, '0')
+    expect(results.length).toBe(1)
+    expect(results[0].id).toBe('0')
   })
 })
 
-t.test('long text', async (t) => {
+it('long text', async () => {
   const docs = [
     { id: '0', description: 'The pen is on the table. '.repeat(100) },
     { id: '1', description: 'The pen is on the table' }
@@ -243,13 +243,13 @@ t.test('long text', async (t) => {
   const results = await searchNew(s, {
     term: 'table'
   })
-  t.equal(results.length, 2)
-  t.equal(results[0].id, '0')
-  t.equal(results[1].id, '1')
-  t.ok(results[0].score > results[1].score)
+  expect(results.length).toBe(2)
+  expect(results[0].id).toBe('0')
+  expect(results[1].id).toBe('1')
+  expect(results[0].score > results[1].score).toBeTruthy()
 })
 
-t.test('test', async (t) => {
+it('test', async () => {
   const docs = [
     {
       id: '0',
@@ -273,24 +273,24 @@ t.test('test', async (t) => {
     term: 'running shoes'
   })
 
-  t.equal(results.length, 3)
+  expect(results.length).toBe(3)
   // The 3° document has the most matches because it:
   // - contains running
   // - contains shoes twice
   // - contains running shoes in the same sentence
-  t.equal(results[0].id, '2')
+  expect(results[0].id).toBe('2')
   // The 2° document is the second because it:
   // - contains running
   // - contains shoes but only one
   // - contains running shoes in the same sentence
-  t.equal(results[1].id, '1')
+  expect(results[1].id).toBe('1')
   // The 1° document is the last because it:
   // - not contain running (it contains "running-inspired" but it's not the same in this case)
   // - contains shoes
-  t.equal(results[2].id, '0')
+  expect(results[2].id).toBe('0')
 })
 
-t.test('test #2', async (t) => {
+describe('test #2', async () => {
   const texts = [
     // 0
     'The sun was setting behind the mountains, casting a golden hue over the landscape. Birds chirped as they flew across the sky, their silhouettes blending with the clouds. The air was cool and crisp, filled with the scent of pine trees.',
@@ -309,86 +309,86 @@ t.test('test #2', async (t) => {
   const docs = texts.map((text, i) => ({ id: i.toString(), description: text }))
   const s = await createNew(docs)
 
-  await t.test('"sun"', async (t) => {
+  it('"sun"', async () => {
     const results = await searchNew(s, {
       term: 'sun'
     })
 
     // only 3 documents contain the word "sun"
-    t.equal(results.length, 3)
+    expect(results.length).toBe(3)
     // This contains the word "sun".
-    t.equal(results[0].id, '9')
+    expect(results[0].id).toBe('9')
     // Also this, but the text is more length, so it has less score.
-    t.equal(results[1].id, '0')
+    expect(results[1].id).toBe('0')
     // This contains the word "Sunlight", so it match as prefix and not as a word.
-    t.equal(results[2].id, '5')
+    expect(results[2].id).toBe('5')
   })
 
-  await t.test('stormy night', async (t) => {
+  it('stormy night', async () => {
     const results = await searchNew(s, {
       term: 'storm night'
     })
 
-    t.equal(results.length, 2)
+    expect(results.length).toBe(2)
     // This mention the storm twice
-    t.equal(results[0].id, '7')
+    expect(results[0].id).toBe('7')
     // this mention night only once
-    t.equal(results[1].id, '3')
+    expect(results[1].id).toBe('3')
     // For this reason, the first document has more score
-    t.ok(results[0].score > results[1].score)
+    expect(results[0].score > results[1].score).toBeTruthy()
   })
 
-  await t.test('trees casting sun', async (t) => {
+  it('trees casting sun', async () => {
     const results = await searchNew(s, {
       term: 'trees casting sun'
     })
 
-    t.equal(results.length, 5)
+    expect(results.length).toBe(5)
 
     // This contains the word "sun" and "trees" and "casting"
     // Also, "sun" & "casting" are in the same sentence.
-    t.equal(results[0].id, '0')
+    expect(results[0].id).toBe('0')
 
     // This contains "trees" and "sun" ("Sunlight") also "casting" but not in the same sentence.
     // This score is high because "Sunlight" (so "sun") and "casting" are in the same sentence.
-    t.equal(results[1].id, '5')
+    expect(results[1].id).toBe('5')
 
     // This contains only "trees"
-    t.equal(results[2].id, '7')
+    expect(results[2].id).toBe('7')
 
     // This contains only "sun".
     // This score is less (compared to the previous one) because the sentences are longer.
-    t.equal(results[3].id, '9')
+    expect(results[3].id).toBe('9')
 
     // This contains only "casting"
     // Again, the score is less because the sentences are longer.
-    t.equal(results[4].id, '2')
+    expect(results[4].id).toBe('2')
   })
 
-  await t.test('the sound of pencils scratching on paper', async (t) => {
+  it('the sound of pencils scratching on paper', async () => {
     const results = await searchNew(s, {
       term: 'the sound of pencils scratching on paper'
     })
 
     console.log(results.length)
 
-    t.equal(results.length, 9)
+    expect(results.length).toBe(9)
 
     // This contains a lot of word in the same sentence.
-    t.equal(results[0].id, '8')
+    expect(results[0].id).toBe('8')
     // This contains 2 words in the same sentence.
-    t.equal(results[1].id, '3')
+    expect(results[1].id).toBe('3')
 
     // The remaining documents contain only "of" word.
-    t.equal(results[2].id, '6')
-    t.equal(results[3].id, '1')
-    t.equal(results[4].id, '4')
-    t.equal(results[5].id, '9')
-    t.equal(results[6].id, '5')
-    t.equal(results[7].id, '0')
+    expect(results[2].id).toBe('6')
+    expect(results[3].id).toBe('1')
+    expect(results[4].id).toBe('4')
+    expect(results[5].id).toBe('9')
+    expect(results[6].id).toBe('5')
+    expect(results[7].id).toBe('0')
 
     // This contains "of" in term of "offering", so it has less score.
-    t.equal(results[8].id, '7')
+    expect(results[8].id).toBe('7')
   })
 })
 

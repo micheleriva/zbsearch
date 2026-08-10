@@ -42,7 +42,7 @@
   "scripts": {
     "build": "tsup --config tsup.lib.js && tsup --config tsup.theme.js && tsc -p . --emitDeclarationOnly",
     "lint": "exit 0",
-    "test": "node --test --import tsx test/*.test.ts"
+    "test": "vitest run"
   },
   "publishConfig": {
     "access": "public"

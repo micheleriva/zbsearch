@@ -1,9 +1,7 @@
-import t from 'tap'
+import { expect, it } from 'vitest'
 import { create, insert, search } from '../src/index.js'
 
-t.test('should only return results with all the search terms (exact match)', async (t) => {
-  t.plan(4)
-
+it('should only return results with all the search terms (exact match)', async () => {
   const db = await create({
     schema: {
       title: 'string'
@@ -33,15 +31,13 @@ t.test('should only return results with all the search terms (exact match)', asy
     threshold: 0
   })
 
-  t.same(r1.count, 2)
-  t.same(r2.count, 2)
-  t.same(r3.count, 3)
-  t.same(r4.count, 1)
+  expect(r1.count).toEqual(2)
+  expect(r2.count).toEqual(2)
+  expect(r3.count).toEqual(3)
+  expect(r4.count).toEqual(1)
 })
 
-t.test('should only return results with all the search terms (exact match) on more complex schema', async (t) => {
-  t.plan(4)
-
+it('should only return results with all the search terms (exact match) on more complex schema', async () => {
   const db = await create({
     schema: {
       title: 'string',
@@ -91,15 +87,13 @@ t.test('should only return results with all the search terms (exact match) on mo
     threshold: 0
   })
 
-  t.same(r1.count, 2)
-  t.same(r2.count, 1)
-  t.same(r3.count, 2)
-  t.same(r4.count, 1)
+  expect(r1.count).toEqual(2)
+  expect(r2.count).toEqual(1)
+  expect(r3.count).toEqual(2)
+  expect(r4.count).toEqual(1)
 })
 
-t.test('should return all the results if threshold is 1', async (t) => {
-  t.plan(2)
-
+it('should return all the results if threshold is 1', async () => {
   const db = await create({
     schema: {
       title: 'string'
@@ -121,13 +115,11 @@ t.test('should return all the results if threshold is 1', async (t) => {
     threshold: 1
   })
 
-  t.same(r1.count, 4)
-  t.same(r2.count, 3)
+  expect(r1.count).toEqual(4)
+  expect(r2.count).toEqual(3)
 })
 
-t.test('should return all the exact matches + X% of the partial matches', async (t) => {
-  t.plan(2)
-
+it('should return all the exact matches + X% of the partial matches', async () => {
   const db = await create({
     schema: {
       title: 'string'
@@ -149,13 +141,13 @@ t.test('should return all the exact matches + X% of the partial matches', async 
     threshold: 0.7
   })
 
-  t.same(r1.count, 4)
-  t.same(r2.count, 3)
+  expect(r1.count).toEqual(4)
+  expect(r2.count).toEqual(3)
 })
 
 // Related issue: https://github.com/oramasearch/orama/issues/911
 // Note: these cases exercise prefix (search-as-you-type) matching, which is opt-in via `prefix: true` - default search matches whole tokens exactly.
-t.test('should return results for words with same root if threshold is 0', async (t) => {
+it('should return results for words with same root if threshold is 0', async () => {
   const db = create({
     schema: {
       title: 'string'
@@ -191,15 +183,11 @@ t.test('should return results for words with same root if threshold is 0', async
     ['the qui', 1],
     ['the quick brown dog', 1]
   ]
-
-  t.plan(testCases.length)
-
   for (const [term, expectedCount] of testCases) {
     const result = await search(db, { term, threshold: 0, prefix: true })
-    t.same(
+    expect(
       result.count,
-      expectedCount,
       `Search term "${term}" with threshold 0 should match ${expectedCount} record(s), but matched ${result.count}`
-    )
+    ).toEqual(expectedCount)
   }
 })

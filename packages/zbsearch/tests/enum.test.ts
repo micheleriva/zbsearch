@@ -1,4 +1,4 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import {
   EnumArrComparisonOperator,
   ScalarSearchableValue,
@@ -12,8 +12,8 @@ import {
   search
 } from '../src/index.js'
 
-t.test('enum', async (t) => {
-  t.test('filter', async (t) => {
+describe('enum', () => {
+  describe('filter', async () => {
     const db = create({
       schema: {
         categoryId: 'enum'
@@ -40,116 +40,86 @@ t.test('enum', async (t) => {
       { value: 'unknown', expected: [] }
     ]
 
-    t.test('eq operator', async (t) => {
+    describe('eq operator', () => {
       for (const { value, expected } of tests) {
-        t.test(`eq: ${value}`, async (t) => {
+        it(`eq: ${value}`, async () => {
           const result = await search(db, {
             term: '',
             where: {
               categoryId: { eq: value }
             }
           })
-          t.equal(result.hits.length, expected.length)
-          t.strictSame(
-            result.hits.map((h) => h.id),
-            expected
-          )
-
-          t.end()
+          expect(result.hits.length).toBe(expected.length)
+          expect(result.hits.map((h) => h.id)).toStrictEqual(expected)
         })
       }
     })
 
-    t.test('in operator', async (t) => {
+    describe('in operator', () => {
       for (const { value, expected } of tests) {
-        t.test(`in: [${value}]`, async (t) => {
+        it(`in: [${value}]`, async () => {
           const result = await search(db, {
             term: '',
             where: {
               categoryId: { in: [value] }
             }
           })
-          t.equal(result.hits.length, expected.length)
-          t.strictSame(
-            result.hits.map((h) => h.id),
-            expected
-          )
-
-          t.end()
+          expect(result.hits.length).toBe(expected.length)
+          expect(result.hits.map((h) => h.id)).toStrictEqual(expected)
         })
       }
 
-      t.test(`in: [1, 3, "5", 'unknown']`, async (t) => {
+      it(`in: [1, 3, "5", 'unknown']`, async () => {
         const result = await search(db, {
           term: '',
           where: {
             categoryId: { in: [1, 3, '5', 'unknown'] }
           }
         })
-        t.equal(result.hits.length, 4)
-        t.strictSame(
-          result.hits.map((h) => h.id),
-          [c1, c11, c3, c5]
-        )
-
-        t.end()
+        expect(result.hits.length).toBe(4)
+        expect(result.hits.map((h) => h.id)).toStrictEqual([c1, c11, c3, c5])
       })
     })
 
-    t.test('nin operator', async (t) => {
+    describe('nin operator', () => {
       for (const { value, expected } of tests) {
-        t.test(`nin: [${value}]`, async (t) => {
+        it(`nin: [${value}]`, async () => {
           const result = await search(db, {
             term: '',
             where: {
               categoryId: { nin: [value] }
             }
           })
-          t.equal(result.hits.length, documentCount - expected.length)
-          t.strictSame(
-            result.hits.map((h) => h.id),
-            allIds.filter((id) => expected.includes(id) === false)
-          )
+          expect(result.hits.length).toBe(documentCount - expected.length)
+          expect(result.hits.map((h) => h.id)).toStrictEqual(allIds.filter((id) => expected.includes(id) === false))
         })
       }
 
-      t.test(`nin: [1, 3, "5", 'unknown']`, async (t) => {
+      it(`nin: [1, 3, "5", 'unknown']`, async () => {
         const result = await search(db, {
           term: '',
           where: {
             categoryId: { nin: [1, 3, '5', 'unknown'] }
           }
         })
-        t.equal(result.hits.length, 1)
-        t.strictSame(
-          result.hits.map((h) => h.id),
-          [c2]
-        )
-
-        t.end()
+        expect(result.hits.length).toBe(1)
+        expect(result.hits.map((h) => h.id)).toStrictEqual([c2])
       })
 
-      t.test(`nin: [1, 2, 3, "5", 'unknown']`, async (t) => {
+      it(`nin: [1, 2, 3, "5", 'unknown']`, async () => {
         const result = await search(db, {
           term: '',
           where: {
             categoryId: { nin: [1, 2, 3, '5', 'unknown'] }
           }
         })
-        t.equal(result.hits.length, 0)
-        t.strictSame(
-          result.hits.map((h) => h.id),
-          []
-        )
-
-        t.end()
+        expect(result.hits.length).toBe(0)
+        expect(result.hits.map((h) => h.id)).toStrictEqual([])
       })
     })
-
-    t.end()
   })
 
-  t.test(`remove document works fine`, async (t) => {
+  it(`remove document works fine`, async () => {
     const db = await create({
       schema: {
         categoryId: 'enum'
@@ -162,11 +132,8 @@ t.test('enum', async (t) => {
       term: '',
       where: { categoryId: { eq: 1 } }
     })
-    t.equal(result1.hits.length, 2)
-    t.strictSame(
-      result1.hits.map((h) => h.id),
-      [c1, c11]
-    )
+    expect(result1.hits.length).toBe(2)
+    expect(result1.hits.map((h) => h.id)).toStrictEqual([c1, c11])
 
     await remove(db, c1)
 
@@ -174,16 +141,11 @@ t.test('enum', async (t) => {
       term: '',
       where: { categoryId: { eq: 1 } }
     })
-    t.equal(result2.hits.length, 1)
-    t.strictSame(
-      result2.hits.map((h) => h.id),
-      [c11]
-    )
-
-    t.end()
+    expect(result2.hits.length).toBe(1)
+    expect(result2.hits.map((h) => h.id)).toStrictEqual([c11])
   })
 
-  t.test(`still serializable`, async (t) => {
+  it(`still serializable`, async () => {
     const db1 = create({
       schema: {
         categoryId: 'enum'
@@ -212,11 +174,8 @@ t.test('enum', async (t) => {
         categoryId: { eq: 1 }
       }
     })
-    t.equal(result1.hits.length, 2)
-    t.strictSame(
-      result1.hits.map((h) => h.id),
-      [c1, c11]
-    )
+    expect(result1.hits.length).toBe(2)
+    expect(result1.hits.map((h) => h.id)).toStrictEqual([c1, c11])
 
     const result2 = await search(db2, {
       term: '',
@@ -224,16 +183,11 @@ t.test('enum', async (t) => {
         categoryId: { in: [1, 2, 3, '5', 'unknown'] }
       }
     })
-    t.equal(result2.hits.length, 5)
-    t.strictSame(
-      result2.hits.map((h) => h.id),
-      [c1, c11, c2, c3, c5]
-    )
-
-    t.end()
+    expect(result2.hits.length).toBe(5)
+    expect(result2.hits.map((h) => h.id)).toStrictEqual([c1, c11, c2, c3, c5])
   })
 
-  t.test(`complex example`, async (t) => {
+  it(`complex example`, async () => {
     const filmDb = await create({
       schema: {
         title: 'string',
@@ -254,7 +208,7 @@ t.test('enum', async (t) => {
       term: 'r',
       prefix: true
     })
-    t.equal(result1.hits.length, 2)
+    expect(result1.hits.length).toBe(2)
 
     const result2 = await search(filmDb, {
       term: 'r',
@@ -263,11 +217,8 @@ t.test('enum', async (t) => {
         categoryId: { eq: 1 }
       }
     })
-    t.equal(result2.hits.length, 1)
-    t.strictSame(
-      result2.hits.map((h) => h.id),
-      [c1]
-    )
+    expect(result2.hits.length).toBe(1)
+    expect(result2.hits.map((h) => h.id)).toStrictEqual([c1])
 
     const result3 = await search(filmDb, {
       term: 'r',
@@ -277,11 +228,8 @@ t.test('enum', async (t) => {
         categoryId: { eq: 1 }
       }
     })
-    t.equal(result3.hits.length, 0)
-    t.strictSame(
-      result3.hits.map((h) => h.id),
-      []
-    )
+    expect(result3.hits.length).toBe(0)
+    expect(result3.hits.map((h) => h.id)).toStrictEqual([])
 
     const result4 = await search(filmDb, {
       term: 'r',
@@ -291,20 +239,13 @@ t.test('enum', async (t) => {
         categoryId: { eq: 1 }
       }
     })
-    t.equal(result4.hits.length, 1)
-    t.strictSame(
-      result4.hits.map((h) => h.id),
-      [c1]
-    )
-
-    t.end()
+    expect(result4.hits.length).toBe(1)
+    expect(result4.hits.map((h) => h.id)).toStrictEqual([c1])
   })
-
-  t.end()
 })
 
-t.test('enum[]', async (t) => {
-  t.test('filter', async (t) => {
+describe('enum[]', () => {
+  describe('filter', async () => {
     const db = await create({
       schema: {
         tags: 'enum[]'
@@ -331,22 +272,17 @@ t.test('enum[]', async (t) => {
       { values: ['white', 'unknown'], expected: [] },
       { values: [], expected: [] }
     ]
-    t.test('containsAll', async (t) => {
+    describe('containsAll', () => {
       for (const { values, expected } of testsContainsAll) {
-        t.test(`"${values}"`, async (t) => {
+        it(`"${values}"`, async () => {
           const result = await search(db, {
             term: '',
             where: {
               tags: { containsAll: values }
             }
           })
-          t.equal(result.hits.length, expected.length)
-          t.strictSame(
-            result.hits.map((h) => h.id),
-            expected
-          )
-
-          t.end()
+          expect(result.hits.length).toBe(expected.length)
+          expect(result.hits.map((h) => h.id)).toStrictEqual(expected)
         })
       }
     })
@@ -362,28 +298,23 @@ t.test('enum[]', async (t) => {
       { values: ['white', 'unknown'], expected: [cWhite] },
       { values: [], expected: [] }
     ]
-    t.test('containsAny', async (t) => {
+    describe('containsAny', () => {
       for (const { values, expected } of testsContainsAny) {
-        t.test(`"${values}"`, async (t) => {
+        it(`"${values}"`, async () => {
           const result = await search(db, {
             term: '',
             where: {
               tags: { containsAny: values }
             }
           })
-          t.equal(result.hits.length, expected.length)
-          t.strictSame(
-            result.hits.map((h) => h.id),
-            expected
-          )
-
-          t.end()
+          expect(result.hits.length).toBe(expected.length)
+          expect(result.hits.map((h) => h.id)).toStrictEqual(expected)
         })
       }
     })
 
-    t.test("eq operator shouldn't allowed", async (t) => {
-      t.throws(
+    it("eq operator shouldn't allowed", async () => {
+      expect(
         () =>
           search(db, {
             term: '',
@@ -392,13 +323,11 @@ t.test('enum[]', async (t) => {
             }
           }),
         'aa'
-      )
-
-      t.end()
+      ).toThrow()
     })
 
-    t.test("in operator shouldn't allowed", async (t) => {
-      t.throws(
+    it("in operator shouldn't allowed", async () => {
+      expect(
         () =>
           search(db, {
             term: '',
@@ -407,13 +336,11 @@ t.test('enum[]', async (t) => {
             }
           }),
         'aa'
-      )
-
-      t.end()
+      ).toThrow()
     })
 
-    t.test("in operator shouldn't allowed", async (t) => {
-      t.throws(
+    it("in operator shouldn't allowed", async () => {
+      expect(
         () =>
           search(db, {
             term: '',
@@ -422,15 +349,11 @@ t.test('enum[]', async (t) => {
             }
           }),
         'aa'
-      )
-
-      t.end()
+      ).toThrow()
     })
-
-    t.end()
   })
 
-  t.test(`remove document works fine`, async (t) => {
+  it(`remove document works fine`, async () => {
     const db = create({
       schema: {
         tags: 'enum[]'
@@ -443,11 +366,8 @@ t.test('enum[]', async (t) => {
       term: '',
       where: { tags: { containsAll: ['green', 'blue'] } }
     })
-    t.equal(result1.hits.length, 2)
-    t.strictSame(
-      result1.hits.map((h) => h.id),
-      [c1, c11]
-    )
+    expect(result1.hits.length).toBe(2)
+    expect(result1.hits.map((h) => h.id)).toStrictEqual([c1, c11])
 
     await remove(db, c1)
 
@@ -455,16 +375,11 @@ t.test('enum[]', async (t) => {
       term: '',
       where: { tags: { containsAll: ['green', 'blue'] } }
     })
-    t.equal(result2.hits.length, 1)
-    t.strictSame(
-      result2.hits.map((h) => h.id),
-      [c11]
-    )
-
-    t.end()
+    expect(result2.hits.length).toBe(1)
+    expect(result2.hits.map((h) => h.id)).toStrictEqual([c11])
   })
 
-  t.test(`still serializable`, async (t) => {
+  it(`still serializable`, async () => {
     const db1 = await create({
       schema: {
         tags: 'enum[]'
@@ -493,11 +408,8 @@ t.test('enum[]', async (t) => {
         tags: { containsAll: ['green'] }
       }
     })
-    t.equal(result1.hits.length, 2)
-    t.strictSame(
-      result1.hits.map((h) => h.id),
-      [c1, c11]
-    )
+    expect(result1.hits.length).toBe(2)
+    expect(result1.hits.map((h) => h.id)).toStrictEqual([c1, c11])
 
     const result2 = await search(db2, {
       term: '',
@@ -505,16 +417,11 @@ t.test('enum[]', async (t) => {
         tags: { containsAll: [] }
       } as const
     })
-    t.equal(result2.hits.length, 0)
-    t.strictSame(
-      result2.hits.map((h) => h.id),
-      []
-    )
-
-    t.end()
+    expect(result2.hits.length).toBe(0)
+    expect(result2.hits.map((h) => h.id)).toStrictEqual([])
   })
 
-  t.test(`complex example`, async (t) => {
+  it(`complex example`, async () => {
     const filmDb = create({
       schema: {
         title: 'string',
@@ -535,7 +442,7 @@ t.test('enum[]', async (t) => {
       term: 'l',
       prefix: true
     })
-    t.equal(result1.hits.length, 2)
+    expect(result1.hits.length).toBe(2)
 
     const result2 = await search(filmDb, {
       term: 'l',
@@ -544,11 +451,8 @@ t.test('enum[]', async (t) => {
         tags: { containsAll: ['war'] }
       }
     })
-    t.equal(result2.hits.length, 1)
-    t.strictSame(
-      result2.hits.map((h) => h.id),
-      [c4]
-    )
+    expect(result2.hits.length).toBe(1)
+    expect(result2.hits.map((h) => h.id)).toStrictEqual([c4])
 
     const result3 = await search(filmDb, {
       term: 'l',
@@ -558,11 +462,8 @@ t.test('enum[]', async (t) => {
         tags: { containsAll: ['war'] }
       }
     })
-    t.equal(result3.hits.length, 0)
-    t.strictSame(
-      result3.hits.map((h) => h.id),
-      []
-    )
+    expect(result3.hits.length).toBe(0)
+    expect(result3.hits.map((h) => h.id)).toStrictEqual([])
 
     const result4 = await search(filmDb, {
       term: 'l',
@@ -572,14 +473,7 @@ t.test('enum[]', async (t) => {
         tags: { containsAll: ['war'] }
       }
     })
-    t.equal(result4.hits.length, 1)
-    t.strictSame(
-      result4.hits.map((h) => h.id),
-      [c4]
-    )
-
-    t.end()
+    expect(result4.hits.length).toBe(1)
+    expect(result4.hits.map((h) => h.id)).toStrictEqual([c4])
   })
-
-  t.end()
 })

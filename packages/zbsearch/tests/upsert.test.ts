@@ -1,8 +1,8 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { create, insert, getByID, upsert, upsertMultiple, count, search } from '../src/index.js'
 
-t.test('upsert method', async (t) => {
-  t.test('should insert a document when it does not exist', async (t) => {
+describe('upsert method', () => {
+  it('should insert a document when it does not exist', async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -17,16 +17,16 @@ t.test('upsert method', async (t) => {
       author: 'John Lennon'
     })
 
-    t.equal(docId, 'doc-1')
-    t.equal(count(db), 1)
+    expect(docId).toBe('doc-1')
+    expect(count(db)).toBe(1)
 
     const doc = getByID(db, docId)
-    t.ok(doc)
-    t.equal(doc!.quote, "Life is what happens when you're busy making other plans")
-    t.equal(doc!.author, 'John Lennon')
+    expect(doc).toBeTruthy()
+    expect(doc!.quote).toBe("Life is what happens when you're busy making other plans")
+    expect(doc!.author).toBe('John Lennon')
   })
 
-  t.test('should update a document when it already exists', async (t) => {
+  it('should update a document when it already exists', async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -42,8 +42,8 @@ t.test('upsert method', async (t) => {
       author: 'John Lennon'
     })
 
-    t.equal(initialDocId, 'doc-1')
-    t.equal(count(db), 1)
+    expect(initialDocId).toBe('doc-1')
+    expect(count(db)).toBe(1)
 
     // Now upsert with the same ID should update
     const upsertedDocId = await upsert(db, {
@@ -52,16 +52,16 @@ t.test('upsert method', async (t) => {
       author: 'Richard Feynman'
     })
 
-    t.equal(upsertedDocId, 'doc-1')
-    t.equal(count(db), 1)
+    expect(upsertedDocId).toBe('doc-1')
+    expect(count(db)).toBe(1)
 
     const doc = getByID(db, upsertedDocId)
-    t.ok(doc)
-    t.equal(doc!.quote, 'What I cannot create, I do not understand')
-    t.equal(doc!.author, 'Richard Feynman')
+    expect(doc).toBeTruthy()
+    expect(doc!.quote).toBe('What I cannot create, I do not understand')
+    expect(doc!.author).toBe('Richard Feynman')
   })
 
-  t.test('should work with custom getDocumentIndexId function', async (t) => {
+  it('should work with custom getDocumentIndexId function', async () => {
     const db = create({
       schema: {
         name: 'string',
@@ -80,8 +80,8 @@ t.test('upsert method', async (t) => {
       email: 'john@example.com'
     })
 
-    t.equal(docId1, 'john@example.com')
-    t.equal(count(db), 1)
+    expect(docId1).toBe('john@example.com')
+    expect(count(db)).toBe(1)
 
     // Second upsert with same email (update)
     const docId2 = await upsert(db, {
@@ -89,16 +89,16 @@ t.test('upsert method', async (t) => {
       email: 'john@example.com'
     })
 
-    t.equal(docId2, 'john@example.com')
-    t.equal(count(db), 1)
+    expect(docId2).toBe('john@example.com')
+    expect(count(db)).toBe(1)
 
     const doc = getByID(db, docId2)
-    t.ok(doc)
-    t.equal(doc!.name, 'John Smith')
-    t.equal(doc!.email, 'john@example.com')
+    expect(doc).toBeTruthy()
+    expect(doc!.name).toBe('John Smith')
+    expect(doc!.email).toBe('john@example.com')
   })
 
-  t.test('should throw an error if document ID is not a string', async (t) => {
+  it('should throw an error if document ID is not a string', async () => {
     const db = create({
       schema: {
         name: 'string'
@@ -110,13 +110,13 @@ t.test('upsert method', async (t) => {
         id: 123,
         name: 'John'
       })
-      t.fail('Should have thrown an error')
+      expect.fail('Should have thrown an error')
     } catch (e) {
-      t.equal(e.code, 'DOCUMENT_ID_MUST_BE_STRING')
+      expect(e.code).toBe('DOCUMENT_ID_MUST_BE_STRING')
     }
   })
 
-  t.test('should throw an error if document fails schema validation', async (t) => {
+  it('should throw an error if document fails schema validation', async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -129,13 +129,13 @@ t.test('upsert method', async (t) => {
         id: 'test-id',
         name: 123
       } as any)
-      t.fail('Should have thrown an error')
+      expect.fail('Should have thrown an error')
     } catch (e) {
-      t.equal(e.code, 'SCHEMA_VALIDATION_FAILURE')
+      expect(e.code).toBe('SCHEMA_VALIDATION_FAILURE')
     }
   })
 
-  t.test('should maintain searchability after upsert', async (t) => {
+  it('should maintain searchability after upsert', async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -154,7 +154,7 @@ t.test('upsert method', async (t) => {
     const searchResult1 = await search(db, {
       term: 'JavaScript'
     })
-    t.equal(searchResult1.count, 1)
+    expect(searchResult1.count).toBe(1)
 
     // Second upsert (update)
     await upsert(db, {
@@ -166,16 +166,16 @@ t.test('upsert method', async (t) => {
     const searchResult2 = await search(db, {
       term: 'JavaScript'
     })
-    t.equal(searchResult2.count, 0)
+    expect(searchResult2.count).toBe(0)
 
     const searchResult3 = await search(db, {
       term: 'TypeScript'
     })
-    t.equal(searchResult3.count, 1)
-    t.equal(searchResult3.hits[0].document.title, 'Advanced TypeScript')
+    expect(searchResult3.count).toBe(1)
+    expect(searchResult3.hits[0].document.title).toBe('Advanced TypeScript')
   })
 
-  t.test('should work with nested schema', async (t) => {
+  it('should work with nested schema', async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -201,8 +201,8 @@ t.test('upsert method', async (t) => {
       }
     })
 
-    t.equal(docId1, 'user-1')
-    t.equal(count(db), 1)
+    expect(docId1).toBe('user-1')
+    expect(count(db)).toBe(1)
 
     // Second upsert (update)
     const docId2 = await upsert(db, {
@@ -216,19 +216,19 @@ t.test('upsert method', async (t) => {
       }
     })
 
-    t.equal(docId2, 'user-1')
-    t.equal(count(db), 1)
+    expect(docId2).toBe('user-1')
+    expect(count(db)).toBe(1)
 
     const doc = getByID(db, docId2)
-    t.ok(doc)
-    t.equal(doc!.user.name, 'John Smith')
-    t.equal(doc!.user.email, 'john.smith@example.com')
-    t.equal(doc!.meta.tags, 'moderator, user')
+    expect(doc).toBeTruthy()
+    expect(doc!.user.name).toBe('John Smith')
+    expect(doc!.user.email).toBe('john.smith@example.com')
+    expect(doc!.meta.tags).toBe('moderator, user')
   })
 })
 
-t.test('upsertMultiple method', async (t) => {
-  t.test('should insert multiple documents when they do not exist', async (t) => {
+describe('upsertMultiple method', () => {
+  it('should insert multiple documents when they do not exist', async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -250,18 +250,18 @@ t.test('upsertMultiple method', async (t) => {
       }
     ])
 
-    t.equal(docIds.length, 2)
-    t.equal(count(db), 2)
+    expect(docIds.length).toBe(2)
+    expect(count(db)).toBe(2)
 
     const doc1 = getByID(db, 'doc-1')
     const doc2 = getByID(db, 'doc-2')
-    t.ok(doc1)
-    t.ok(doc2)
-    t.equal(doc1!.author, 'John Lennon')
-    t.equal(doc2!.author, 'Richard Feynman')
+    expect(doc1).toBeTruthy()
+    expect(doc2).toBeTruthy()
+    expect(doc1!.author).toBe('John Lennon')
+    expect(doc2!.author).toBe('Richard Feynman')
   })
 
-  t.test('should update multiple documents when they already exist', async (t) => {
+  it('should update multiple documents when they already exist', async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -283,7 +283,7 @@ t.test('upsertMultiple method', async (t) => {
       author: 'Richard Feynman'
     })
 
-    t.equal(count(db), 2)
+    expect(count(db)).toBe(2)
 
     // Now upsert with the same IDs should update
     const docIds = await upsertMultiple(db, [
@@ -299,18 +299,18 @@ t.test('upsertMultiple method', async (t) => {
       }
     ])
 
-    t.equal(docIds.length, 2)
-    t.equal(count(db), 2)
+    expect(docIds.length).toBe(2)
+    expect(count(db)).toBe(2)
 
     const doc1 = getByID(db, 'doc-1')
     const doc2 = getByID(db, 'doc-2')
-    t.ok(doc1)
-    t.ok(doc2)
-    t.equal(doc1!.author, 'Seneca')
-    t.equal(doc2!.author, 'Mahatma Gandhi')
+    expect(doc1).toBeTruthy()
+    expect(doc2).toBeTruthy()
+    expect(doc1!.author).toBe('Seneca')
+    expect(doc2!.author).toBe('Mahatma Gandhi')
   })
 
-  t.test('should handle mixed insert and update operations', async (t) => {
+  it('should handle mixed insert and update operations', async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -326,7 +326,7 @@ t.test('upsertMultiple method', async (t) => {
       author: 'John Lennon'
     })
 
-    t.equal(count(db), 1)
+    expect(count(db)).toBe(1)
 
     // Now upsert with one existing and one new document
     const docIds = await upsertMultiple(db, [
@@ -342,18 +342,18 @@ t.test('upsertMultiple method', async (t) => {
       }
     ])
 
-    t.equal(docIds.length, 2)
-    t.equal(count(db), 2)
+    expect(docIds.length).toBe(2)
+    expect(count(db)).toBe(2)
 
     const doc1 = getByID(db, 'doc-1')
     const doc2 = getByID(db, 'doc-2')
-    t.ok(doc1)
-    t.ok(doc2)
-    t.equal(doc1!.author, 'Seneca')
-    t.equal(doc2!.author, 'Mahatma Gandhi')
+    expect(doc1).toBeTruthy()
+    expect(doc2).toBeTruthy()
+    expect(doc1!.author).toBe('Seneca')
+    expect(doc2!.author).toBe('Mahatma Gandhi')
   })
 
-  t.test('should throw an error if any document fails schema validation', async (t) => {
+  it('should throw an error if any document fails schema validation', async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -372,16 +372,16 @@ t.test('upsertMultiple method', async (t) => {
           quote: 123 // Invalid type
         }
       ] as any)
-      t.fail('Should have thrown an error')
+      expect.fail('Should have thrown an error')
     } catch (e) {
-      t.equal(e.code, 'SCHEMA_VALIDATION_FAILURE')
+      expect(e.code).toBe('SCHEMA_VALIDATION_FAILURE')
     }
 
     // Should not have inserted any documents
-    t.equal(count(db), 0)
+    expect(count(db)).toBe(0)
   })
 
-  t.test('should throw an error if any document ID is not a string', async (t) => {
+  it('should throw an error if any document ID is not a string', async () => {
     const db = create({
       schema: {
         quote: 'string'
@@ -399,16 +399,16 @@ t.test('upsertMultiple method', async (t) => {
           quote: 'Another quote'
         }
       ] as any)
-      t.fail('Should have thrown an error')
+      expect.fail('Should have thrown an error')
     } catch (e) {
-      t.equal(e.code, 'DOCUMENT_ID_MUST_BE_STRING')
+      expect(e.code).toBe('DOCUMENT_ID_MUST_BE_STRING')
     }
 
     // Should not have inserted any documents
-    t.equal(count(db), 0)
+    expect(count(db)).toBe(0)
   })
 
-  t.test('should work with custom getDocumentIndexId function', async (t) => {
+  it('should work with custom getDocumentIndexId function', async () => {
     const db = create({
       schema: {
         name: 'string',
@@ -433,8 +433,8 @@ t.test('upsertMultiple method', async (t) => {
       }
     ])
 
-    t.equal(docIds1.length, 2)
-    t.equal(count(db), 2)
+    expect(docIds1.length).toBe(2)
+    expect(count(db)).toBe(2)
 
     // Second upsert with same emails (update)
     const docIds2 = await upsertMultiple(db, [
@@ -448,18 +448,18 @@ t.test('upsertMultiple method', async (t) => {
       }
     ])
 
-    t.equal(docIds2.length, 2)
-    t.equal(count(db), 2)
+    expect(docIds2.length).toBe(2)
+    expect(count(db)).toBe(2)
 
     const doc1 = getByID(db, 'john@example.com')
     const doc2 = getByID(db, 'jane@example.com')
-    t.ok(doc1)
-    t.ok(doc2)
-    t.equal(doc1!.name, 'John Updated')
-    t.equal(doc2!.name, 'Jane Updated')
+    expect(doc1).toBeTruthy()
+    expect(doc2).toBeTruthy()
+    expect(doc1!.name).toBe('John Updated')
+    expect(doc2!.name).toBe('Jane Updated')
   })
 
-  t.test('should maintain searchability after upsertMultiple', async (t) => {
+  it('should maintain searchability after upsertMultiple', async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -485,12 +485,12 @@ t.test('upsertMultiple method', async (t) => {
     const searchResult1 = await search(db, {
       term: 'JavaScript'
     })
-    t.equal(searchResult1.count, 1)
+    expect(searchResult1.count).toBe(1)
 
     const searchResult2 = await search(db, {
       term: 'Python'
     })
-    t.equal(searchResult2.count, 1)
+    expect(searchResult2.count).toBe(1)
 
     // Second upsert (update)
     await upsertMultiple(db, [
@@ -509,25 +509,25 @@ t.test('upsertMultiple method', async (t) => {
     const searchResult3 = await search(db, {
       term: 'JavaScript'
     })
-    t.equal(searchResult3.count, 0)
+    expect(searchResult3.count).toBe(0)
 
     const searchResult4 = await search(db, {
       term: 'Python'
     })
-    t.equal(searchResult4.count, 0)
+    expect(searchResult4.count).toBe(0)
 
     const searchResult5 = await search(db, {
       term: 'TypeScript'
     })
-    t.equal(searchResult5.count, 1)
+    expect(searchResult5.count).toBe(1)
 
     const searchResult6 = await search(db, {
       term: 'Rust'
     })
-    t.equal(searchResult6.count, 1)
+    expect(searchResult6.count).toBe(1)
   })
 
-  t.test('should work with batch size parameter', async (t) => {
+  it('should work with batch size parameter', async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -547,17 +547,17 @@ t.test('upsertMultiple method', async (t) => {
 
     const docIds = await upsertMultiple(db, documents, 3) // Batch size of 3
 
-    t.equal(docIds.length, 10)
-    t.equal(count(db), 10)
+    expect(docIds.length).toBe(10)
+    expect(count(db)).toBe(10)
 
     for (let i = 0; i < 10; i++) {
       const doc = getByID(db, `doc-${i}`)
-      t.ok(doc)
-      t.equal(doc!.author, `Author ${i}`)
+      expect(doc).toBeTruthy()
+      expect(doc!.author).toBe(`Author ${i}`)
     }
   })
 
-  t.test('should work with empty array', async (t) => {
+  it('should work with empty array', async () => {
     const db = create({
       schema: {
         id: 'string',
@@ -567,13 +567,13 @@ t.test('upsertMultiple method', async (t) => {
 
     const docIds = await upsertMultiple(db, [])
 
-    t.equal(docIds.length, 0)
-    t.equal(count(db), 0)
+    expect(docIds.length).toBe(0)
+    expect(count(db)).toBe(0)
   })
 })
 
-t.test('upsert with hooks', async (t) => {
-  t.test('should call upsert hooks when inserting', async (t) => {
+describe('upsert with hooks', () => {
+  it('should call upsert hooks when inserting', async () => {
     let beforeUpsertCalled = false
     let afterUpsertCalled = false
 
@@ -600,11 +600,11 @@ t.test('upsert with hooks', async (t) => {
       quote: 'Test quote'
     })
 
-    t.ok(beforeUpsertCalled)
-    t.ok(afterUpsertCalled)
+    expect(beforeUpsertCalled).toBeTruthy()
+    expect(afterUpsertCalled).toBeTruthy()
   })
 
-  t.test('should call upsert hooks when updating', async (t) => {
+  it('should call upsert hooks when updating', async () => {
     let beforeUpsertCalled = false
     let afterUpsertCalled = false
 
@@ -642,11 +642,11 @@ t.test('upsert with hooks', async (t) => {
       quote: 'Updated quote'
     })
 
-    t.ok(beforeUpsertCalled)
-    t.ok(afterUpsertCalled)
+    expect(beforeUpsertCalled).toBeTruthy()
+    expect(afterUpsertCalled).toBeTruthy()
   })
 
-  t.test('should call upsertMultiple hooks', async (t) => {
+  it('should call upsertMultiple hooks', async () => {
     let beforeUpsertMultipleCalled = false
     let afterUpsertMultipleCalled = false
 
@@ -679,7 +679,7 @@ t.test('upsert with hooks', async (t) => {
       }
     ])
 
-    t.ok(beforeUpsertMultipleCalled)
-    t.ok(afterUpsertMultipleCalled)
+    expect(beforeUpsertMultipleCalled).toBeTruthy()
+    expect(afterUpsertMultipleCalled).toBeTruthy()
   })
 })

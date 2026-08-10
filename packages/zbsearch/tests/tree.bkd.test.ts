@@ -1,5 +1,4 @@
-import t from 'tap'
-
+import { describe, expect, it } from 'vitest'
 import { BKDTree } from '../src/trees/bkd.js'
 
 const coordinates = [
@@ -20,15 +19,15 @@ const coordinates = [
   }
 ]
 
-t.test('create', async (t) => {
-  t.test('should create a new, empty tree', async (t) => {
+describe('create', () => {
+  it('should create a new, empty tree', async () => {
     const tree = new BKDTree()
-    t.equal(tree.root, null)
+    expect(tree.root).toBe(null)
   })
 })
 
-t.test('insert', async (t) => {
-  t.test('should insert a new node into an empty tree', async (t) => {
+describe('insert', () => {
+  it('should insert a new node into an empty tree', async () => {
     const tree = new BKDTree()
     const coordinatePoints = coordinates.map(({ lat, lon }) => ({ lat, lon }))
 
@@ -65,10 +64,10 @@ t.test('insert', async (t) => {
       }
     }
 
-    t.same(tree.toJSON(), expectedTree)
+    expect(tree.toJSON()).toEqual(expectedTree)
   })
 
-  t.test('should merge docIDs if the point already exists', async (t) => {
+  it('should merge docIDs if the point already exists', async () => {
     const tree = new BKDTree()
 
     tree.insert({ lat: 37.8207190397588, lon: -122.47838916631231 }, [1])
@@ -81,12 +80,12 @@ t.test('insert', async (t) => {
     })
 
     // Sort the arrays before comparison to handle unordered Sets
-    t.same(docIDs ? docIDs.sort() : null, [1, 2])
+    expect(docIDs ? docIDs.sort() : null).toEqual([1, 2])
   })
 })
 
-t.test('searchByRadius', async (t) => {
-  t.test('should return all points within a given radius', async (t) => {
+describe('searchByRadius', () => {
+  it('should return all points within a given radius', async () => {
     const tree = new BKDTree()
     const coordinatePoints = coordinates.map(({ lat, lon }) => ({ lat, lon }))
 
@@ -95,7 +94,7 @@ t.test('searchByRadius', async (t) => {
     }
 
     // Should return the coordinates of the Golden Gate Bridge.
-    t.same(tree.searchByRadius({ lat: 37.7909625, lon: -122.4700284 }, 5_000, true, null), [
+    expect(tree.searchByRadius({ lat: 37.7909625, lon: -122.4700284 }, 5_000, true, null)).toEqual([
       {
         point: {
           lat: 37.8207190397588,
@@ -106,11 +105,10 @@ t.test('searchByRadius', async (t) => {
     ])
 
     // Should return nothing as the center is on the east side.
-    t.same(tree.searchByRadius({ lat: 42.9195535, lon: -70.9817219 }, 10_000, true, null), [])
+    expect(tree.searchByRadius({ lat: 42.9195535, lon: -70.9817219 }, 10_000, true, null)).toEqual([])
 
     // Should return the coordinates of all the California locations as they're outside the radius.
-    t.same(
-      tree.searchByRadius({ lat: 42.9195535, lon: -70.9817219 }, 10_000, false, null),
+    expect(tree.searchByRadius({ lat: 42.9195535, lon: -70.9817219 }, 10_000, false, null)).toEqual(
       coordinatePoints.map(({ lat, lon }) => ({
         point: {
           lat,
@@ -122,8 +120,8 @@ t.test('searchByRadius', async (t) => {
   })
 })
 
-t.test('searchInsidePolygon', async (t) => {
-  t.test('should return all points inside a given polygon', async (t) => {
+describe('searchInsidePolygon', () => {
+  it('should return all points inside a given polygon', async () => {
     const tree = new BKDTree()
     const coordinatePoints = coordinates.map(({ lat, lon }) => ({ lat, lon }))
 
@@ -155,8 +153,7 @@ t.test('searchInsidePolygon', async (t) => {
     ]
 
     // Should return the coordinates of the points inside the polygon
-    t.same(
-      tree.searchByPolygon(polygon, true),
+    expect(tree.searchByPolygon(polygon, true)).toEqual(
       coordinatePoints.map(({ lat, lon }) => ({
         point: {
           lat,
@@ -167,12 +164,12 @@ t.test('searchInsidePolygon', async (t) => {
     )
 
     // Should return nothing as all the coordinates are inside the polygon, and the search is not inclusive
-    t.same(tree.searchByPolygon(polygon, false), [])
+    expect(tree.searchByPolygon(polygon, false)).toEqual([])
   })
 })
 
-t.test('contains', async (t) => {
-  t.test('should return true if the tree contains the given point', async (t) => {
+describe('contains', () => {
+  it('should return true if the tree contains the given point', async () => {
     const tree = new BKDTree()
     const coordinatePoints = coordinates.map(({ lat, lon }) => ({ lat, lon }))
 
@@ -180,13 +177,13 @@ t.test('contains', async (t) => {
       tree.insert(point, [])
     }
 
-    t.equal(tree.contains({ lat: 37.8207190397588, lon: -122.47838916631231 }), true)
-    t.equal(tree.contains({ lat: 10.1927374719287, lon: -132.123 }), false)
+    expect(tree.contains({ lat: 37.8207190397588, lon: -122.47838916631231 })).toBe(true)
+    expect(tree.contains({ lat: 10.1927374719287, lon: -132.123 })).toBe(false)
   })
 })
 
-t.test('removeDocByID', async (t) => {
-  t.test('should remove a document from the tree by its ID', async (t) => {
+describe('removeDocByID', () => {
+  it('should remove a document from the tree by its ID', async () => {
     const tree = new BKDTree()
 
     tree.insert({ lat: 37.8207190397588, lon: -122.47838916631231 }, [1])
@@ -201,10 +198,10 @@ t.test('removeDocByID', async (t) => {
       lon: -122.47838916631231
     })
 
-    t.same(docIDs ? docIDs.sort() : null, [1, 3])
+    expect(docIDs ? docIDs.sort() : null).toEqual([1, 3])
   })
 
-  t.test("If the node doesn't have any more docIDs, it should remove the node", async (t) => {
+  it("If the node doesn't have any more docIDs, it should remove the node", async () => {
     const tree = new BKDTree()
 
     tree.insert({ lat: 37.8207190397588, lon: -122.47838916631231 }, [1])
@@ -216,6 +213,6 @@ t.test('removeDocByID', async (t) => {
     tree.removeDocByID({ lat: 37.8207190397588, lon: -122.47838916631231 }, 2)
     tree.removeDocByID({ lat: 37.8207190397588, lon: -122.47838916631231 }, 3)
 
-    t.equal(tree.contains({ lat: 37.8207190397588, lon: -122.47838916631231 }), false)
+    expect(tree.contains({ lat: 37.8207190397588, lon: -122.47838916631231 })).toBe(false)
   })
 })

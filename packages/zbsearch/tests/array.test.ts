@@ -1,7 +1,7 @@
-import t from 'tap'
+import { expect, it } from 'vitest'
 import { create, getByID, insert, insertMultiple, load, remove, save, search, update } from '../src/index.js'
 
-t.test('create should support array of string', async (t) => {
+it('create should support array of string', async () => {
   const db = create({
     schema: {
       id: 'string',
@@ -19,31 +19,30 @@ t.test('create should support array of string', async (t) => {
     { id: '3', name: ['Lily', 'Lily', 'Lily', 'Lily', 'Evans', 'Potter'] }
   ])
 
-  await checkSearchTerm(t, db, 'Albus', [albusId])
-  await checkSearchTerm(t, db, 'Harry', [harryId])
-  await checkSearchTerm(t, db, 'James', [harryId, jamesId])
-  await checkSearchTerm(t, db, 'Potter', [harryId, jamesId, lilyId])
+  await checkSearchTerm(db, 'Albus', [albusId])
+  await checkSearchTerm(db, 'Harry', [harryId])
+  await checkSearchTerm(db, 'James', [harryId, jamesId])
+  await checkSearchTerm(db, 'Potter', [harryId, jamesId, lilyId])
   // 'P' is a fragment of indexed words ('Percival', 'Potter'), so opt into prefix expansion.
-  await checkSearchTerm(t, db, 'P', [albusId, harryId, jamesId, lilyId], { prefix: true })
-  await checkSearchTerm(t, db, 'foo', [])
+  await checkSearchTerm(db, 'P', [albusId, harryId, jamesId, lilyId], { prefix: true })
+  await checkSearchTerm(db, 'foo', [])
 
-  await checkSearchWhere(t, db, 'name', 'Albus', [albusId])
+  await checkSearchWhere(db, 'name', 'Albus', [albusId])
 
-  await checkSearchWhere(t, db, 'name', 'Harry', [harryId])
-  await checkSearchWhere(t, db, 'name', 'James', [harryId, jamesId])
-  await checkSearchWhere(t, db, 'name', 'Potter', [harryId, jamesId, lilyId])
-  await checkSearchWhere(t, db, 'name', 'P', [])
-  await checkSearchWhere(t, db, 'name', 'foo', [])
+  await checkSearchWhere(db, 'name', 'Harry', [harryId])
+  await checkSearchWhere(db, 'name', 'James', [harryId, jamesId])
+  await checkSearchWhere(db, 'name', 'Potter', [harryId, jamesId, lilyId])
+  await checkSearchWhere(db, 'name', 'P', [])
+  await checkSearchWhere(db, 'name', 'foo', [])
 
-  await checkSearchWhere(t, db, 'name', ['Albus'], [albusId])
-  await checkSearchWhere(t, db, 'name', ['Harry'], [harryId])
-  await checkSearchWhere(t, db, 'name', ['James'], [harryId, jamesId])
-  await checkSearchWhere(t, db, 'name', ['Percival', 'Evans'], [albusId, lilyId])
-  await checkSearchWhere(t, db, 'name', ['P'], [])
-  await checkSearchWhere(t, db, 'name', ['foo'], [])
+  await checkSearchWhere(db, 'name', ['Albus'], [albusId])
+  await checkSearchWhere(db, 'name', ['Harry'], [harryId])
+  await checkSearchWhere(db, 'name', ['James'], [harryId, jamesId])
+  await checkSearchWhere(db, 'name', ['Percival', 'Evans'], [albusId, lilyId])
+  await checkSearchWhere(db, 'name', ['P'], [])
+  await checkSearchWhere(db, 'name', ['foo'], [])
 
   await checkSearchFacets(
-    t as unknown as Tap.Test,
     db,
     'name',
     {},
@@ -62,11 +61,9 @@ t.test('create should support array of string', async (t) => {
       }
     }
   )
-
-  t.end()
 })
 
-t.test('create should support array of number', async (t) => {
+it('create should support array of number', async () => {
   const db = create({
     schema: {
       num: 'number[]'
@@ -83,16 +80,15 @@ t.test('create should support array of number', async (t) => {
     { num: [3, 2, 5] }
   ])
 
-  await checkSearchWhere(t, db, 'num', { eq: 5 }, [first, third, fourth])
+  await checkSearchWhere(db, 'num', { eq: 5 }, [first, third, fourth])
 
-  await checkSearchWhere(t, db, 'num', { eq: 35 }, [third])
-  await checkSearchWhere(t, db, 'num', { gt: 6 }, [second, third])
-  await checkSearchWhere(t, db, 'num', { gte: 7 }, [second, third])
-  await checkSearchWhere(t, db, 'num', { between: [6, 10] }, [second, third])
-  await checkSearchWhere(t, db, 'num', { eq: 42 }, [])
+  await checkSearchWhere(db, 'num', { eq: 35 }, [third])
+  await checkSearchWhere(db, 'num', { gt: 6 }, [second, third])
+  await checkSearchWhere(db, 'num', { gte: 7 }, [second, third])
+  await checkSearchWhere(db, 'num', { between: [6, 10] }, [second, third])
+  await checkSearchWhere(db, 'num', { eq: 42 }, [])
 
   await checkSearchFacets(
-    t as unknown as Tap.Test,
     db,
     'num',
     {
@@ -111,11 +107,9 @@ t.test('create should support array of number', async (t) => {
       }
     }
   )
-
-  t.end()
 })
 
-t.test('create should support array of boolean', async (t) => {
+it('create should support array of boolean', async () => {
   const db = create({
     schema: {
       b: 'boolean[]'
@@ -132,11 +126,10 @@ t.test('create should support array of boolean', async (t) => {
     { b: [true, true, true] }
   ])
 
-  await checkSearchWhere(t, db, 'b', true, [first, third, fourth])
-  await checkSearchWhere(t, db, 'b', false, [second, third])
+  await checkSearchWhere(db, 'b', true, [first, third, fourth])
+  await checkSearchWhere(db, 'b', false, [second, third])
 
   await checkSearchFacets(
-    t as unknown as Tap.Test,
     db,
     'b',
     {
@@ -151,11 +144,9 @@ t.test('create should support array of boolean', async (t) => {
       }
     }
   )
-
-  t.end()
 })
 
-t.test('remove should support array as well', async (t) => {
+it('remove should support array as well', async () => {
   const db = create({
     schema: {
       strings: 'string[]',
@@ -169,13 +160,13 @@ t.test('remove should support array as well', async (t) => {
     num: [3, 5, 7, 35],
     b: [true, true, true]
   })
-  t.ok(docId)
+  expect(docId).toBeTruthy()
 
   const removed = await remove(db, docId)
-  t.ok(removed)
+  expect(removed).toBeTruthy()
 })
 
-t.test('serialization should support array as well', async (t) => {
+it('serialization should support array as well', async () => {
   const db = create({
     schema: {
       strings: 'string[]',
@@ -188,7 +179,7 @@ t.test('serialization should support array as well', async (t) => {
     num: [3, 5, 7, 35],
     b: [true, true, true]
   })
-  t.ok(docId)
+  expect(docId).toBeTruthy()
 
   const raw = save(db)
   const db2 = create({
@@ -201,14 +192,14 @@ t.test('serialization should support array as well', async (t) => {
   load(db2, raw)
 
   const doc = getByID(db, docId)
-  t.strictSame(doc, {
+  expect(doc).toStrictEqual({
     strings: ['Albus', 'Percival', 'Wulfric', 'Brian'],
     num: [3, 5, 7, 35],
     b: [true, true, true]
   })
 })
 
-t.test('update supports array as well', async (t) => {
+it('update supports array as well', async () => {
   const db = create({
     schema: {
       strings: 'string[]',
@@ -221,42 +212,42 @@ t.test('update supports array as well', async (t) => {
     num: [3, 5, 7, 35],
     b: [true, true, true]
   })
-  t.ok(docId)
+  expect(docId).toBeTruthy()
 
   const newDocId = await update(db, docId, {
     strings: ['Harry', 'James', 'Potter'],
     num: [2, 3],
     b: [false, true]
   })
-  t.ok(newDocId)
+  expect(newDocId).toBeTruthy()
 })
 
-async function checkSearchTerm(t, db, term, expectedIds, extraParams = {}) {
+async function checkSearchTerm(db, term, expectedIds, extraParams = {}) {
   const result = await search(db, {
     term,
     ...extraParams
   })
-  t.equal(result.hits.length, expectedIds.length)
-  t.equal(result.count, expectedIds.length)
-  t.strictSame(new Set(result.hits.map((h) => h.id)), new Set(expectedIds))
+  expect(result.hits.length).toBe(expectedIds.length)
+  expect(result.count).toBe(expectedIds.length)
+  expect(new Set(result.hits.map((h) => h.id))).toStrictEqual(new Set(expectedIds))
 }
 
-async function checkSearchWhere(t, db, key, where, expectedIds) {
+async function checkSearchWhere(db, key, where, expectedIds) {
   const result = await search(db, {
     where: {
       [key]: where
     }
   })
-  t.equal(result.hits.length, expectedIds.length)
-  t.equal(result.count, expectedIds.length)
-  t.strictSame(new Set(result.hits.map((h) => h.id).sort()), new Set(expectedIds))
+  expect(result.hits.length).toBe(expectedIds.length)
+  expect(result.count).toBe(expectedIds.length)
+  expect(new Set(result.hits.map((h) => h.id).sort())).toStrictEqual(new Set(expectedIds))
 }
 
-async function checkSearchFacets(t: any, db, key, facet, expectedFacet) {
+async function checkSearchFacets(db, key, facet, expectedFacet) {
   const result = await search(db, {
     facets: {
       [key]: facet
     }
   })
-  t.strictSame(result.facets![key], expectedFacet)
+  expect(result.facets![key]).toStrictEqual(expectedFacet)
 }

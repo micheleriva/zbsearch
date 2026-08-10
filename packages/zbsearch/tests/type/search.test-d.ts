@@ -1,5 +1,6 @@
+import { expectTypeOf } from 'vitest'
+
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { expectAssignable, expectNotAssignable } from 'tsd'
 import type { SearchParamsFullText, ZBSearch } from '../../src/types.d.ts'
 
 const movieSchema = {
@@ -17,17 +18,17 @@ const movieSchema = {
 {
   type MovieSearchParamsProperties = SearchParamsFullText<ZBSearch<typeof movieSchema>>['properties']
 
-  expectAssignable<MovieSearchParamsProperties>('*')
-  expectAssignable<MovieSearchParamsProperties>(['title'])
-  expectAssignable<MovieSearchParamsProperties>(['meta.foo'])
-  expectNotAssignable<MovieSearchParamsProperties>(['meta.unknown'])
-  expectNotAssignable<MovieSearchParamsProperties>(['unknown'])
+  expectTypeOf('*').toExtend<MovieSearchParamsProperties>()
+  expectTypeOf(['title']).toExtend<MovieSearchParamsProperties>()
+  expectTypeOf(['meta.foo']).toExtend<MovieSearchParamsProperties>()
+  expectTypeOf(['meta.unknown']).not.toExtend<MovieSearchParamsProperties>()
+  expectTypeOf(['unknown']).not.toExtend<MovieSearchParamsProperties>()
 
   // Test search properties type with unknown schema
   {
     type MovieSearchParamsProperties = SearchParamsFullText<ZBSearch<any>>['properties']
-    expectAssignable<MovieSearchParamsProperties>('*')
-    expectAssignable<MovieSearchParamsProperties>(['title'])
+    expectTypeOf('*').toExtend<MovieSearchParamsProperties>()
+    expectTypeOf(['title']).toExtend<MovieSearchParamsProperties>()
   }
 }
 
@@ -35,18 +36,18 @@ const movieSchema = {
 {
   type MovieSearchParamsBoost = SearchParamsFullText<ZBSearch<typeof movieSchema>>['boost']
 
-  expectAssignable<MovieSearchParamsBoost>(undefined)
-  expectAssignable<MovieSearchParamsBoost>({})
-  expectAssignable<MovieSearchParamsBoost>({ title: 1 })
-  expectAssignable<MovieSearchParamsBoost>({ 'meta.foo': 1 })
-  expectNotAssignable<MovieSearchParamsBoost>({ unknown: 1 })
-  expectNotAssignable<MovieSearchParamsBoost>({ 'meta.unknown': 1 })
+  expectTypeOf(undefined).toExtend<MovieSearchParamsBoost>()
+  expectTypeOf({}).toExtend<MovieSearchParamsBoost>()
+  expectTypeOf({ title: 1 }).toExtend<MovieSearchParamsBoost>()
+  expectTypeOf({ 'meta.foo': 1 }).toExtend<MovieSearchParamsBoost>()
+  expectTypeOf({ unknown: 1 }).not.toExtend<MovieSearchParamsBoost>()
+  expectTypeOf({ 'meta.unknown': 1 }).not.toExtend<MovieSearchParamsBoost>()
 
   // Test search boost type with unknown schema
   {
     type MovieSearchParamsBoost = SearchParamsFullText<ZBSearch<any>>['boost']
-    expectAssignable<MovieSearchParamsBoost>(undefined)
-    expectAssignable<MovieSearchParamsBoost>({})
-    expectAssignable<MovieSearchParamsBoost>({ title: 1 })
+    expectTypeOf(undefined).toExtend<MovieSearchParamsBoost>()
+    expectTypeOf({}).toExtend<MovieSearchParamsBoost>()
+    expectTypeOf({ title: 1 }).toExtend<MovieSearchParamsBoost>()
   }
 }

@@ -1,8 +1,8 @@
-import t from 'tap'
+import { describe, expect, it } from 'vitest'
 import { create, insert, search } from '../src/index.js'
 
-t.test('elapsed', async (t) => {
-  t.test('should correctly set elapsed time to a custom format', async (t) => {
+describe('elapsed', () => {
+  it('should correctly set elapsed time to a custom format', async () => {
     const db = await create({
       schema: {
         title: 'string',
@@ -24,11 +24,11 @@ t.test('elapsed', async (t) => {
       term: 'test'
     })
 
-    t.same(typeof results.elapsed, 'string')
-    t.same(/(\d)n$/.test(results.elapsed as unknown as string), true)
+    expect(typeof results.elapsed).toEqual('string')
+    expect(/(\d)n$/.test(results.elapsed as unknown as string)).toEqual(true)
   })
 
-  t.test('should correctly set elapsed time to a bigint by default', async (t) => {
+  it('should correctly set elapsed time to a bigint by default', async () => {
     const db = await create({
       schema: {
         title: 'string',
@@ -45,6 +45,6 @@ t.test('elapsed', async (t) => {
       term: 'test'
     })
 
-    t.same(typeof results.elapsed, 'object')
+    expect(typeof results.elapsed).toEqual('object')
   })
 })

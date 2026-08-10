@@ -11,12 +11,43 @@ on:
     types: [submitted]
 
 jobs:
-  claude:
+  # Anyone can write "@claude" in a comment, so gate outside contributors behind a
+  # manual approval. This job only runs for people who are not the owner, an org
+  # member or a collaborator, and it parks on the `claude-external` environment
+  # until a required reviewer approves it. Waiting jobs do not consume runner
+  # minutes, so unapproved spam costs nothing.
+  approve-external:
     if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+      (
+        (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+        (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+        (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+        (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+      ) &&
+      !contains(
+        fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'),
+        github.event.comment.author_association || github.event.review.author_association || github.event.issue.author_association
+      )
+    runs-on: ubuntu-latest
+    environment: claude-external
+    steps:
+      - name: Record approval
+        run: echo "Approved a Claude Code run requested by @${{ github.event.sender.login }}"
+
+  claude:
+    needs: [approve-external]
+    # `always()` is required so this job still runs when `approve-external` is
+    # skipped (i.e. the request came from a trusted author). Any other outcome of
+    # the gate — failure, cancellation, a rejected approval — blocks the run.
+    if: |
+      always() &&
+      (needs.approve-external.result == 'success' || needs.approve-external.result == 'skipped') &&
+      (
+        (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+        (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+        (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+        (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -47,4 +78,3 @@ jobs:
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
           # claude_args: '--allowed-tools Bash(gh pr *)'
-

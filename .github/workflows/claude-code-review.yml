@@ -12,11 +12,14 @@ on:
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
+    # Auto-review branches pushed to this repo by trusted authors only. A
+    # `pull_request` run from a fork gets no repository secrets, so this job
+    # cannot authenticate there no matter what — review outside contributions by
+    # commenting "@claude review this" on the PR (see claude.yml), which runs in
+    # the base repo's context and is gated on your approval.
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)
 
     runs-on: ubuntu-latest
     permissions:

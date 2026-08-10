@@ -114,7 +114,7 @@
     "predev": "rm -rf dist && mkdir dist",
     "dev": "swc -s -w --extensions .ts,.cts -d dist src",
     "prebuild": "npm run lint && cp ../../README.md ./README.md",
-    "build": "DIALECT_ESM_TARGET=esnext DIALECT_COPIES=browser,deno node ../../scripts/dialects-build.mjs",
+    "build": "node ../../scripts/dialects-build.mjs --esm-target esnext --copies browser,deno",
     "lint": "exit 0;",
     "test": "vitest run --coverage",
     "test:ci": "vitest run --coverage",

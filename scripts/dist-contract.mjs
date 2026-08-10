@@ -30,8 +30,15 @@ function dtsSurface(file) {
     n.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)
 
   for (const node of src.statements) {
-    if (ts.isExportDeclaration(node) && node.exportClause && ts.isNamedExports(node.exportClause)) {
-      for (const el of node.exportClause.elements) names.add(el.name.text)
+    if (ts.isExportDeclaration(node)) {
+      const from = node.moduleSpecifier?.text
+      if (!node.exportClause) {
+        names.add(`*:${from}`)
+      } else if (ts.isNamespaceExport(node.exportClause)) {
+        names.add(node.exportClause.name.text)
+      } else if (ts.isNamedExports(node.exportClause)) {
+        for (const el of node.exportClause.elements) names.add(el.name.text)
+      }
     } else if (ts.isExportAssignment(node)) {
       names.add('default')
     } else if (isExported(node)) {
@@ -145,7 +152,8 @@ for (const dir of dirs) {
   }
 
   if (!existsSync(goldenPath)) {
-    console.log(`SKIP     ${current.name} (no golden snapshot)`)
+    failed++
+    console.log(`MISSING  ${current.name} (no baseline: run \`node scripts/dist-contract.mjs snapshot ${pkgDir}\`)`)
     continue
   }
   const golden = JSON.parse(readFileSync(goldenPath, 'utf8'))

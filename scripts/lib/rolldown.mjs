@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { basename } from 'node:path'
 import { createRequire } from 'node:module'
 
@@ -52,6 +52,8 @@ export async function bundle(config) {
   const { build } = createRequire(`${process.cwd()}/`)('rolldown')
   const pkg = JSON.parse(readFileSync('package.json', 'utf8'))
   const outDir = config.outDir ?? 'dist'
+
+  if (config.clean ?? true) rmSync(outDir, { recursive: true, force: true })
 
   const groups = config.splitting
     ? [config.entry]

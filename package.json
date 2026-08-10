@@ -18,7 +18,9 @@
     "commit": "turbo lint && pnpm lint-staged && cz",
     "prepare": "husky install .husky",
     "publish-packages": "node scripts/release.mjs",
-    "verify": "node scripts/dist-contract.mjs verify packages/*/ && node scripts/smoke-dist.mjs packages/*/ && node scripts/verify-sourcemaps.mjs packages/*/"
+    "verify": "node scripts/smoke-dist.mjs packages/*/ && node scripts/verify-sourcemaps.mjs packages/*/",
+    "verify:contract": "node scripts/dist-contract.mjs verify packages/*/",
+    "snapshot:contract": "node scripts/dist-contract.mjs snapshot packages/*/"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.5",

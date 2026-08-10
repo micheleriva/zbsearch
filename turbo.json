@@ -2,130 +2,303 @@
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**", "!dist/node_modules/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**",
+        "!dist/node_modules/**"
+      ]
     },
     "test": {
-      "dependsOn": ["build"],
-      "inputs": ["packages/**/*.test.js", "packages/**/*.test.jsx", "packages/**/*.test.ts", "packages/**/*.test.tsx"]
+      "dependsOn": [
+        "build"
+      ],
+      "inputs": [
+        "packages/**/*.test.js",
+        "packages/**/*.test.jsx",
+        "packages/**/*.test.ts",
+        "packages/**/*.test.tsx"
+      ]
     },
     "lint": {},
     "deploy": {
-      "dependsOn": ["^lint", "^build", "^test"]
+      "dependsOn": [
+        "^lint",
+        "^build",
+        "^test"
+      ]
     },
     "zbsearch#build": {
-      "dependsOn": ["@zbsearch/stemmers#build", "^build"],
-      "outputs": ["dist/**", "!dist/node_modules/**"]
+      "dependsOn": [
+        "@zbsearch/stemmers#build",
+        "^build"
+      ],
+      "outputs": [
+        "dist/**",
+        "!dist/node_modules/**"
+      ]
     },
     "@zbsearch/plugin-match-highlight#build": {
-      "dependsOn": ["zbsearch#build", "^build"],
-      "outputs": ["dist/**", "!dist/node_modules/**"]
+      "dependsOn": [
+        "zbsearch#build",
+        "^build"
+      ],
+      "outputs": [
+        "dist/**",
+        "!dist/node_modules/**"
+      ]
     },
     "@zbsearch/plugin-parsedoc#build": {
-      "dependsOn": ["zbsearch#build", "^build"],
-      "outputs": ["dist/**", "!dist/node_modules/**"]
+      "dependsOn": [
+        "zbsearch#build",
+        "^build"
+      ],
+      "outputs": [
+        "dist/**",
+        "!dist/node_modules/**"
+      ]
     },
     "@zbsearch/plugin-astro#build": {
-      "dependsOn": ["zbsearch#build", "^build"],
-      "outputs": ["dist/**", "!dist/node_modules/**"]
+      "dependsOn": [
+        "zbsearch#build",
+        "^build"
+      ],
+      "outputs": [
+        "dist/**",
+        "!dist/node_modules/**"
+      ]
     },
     "@zbsearch/plugin-nextra#build": {
-      "dependsOn": ["zbsearch#build", "@zbsearch/plugin-match-highlight#build", "^build"],
-      "outputs": ["dist/**", "!dist/node_modules/**"]
+      "dependsOn": [
+        "zbsearch#build",
+        "@zbsearch/plugin-match-highlight#build",
+        "^build"
+      ],
+      "outputs": [
+        "dist/**",
+        "!dist/node_modules/**"
+      ]
     },
     "@zbsearch/highlight#build": {
-      "outputs": ["dist/**"]
+      "outputs": [
+        "dist/**"
+      ]
     },
     "@zbsearch/searchbox-core#build": {
-      "dependsOn": ["@zbsearch/highlight#build", "^build"],
-      "outputs": ["dist/**"]
+      "dependsOn": [
+        "@zbsearch/highlight#build",
+        "^build"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
     "@zbsearch/searchbox-react#build": {
-      "dependsOn": ["@zbsearch/searchbox-core#build", "^build"],
-      "outputs": ["dist/**"]
+      "dependsOn": [
+        "@zbsearch/searchbox-core#build",
+        "^build"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
     "@zbsearch/docs-index#build": {
-      "dependsOn": ["zbsearch#build", "@zbsearch/searchbox-core#build", "^build"],
-      "outputs": ["dist/**"]
+      "dependsOn": [
+        "zbsearch#build",
+        "@zbsearch/searchbox-core#build",
+        "^build"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
     "@zbsearch/plugin-docusaurus#build": {
-      "dependsOn": ["@zbsearch/docs-index#build", "^build"],
-      "outputs": ["lib/**"]
+      "dependsOn": [
+        "@zbsearch/docs-index#build",
+        "^build"
+      ],
+      "outputs": [
+        "lib/**"
+      ]
     },
     "@zbsearch/searchbox-vue#build": {
-      "dependsOn": ["@zbsearch/searchbox-core#build", "^build"],
-      "outputs": ["dist/**"]
+      "dependsOn": [
+        "@zbsearch/searchbox-core#build",
+        "^build"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
     "@zbsearch/plugin-vitepress#build": {
-      "dependsOn": ["@zbsearch/docs-index#build", "@zbsearch/searchbox-vue#build", "^build"],
-      "outputs": ["dist/**"]
+      "dependsOn": [
+        "@zbsearch/docs-index#build",
+        "@zbsearch/searchbox-vue#build",
+        "^build"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
     "@zbsearch/sandbox-vitepress#build": {
-      "dependsOn": ["@zbsearch/plugin-vitepress#build"],
-      "outputs": [".vitepress/dist/**", ".vitepress/cache/**"]
+      "dependsOn": [
+        "@zbsearch/plugin-vitepress#build"
+      ],
+      "outputs": [
+        ".vitepress/dist/**",
+        ".vitepress/cache/**"
+      ]
     },
     "@zbsearch/sandbox-vitepress#test": {
-      "dependsOn": ["@zbsearch/plugin-vitepress#build"]
+      "dependsOn": [
+        "@zbsearch/plugin-vitepress#build"
+      ]
     },
     "@zbsearch/plugin-starlight#build": {
-      "dependsOn": ["@zbsearch/docs-index#build", "@zbsearch/searchbox-react#build", "^build"]
+      "dependsOn": [
+        "@zbsearch/docs-index#build",
+        "@zbsearch/searchbox-react#build",
+        "^build"
+      ]
     },
     "@zbsearch/sandbox-starlight#build": {
-      "dependsOn": ["@zbsearch/plugin-starlight#build"],
-      "outputs": ["dist/**", ".astro/**"]
+      "dependsOn": [
+        "@zbsearch/plugin-starlight#build"
+      ],
+      "outputs": [
+        "dist/**",
+        ".astro/**"
+      ]
     },
     "@zbsearch/sandbox-starlight#test": {
-      "dependsOn": ["@zbsearch/plugin-starlight#build"]
+      "dependsOn": [
+        "@zbsearch/plugin-starlight#build"
+      ]
     },
     "@zbsearch/sandbox-docusaurus#build": {
-      "dependsOn": ["@zbsearch/plugin-docusaurus#build"],
-      "outputs": ["build/**", ".docusaurus/**"]
+      "dependsOn": [
+        "@zbsearch/plugin-docusaurus#build"
+      ],
+      "outputs": [
+        "build/**",
+        ".docusaurus/**"
+      ]
     },
     "@zbsearch/sandbox-docusaurus#test": {
-      "dependsOn": ["@zbsearch/plugin-docusaurus#build"]
+      "dependsOn": [
+        "@zbsearch/plugin-docusaurus#build"
+      ]
     },
     "@zbsearch/plugin-embeddings#build": {
-      "dependsOn": ["zbsearch#build"],
-      "outputs": ["dist/**", "!dist/node_modules/**"]
+      "dependsOn": [
+        "zbsearch#build"
+      ],
+      "outputs": [
+        "dist/**",
+        "!dist/node_modules/**"
+      ]
     },
     "@zbsearch/plugin-pt15#build": {
-      "dependsOn": ["zbsearch#build"],
-      "outputs": ["dist/**", "!dist/node_modules/**"]
+      "dependsOn": [
+        "zbsearch#build"
+      ],
+      "outputs": [
+        "dist/**",
+        "!dist/node_modules/**"
+      ]
     },
     "@zbsearch/tokenizers#build": {
-      "dependsOn": ["zbsearch#build"]
+      "dependsOn": [
+        "zbsearch#build"
+      ]
     },
     "@zbsearch/docs#build": {
-      "dependsOn": ["zbsearch#build", "^build"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "dependsOn": [
+        "zbsearch#build",
+        "^build"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**"
+      ]
     },
     "@zbsearch/edge-core#build": {
-      "dependsOn": ["zbsearch#build"],
-      "outputs": ["dist/**", "!dist/node_modules/**"]
+      "dependsOn": [
+        "zbsearch#build"
+      ],
+      "outputs": [
+        "dist/**",
+        "!dist/node_modules/**"
+      ]
     },
     "@zbsearch/storage-s3#build": {
-      "dependsOn": ["@zbsearch/edge-core#build"],
-      "outputs": ["dist/**", "!dist/node_modules/**"]
+      "dependsOn": [
+        "@zbsearch/edge-core#build"
+      ],
+      "outputs": [
+        "dist/**",
+        "!dist/node_modules/**"
+      ]
     },
     "@zbsearch/edge-index-builder#build": {
-      "dependsOn": ["@zbsearch/storage-s3#build", "@zbsearch/edge-core#build"],
-      "outputs": ["dist/**", "!dist/node_modules/**"]
+      "dependsOn": [
+        "@zbsearch/storage-s3#build",
+        "@zbsearch/edge-core#build"
+      ],
+      "outputs": [
+        "dist/**",
+        "!dist/node_modules/**"
+      ]
     },
     "@zbsearch/runtime-cloudflare#build": {
-      "dependsOn": ["@zbsearch/edge-core#build"],
-      "outputs": ["dist/**", "!dist/node_modules/**"]
+      "dependsOn": [
+        "@zbsearch/edge-core#build"
+      ],
+      "outputs": [
+        "dist/**",
+        "!dist/node_modules/**"
+      ]
     },
     "@zbsearch/edge-core#test": {
-      "dependsOn": ["@zbsearch/edge-core#build"]
+      "dependsOn": [
+        "@zbsearch/edge-core#build"
+      ]
     },
     "@zbsearch/storage-s3#test": {
-      "dependsOn": ["@zbsearch/storage-s3#build"]
+      "dependsOn": [
+        "@zbsearch/storage-s3#build"
+      ]
     },
     "@zbsearch/edge-index-builder#test": {
-      "dependsOn": ["@zbsearch/edge-index-builder#build"]
+      "dependsOn": [
+        "@zbsearch/edge-index-builder#build"
+      ]
     },
     "@zbsearch/runtime-cloudflare#test": {
-      "dependsOn": ["@zbsearch/runtime-cloudflare#build"]
+      "dependsOn": [
+        "@zbsearch/runtime-cloudflare#build"
+      ]
+    },
+    "@zbsearch/demo-ecommerce#build": {
+      "dependsOn": [
+        "zbsearch#build",
+        "^build"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**"
+      ]
+    },
+    "@zbsearch/demo-semantic#build": {
+      "dependsOn": [
+        "zbsearch#build",
+        "^build"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**"
+      ]
     }
   }
 }

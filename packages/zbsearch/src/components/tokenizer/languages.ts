@@ -29,6 +29,7 @@ export const SUPPORTED_LANGUAGE_LOCALES: Record<string, string> = {
   romanian: 'ro',
   russian: 'ru',
   serbian: 'sr',
+  slovak: 'sk',
   slovenian: 'sl',
   spanish: 'es',
   swedish: 'sv',
@@ -85,7 +86,8 @@ const SPLITTER_ALPHABETS: Record<SupportedLanguage, string> = {
   sanskrit: 'a-z0-9A-Zāīūṛḷṃṁḥśṣṭḍṇṅñḻḹṝ',
   vietnamese:
     'a-z0-9A-ZáàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđÁÀẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬÉÈẺẼẸÊẾỀỂỄỆÍÌỈĨỊÓÒỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÚÙỦŨỤƯỨỪỬỮỰÝỲỶỸỴĐ_',
-  czech: 'A-Z0-9a-zěščřžýáíéúůóťďĚŠČŘŽÝÁÍÉÓÚŮŤĎ-'
+  czech: 'A-Z0-9a-zěščřžýáíéúůóťďĚŠČŘŽÝÁÍÉÓÚŮŤĎ-',
+  slovak: 'A-Z0-9a-záäčďéíĺľňóôŕšťúýžÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ-'
 }
 
 export const SPLITTERS: Record<SupportedLanguage, RegExp> = Object.fromEntries(

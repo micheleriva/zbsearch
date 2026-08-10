@@ -30,6 +30,8 @@ const stemmers = {
   romanian: 'ro',
   russian: 'ru',
   serbian: 'rs',
+  // NOTE: `sk` is already taken by Sanskrit below, so Slovak uses `svk`.
+  slovak: 'svk',
   slovenian: 'sl',
   spanish: 'es',
   swedish: 'se',
@@ -67,6 +69,7 @@ const languageDisplayNames = {
   russian: 'Russian',
   sanskrit: 'Sanskrit',
   serbian: 'Serbian',
+  slovak: 'Slovak',
   slovenian: 'Slovenian',
   spanish: 'Spanish',
   swedish: 'Swedish',

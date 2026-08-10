@@ -19,6 +19,7 @@ describe('language locales', () => {
   it('specific language to locale mappings', async () => {
     const expectedLocales = {
       czech: 'cs',
+      slovak: 'sk',
       slovenian: 'sl',
       danish: 'da',
       greek: 'el',
@@ -36,8 +37,9 @@ describe('language locales', () => {
     }
   })
 
-  it('supported languages include czech and slovenian', async () => {
+  it('supported languages include czech, slovak and slovenian', async () => {
     expect(SUPPORTED_LANGUAGES.includes('czech')).toBeTruthy()
+    expect(SUPPORTED_LANGUAGES.includes('slovak')).toBeTruthy()
     expect(SUPPORTED_LANGUAGES.includes('slovenian')).toBeTruthy()
     expect(SUPPORTED_LANGUAGES).toStrictEqual(Object.keys(SUPPORTED_LANGUAGE_LOCALES))
   })

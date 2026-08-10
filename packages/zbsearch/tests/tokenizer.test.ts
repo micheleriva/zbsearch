@@ -10,6 +10,7 @@ import { stemmer as italianStemmer, language as italianLanguage } from '@zbsearc
 import { stemmer as norwegianStemmer, language as norwegianLanguage } from '@zbsearch/stemmers/norwegian'
 import { stemmer as portugueseStemmer, language as portugueseLanguage } from '@zbsearch/stemmers/portuguese'
 import { stemmer as russianStemmer, language as russianLanguage } from '@zbsearch/stemmers/russian'
+import { stemmer as slovakStemmer, language as slovakLanguage } from '@zbsearch/stemmers/slovak'
 import { stemmer as slovenianStemmer, language as slovenianLanguage } from '@zbsearch/stemmers/slovenian'
 import { stemmer as spanishStemmer, language as spanishLanguage } from '@zbsearch/stemmers/spanish'
 import { stemmer as swedishStemmer, language as swedishLanguage } from '@zbsearch/stemmers/swedish'
@@ -28,6 +29,7 @@ import { stopwords as italianStopwords } from '@zbsearch/stopwords/italian'
 import { stopwords as norwegianStopwords } from '@zbsearch/stopwords/norwegian'
 import { stopwords as portugueseStopwords } from '@zbsearch/stopwords/portuguese'
 import { stopwords as russianStopwords } from '@zbsearch/stopwords/russian'
+import { stopwords as slovakStopwords } from '@zbsearch/stopwords/slovak'
 import { stopwords as slovenianStopwords } from '@zbsearch/stopwords/slovenian'
 import { stopwords as spanishStopwords } from '@zbsearch/stopwords/spanish'
 import { stopwords as swedishStopwords } from '@zbsearch/stopwords/swedish'
@@ -400,6 +402,50 @@ describe('Tokenizer', () => {
     expect(O2).toStrictEqual(['zak', 'cetl', 'knih', 'skol'])
   })
 
+  it('should tokenize and stem correctly in slovak', async () => {
+    const tokenizer = await createTokenizer({
+      language: slovakLanguage,
+      stemmer: slovakStemmer,
+      stopWords: slovakStopwords
+    })
+
+    const I1 = 'Deti čítali knihy v škole'
+    const I2 = 'ľudia sedeli za veľkým stolom'
+
+    const O1 = tokenizer.tokenize(I1)
+    const O2 = tokenizer.tokenize(I2)
+
+    expect(O1).toStrictEqual(['det', 'cital', 'knih', 'skol'])
+    expect(O2).toStrictEqual(['lud', 'sedl', 'velk', 'stol'])
+  })
+
+  it('slovak-only letters do not split tokens', async () => {
+    const tokenizer = await createTokenizer({
+      language: slovakLanguage,
+      stemming: false,
+      stopWords: slovakStopwords
+    })
+
+    // ä, ô, ľ, ĺ and ŕ are absent from the Czech splitter, which would break
+    // these words apart. They must survive tokenization as whole tokens.
+    expect(tokenizer.tokenize('mäso stôl ľudia vĺča vŕba')).toStrictEqual(['maso', 'stol', 'ludia', 'vlca', 'vrba'])
+  })
+
+  it('uses the complete stopwords-iso Slovak list', async () => {
+    expect(slovakStopwords.length).toBe(418)
+    for (const word of ['je', 'bude', 'ešte', 'takže']) {
+      expect(slovakStopwords.includes(word), `contains ${word}`).toBeTruthy()
+    }
+
+    const tokenizer = await createTokenizer({
+      language: slovakLanguage,
+      stemming: false,
+      stopWords: slovakStopwords
+    })
+
+    expect(tokenizer.tokenize('To je ešte bude takže vyhľadávanie')).toStrictEqual(['vyhladavanie'])
+  })
+
   it('should tokenize and stem correctly in slovenian', async () => {
     const tokenizer = await createTokenizer({
       language: slovenianLanguage,
@@ -448,7 +494,7 @@ describe('Tokenizer', () => {
   })
 })
 
-describe('Czech and Slovenian stemming', () => {
+describe('Czech, Slovak and Slovenian stemming', () => {
   it('czech inflected forms collapse to a single stem', async () => {
     for (const word of ['žák', 'žáci', 'žáky', 'žákům', 'žácích']) {
       expect(czechStemmer(word), `${word} stems to žák`).toBe('žák')
@@ -466,6 +512,159 @@ describe('Czech and Slovenian stemming', () => {
   it('czech short words are left unchanged', async () => {
     expect(czechStemmer('e')).toBe('e')
     expect(czechStemmer('zi')).toBe('zi')
+  })
+
+  it('slovak inflected forms collapse to a single stem', async () => {
+    for (const word of ['žiak', 'žiaka', 'žiaci', 'žiakovi', 'žiakom', 'žiakov', 'žiakoch', 'žiakmi']) {
+      expect(slovakStemmer(word), `${word} stems to žiak`).toBe('žiak')
+    }
+
+    for (const word of ['kniha', 'knihy', 'knihe', 'knihu', 'knihou', 'knihám', 'knihách', 'knihami']) {
+      expect(slovakStemmer(word), `${word} stems to knih`).toBe('knih')
+    }
+
+    for (const word of ['mesto', 'mesta', 'mestu', 'mestom', 'mestá', 'mestám', 'mestách']) {
+      expect(slovakStemmer(word), `${word} stems to mest`).toBe('mest')
+    }
+
+    for (const word of ['malý', 'malá', 'malé', 'malého', 'malému', 'malej', 'malých', 'malými']) {
+      expect(slovakStemmer(word), `${word} stems to mal`).toBe('mal')
+    }
+  })
+
+  it('slovak stems ascii-folded input the same way', async () => {
+    // The tokenizer folds diacritics before stemming, so the folded forms must
+    // collapse exactly like their accented counterparts.
+    for (const word of ['ziak', 'ziaka', 'ziaci', 'ziakovi', 'ziakom', 'ziakov', 'ziakoch']) {
+      expect(slovakStemmer(word), `${word} stems to ziak`).toBe('ziak')
+    }
+
+    for (const word of ['maly', 'mala', 'male', 'maleho', 'malemu', 'malej', 'malych', 'malymi']) {
+      expect(slovakStemmer(word), `${word} stems to mal`).toBe('mal')
+    }
+  })
+
+  it('slovak fleeting vowel and ô alternations conflate', async () => {
+    for (const word of ['stôl', 'stola', 'stolu', 'stolom', 'stoly', 'stolov']) {
+      expect(slovakStemmer(word), `${word} stems to stol`).toBe('stol')
+    }
+
+    for (const word of ['ovca', 'ovce', 'ovcu', 'oviec', 'ovciam']) {
+      expect(slovakStemmer(word), `${word} stems to ovk`).toBe('ovk')
+    }
+
+    for (const word of ['chlapec', 'chlapca', 'chlapci', 'chlapcov']) {
+      expect(slovakStemmer(word), `${word} stems to chlapk`).toBe('chlapk')
+    }
+  })
+
+  it('slovak superlative, comparative and verb inflections conflate', async () => {
+    for (const word of ['najžľaznatejšieho', 'najzlaznatejsieho']) {
+      expect(slovakStemmer(word), `${word} stems to its adjective base`).toBe(word.includes('ž') ? 'žľaznat' : 'zlaznat')
+    }
+
+    for (const word of [
+      'robiť',
+      'robit',
+      'robím',
+      'robim',
+      'robíš',
+      'robíme',
+      'robime',
+      'robíte',
+      'robite',
+      'robili',
+      'robila',
+      'robilo'
+    ]) {
+      expect(slovakStemmer(word), `${word} stems to rob`).toBe('rob')
+    }
+
+    // The -ieť class ("vidieť", "sedieť", "musieť"): the infinitive and present
+    // tense join, but the past tense stays out because "-eli" collides with the
+    // locative of nouns in "-el" ("hoteli"). See the note in svk.js.
+    for (const word of ['vidieť', 'vidiet', 'vidím', 'vidim']) {
+      expect(slovakStemmer(word), `${word} stems to vid`).toBe('vid')
+    }
+    expect(slovakStemmer('videli'), 'past tense of the -ieť class keeps a separate stem').toBe('vidl')
+
+    for (const [word, expected] of [
+      ['čítajú', 'čít'],
+      ['citaju', 'cit'],
+      ['pracujú', 'prac'],
+      ['pracuju', 'prac']
+    ]) {
+      expect(slovakStemmer(word), `${word} stems to its verb base`).toBe(expected)
+    }
+  })
+
+  it('slovak z/ž endings remain stable across muž inflections', async () => {
+    for (const word of ['muž', 'muža', 'muži', 'mužom', 'mužoch', 'mužmi']) {
+      expect(slovakStemmer(word), `${word} stems to muž`).toBe('muž')
+    }
+
+    for (const word of ['muz', 'muza', 'muzi', 'muzom', 'muzoch', 'muzmi']) {
+      expect(slovakStemmer(word), `${word} stems to muz`).toBe('muz')
+    }
+  })
+
+  it('slovak short words are left unchanged', async () => {
+    expect(slovakStemmer('e')).toBe('e')
+    expect(slovakStemmer('zi')).toBe('zi')
+    expect(slovakStemmer('dom')).toBe('dom')
+  })
+
+  it('slovak folded infinitive endings conflate nouns as well as verbs', async () => {
+    // The tokenizer folds accents before stemming, so folded "-at"/"-it" is
+    // ambiguous between an infinitive ("robit") and a noun ("internát",
+    // "zošit"). The ending is stripped in both cases and stripped again after
+    // case removal, so the nouns lose it across their whole paradigm instead of
+    // splitting singular from plural.
+    for (const word of ['internat', 'internaty']) {
+      expect(slovakStemmer(word), `${word} stems to intern`).toBe('intern')
+    }
+    for (const word of ['zosit', 'zosity']) {
+      expect(slovakStemmer(word), `${word} stems to zos`).toBe('zos')
+    }
+    for (const word of ['citat', 'citam', 'citaju']) {
+      expect(slovakStemmer(word), `${word} stems to cit`).toBe('cit')
+    }
+    for (const word of ['pracovat', 'pracuju']) {
+      expect(slovakStemmer(word), `${word} stems to prac`).toBe('prac')
+    }
+    // Too short to strip: the minimum-stem guard keeps these intact.
+    for (const word of ['plat', 'platy']) {
+      expect(slovakStemmer(word), `${word} stems to plat`).toBe('plat')
+    }
+  })
+
+  it('slovak fleeting ie keeps a minimum stem length', async () => {
+    // Dropping "ie" costs two characters, so it only applies when at least
+    // three remain. Below that the word is left for palatalization alone,
+    // rather than falling through to the weaker fleeting-e rule.
+    expect(slovakStemmer('okien')).toBe('okn')
+    expect(slovakStemmer('oviec')).toBe('ovk')
+    expect(slovakStemmer('dieťa')).toBe('diet')
+    expect(slovakStemmer('dieta')).toBe('diet')
+    // A surface "ie" also marks a lengthened root vowel ("žena"/"žien"), which
+    // this rule cannot undo, so the genitive plural stays separate.
+    expect(slovakStemmer('žien')).toBe('žien')
+    expect(slovakStemmer('žien')).not.toBe(slovakStemmer('žena'))
+  })
+
+  it('slovak sieť and diel paradigms conflate', async () => {
+    for (const word of ['sieť', 'siet', 'siete', 'sietami']) {
+      expect(slovakStemmer(word), `${word} stems to siet`).toBe('siet')
+    }
+    for (const word of ['diel', 'dielo', 'dielom']) {
+      expect(slovakStemmer(word), `${word} stems to diel`).toBe('diel')
+    }
+  })
+
+  it('slovak stemming keeps distinct words distinct', async () => {
+    expect(slovakStemmer('mesto'), 'mesto and meso must not collapse').not.toBe(slovakStemmer('meso'))
+    expect(slovakStemmer('stôl'), 'stôl and stolica must not collapse').not.toBe(slovakStemmer('stolica'))
+    expect(slovakStemmer('okno'), 'okno and oko must not collapse').not.toBe(slovakStemmer('oko'))
   })
 
   it('slovenian inflected forms collapse to a single stem', async () => {

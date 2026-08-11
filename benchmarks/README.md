@@ -70,6 +70,7 @@ Fork PRs are supported: benchmarks run on `pull_request` (read-only token), and 
 | `npm run benchmark:vector` | Vector search |
 | `npm run benchmark:vector-ivf` | IVF vector index |
 | `npm run benchmark:memory` | Memory footprint |
+| `npm run benchmark:responsiveness` | Main-thread blocking during sync vs async indexing |
 | `npm run benchmark:bundle-size` | Serialized index size |
 | `npm run benchmark:algorithms` | BM25 / QPS / PT15 |
 | `npm run benchmark:search-quality` | Standardized ranking quality on BEIR datasets (nDCG@10 / MAP@100 / R@100) |

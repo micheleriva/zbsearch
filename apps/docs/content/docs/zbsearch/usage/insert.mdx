@@ -96,6 +96,59 @@ operations to perform before yielding the event loop.
 insertMultiple(movieDB, docs, 500);
 ```
 
+## Non-blocking insertion
+
+`insertMultiple` is synchronous: it returns only once every document has been indexed. Indexing
+tens of thousands of documents up front therefore freezes the page for as long as the build takes.
+
+`insertMultipleAsync` does the same work in batches and hands control back to the event loop
+between them, so rendering, input handling and timers keep getting a turn:
+
+```javascript copy
+import { insertMultipleAsync } from "zbsearch";
+
+const ids = await insertMultipleAsync(movieDB, docs);
+```
+
+It accepts an options object:
+
+```javascript copy
+const ids = await insertMultipleAsync(movieDB, docs, {
+  batchSize: 100, // documents to index before yielding, default: 100
+  language: "english", // as in `insertMultiple`
+  skipHooks: false, // as in `insertMultiple`
+  onProgress: ({ processed, total }) => {
+    progressBar.value = processed / total;
+  },
+});
+```
+
+The default `batchSize` is `100`, lower than `insertMultiple`'s `1000`: this variant optimizes for
+how long the main thread stays blocked at a stretch rather than for raw throughput. Indexing 30,000
+documents on Node 24 (`npm run benchmark:responsiveness` in the repo) shows what the knob buys you:
+
+| Variant | Total | Longest block |
+| --- | --- | --- |
+| `insertMultiple` (sync) | 954ms | the entire run - nothing else could run |
+| `insertMultipleAsync`, `batchSize: 1000` | 733ms | 52.2ms |
+| `insertMultipleAsync`, `batchSize: 100` (default) | 737ms | 7.0ms |
+| `insertMultipleAsync`, `batchSize: 25` | 814ms | 5.3ms |
+
+The total work is unchanged - what collapses is the longest uninterrupted stretch, from the whole
+build down to a few milliseconds. Note that `batchSize: 1000` still crosses the 50ms mark Chrome
+reports as a long task, which is why the default is `100`: it stays comfortably inside a 60fps
+frame budget at negligible cost. Lower it further when individual documents are large.
+
+The resolved ids are in the same order as the documents you passed, exactly as with
+`insertMultiple`. If a document fails to insert the promise rejects, and the documents indexed
+before it stay in the database.
+
+<Callout>
+The indexing work still runs on the calling thread, so the total build time is unchanged - what
+changes is that the main thread is never blocked for more than one batch at a time. To keep
+indexing off the main thread entirely, run ZBSearch inside a Web Worker.
+</Callout>
+
 ## Validation rules
 
 Defining the schema at database creation time, ZBSearch validates all the inserted documents following those rules:

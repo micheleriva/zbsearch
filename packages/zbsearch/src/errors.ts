@@ -22,6 +22,7 @@ const errors = {
   INVALID_BOOST_VALUE: `Boost value must be a number greater than, or less than 0.`,
   INVALID_FILTER_OPERATION: `You can only use one operation per filter, you requested %d.`,
   SCHEMA_VALIDATION_FAILURE: `Cannot insert document due schema validation failure on "%s" property.`,
+  INVALID_BATCH_SIZE: `Batch size must be an integer greater than 0. Got "%s" instead.`,
   INVALID_SORT_SCHEMA_TYPE: `Unsupported sort schema type "%s" at "%s". Expected "string" or "number".`,
   CANNOT_SORT_BY_ARRAY: `Cannot configure sort for "%s" because it is an array (%s).`,
   UNABLE_TO_SORT_ON_UNKNOWN_FIELD: `Unable to sort on unknown field "%s". Allowed fields: %s`,

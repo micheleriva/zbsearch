@@ -1,0 +1,117 @@
+---
+title: Save and Load
+description: Persist an ZBSearch database and restore it without freezing the main thread.
+---
+
+ZBSearch databases can be serialized with `save` and restored with `load`, so an index can be
+built once (at build time, on a server) and shipped to clients ready to search.
+
+## Saving and loading
+
+```javascript copy
+import { create, save, load } from "zbsearch";
+
+const raw = save(db);
+const serialized = JSON.stringify(raw);
+
+// later, somewhere else
+const db = create({ schema });
+load(db, JSON.parse(serialized));
+```
+
+The schema you pass to `create` must match the one the index was built with.
+
+## The problem with large indexes
+
+Both steps of the restore path are synchronous and indivisible. For a 100,000-document index,
+`JSON.parse` followed by `load` holds the main thread for its entire duration, so the page is
+frozen until it finishes. Nothing else - rendering, clicks, timers - gets a turn.
+
+## The chunked format
+
+`save` can emit the index as many independently parseable pieces instead of one blob:
+
+```javascript copy
+import { save, stringifyChunked } from "zbsearch";
+
+const chunked = save(db, { format: "chunked" });
+// => { version: 2, chunks: string[] }
+
+const text = stringifyChunked(chunked);
+```
+
+`stringifyChunked` joins the chunks with newlines, which is safe because `JSON.stringify` never
+emits a raw newline. Restore it with `parseChunked` and `loadAsync`:
+
+```javascript copy
+import { create, parseChunked, loadAsync } from "zbsearch";
+
+const db = create({ schema });
+await loadAsync(db, parseChunked(text));
+```
+
+`parseChunked` only splits the text - it does not parse it. `loadAsync` then parses one chunk at a
+time, yielding to the event loop between them, and does the same across the stores and index
+properties it rebuilds.
+
+<Callout type="warn">
+**Do not `JSON.stringify` the chunked object** <br />
+`JSON.stringify(save(db, { format: "chunked" }))` produces a single blob whose reload is one
+monolithic `JSON.parse` again - the exact cost the format exists to avoid. Persist the chunks as
+separate records, or use `stringifyChunked` / `parseChunked`.
+</Callout>
+
+### Chunk size
+
+`chunkSize` sets the target size in characters for each chunk, defaulting to `524288` (512 KB):
+
+```javascript copy
+const chunked = save(db, { format: "chunked", chunkSize: 256 * 1024 });
+```
+
+Smaller chunks shorten the longest block but produce more of them. A value that cannot be split -
+a single property's tree - is emitted whole even if it exceeds the target.
+
+### What it buys you
+
+Restoring a 100,000-document index (204 MB serialized, Node 24):
+
+| Path | Total | Longest block |
+| --- | --- | --- |
+| `JSON.parse` + `load` | 562ms | the entire run - nothing else could run |
+| `parseChunked` + `loadAsync` | 710ms | 104ms |
+
+The parse itself is well bounded - measured on its own it never blocks for more than ~10ms at the
+default chunk size. The residual 104ms is two things the format cannot address: garbage collection
+from the roughly doubled peak memory while both the text and the rebuilt structures are live, and
+one indivisible `RadixTree.fromJSON` call for the largest text property (~33ms at this size).
+
+Total time is around 25% higher, which is the cost of yielding. This trade favours responsiveness
+over throughput; if you only care about total time, keep using the default format.
+
+## Staying on the default format
+
+The chunked format is entirely opt-in. `save(db)` returns exactly what it always has, and you can
+pass the format explicitly when it comes from configuration:
+
+```javascript copy
+const raw = save(db, { format: "default" });
+```
+
+`loadAsync` accepts both formats, so you can adopt the yielding restore without changing how the
+index is stored:
+
+```javascript copy
+await loadAsync(db, JSON.parse(serialized));
+```
+
+This still yields between stores and index properties, but the `JSON.parse` remains one block.
+
+## Compatibility
+
+- Indexes saved by older versions load unchanged through `load` and `loadAsync`.
+- `load` also accepts the chunked format, so you are not forced into the async API.
+- A chunked index **cannot** be read by a version of ZBSearch that predates the format. The
+  envelope carries a `version` field and a mismatched reader throws rather than misbehaving, but
+  older releases have no knowledge of it at all. Keep publishing the default format until every
+  consumer is upgraded.

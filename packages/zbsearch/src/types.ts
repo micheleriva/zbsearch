@@ -1250,6 +1250,13 @@ export interface IIndex<I extends AnyIndexStore> {
   getSearchablePropertiesWithTypes(index: I): Record<string, SearchableType>
 
   load<R = unknown>(sharedInternalDocumentStore: InternalDocumentIDStore, raw: R, indexes?: IndexesConfig): I
+
+  loadAsync?<R = unknown>(
+    sharedInternalDocumentStore: InternalDocumentIDStore,
+    raw: R,
+    indexes?: IndexesConfig
+  ): Promise<I>
+
   save<R = unknown>(index: I): SyncOrAsyncValue<R>
 }
 
@@ -1297,6 +1304,9 @@ export interface ISorter<So extends AnySorterStore> {
   remove: <T extends So>(sorter: T, prop: string, id: DocumentID) => void
 
   load<R = unknown>(sharedInternalDocumentStore: InternalDocumentIDStore, raw: R): So
+
+  loadAsync?<R = unknown>(sharedInternalDocumentStore: InternalDocumentIDStore, raw: R): Promise<So>
+
   save<R = unknown>(sorter: So): R
 
   sortBy<T extends AnyZBSearch>(sorter: So, docIds: [DocumentID, number][], by: SorterParams<T>): [DocumentID, number][]

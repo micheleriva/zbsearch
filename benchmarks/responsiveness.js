@@ -60,6 +60,10 @@ function startProbe() {
   }
 }
 
+function MB(bytes) {
+  return (bytes / 1024 / 1024).toFixed(0)
+}
+
 function formatMs(value) {
   return Number.isFinite(value) ? `${value.toFixed(1)}ms` : 'blocked'
 }
@@ -85,12 +89,12 @@ async function measure(label, run) {
 function printTable(title, entries) {
   console.log(`\n${title}\n`)
   console.log(
-    `${'variant'.padEnd(34)}${'total'.padStart(10)}${'worst block'.padStart(16)}${'p99'.padStart(10)}${'median'.padStart(10)}${'yields'.padStart(9)}`
+    `${'variant'.padEnd(44)}${'total'.padStart(10)}${'worst block'.padStart(16)}${'p99'.padStart(10)}${'median'.padStart(10)}${'yields'.padStart(9)}`
   )
 
   for (const row of entries) {
     console.log(
-      row.label.padEnd(34) +
+      row.label.padEnd(44) +
         `${row.total.toFixed(0)}ms`.padStart(10) +
         formatMs(row.worst).padStart(16) +
         formatMs(row.p99).padStart(10) +
@@ -119,7 +123,31 @@ for (const batchSize of [1000, 100, 25]) {
   })
 }
 
-printTable('Indexing', rows)
+printTable('Indexing', rows.splice(0, rows.length))
+
+const source = createDatabase()
+zbsearch.insertMultiple(source, documents)
+
+const monolithicText = JSON.stringify(zbsearch.save(source))
+
+await measure(`load: JSON.parse + load (${MB(monolithicText.length)} MB)`, () => {
+  const db = createDatabase()
+  zbsearch.load(db, JSON.parse(monolithicText))
+  return db
+})
+
+for (const chunkSize of [4096, 1024, 512, 128].map((k) => k * 1024)) {
+  const text = zbsearch.stringifyChunked(zbsearch.save(source, { format: 'chunked', chunkSize }))
+
+  const label = chunkSize === 512 * 1024 ? ' (default)' : ''
+  await measure(`loadAsync: chunked @ ${chunkSize / 1024}KB${label}`, async () => {
+    const db = createDatabase()
+    await zbsearch.loadAsync(db, zbsearch.parseChunked(text))
+    return db
+  })
+}
+
+printTable('Loading a serialized index', rows)
 
 console.log(
   '\nnote: "worst block" is the longest stretch the event loop could not run, and "blocked" means\n' +

@@ -9,7 +9,7 @@ import {
   SortType,
   SortValue
 } from '../types.js'
-import { safeArrayPush } from '../utils.js'
+import { safeArrayPush, yieldToEventLoop } from '../utils.js'
 import { isVectorType } from './defaults.js'
 import {
   DocumentID,
@@ -357,6 +357,50 @@ export function load<R = unknown>(sharedInternalDocumentStore: InternalDocumentI
   }
 }
 
+export async function loadAsync<R = unknown>(
+  sharedInternalDocumentStore: InternalDocumentIDStore,
+  raw: R
+): Promise<Sorter> {
+  const rawDocument = raw as Omit<Sorter, 'sorts'> & {
+    sorts: Record<string, SerializablePropertySort<string | number | boolean>>
+  }
+  if (!rawDocument.enabled) {
+    return {
+      enabled: false
+    } as unknown as Sorter
+  }
+
+  const sorts = {} as Record<string, PropertySort<string | number | boolean>>
+  const props = Object.keys(rawDocument.sorts)
+
+  for (let i = 0; i < props.length; i++) {
+    const prop = props[i]
+    const { docs, orderedDocs, type } = rawDocument.sorts[prop]
+
+    sorts[prop] = {
+      docs: new Map(Object.entries(docs).map(([k, v]) => [+k, v])),
+      orderedDocsToRemove: new Map(),
+      orderedDocs,
+      type
+    }
+
+    if (i < props.length - 1) {
+      await yieldToEventLoop()
+    }
+  }
+
+  return {
+    sharedInternalDocumentStore,
+    language: rawDocument.language,
+    sortableProperties: rawDocument.sortableProperties,
+    sortablePropertiesWithTypes: rawDocument.sortablePropertiesWithTypes,
+    sorts,
+    enabled: true,
+    isSorted: rawDocument.isSorted,
+    unsortableProperties: rawDocument.unsortableProperties ?? []
+  }
+}
+
 export function save<R = unknown>(sorter: Sorter): R {
   if (!sorter.enabled) {
     return {
@@ -400,6 +444,7 @@ export function createSorter(): ISorter<Sorter> {
     remove,
     save,
     load,
+    loadAsync,
     sortBy,
     getSortableProperties,
     getSortablePropertiesWithTypes

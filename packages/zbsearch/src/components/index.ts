@@ -29,7 +29,7 @@ import type {
   TokenScore,
   WhereCondition
 } from '../types.js'
-import { convertDistanceToMeters, setDifference, setIntersection, setUnion } from '../utils.js'
+import { convertDistanceToMeters, setDifference, setIntersection, setUnion, yieldToEventLoop } from '../utils.js'
 import { BM25 } from './algorithms.js'
 import { getInnerType, getVectorSize, isArrayType, isVectorType } from './defaults.js'
 import { levenshtein } from './levenshtein.js'
@@ -1103,6 +1103,25 @@ export function getSearchablePropertiesWithTypes(index: Index): Record<string, S
   return index.searchablePropertiesWithTypes
 }
 
+function deserializeIndexEntry(rawIndex: Index['indexes'][string]): Index['indexes'][string] {
+  const { node, type, isArray } = rawIndex
+
+  switch (type) {
+    case 'Radix':
+      return { type: 'Radix', node: RadixTree.fromJSON(node as unknown as RadixNodeJSON), isArray }
+    case 'Flat':
+      return { type: 'Flat', node: FlatTree.fromJSON(node), isArray }
+    case 'AVL':
+      return { type: 'AVL', node: AVLTree.fromJSON(node), isArray }
+    case 'BKD':
+      return { type: 'BKD', node: BKDTree.fromJSON(node), isArray }
+    case 'Bool':
+      return { type: 'Bool', node: BoolNode.fromJSON(node), isArray }
+    default:
+      return rawIndex
+  }
+}
+
 export function load<R = unknown>(
   sharedInternalDocumentStore: InternalDocumentIDStore,
   raw: R,
@@ -1123,47 +1142,7 @@ export function load<R = unknown>(
   const vectorIndexes: Index['vectorIndexes'] = {}
 
   for (const prop of Object.keys(rawIndexes)) {
-    const { node, type, isArray } = rawIndexes[prop]
-
-    switch (type) {
-      case 'Radix':
-        indexes[prop] = {
-          type: 'Radix',
-          node: RadixTree.fromJSON(node as unknown as RadixNodeJSON),
-          isArray
-        }
-        break
-      case 'Flat':
-        indexes[prop] = {
-          type: 'Flat',
-          node: FlatTree.fromJSON(node),
-          isArray
-        }
-        break
-      case 'AVL':
-        indexes[prop] = {
-          type: 'AVL',
-          node: AVLTree.fromJSON(node),
-          isArray
-        }
-        break
-      case 'BKD':
-        indexes[prop] = {
-          type: 'BKD',
-          node: BKDTree.fromJSON(node),
-          isArray
-        }
-        break
-      case 'Bool':
-        indexes[prop] = {
-          type: 'Bool',
-          node: BoolNode.fromJSON(node),
-          isArray
-        }
-        break
-      default:
-        indexes[prop] = rawIndexes[prop]
-    }
+    indexes[prop] = deserializeIndexEntry(rawIndexes[prop])
   }
 
   for (const idx of Object.keys(rawVectorIndexes)) {
@@ -1171,6 +1150,63 @@ export function load<R = unknown>(
       type: 'Vector',
       isArray: false,
       node: deserializeVectorIndex(idx, rawVectorIndexes[idx], indexesConfig)
+    }
+  }
+
+  return {
+    sharedInternalDocumentStore,
+    indexes,
+    vectorIndexes,
+    searchableProperties,
+    searchablePropertiesWithTypes,
+    frequencies,
+    tokenOccurrences,
+    avgFieldLength,
+    fieldLengths
+  }
+}
+
+export async function loadAsync<R = unknown>(
+  sharedInternalDocumentStore: InternalDocumentIDStore,
+  raw: R,
+  indexesConfig?: import('../types.js').IndexesConfig
+): Promise<Index> {
+  const {
+    indexes: rawIndexes,
+    vectorIndexes: rawVectorIndexes,
+    searchableProperties,
+    searchablePropertiesWithTypes,
+    frequencies,
+    tokenOccurrences,
+    avgFieldLength,
+    fieldLengths
+  } = raw as Index
+
+  const indexes: Index['indexes'] = {}
+  const vectorIndexes: Index['vectorIndexes'] = {}
+
+  const props = Object.keys(rawIndexes)
+  const vectorProps = Object.keys(rawVectorIndexes)
+
+  for (let i = 0; i < props.length; i++) {
+    const prop = props[i]
+    indexes[prop] = deserializeIndexEntry(rawIndexes[prop])
+
+    if (i < props.length - 1 || vectorProps.length > 0) {
+      await yieldToEventLoop()
+    }
+  }
+
+  for (let i = 0; i < vectorProps.length; i++) {
+    const idx = vectorProps[i]
+    vectorIndexes[idx] = {
+      type: 'Vector',
+      isArray: false,
+      node: deserializeVectorIndex(idx, rawVectorIndexes[idx], indexesConfig)
+    }
+
+    if (i < vectorProps.length - 1) {
+      await yieldToEventLoop()
     }
   }
 
@@ -1258,6 +1294,7 @@ export function createIndex(): IIndex<Index> {
     getSearchableProperties,
     getSearchablePropertiesWithTypes,
     load,
+    loadAsync,
     save
   }
 }

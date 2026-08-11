@@ -3,6 +3,7 @@
 ZBSearch can analyze the input and perform a `stemming` operation, which allows the engine to perform more optimized queries, as well as save indexing space.
 
 <!-- LANGUAGES:START -->
+
 Right now, ZBSearch supports 32 languages and stemmers out of the box:
 
 - Arabic
@@ -37,6 +38,7 @@ Right now, ZBSearch supports 32 languages and stemmers out of the box:
 - Turkish
 - Ukrainian
 - Vietnamese
+
 <!-- LANGUAGES:END -->
 
 Chinese (Mandarin) and Japanese are supported through dedicated tokenizers (`@zbsearch/tokenizers`) and stop-word removal (`@zbsearch/stopwords`), not through stemming.

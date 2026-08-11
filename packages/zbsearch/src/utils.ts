@@ -495,3 +495,44 @@ export function sleep(ms: number) {
     }
   }
 }
+
+type SchedulerLike = { yield?: () => Promise<void> }
+type SetImmediateLike = (callback: () => void) => unknown
+
+const pendingYields: Array<() => void> = []
+let yieldChannel: MessageChannel | undefined
+
+function drainPendingYields(): void {
+  pendingYields.shift()?.()
+}
+
+export function yieldToEventLoop(): Promise<void> {
+  const scheduler = (globalThis as { scheduler?: SchedulerLike }).scheduler
+
+  if (typeof scheduler?.yield === 'function') {
+    return scheduler.yield()
+  }
+
+  const setImmediateFn = (globalThis as { setImmediate?: SetImmediateLike }).setImmediate
+  if (typeof setImmediateFn === 'function') {
+    return new Promise((resolve) => {
+      setImmediateFn(resolve as () => void)
+    })
+  }
+
+  if (typeof MessageChannel !== 'undefined') {
+    if (!yieldChannel) {
+      yieldChannel = new MessageChannel()
+      yieldChannel.port1.onmessage = drainPendingYields
+    }
+
+    return new Promise((resolve) => {
+      pendingYields.push(resolve as () => void)
+      yieldChannel!.port2.postMessage(null)
+    })
+  }
+
+  return new Promise((resolve) => {
+    setTimeout(resolve, 0)
+  })
+}

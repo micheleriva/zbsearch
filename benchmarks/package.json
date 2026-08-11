@@ -18,6 +18,7 @@
     "benchmark:vector-ivf": "node vector-ivf.js",
     "benchmark:bundle-size": "node bundle-size.js",
     "benchmark:memory": "node memory.js",
+    "benchmark:responsiveness": "node responsiveness.js",
     "benchmark:multilingual-quality": "node multilingual-quality.js",
     "benchmark:search-quality": "node search-quality.js",
     "test:search-quality": "node --test \"src/search-quality/*.test.js\""

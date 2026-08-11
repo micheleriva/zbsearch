@@ -13,7 +13,7 @@ import type {
   SortValue,
   TypedDocument
 } from '../types.js'
-import { isAsyncFunction, sleep } from '../utils.js'
+import { isAsyncFunction, sleep, yieldToEventLoop } from '../utils.js'
 
 export type InsertOptions = {
   avlRebalanceThreshold?: number
@@ -414,6 +414,71 @@ async function innerInsertMultipleAsync<T extends AnyZBSearch>(
   return ids
 }
 
+function insertBatchSync<T extends AnyZBSearch>(
+  zbsearch: T,
+  batch: PartialSchemaDeep<TypedDocument<T>>[],
+  ids: string[],
+  language?: string,
+  skipHooks?: boolean
+): void {
+  let { indexableProperties, indexablePropertiesWithTypes, sortableProperties, sortablePropertiesWithTypes } =
+    getInsertMetadata(zbsearch)
+  const batchOptions = { avlRebalanceThreshold: batch.length }
+  const { docs: docsStore } = zbsearch.data
+
+  for (const doc of batch) {
+    if (inferSchemaFromDocument(zbsearch, doc as AnyDocument)) {
+      // New properties were registered: refresh the memoized metadata.
+      ;({ indexableProperties, indexablePropertiesWithTypes, sortableProperties, sortablePropertiesWithTypes } =
+        getInsertMetadata(zbsearch))
+    }
+
+    const errorProperty = zbsearch.validateSchema(doc, zbsearch.schema)
+    if (errorProperty) {
+      throw createError('SCHEMA_VALIDATION_FAILURE', errorProperty)
+    }
+
+    const id = zbsearch.getDocumentIndexId(doc)
+
+    if (typeof id !== 'string') {
+      throw createError('DOCUMENT_ID_MUST_BE_STRING', typeof id)
+    }
+
+    const internalId = getInternalDocumentId(zbsearch.internalDocumentIDStore, id)
+
+    if (!skipHooks && zbsearch.beforeInsert?.length) {
+      runSingleHook(zbsearch.beforeInsert, zbsearch, id, doc as TypedDocument<T>)
+    }
+
+    if (!zbsearch.documentsStore.store(docsStore, id, internalId, doc)) {
+      throw createError('DOCUMENT_ALREADY_EXISTS', id)
+    }
+
+    const docsCount = zbsearch.documentsStore.count(docsStore)
+    const indexableValues = zbsearch.getDocumentProperties(doc, indexableProperties)
+
+    indexAndSortDocumentSync(
+      zbsearch,
+      id,
+      indexableProperties,
+      indexableValues,
+      docsCount,
+      language,
+      doc,
+      batchOptions,
+      indexablePropertiesWithTypes,
+      sortableProperties,
+      sortablePropertiesWithTypes
+    )
+
+    if (!skipHooks && zbsearch.afterInsert?.length) {
+      runSingleHook(zbsearch.afterInsert, zbsearch, id, doc as TypedDocument<T>)
+    }
+
+    ids.push(id)
+  }
+}
+
 function innerInsertMultipleSync<T extends AnyZBSearch>(
   zbsearch: T,
   docs: PartialSchemaDeep<TypedDocument<T>>[],
@@ -429,62 +494,7 @@ function innerInsertMultipleSync<T extends AnyZBSearch>(
     const batch = docs.slice(i * batchSize, (i + 1) * batchSize)
     if (batch.length === 0) return false
 
-    let { indexableProperties, indexablePropertiesWithTypes, sortableProperties, sortablePropertiesWithTypes } =
-      getInsertMetadata(zbsearch)
-    const batchOptions = { avlRebalanceThreshold: batch.length }
-    const { docs: docsStore } = zbsearch.data
-
-    for (const doc of batch) {
-      if (inferSchemaFromDocument(zbsearch, doc as AnyDocument)) {
-        // New properties were registered: refresh the memoized metadata.
-        ;({ indexableProperties, indexablePropertiesWithTypes, sortableProperties, sortablePropertiesWithTypes } =
-          getInsertMetadata(zbsearch))
-      }
-
-      const errorProperty = zbsearch.validateSchema(doc, zbsearch.schema)
-      if (errorProperty) {
-        throw createError('SCHEMA_VALIDATION_FAILURE', errorProperty)
-      }
-
-      const id = zbsearch.getDocumentIndexId(doc)
-
-      if (typeof id !== 'string') {
-        throw createError('DOCUMENT_ID_MUST_BE_STRING', typeof id)
-      }
-
-      const internalId = getInternalDocumentId(zbsearch.internalDocumentIDStore, id)
-
-      if (!skipHooks && zbsearch.beforeInsert?.length) {
-        runSingleHook(zbsearch.beforeInsert, zbsearch, id, doc as TypedDocument<T>)
-      }
-
-      if (!zbsearch.documentsStore.store(docsStore, id, internalId, doc)) {
-        throw createError('DOCUMENT_ALREADY_EXISTS', id)
-      }
-
-      const docsCount = zbsearch.documentsStore.count(docsStore)
-      const indexableValues = zbsearch.getDocumentProperties(doc, indexableProperties)
-
-      indexAndSortDocumentSync(
-        zbsearch,
-        id,
-        indexableProperties,
-        indexableValues,
-        docsCount,
-        language,
-        doc,
-        batchOptions,
-        indexablePropertiesWithTypes,
-        sortableProperties,
-        sortablePropertiesWithTypes
-      )
-
-      if (!skipHooks && zbsearch.afterInsert?.length) {
-        runSingleHook(zbsearch.afterInsert, zbsearch, id, doc as TypedDocument<T>)
-      }
-
-      ids.push(id)
-    }
+    insertBatchSync(zbsearch, batch, ids, language, skipHooks)
 
     i++
     return true
@@ -524,16 +534,74 @@ export function innerInsertMultiple<T extends AnyZBSearch>(
   skipHooks?: boolean,
   timeout?: number
 ): Promise<string[]> | string[] {
-  const asyncNeeded =
-    isAsyncFunction(zbsearch.beforeInsert) ||
-    isAsyncFunction(zbsearch.afterInsert) ||
-    isAsyncFunction(zbsearch.index.beforeInsert) ||
-    isAsyncFunction(zbsearch.index.insert) ||
-    isAsyncFunction(zbsearch.index.afterInsert)
+  const asyncNeeded = needsAsyncInsert(zbsearch)
 
   if (asyncNeeded) {
     return innerInsertMultipleAsync(zbsearch, docs, batchSize, language, skipHooks, timeout)
   }
 
   return innerInsertMultipleSync(zbsearch, docs, batchSize, language, skipHooks, timeout)
+}
+
+function needsAsyncInsert<T extends AnyZBSearch>(zbsearch: T): boolean {
+  return (
+    isAsyncFunction(zbsearch.beforeInsert) ||
+    isAsyncFunction(zbsearch.afterInsert) ||
+    isAsyncFunction(zbsearch.index.beforeInsert) ||
+    isAsyncFunction(zbsearch.index.insert) ||
+    isAsyncFunction(zbsearch.index.afterInsert)
+  )
+}
+
+export type InsertProgress = {
+  processed: number
+  total: number
+}
+
+export type InsertMultipleAsyncOptions = {
+  batchSize?: number
+  language?: string
+  skipHooks?: boolean
+  onProgress?: (progress: InsertProgress) => void
+}
+
+export async function insertMultipleAsync<T extends AnyZBSearch>(
+  zbsearch: T,
+  docs: PartialSchemaDeep<TypedDocument<T>>[],
+  options: InsertMultipleAsyncOptions = {}
+): Promise<string[]> {
+  const { batchSize = 100, language, skipHooks, onProgress } = options
+
+  if (!Number.isInteger(batchSize) || batchSize < 1) {
+    throw createError('INVALID_BATCH_SIZE', batchSize)
+  }
+
+  const asyncNeeded = needsAsyncInsert(zbsearch)
+  const total = docs.length
+  const ids: string[] = []
+
+  for (let start = 0; start < total; start += batchSize) {
+    const batch = docs.slice(start, start + batchSize)
+
+    if (asyncNeeded) {
+      const insertOptions = { avlRebalanceThreshold: batch.length }
+      for (const doc of batch) {
+        ids.push(await insert(zbsearch, doc, language, skipHooks, insertOptions))
+      }
+    } else {
+      insertBatchSync(zbsearch, batch, ids, language, skipHooks)
+    }
+
+    onProgress?.({ processed: ids.length, total })
+
+    if (start + batchSize < total) {
+      await yieldToEventLoop()
+    }
+  }
+
+  if (!skipHooks && zbsearch.afterInsertMultiple?.length) {
+    await runMultipleHook(zbsearch.afterInsertMultiple, zbsearch, docs as TypedDocument<T>[])
+  }
+
+  return ids
 }

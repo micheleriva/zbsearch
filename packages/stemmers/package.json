@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/stemmers",
-  "version": "3.3.4",
+  "version": "4.0.0",
   "description": "Stemmers for ZBSearch",
   "keywords": [
     "full-text",

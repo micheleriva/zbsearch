@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/runtime-cloudflare",
-  "version": "3.3.4",
+  "version": "4.0.0",
   "description": "Cloudflare Workers runtime for ZBSearch Edge",
   "license": "Apache-2.0",
   "bin": {

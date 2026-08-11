@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/searchbox-vue",
-  "version": "3.3.4",
+  "version": "4.0.0",
   "description": "Accessible Vue 3 search box UI for ZBSearch",
   "keywords": [
     "autocomplete",

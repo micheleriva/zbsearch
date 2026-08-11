@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/docs-index",
-  "version": "3.3.4",
+  "version": "4.0.0",
   "description": "Turns documentation sources into a ZBSearch index, and queries it in the browser",
   "keywords": [
     "documentation",

@@ -247,11 +247,11 @@ Read the complete documentation at [https://zbsearch.dev](https://zbsearch.dev).
 
 Plugins extend the engine itself — how it ranks, where it stores its data, what it can index.
 
-- [Plugin Embeddings](https://zbsearch.dev/docs/zbsearch/plugins/plugin-embeddings) — `@zbsearch/plugin-embeddings`, generates text embeddings locally at insert and search time. No OpenAI needed.
-- [Plugin Data Persistence](https://zbsearch.dev/docs/zbsearch/plugins/plugin-data-persistence) — `@zbsearch/plugin-data-persistence`, saves an index and restores it later.
-- [Plugin QPS](https://zbsearch.dev/docs/zbsearch/plugins/plugin-qps) — `@zbsearch/plugin-qps`, Quantum Proximity Scoring: ranks results by how close the query tokens are to each other.
-- [Plugin PT15](https://zbsearch.dev/docs/zbsearch/plugins/plugin-pt15) — `@zbsearch/plugin-pt15`, fast ranking based on token position, tuned for descriptive text.
-- [Plugin Parsedoc](https://zbsearch.dev/docs/zbsearch/plugins/plugin-parsedoc) — `@zbsearch/plugin-parsedoc`, populates an index from HTML and Markdown documents.
+- [Plugin Embeddings](https://zbsearch.dev/docs/zbsearch/plugins/plugin-embeddings)
+- [Plugin Data Persistence](https://zbsearch.dev/docs/zbsearch/plugins/plugin-data-persistence)
+- [Plugin QPS](https://zbsearch.dev/docs/zbsearch/plugins/plugin-qps)
+- [Plugin PT15](https://zbsearch.dev/docs/zbsearch/plugins/plugin-pt15)
+- [Plugin Parsedoc](https://zbsearch.dev/docs/zbsearch/plugins/plugin-parsedoc)
 
 Write your own plugin: [https://www.zbsearch.dev/docs/zbsearch/plugins/writing-your-own-plugins](https://www.zbsearch.dev/docs/zbsearch/plugins/writing-your-own-plugins)
 
@@ -259,13 +259,13 @@ Write your own plugin: [https://www.zbsearch.dev/docs/zbsearch/plugins/writing-y
 
 Integrations do the opposite of plugins: they take the engine as it is and wire it into somewhere you already work. Everything here runs entirely in the visitor's browser — no server to run, no index to host, and no query ever leaves the page.
 
-- [Docusaurus](https://zbsearch.dev/docs/zbsearch/integrations/docusaurus) — `@zbsearch/plugin-docusaurus`, makes ZBSearch the search engine of a Docusaurus site.
-- [Astro Starlight](https://zbsearch.dev/docs/zbsearch/integrations/starlight) — `@zbsearch/plugin-starlight`, makes ZBSearch the search engine of a Starlight site, in place of Pagefind.
-- [VitePress](https://zbsearch.dev/docs/zbsearch/integrations/vitepress) — `@zbsearch/plugin-vitepress`, makes ZBSearch the search engine of a VitePress site.
-- [Search Box for React](https://zbsearch.dev/docs/zbsearch/integrations/searchbox-react) — `@zbsearch/searchbox-react`, an accessible command palette and navbar trigger, unstyled by default.
-- [Search Box for Vue](https://zbsearch.dev/docs/zbsearch/integrations/searchbox-vue) — `@zbsearch/searchbox-vue`, the same dialog for Vue 3.
-- [Docs Index](https://zbsearch.dev/docs/zbsearch/integrations/docs-index) — `@zbsearch/docs-index`, turns markdown into a ZBSearch index and queries it in the browser. Use it to integrate a framework we don't cover yet.
-- [Highlight](https://zbsearch.dev/docs/zbsearch/integrations/highlight) — `@zbsearch/highlight`, highlights the matching parts of a text and trims it down to an excerpt.
+- [Docusaurus](https://zbsearch.dev/docs/zbsearch/integrations/docusaurus)
+- [Astro Starlight](https://zbsearch.dev/docs/zbsearch/integrations/starlight)
+- [VitePress](https://zbsearch.dev/docs/zbsearch/integrations/vitepress)
+- [Search Box for React](https://zbsearch.dev/docs/zbsearch/integrations/searchbox-react)
+- [Search Box for Vue](https://zbsearch.dev/docs/zbsearch/integrations/searchbox-vue)
+- [Docs Index](https://zbsearch.dev/docs/zbsearch/integrations/docs-index)
+- [Highlight](https://zbsearch.dev/docs/zbsearch/integrations/highlight)
 
 The framework plugins are built on the lower layers: they index content with `docs-index` and render one of the search boxes, which mark up matches with `highlight`. Reach for those directly only when assembling your own search experience.
 

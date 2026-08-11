@@ -118,18 +118,18 @@ const results = search(db, {
 
 ZBSearch currently supports 10 different data types:
 
-| Type             | Description                                                                 | Example                                                                     |
-| ---------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `string`         | A string of characters.                                                     | `'Hello world'`                                                             |
-| `number`         | A numeric value, either float or integer.                                   | `42`                                                                        |
-| `boolean`        | A boolean value.                                                            | `true`                                                                      |
-| `enum`           | An enum value.                                                              | `'drama'`                                                                   |
-| `geopoint`       | A geopoint value.                                                           | `{ lat: 40.7128, lon: 74.0060 }`                                            |
-| `string[]`       | An array of strings.                                                        | `['red', 'green', 'blue']`                                                  |
-| `number[]`       | An array of numbers.                                                        | `[42, 91, 28.5]`                                                            |
-| `boolean[]`      | An array of booleans.                                                       | `[true, false, false]`                                                      |
-| `enum[]`         | An array of enums.                                                          | `['comedy', 'action', 'romance']`                                           |
-| `vector[<size>]` | A vector of numbers to perform vector search on.                            | `[0.403, 0.192, 0.830]`                                                     |
+| Type             | Description                                      | Example                           |
+| ---------------- | ------------------------------------------------ | --------------------------------- |
+| `string`         | A string of characters.                          | `'Hello world'`                   |
+| `number`         | A numeric value, either float or integer.        | `42`                              |
+| `boolean`        | A boolean value.                                 | `true`                            |
+| `enum`           | An enum value.                                   | `'drama'`                         |
+| `geopoint`       | A geopoint value.                                | `{ lat: 40.7128, lon: 74.0060 }`  |
+| `string[]`       | An array of strings.                             | `['red', 'green', 'blue']`        |
+| `number[]`       | An array of numbers.                             | `[42, 91, 28.5]`                  |
+| `boolean[]`      | An array of booleans.                            | `[true, false, false]`            |
+| `enum[]`         | An array of enums.                               | `['comedy', 'action', 'romance']` |
+| `vector[<size>]` | A vector of numbers to perform vector search on. | `[0.403, 0.192, 0.830]`           |
 
 ## Schema inference (optional schema)
 
@@ -147,7 +147,7 @@ Types lock on first sight (a later conflicting value is rejected with `SCHEMA_VA
 ```js
 const db = create({
   schema: { embedding: 'vector[1536]' },
-  inferSchema: true, // a provided schema is strict by default; this opts undeclared fields into inference
+  inferSchema: true // a provided schema is strict by default; this opts undeclared fields into inference
 })
 ```
 
@@ -165,14 +165,14 @@ import { create, insertMultiple, search } from 'zbsearch'
 const db = create({
   schema: {
     title: 'string',
-    embedding: 'vector[5]', // we are using a 5-dimensional vector.
-  },
-});
+    embedding: 'vector[5]' // we are using a 5-dimensional vector.
+  }
+})
 
 insertMultiple(db, [
   { title: 'The Prestige', embedding: [0.938293, 0.284951, 0.348264, 0.948276, 0.56472] },
   { title: 'Barbie', embedding: [0.192839, 0.028471, 0.284738, 0.937463, 0.092827] },
-  { title: 'Oppenheimer', embedding: [0.827391, 0.927381, 0.001982, 0.983821, 0.294841] },
+  { title: 'Oppenheimer', embedding: [0.827391, 0.927381, 0.001982, 0.983821, 0.294841] }
 ])
 
 const results = search(db, {
@@ -182,12 +182,12 @@ const results = search(db, {
     // The vector (text embedding) to use for search
     value: [0.938292, 0.284961, 0.248264, 0.748276, 0.26472],
     // The schema property where ZBSearch should compare embeddings
-    property: 'embedding',
+    property: 'embedding'
   },
   // Minimum similarity to determine a match. Defaults to `0.8`
   similarity: 0.85,
   // Defaults to `false`. Setting to 'true' will return the embeddings in the response (which can be very large).
-  includeVectors: true,
+  includeVectors: true
 })
 ```
 
@@ -208,7 +208,7 @@ const plugin = await pluginEmbeddings({
       // properties to use for generating embeddings at insert time.
       // Will be concatenated to generate a unique embedding.
       properties: ['description'],
-      verbose: true,
+      verbose: true
     }
   }
 })
@@ -233,7 +233,7 @@ await insert(db, { description: 'Bose QuietComfort Bluetooth Headphones' })
 const searchResults = await search(db, {
   term: 'Headphones for 12th grade students',
   mode: 'vector',
-  similarity: 0.75,
+  similarity: 0.75
 })
 ```
 
@@ -247,11 +247,11 @@ Read the complete documentation at [https://zbsearch.dev](https://zbsearch.dev).
 
 Plugins extend the engine itself — how it ranks, where it stores its data, what it can index.
 
-- [Plugin Embeddings](https://zbsearch.dev/docs/zbsearch/plugins/plugin-embeddings) — `@zbsearch/plugin-embeddings`, generates text embeddings locally at insert and search time. No OpenAI needed.
-- [Plugin Data Persistence](https://zbsearch.dev/docs/zbsearch/plugins/plugin-data-persistence) — `@zbsearch/plugin-data-persistence`, saves an index and restores it later.
-- [Plugin QPS](https://zbsearch.dev/docs/zbsearch/plugins/plugin-qps) — `@zbsearch/plugin-qps`, Quantum Proximity Scoring: ranks results by how close the query tokens are to each other.
-- [Plugin PT15](https://zbsearch.dev/docs/zbsearch/plugins/plugin-pt15) — `@zbsearch/plugin-pt15`, fast ranking based on token position, tuned for descriptive text.
-- [Plugin Parsedoc](https://zbsearch.dev/docs/zbsearch/plugins/plugin-parsedoc) — `@zbsearch/plugin-parsedoc`, populates an index from HTML and Markdown documents.
+- [Plugin Embeddings](https://zbsearch.dev/docs/zbsearch/plugins/plugin-embeddings)
+- [Plugin Data Persistence](https://zbsearch.dev/docs/zbsearch/plugins/plugin-data-persistence)
+- [Plugin QPS](https://zbsearch.dev/docs/zbsearch/plugins/plugin-qps)
+- [Plugin PT15](https://zbsearch.dev/docs/zbsearch/plugins/plugin-pt15)
+- [Plugin Parsedoc](https://zbsearch.dev/docs/zbsearch/plugins/plugin-parsedoc)
 
 Write your own plugin: [https://www.zbsearch.dev/docs/zbsearch/plugins/writing-your-own-plugins](https://www.zbsearch.dev/docs/zbsearch/plugins/writing-your-own-plugins)
 
@@ -259,13 +259,13 @@ Write your own plugin: [https://www.zbsearch.dev/docs/zbsearch/plugins/writing-y
 
 Integrations do the opposite of plugins: they take the engine as it is and wire it into somewhere you already work. Everything here runs entirely in the visitor's browser — no server to run, no index to host, and no query ever leaves the page.
 
-- [Docusaurus](https://zbsearch.dev/docs/zbsearch/integrations/docusaurus) — `@zbsearch/plugin-docusaurus`, makes ZBSearch the search engine of a Docusaurus site.
-- [Astro Starlight](https://zbsearch.dev/docs/zbsearch/integrations/starlight) — `@zbsearch/plugin-starlight`, makes ZBSearch the search engine of a Starlight site, in place of Pagefind.
-- [VitePress](https://zbsearch.dev/docs/zbsearch/integrations/vitepress) — `@zbsearch/plugin-vitepress`, makes ZBSearch the search engine of a VitePress site.
-- [Search Box for React](https://zbsearch.dev/docs/zbsearch/integrations/searchbox-react) — `@zbsearch/searchbox-react`, an accessible command palette and navbar trigger, unstyled by default.
-- [Search Box for Vue](https://zbsearch.dev/docs/zbsearch/integrations/searchbox-vue) — `@zbsearch/searchbox-vue`, the same dialog for Vue 3.
-- [Docs Index](https://zbsearch.dev/docs/zbsearch/integrations/docs-index) — `@zbsearch/docs-index`, turns markdown into a ZBSearch index and queries it in the browser. Use it to integrate a framework we don't cover yet.
-- [Highlight](https://zbsearch.dev/docs/zbsearch/integrations/highlight) — `@zbsearch/highlight`, highlights the matching parts of a text and trims it down to an excerpt.
+- [Docusaurus](https://zbsearch.dev/docs/zbsearch/integrations/docusaurus)
+- [Astro Starlight](https://zbsearch.dev/docs/zbsearch/integrations/starlight)
+- [VitePress](https://zbsearch.dev/docs/zbsearch/integrations/vitepress)
+- [Search Box for React](https://zbsearch.dev/docs/zbsearch/integrations/searchbox-react)
+- [Search Box for Vue](https://zbsearch.dev/docs/zbsearch/integrations/searchbox-vue)
+- [Docs Index](https://zbsearch.dev/docs/zbsearch/integrations/docs-index)
+- [Highlight](https://zbsearch.dev/docs/zbsearch/integrations/highlight)
 
 The framework plugins are built on the lower layers: they index content with `docs-index` and render one of the search boxes, which mark up matches with `highlight`. Reach for those directly only when assembling your own search experience.
 

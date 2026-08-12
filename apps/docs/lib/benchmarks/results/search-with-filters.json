@@ -1,55 +1,55 @@
 {
   "name": "search with filters",
-  "date": "2026-07-29T16:59:59.924Z",
+  "date": "2026-08-11T23:54:15.750Z",
   "version": "1.0.0",
   "results": [
     {
       "name": "search with filters in Orama 3.1.18",
-      "ops": 20439,
-      "margin": 0.72,
-      "percentSlower": 91.21
+      "ops": 24649,
+      "margin": 0.36,
+      "percentSlower": 89.56
     },
     {
-      "name": "search with filters in ZBSearch (BM25) 3.3.4",
-      "ops": 25170,
-      "margin": 0.72,
-      "percentSlower": 89.18
+      "name": "search with filters in ZBSearch (BM25) 4.0.0",
+      "ops": 26575,
+      "margin": 0.54,
+      "percentSlower": 88.74
     },
     {
-      "name": "search with filters in ZBSearch (QPS) 3.3.4",
-      "ops": 29591,
-      "margin": 0.44,
-      "percentSlower": 87.28
+      "name": "search with filters in ZBSearch (QPS) 4.0.0",
+      "ops": 30067,
+      "margin": 1.04,
+      "percentSlower": 87.26
     },
     {
-      "name": "search with filters in ZBSearch (PT15) 3.3.4",
-      "ops": 38926,
-      "margin": 0.4,
-      "percentSlower": 83.27
+      "name": "search with filters in ZBSearch (PT15) 4.0.0",
+      "ops": 39930,
+      "margin": 0.37,
+      "percentSlower": 83.09
     },
     {
       "name": "search with filters in FlexSearch 0.8.212",
-      "ops": 232629,
-      "margin": 0.4,
+      "ops": 236076,
+      "margin": 0.46,
       "percentSlower": 0
     },
     {
       "name": "search with filters in Fuse.js 7.5.0",
-      "ops": 46,
-      "margin": 7.66,
+      "ops": 56,
+      "margin": 0.43,
       "percentSlower": 99.98
     },
     {
       "name": "search with filters in Lunr 2.3.9",
-      "ops": 7564,
-      "margin": 0.38,
-      "percentSlower": 96.75
+      "ops": 8068,
+      "margin": 0.8,
+      "percentSlower": 96.58
     },
     {
       "name": "search with filters in MiniSearch 7.2.0",
-      "ops": 16230,
-      "margin": 1.37,
-      "percentSlower": 93.02
+      "ops": 17257,
+      "margin": 0.41,
+      "percentSlower": 92.69
     }
   ],
   "fastest": {

@@ -1,3 +1,7 @@
+'use client'
+
+import { useRef, useState } from 'react'
+import { Check, Download } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { ChartLegend } from '@/components/benchmarks/legend'
 
@@ -10,6 +14,13 @@ export type BenchChartRow = {
   display: string
   /** Subject rows render in the ZBSearch accent colour. */
   subject?: boolean
+}
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
 }
 
 /**
@@ -39,6 +50,9 @@ export function BenchChart({
   showLegend?: boolean
   rows: BenchChartRow[]
 }) {
+  const figureRef = useRef<HTMLElement>(null)
+  const [exporting, setExporting] = useState<'idle' | 'busy' | 'done'>('idle')
+
   const max = Math.max(...rows.map((row) => row.value))
   const winnerValue =
     better === 'higher' ? max : Math.min(...rows.map((row) => row.value))
@@ -50,9 +64,57 @@ export function BenchChart({
     return `${ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1)}× ${suffix}`
   }
 
+  async function downloadPng() {
+    const node = figureRef.current
+    if (!node || exporting === 'busy') return
+
+    setExporting('busy')
+    try {
+      // Loaded on click so readers who never export don't pay for the library.
+      const { toPng } = await import('html-to-image')
+      const dataUrl = await toPng(node, {
+        pixelRatio: 2,
+        // The figure's `my-8` stays on the capture clone while the canvas is
+        // sized without it, shifting the render down and clipping the bottom.
+        style: { margin: '0' },
+        filter: (child) => !(child instanceof Element && child.hasAttribute('data-export-exclude'))
+      })
+
+      const link = document.createElement('a')
+      link.download = `${slugify(title) || 'chart'}.png`
+      link.href = dataUrl
+      link.click()
+
+      setExporting('done')
+      setTimeout(() => setExporting('idle'), 1500)
+    } catch (error) {
+      console.error('[bench-chart] PNG export failed', error)
+      setExporting('idle')
+    }
+  }
+
   return (
-    <figure className="not-prose my-8 rounded-2xl border border-fd-border bg-fd-card p-4 sm:p-5">
-      <figcaption className="mb-4 text-sm font-semibold tracking-tight text-fd-foreground">{title}</figcaption>
+    <figure
+      ref={figureRef}
+      className="group not-prose relative my-8 rounded-2xl border border-fd-border bg-fd-card p-4 sm:p-5"
+    >
+      <button
+        type="button"
+        data-export-exclude
+        onClick={downloadPng}
+        aria-label={`Download "${title}" as PNG`}
+        title="Download as PNG"
+        className={cn(
+          'absolute right-3 top-3 rounded-md border border-fd-border bg-fd-background p-1.5 text-fd-muted-foreground transition-opacity hover:text-fd-foreground',
+          'opacity-0 focus-visible:opacity-100 group-hover:opacity-100',
+          exporting === 'busy' && 'cursor-wait opacity-100',
+          exporting === 'done' && 'opacity-100 text-fd-foreground'
+        )}
+      >
+        {exporting === 'done' ? <Check className="size-3.5" /> : <Download className="size-3.5" />}
+      </button>
+
+      <figcaption className="mb-4 pr-10 text-sm font-semibold tracking-tight text-fd-foreground">{title}</figcaption>
 
       <div className="space-y-2">
         {rows.map((row) => (

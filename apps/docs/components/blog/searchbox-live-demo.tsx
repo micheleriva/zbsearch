@@ -18,7 +18,7 @@ export function SearchBoxLiveDemo() {
 
   return (
     <div className="not-prose my-8">
-      <SearchBoxDemo docs={docs} />
+      <SearchBoxDemo docs={docs} stacked defaultTerm="vector search" />
     </div>
   )
 }

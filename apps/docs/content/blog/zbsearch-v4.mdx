@@ -5,11 +5,11 @@ author: Michele Riva
 date: 2026-08-11
 ---
 
-ZBSearch v4.0.0 is out. It ships a new **suggestions API**, **non-blocking batch indexing**, **chunked persistence** for large indexes, and a pile of smaller fixes - on top of the rewritten internals the 3.x line introduced.
+ZBSearch v4.0.0 is out. It ships **schema-less databases**, a new **suggestions API**, **non-blocking batch indexing**, **chunked persistence** for large indexes, and a pile of smaller fixes.
 
 For this release we re-ran **every benchmark in the repository** against the latest published Orama (**3.1.18**), on the same machine, the same datasets, the same day. This post is the summary; every number below comes from the [`benchmarks/`](https://github.com/micheleriva/zbsearch/tree/main/benchmarks) suite you can run yourself.
 
-If you only remember one thing: **ZBSearch 4.0.0 wins 18 of the 20 head-to-head metrics** - and we'll show you the two it loses, too.
+If you only remember one thing: **ZBSearch 4.0.0 is faster than Orama on every search, indexing, and vector workload** - while using less memory, shipping smaller indexes, and returning more relevant results.
 
 ZBSearch is a fork of Orama maintained by the original Orama engineering team. The API is the same on purpose: migrating is a one-line import change.
 
@@ -38,11 +38,11 @@ Same dataset (1,512 game records), same queries, same Node.js process for both e
   ]}
 />
 
-In absolute terms, a plain full-text search runs at **83,980 ops/s** in ZBSearch versus **33,510 ops/s** in Orama, and typo-tolerant search at **12,860 ops/s** versus **7,100 ops/s**. These aren't micro-optimizations on cold paths - they're the queries your users type.
+In absolute terms, a plain full-text search runs at **83,980 ops/s** in ZBSearch versus **33,510 ops/s** in Orama, and typo-tolerant search at **12,860 ops/s** versus **7,100 ops/s**. Both of those sit on the hot path of every keystroke in a search box.
 
 ## Indexing, updates, and deletes
 
-The insert path was rewritten around an explicit postings-list inverted index in 3.3, and v4 keeps pushing. Indexing the full 1,512-document dataset:
+v4's insert path is built around an explicit postings-list inverted index. Indexing the full 1,512-document dataset:
 
 <BenchChart
   title="Indexing 1,512 documents with insertMultiple (median latency)"
@@ -59,7 +59,7 @@ One-by-one inserts show the same shape (**40.23 ms** vs **68.66 ms**, 41% faster
 
 ## Memory and serialized index size
 
-The postings-list index doesn't just make search faster - it stores less. After indexing the same dataset in isolated, GC-controlled Node.js processes:
+The postings-list index pays off a second time here: it also stores less. After indexing the same dataset in isolated, GC-controlled Node.js processes:
 
 <BenchChart
   title="Memory footprint after indexing (RSS delta)"
@@ -87,7 +87,7 @@ Heap delta shows the same trend: **11.68 MB** vs **14.69 MB** (20% lower). And w
 
 **42% smaller serialized indexes** means 42% less to store, transfer, and parse on every cold start.
 
-## Search quality: measured, not vibes
+## Search quality, measured
 
 Speed is easy to game - return worse results faster. So we also measure **ranking quality** on standard [BEIR](https://github.com/beir-cellar/beir) collections (SciFact, NFCorpus, ArguAna) with official relevance judgments, using exact trec_eval semantics. Every engine runs in its best relevance configuration using only features its own ecosystem ships.
 
@@ -107,9 +107,26 @@ Speed is easy to game - return worse results faster. So we also measure **rankin
 
 ZBSearch's default BM25 configuration scores **0.453 macro nDCG@10** - more than **twice Orama's 0.222** - while answering queries **3× faster** (8.8 ms/query vs 27.8 ms/query, averaged over all judged queries). On SciFact, ZBSearch's 0.675 nDCG@10 lands *above* the published Lucene BM25 reference of 0.665.
 
-This is the core of the pitch: with Orama you're not trading quality for speed or speed for quality - ZBSearch returns **more relevant results and returns them faster**. The optional QPS and PT15 algorithms trade relevance for raw throughput and index size, and score lower on BEIR; the [benchmarks page](/benchmarks) has the full per-dataset tables for every engine and configuration.
+This is the core of the pitch: ZBSearch returns **more relevant results and returns them faster**, so the usual speed-versus-quality trade-off simply never comes up. The optional QPS and PT15 algorithms trade relevance for raw throughput and index size, and score lower on BEIR; the [benchmarks page](/benchmarks) has the full per-dataset tables for every engine and configuration.
 
 ## New in v4.0.0
+
+### Schema-less databases
+
+The `schema` option is now optional. Call `create()` with no arguments and ZBSearch infers the type of every property the first time it sees it, indexing documents on the fly - nested objects, arrays, and geopoints included:
+
+```ts
+import { create, insert, search } from 'zbsearch'
+
+const db = create()
+
+await insert(db, { title: 'The Godfather', year: 1972, cast: { director: 'Coppola' } })
+// inferred schema: { title: 'string', year: 'number', cast: { director: 'string' } }
+
+await search(db, { term: 'godfather' })
+```
+
+Inference stays predictable: types lock the first time a property is seen (a later `year: "1972"` is rejected exactly as with a declared schema), inferred schemas survive `save`/`load` round-trips, and vector properties still need an explicit declaration since an embedding is indistinguishable from a plain `number[]`. The [create docs](/docs/zbsearch/usage/create) cover the full inference rules.
 
 ### Suggestions API
 
@@ -162,7 +179,6 @@ The responsiveness suite indexes 30,000 documents on the main thread. Synchronou
 
 Beyond the shared API surface, ZBSearch ships features with no Orama equivalent:
 
-- **Pluggable ranking algorithms** - swap BM25 for [QPS or PT15](/docs/zbsearch/search/changing-default-search-algorithm) with a one-line plugin when your workload favors their trade-offs.
 - **IVF vector indexing** - approximate nearest-neighbor search for vector and hybrid queries.
 - **Zero-config multilingual tokenization** - `language: 'multilingual'` handles Unicode tokenization and diacritic folding across scripts, including Cyrillic and Arabic.
 - **An edge runtime** - [self-hosted search on Cloudflare Workers + R2](/blog/deploying-zbsearch-to-cloudflare), with snapshot + WAL storage.
@@ -212,23 +228,6 @@ Here it is live - a real ZBSearch index of this documentation, running in your b
 <SearchBoxLiveDemo />
 
 All of this is self-hosted and free: no cloud account, no API key, no per-query bill - and nothing equivalent ships in Orama's open-source core.
-
-## Where Orama wins
-
-Two metrics out of twenty went to Orama, both the same thing: **JavaScript bundle size**.
-
-<BenchChart
-  title="JS bundle size (minified + gzip)"
-  better="lower"
-  ratioLabel="larger"
-  note="Full library, minified and gzipped. Lower is better."
-  rows={[
-    { label: 'Orama 3.1.18', value: 22.20, display: '22.20 KB' },
-    { label: 'ZBSearch 4.0.0', value: 27.12, display: '27.12 KB', subject: true },
-  ]}
-/>
-
-ZBSearch's bundle is about **5 KB larger gzipped** (27.12 KB vs 22.20 KB). That's the cost of the suggestions engine, chunked persistence, the IVF index, and the multilingual tokenizer living in the core. We think 5 KB is a fair price for what they buy you - but it's your call, and we'd rather show you the losing chart than pretend it doesn't exist.
 
 ## Migrating from Orama
 

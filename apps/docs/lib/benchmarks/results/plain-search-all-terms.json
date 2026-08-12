@@ -1,55 +1,55 @@
 {
   "name": "plain search (all terms)",
-  "date": "2026-07-29T16:59:16.659Z",
+  "date": "2026-08-11T23:53:32.243Z",
   "version": "1.0.0",
   "results": [
     {
       "name": "plain search (all terms) in Orama 3.1.18",
-      "ops": 29281,
-      "margin": 1.76,
-      "percentSlower": 89.95
+      "ops": 31928,
+      "margin": 0.53,
+      "percentSlower": 89.31
     },
     {
-      "name": "plain search (all terms) in ZBSearch (BM25) 3.3.4",
-      "ops": 68672,
-      "margin": 2.2,
-      "percentSlower": 76.42
+      "name": "plain search (all terms) in ZBSearch (BM25) 4.0.0",
+      "ops": 73090,
+      "margin": 1.25,
+      "percentSlower": 75.53
     },
     {
-      "name": "plain search (all terms) in ZBSearch (QPS) 3.3.4",
-      "ops": 45616,
-      "margin": 1.11,
-      "percentSlower": 84.34
+      "name": "plain search (all terms) in ZBSearch (QPS) 4.0.0",
+      "ops": 47826,
+      "margin": 0.92,
+      "percentSlower": 83.99
     },
     {
-      "name": "plain search (all terms) in ZBSearch (PT15) 3.3.4",
-      "ops": 72890,
-      "margin": 0.31,
-      "percentSlower": 74.97
+      "name": "plain search (all terms) in ZBSearch (PT15) 4.0.0",
+      "ops": 74408,
+      "margin": 0.64,
+      "percentSlower": 75.09
     },
     {
       "name": "plain search (all terms) in FlexSearch 0.8.212",
-      "ops": 291236,
-      "margin": 0.48,
+      "ops": 298747,
+      "margin": 0.75,
       "percentSlower": 0
     },
     {
       "name": "plain search (all terms) in Fuse.js 7.5.0",
-      "ops": 30,
-      "margin": 7.63,
+      "ops": 35,
+      "margin": 0.73,
       "percentSlower": 99.99
     },
     {
       "name": "plain search (all terms) in Lunr 2.3.9",
-      "ops": 8291,
-      "margin": 5.76,
-      "percentSlower": 97.15
+      "ops": 10464,
+      "margin": 0.71,
+      "percentSlower": 96.5
     },
     {
       "name": "plain search (all terms) in MiniSearch 7.2.0",
-      "ops": 40509,
-      "margin": 1.1,
-      "percentSlower": 86.09
+      "ops": 42629,
+      "margin": 0.69,
+      "percentSlower": 85.73
     }
   ],
   "fastest": {

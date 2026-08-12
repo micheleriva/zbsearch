@@ -2,14 +2,24 @@ import zlib from 'node:zlib'
 import fs from 'node:fs'
 import * as orama from '@orama/orama'
 import * as zbsearch from 'zbsearch'
-import { versions, insertMultiple, dbOrama, dbZBSearch } from './src/get-engines.js'
+import { versions, schema } from './src/get-engines.js'
+import { stopWordTokenizer, databaseSortConfig } from './src/benchmark-config.js'
+import dataset from './src/dataset.json' with { type: 'json' }
 
 const oramaPath = './bundle/orama.json'
 const zbsearchPath = './bundle/zbsearch.json'
 
-insertMultiple.orama()
-insertMultiple.zbsearch()
+const dbOrama = orama.create({ schema, components: { tokenizer: stopWordTokenizer } })
+const dbZBSearch = zbsearch.create({
+  schema,
+  components: { tokenizer: stopWordTokenizer },
+  sort: databaseSortConfig
+})
 
+orama.insertMultiple(dbOrama, dataset, dataset.length)
+zbsearch.insertMultiple(dbZBSearch, dataset, dataset.length)
+
+fs.mkdirSync('./bundle', { recursive: true })
 fs.writeFileSync(oramaPath, JSON.stringify(orama.save(dbOrama)))
 fs.writeFileSync(zbsearchPath, JSON.stringify(zbsearch.save(dbZBSearch)))
 

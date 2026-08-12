@@ -1,170 +1,6640 @@
 {
   "description": "Search quality of multilingual vs per-language vs english-default tokenization",
+  "metrics": {
+    "precisionAt10": "relevant hits in top 10 / 10; negative probes (empty relevance) score 1 if no hits else 0",
+    "recallAt10": "relevant hits in top 10 / relevant docs; averaged over queries with non-empty relevance",
+    "mrr": "reciprocal rank of first relevant hit; averaged over queries with non-empty relevance"
+  },
+  "limit": 10,
   "perLanguage": {
     "english": {
       "multilingual": {
-        "precision": 0.293333,
-        "recall": 0.722222,
-        "mrr": 0.916667
+        "precision": 0.29333333333333333,
+        "recall": 0.7222222222222222,
+        "mrr": 0.9166666666666666,
+        "queries": [
+          {
+            "term": "running",
+            "kind": "morphology",
+            "relevant": [
+              "en-01",
+              "en-02",
+              "en-03"
+            ],
+            "hits": [
+              "en-02"
+            ]
+          },
+          {
+            "term": "climbing",
+            "kind": "morphology",
+            "relevant": [
+              "en-25",
+              "en-26"
+            ],
+            "hits": [
+              "en-25"
+            ]
+          },
+          {
+            "term": "baking",
+            "kind": "morphology",
+            "relevant": [
+              "en-06"
+            ],
+            "hits": []
+          },
+          {
+            "term": "cats",
+            "kind": "morphology",
+            "relevant": [
+              "en-29",
+              "en-30"
+            ],
+            "hits": [
+              "en-30"
+            ]
+          },
+          {
+            "term": "planting",
+            "kind": "morphology",
+            "relevant": [
+              "en-15",
+              "en-16",
+              "en-17"
+            ],
+            "hits": [
+              "en-16"
+            ]
+          },
+          {
+            "term": "cafe",
+            "kind": "diacritic",
+            "relevant": [
+              "en-13"
+            ],
+            "hits": [
+              "en-13"
+            ]
+          },
+          {
+            "term": "resume",
+            "kind": "diacritic",
+            "relevant": [
+              "en-14"
+            ],
+            "hits": [
+              "en-14"
+            ]
+          },
+          {
+            "term": "library",
+            "kind": "exact",
+            "relevant": [
+              "en-07",
+              "en-08"
+            ],
+            "hits": [
+              "en-08",
+              "en-07"
+            ]
+          },
+          {
+            "term": "garden",
+            "kind": "exact",
+            "relevant": [
+              "en-16",
+              "en-30"
+            ],
+            "hits": [
+              "en-30",
+              "en-16"
+            ]
+          },
+          {
+            "term": "market",
+            "kind": "exact",
+            "relevant": [
+              "en-27",
+              "en-28"
+            ],
+            "hits": [
+              "en-28",
+              "en-27"
+            ]
+          },
+          {
+            "term": "piano",
+            "kind": "exact",
+            "relevant": [
+              "en-22"
+            ],
+            "hits": [
+              "en-22"
+            ]
+          },
+          {
+            "term": "bread",
+            "kind": "exact",
+            "relevant": [
+              "en-04"
+            ],
+            "hits": [
+              "en-04"
+            ]
+          },
+          {
+            "term": "astronomy",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "dishwasher",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "elephant",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       },
       "per-language": {
-        "precision": 0.333333,
-        "recall": 0.972222,
-        "mrr": 1
+        "precision": 0.33999999999999997,
+        "recall": 1,
+        "mrr": 1,
+        "queries": [
+          {
+            "term": "running",
+            "kind": "morphology",
+            "relevant": [
+              "en-01",
+              "en-02",
+              "en-03"
+            ],
+            "hits": [
+              "en-02",
+              "en-01",
+              "en-03"
+            ]
+          },
+          {
+            "term": "climbing",
+            "kind": "morphology",
+            "relevant": [
+              "en-25",
+              "en-26"
+            ],
+            "hits": [
+              "en-26",
+              "en-25"
+            ]
+          },
+          {
+            "term": "baking",
+            "kind": "morphology",
+            "relevant": [
+              "en-06"
+            ],
+            "hits": [
+              "en-06",
+              "en-05",
+              "en-04"
+            ]
+          },
+          {
+            "term": "cats",
+            "kind": "morphology",
+            "relevant": [
+              "en-29",
+              "en-30"
+            ],
+            "hits": [
+              "en-29",
+              "en-30",
+              "en-10"
+            ]
+          },
+          {
+            "term": "planting",
+            "kind": "morphology",
+            "relevant": [
+              "en-15",
+              "en-16",
+              "en-17"
+            ],
+            "hits": [
+              "en-15",
+              "en-16",
+              "en-17"
+            ]
+          },
+          {
+            "term": "cafe",
+            "kind": "diacritic",
+            "relevant": [
+              "en-13"
+            ],
+            "hits": [
+              "en-13"
+            ]
+          },
+          {
+            "term": "resume",
+            "kind": "diacritic",
+            "relevant": [
+              "en-14"
+            ],
+            "hits": [
+              "en-14"
+            ]
+          },
+          {
+            "term": "library",
+            "kind": "exact",
+            "relevant": [
+              "en-07",
+              "en-08"
+            ],
+            "hits": [
+              "en-08",
+              "en-07"
+            ]
+          },
+          {
+            "term": "garden",
+            "kind": "exact",
+            "relevant": [
+              "en-16",
+              "en-30"
+            ],
+            "hits": [
+              "en-16",
+              "en-30"
+            ]
+          },
+          {
+            "term": "market",
+            "kind": "exact",
+            "relevant": [
+              "en-27",
+              "en-28"
+            ],
+            "hits": [
+              "en-28",
+              "en-27"
+            ]
+          },
+          {
+            "term": "piano",
+            "kind": "exact",
+            "relevant": [
+              "en-22"
+            ],
+            "hits": [
+              "en-22"
+            ]
+          },
+          {
+            "term": "bread",
+            "kind": "exact",
+            "relevant": [
+              "en-04"
+            ],
+            "hits": [
+              "en-04"
+            ]
+          },
+          {
+            "term": "astronomy",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "dishwasher",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "elephant",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       },
       "english-default": {
-        "precision": 0.293333,
-        "recall": 0.722222,
-        "mrr": 0.916667
+        "precision": 0.29333333333333333,
+        "recall": 0.7222222222222222,
+        "mrr": 0.9166666666666666,
+        "queries": [
+          {
+            "term": "running",
+            "kind": "morphology",
+            "relevant": [
+              "en-01",
+              "en-02",
+              "en-03"
+            ],
+            "hits": [
+              "en-02"
+            ]
+          },
+          {
+            "term": "climbing",
+            "kind": "morphology",
+            "relevant": [
+              "en-25",
+              "en-26"
+            ],
+            "hits": [
+              "en-25"
+            ]
+          },
+          {
+            "term": "baking",
+            "kind": "morphology",
+            "relevant": [
+              "en-06"
+            ],
+            "hits": []
+          },
+          {
+            "term": "cats",
+            "kind": "morphology",
+            "relevant": [
+              "en-29",
+              "en-30"
+            ],
+            "hits": [
+              "en-30"
+            ]
+          },
+          {
+            "term": "planting",
+            "kind": "morphology",
+            "relevant": [
+              "en-15",
+              "en-16",
+              "en-17"
+            ],
+            "hits": [
+              "en-16"
+            ]
+          },
+          {
+            "term": "cafe",
+            "kind": "diacritic",
+            "relevant": [
+              "en-13"
+            ],
+            "hits": [
+              "en-13"
+            ]
+          },
+          {
+            "term": "resume",
+            "kind": "diacritic",
+            "relevant": [
+              "en-14"
+            ],
+            "hits": [
+              "en-14"
+            ]
+          },
+          {
+            "term": "library",
+            "kind": "exact",
+            "relevant": [
+              "en-07",
+              "en-08"
+            ],
+            "hits": [
+              "en-08",
+              "en-07"
+            ]
+          },
+          {
+            "term": "garden",
+            "kind": "exact",
+            "relevant": [
+              "en-16",
+              "en-30"
+            ],
+            "hits": [
+              "en-30",
+              "en-16"
+            ]
+          },
+          {
+            "term": "market",
+            "kind": "exact",
+            "relevant": [
+              "en-27",
+              "en-28"
+            ],
+            "hits": [
+              "en-28",
+              "en-27"
+            ]
+          },
+          {
+            "term": "piano",
+            "kind": "exact",
+            "relevant": [
+              "en-22"
+            ],
+            "hits": [
+              "en-22"
+            ]
+          },
+          {
+            "term": "bread",
+            "kind": "exact",
+            "relevant": [
+              "en-04"
+            ],
+            "hits": [
+              "en-04"
+            ]
+          },
+          {
+            "term": "astronomy",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "dishwasher",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "elephant",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       }
     },
     "italian": {
       "multilingual": {
         "precision": 0.29375,
-        "recall": 0.666667,
-        "mrr": 0.923077
+        "recall": 0.6666666666666666,
+        "mrr": 0.9230769230769231,
+        "queries": [
+          {
+            "term": "cani",
+            "kind": "morphology",
+            "relevant": [
+              "it-01",
+              "it-02",
+              "it-03"
+            ],
+            "hits": [
+              "it-02"
+            ]
+          },
+          {
+            "term": "gatto",
+            "kind": "morphology",
+            "relevant": [
+              "it-04",
+              "it-05"
+            ],
+            "hits": [
+              "it-04"
+            ]
+          },
+          {
+            "term": "libro",
+            "kind": "morphology",
+            "relevant": [
+              "it-06",
+              "it-07"
+            ],
+            "hits": []
+          },
+          {
+            "term": "giocano",
+            "kind": "morphology",
+            "relevant": [
+              "it-19",
+              "it-21"
+            ],
+            "hits": [
+              "it-19"
+            ]
+          },
+          {
+            "term": "treni",
+            "kind": "morphology",
+            "relevant": [
+              "it-09",
+              "it-10",
+              "it-11"
+            ],
+            "hits": [
+              "it-10"
+            ]
+          },
+          {
+            "term": "fiumi",
+            "kind": "morphology",
+            "relevant": [
+              "it-25",
+              "it-26"
+            ],
+            "hits": [
+              "it-26"
+            ]
+          },
+          {
+            "term": "citta",
+            "kind": "diacritic",
+            "relevant": [
+              "it-15",
+              "it-16"
+            ],
+            "hits": [
+              "it-16",
+              "it-15"
+            ]
+          },
+          {
+            "term": "caffe",
+            "kind": "diacritic",
+            "relevant": [
+              "it-17",
+              "it-18"
+            ],
+            "hits": [
+              "it-17",
+              "it-18"
+            ]
+          },
+          {
+            "term": "mercato",
+            "kind": "exact",
+            "relevant": [
+              "it-12",
+              "it-13",
+              "it-14"
+            ],
+            "hits": [
+              "it-12",
+              "it-13",
+              "it-14"
+            ]
+          },
+          {
+            "term": "pane",
+            "kind": "exact",
+            "relevant": [
+              "it-22",
+              "it-23"
+            ],
+            "hits": [
+              "it-22",
+              "it-23"
+            ]
+          },
+          {
+            "term": "montagne",
+            "kind": "exact",
+            "relevant": [
+              "it-26",
+              "it-30"
+            ],
+            "hits": [
+              "it-30"
+            ]
+          },
+          {
+            "term": "violino",
+            "kind": "exact",
+            "relevant": [
+              "it-27"
+            ],
+            "hits": [
+              "it-27"
+            ]
+          },
+          {
+            "term": "sinfonia",
+            "kind": "exact",
+            "relevant": [
+              "it-29"
+            ],
+            "hits": [
+              "it-29"
+            ]
+          },
+          {
+            "term": "astronave",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "frigorifero",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "dinosauro",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       },
       "per-language": {
         "precision": 0.35625,
         "recall": 1,
-        "mrr": 1
+        "mrr": 1,
+        "queries": [
+          {
+            "term": "cani",
+            "kind": "morphology",
+            "relevant": [
+              "it-01",
+              "it-02",
+              "it-03"
+            ],
+            "hits": [
+              "it-03",
+              "it-02",
+              "it-01"
+            ]
+          },
+          {
+            "term": "gatto",
+            "kind": "morphology",
+            "relevant": [
+              "it-04",
+              "it-05"
+            ],
+            "hits": [
+              "it-04",
+              "it-05"
+            ]
+          },
+          {
+            "term": "libro",
+            "kind": "morphology",
+            "relevant": [
+              "it-06",
+              "it-07"
+            ],
+            "hits": [
+              "it-07",
+              "it-06"
+            ]
+          },
+          {
+            "term": "giocano",
+            "kind": "morphology",
+            "relevant": [
+              "it-19",
+              "it-21"
+            ],
+            "hits": [
+              "it-19",
+              "it-21"
+            ]
+          },
+          {
+            "term": "treni",
+            "kind": "morphology",
+            "relevant": [
+              "it-09",
+              "it-10",
+              "it-11"
+            ],
+            "hits": [
+              "it-09",
+              "it-10",
+              "it-11"
+            ]
+          },
+          {
+            "term": "fiumi",
+            "kind": "morphology",
+            "relevant": [
+              "it-25",
+              "it-26"
+            ],
+            "hits": [
+              "it-25",
+              "it-26"
+            ]
+          },
+          {
+            "term": "citta",
+            "kind": "diacritic",
+            "relevant": [
+              "it-15",
+              "it-16"
+            ],
+            "hits": [
+              "it-15",
+              "it-16"
+            ]
+          },
+          {
+            "term": "caffe",
+            "kind": "diacritic",
+            "relevant": [
+              "it-17",
+              "it-18"
+            ],
+            "hits": [
+              "it-17",
+              "it-18"
+            ]
+          },
+          {
+            "term": "mercato",
+            "kind": "exact",
+            "relevant": [
+              "it-12",
+              "it-13",
+              "it-14"
+            ],
+            "hits": [
+              "it-13",
+              "it-14",
+              "it-12"
+            ]
+          },
+          {
+            "term": "pane",
+            "kind": "exact",
+            "relevant": [
+              "it-22",
+              "it-23"
+            ],
+            "hits": [
+              "it-22",
+              "it-23"
+            ]
+          },
+          {
+            "term": "montagne",
+            "kind": "exact",
+            "relevant": [
+              "it-26",
+              "it-30"
+            ],
+            "hits": [
+              "it-30",
+              "it-26"
+            ]
+          },
+          {
+            "term": "violino",
+            "kind": "exact",
+            "relevant": [
+              "it-27"
+            ],
+            "hits": [
+              "it-27"
+            ]
+          },
+          {
+            "term": "sinfonia",
+            "kind": "exact",
+            "relevant": [
+              "it-29"
+            ],
+            "hits": [
+              "it-29"
+            ]
+          },
+          {
+            "term": "astronave",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "frigorifero",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "dinosauro",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       },
       "english-default": {
         "precision": 0.29375,
-        "recall": 0.666667,
-        "mrr": 0.923077
+        "recall": 0.6666666666666666,
+        "mrr": 0.9230769230769231,
+        "queries": [
+          {
+            "term": "cani",
+            "kind": "morphology",
+            "relevant": [
+              "it-01",
+              "it-02",
+              "it-03"
+            ],
+            "hits": [
+              "it-02"
+            ]
+          },
+          {
+            "term": "gatto",
+            "kind": "morphology",
+            "relevant": [
+              "it-04",
+              "it-05"
+            ],
+            "hits": [
+              "it-04"
+            ]
+          },
+          {
+            "term": "libro",
+            "kind": "morphology",
+            "relevant": [
+              "it-06",
+              "it-07"
+            ],
+            "hits": []
+          },
+          {
+            "term": "giocano",
+            "kind": "morphology",
+            "relevant": [
+              "it-19",
+              "it-21"
+            ],
+            "hits": [
+              "it-19"
+            ]
+          },
+          {
+            "term": "treni",
+            "kind": "morphology",
+            "relevant": [
+              "it-09",
+              "it-10",
+              "it-11"
+            ],
+            "hits": [
+              "it-10"
+            ]
+          },
+          {
+            "term": "fiumi",
+            "kind": "morphology",
+            "relevant": [
+              "it-25",
+              "it-26"
+            ],
+            "hits": [
+              "it-26"
+            ]
+          },
+          {
+            "term": "citta",
+            "kind": "diacritic",
+            "relevant": [
+              "it-15",
+              "it-16"
+            ],
+            "hits": [
+              "it-16",
+              "it-15"
+            ]
+          },
+          {
+            "term": "caffe",
+            "kind": "diacritic",
+            "relevant": [
+              "it-17",
+              "it-18"
+            ],
+            "hits": [
+              "it-17",
+              "it-18"
+            ]
+          },
+          {
+            "term": "mercato",
+            "kind": "exact",
+            "relevant": [
+              "it-12",
+              "it-13",
+              "it-14"
+            ],
+            "hits": [
+              "it-12",
+              "it-13",
+              "it-14"
+            ]
+          },
+          {
+            "term": "pane",
+            "kind": "exact",
+            "relevant": [
+              "it-22",
+              "it-23"
+            ],
+            "hits": [
+              "it-22",
+              "it-23"
+            ]
+          },
+          {
+            "term": "montagne",
+            "kind": "exact",
+            "relevant": [
+              "it-26",
+              "it-30"
+            ],
+            "hits": [
+              "it-30"
+            ]
+          },
+          {
+            "term": "violino",
+            "kind": "exact",
+            "relevant": [
+              "it-27"
+            ],
+            "hits": [
+              "it-27"
+            ]
+          },
+          {
+            "term": "sinfonia",
+            "kind": "exact",
+            "relevant": [
+              "it-29"
+            ],
+            "hits": [
+              "it-29"
+            ]
+          },
+          {
+            "term": "astronave",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "frigorifero",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "dinosauro",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       }
     },
     "spanish": {
       "multilingual": {
-        "precision": 0.28125,
-        "recall": 0.589744,
-        "mrr": 0.923077
+        "precision": 0.31875,
+        "recall": 0.8205128205128205,
+        "mrr": 1,
+        "queries": [
+          {
+            "term": "perros",
+            "kind": "morphology",
+            "relevant": [
+              "es-01",
+              "es-02",
+              "es-03"
+            ],
+            "hits": [
+              "es-02"
+            ]
+          },
+          {
+            "term": "gato",
+            "kind": "morphology",
+            "relevant": [
+              "es-04",
+              "es-05"
+            ],
+            "hits": [
+              "es-04",
+              "es-05"
+            ]
+          },
+          {
+            "term": "libro",
+            "kind": "morphology",
+            "relevant": [
+              "es-06",
+              "es-07"
+            ],
+            "hits": [
+              "es-06",
+              "es-07"
+            ]
+          },
+          {
+            "term": "corriendo",
+            "kind": "morphology",
+            "relevant": [
+              "es-29",
+              "es-30"
+            ],
+            "hits": [
+              "es-30"
+            ]
+          },
+          {
+            "term": "trenes",
+            "kind": "morphology",
+            "relevant": [
+              "es-09",
+              "es-10",
+              "es-11"
+            ],
+            "hits": [
+              "es-10"
+            ]
+          },
+          {
+            "term": "nino",
+            "kind": "diacritic",
+            "relevant": [
+              "es-15",
+              "es-16"
+            ],
+            "hits": [
+              "es-15",
+              "es-16"
+            ]
+          },
+          {
+            "term": "arbol",
+            "kind": "diacritic",
+            "relevant": [
+              "es-17",
+              "es-18"
+            ],
+            "hits": [
+              "es-17",
+              "es-18"
+            ]
+          },
+          {
+            "term": "musica",
+            "kind": "diacritic",
+            "relevant": [
+              "es-19",
+              "es-21"
+            ],
+            "hits": [
+              "es-19"
+            ]
+          },
+          {
+            "term": "rio",
+            "kind": "diacritic",
+            "relevant": [
+              "es-25",
+              "es-26"
+            ],
+            "hits": [
+              "es-25",
+              "es-26"
+            ]
+          },
+          {
+            "term": "mercado",
+            "kind": "exact",
+            "relevant": [
+              "es-12",
+              "es-13",
+              "es-14"
+            ],
+            "hits": [
+              "es-13",
+              "es-14",
+              "es-12"
+            ]
+          },
+          {
+            "term": "pan",
+            "kind": "exact",
+            "relevant": [
+              "es-22",
+              "es-23"
+            ],
+            "hits": [
+              "es-22",
+              "es-23"
+            ]
+          },
+          {
+            "term": "guitarra",
+            "kind": "exact",
+            "relevant": [
+              "es-20"
+            ],
+            "hits": [
+              "es-20"
+            ]
+          },
+          {
+            "term": "chocolate",
+            "kind": "exact",
+            "relevant": [
+              "es-24"
+            ],
+            "hits": [
+              "es-24"
+            ]
+          },
+          {
+            "term": "submarino",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "nevera",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "volcan",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       },
       "per-language": {
-        "precision": 0.35,
-        "recall": 0.961538,
-        "mrr": 0.961538
+        "precision": 0.35625,
+        "recall": 1,
+        "mrr": 0.9615384615384616,
+        "queries": [
+          {
+            "term": "perros",
+            "kind": "morphology",
+            "relevant": [
+              "es-01",
+              "es-02",
+              "es-03"
+            ],
+            "hits": [
+              "es-01",
+              "es-03",
+              "es-02"
+            ]
+          },
+          {
+            "term": "gato",
+            "kind": "morphology",
+            "relevant": [
+              "es-04",
+              "es-05"
+            ],
+            "hits": [
+              "es-04",
+              "es-05"
+            ]
+          },
+          {
+            "term": "libro",
+            "kind": "morphology",
+            "relevant": [
+              "es-06",
+              "es-07"
+            ],
+            "hits": [
+              "es-06",
+              "es-07"
+            ]
+          },
+          {
+            "term": "corriendo",
+            "kind": "morphology",
+            "relevant": [
+              "es-29",
+              "es-30"
+            ],
+            "hits": [
+              "es-01",
+              "es-29",
+              "es-30"
+            ]
+          },
+          {
+            "term": "trenes",
+            "kind": "morphology",
+            "relevant": [
+              "es-09",
+              "es-10",
+              "es-11"
+            ],
+            "hits": [
+              "es-11",
+              "es-09",
+              "es-10"
+            ]
+          },
+          {
+            "term": "nino",
+            "kind": "diacritic",
+            "relevant": [
+              "es-15",
+              "es-16"
+            ],
+            "hits": [
+              "es-16",
+              "es-15"
+            ]
+          },
+          {
+            "term": "arbol",
+            "kind": "diacritic",
+            "relevant": [
+              "es-17",
+              "es-18"
+            ],
+            "hits": [
+              "es-17",
+              "es-18"
+            ]
+          },
+          {
+            "term": "musica",
+            "kind": "diacritic",
+            "relevant": [
+              "es-19",
+              "es-21"
+            ],
+            "hits": [
+              "es-19",
+              "es-21"
+            ]
+          },
+          {
+            "term": "rio",
+            "kind": "diacritic",
+            "relevant": [
+              "es-25",
+              "es-26"
+            ],
+            "hits": [
+              "es-25",
+              "es-26"
+            ]
+          },
+          {
+            "term": "mercado",
+            "kind": "exact",
+            "relevant": [
+              "es-12",
+              "es-13",
+              "es-14"
+            ],
+            "hits": [
+              "es-13",
+              "es-14",
+              "es-12"
+            ]
+          },
+          {
+            "term": "pan",
+            "kind": "exact",
+            "relevant": [
+              "es-22",
+              "es-23"
+            ],
+            "hits": [
+              "es-22",
+              "es-23"
+            ]
+          },
+          {
+            "term": "guitarra",
+            "kind": "exact",
+            "relevant": [
+              "es-20"
+            ],
+            "hits": [
+              "es-20"
+            ]
+          },
+          {
+            "term": "chocolate",
+            "kind": "exact",
+            "relevant": [
+              "es-24"
+            ],
+            "hits": [
+              "es-24"
+            ]
+          },
+          {
+            "term": "submarino",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "nevera",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "volcan",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       },
       "english-default": {
-        "precision": 0.25625,
-        "recall": 0.435897,
-        "mrr": 0.615385
+        "precision": 0.31875,
+        "recall": 0.8205128205128205,
+        "mrr": 1,
+        "queries": [
+          {
+            "term": "perros",
+            "kind": "morphology",
+            "relevant": [
+              "es-01",
+              "es-02",
+              "es-03"
+            ],
+            "hits": [
+              "es-02"
+            ]
+          },
+          {
+            "term": "gato",
+            "kind": "morphology",
+            "relevant": [
+              "es-04",
+              "es-05"
+            ],
+            "hits": [
+              "es-04",
+              "es-05"
+            ]
+          },
+          {
+            "term": "libro",
+            "kind": "morphology",
+            "relevant": [
+              "es-06",
+              "es-07"
+            ],
+            "hits": [
+              "es-06",
+              "es-07"
+            ]
+          },
+          {
+            "term": "corriendo",
+            "kind": "morphology",
+            "relevant": [
+              "es-29",
+              "es-30"
+            ],
+            "hits": [
+              "es-30"
+            ]
+          },
+          {
+            "term": "trenes",
+            "kind": "morphology",
+            "relevant": [
+              "es-09",
+              "es-10",
+              "es-11"
+            ],
+            "hits": [
+              "es-10"
+            ]
+          },
+          {
+            "term": "nino",
+            "kind": "diacritic",
+            "relevant": [
+              "es-15",
+              "es-16"
+            ],
+            "hits": [
+              "es-15",
+              "es-16"
+            ]
+          },
+          {
+            "term": "arbol",
+            "kind": "diacritic",
+            "relevant": [
+              "es-17",
+              "es-18"
+            ],
+            "hits": [
+              "es-17",
+              "es-18"
+            ]
+          },
+          {
+            "term": "musica",
+            "kind": "diacritic",
+            "relevant": [
+              "es-19",
+              "es-21"
+            ],
+            "hits": [
+              "es-19"
+            ]
+          },
+          {
+            "term": "rio",
+            "kind": "diacritic",
+            "relevant": [
+              "es-25",
+              "es-26"
+            ],
+            "hits": [
+              "es-25",
+              "es-26"
+            ]
+          },
+          {
+            "term": "mercado",
+            "kind": "exact",
+            "relevant": [
+              "es-12",
+              "es-13",
+              "es-14"
+            ],
+            "hits": [
+              "es-13",
+              "es-14",
+              "es-12"
+            ]
+          },
+          {
+            "term": "pan",
+            "kind": "exact",
+            "relevant": [
+              "es-22",
+              "es-23"
+            ],
+            "hits": [
+              "es-22",
+              "es-23"
+            ]
+          },
+          {
+            "term": "guitarra",
+            "kind": "exact",
+            "relevant": [
+              "es-20"
+            ],
+            "hits": [
+              "es-20"
+            ]
+          },
+          {
+            "term": "chocolate",
+            "kind": "exact",
+            "relevant": [
+              "es-24"
+            ],
+            "hits": [
+              "es-24"
+            ]
+          },
+          {
+            "term": "submarino",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "nevera",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "volcan",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       }
     },
     "german": {
       "multilingual": {
-        "precision": 0.29375,
-        "recall": 0.717949,
-        "mrr": 1
+        "precision": 0.3,
+        "recall": 0.7564102564102563,
+        "mrr": 1,
+        "queries": [
+          {
+            "term": "hunde",
+            "kind": "morphology",
+            "relevant": [
+              "de-01",
+              "de-02",
+              "de-03"
+            ],
+            "hits": [
+              "de-02"
+            ]
+          },
+          {
+            "term": "katzen",
+            "kind": "morphology",
+            "relevant": [
+              "de-04",
+              "de-05"
+            ],
+            "hits": [
+              "de-05"
+            ]
+          },
+          {
+            "term": "häuser",
+            "kind": "morphology",
+            "relevant": [
+              "de-15",
+              "de-16"
+            ],
+            "hits": [
+              "de-16"
+            ]
+          },
+          {
+            "term": "bücher",
+            "kind": "morphology",
+            "relevant": [
+              "de-06",
+              "de-07"
+            ],
+            "hits": [
+              "de-06"
+            ]
+          },
+          {
+            "term": "spielen",
+            "kind": "morphology",
+            "relevant": [
+              "de-21",
+              "de-22"
+            ],
+            "hits": [
+              "de-22"
+            ]
+          },
+          {
+            "term": "bäume",
+            "kind": "morphology",
+            "relevant": [
+              "de-17",
+              "de-18"
+            ],
+            "hits": [
+              "de-18"
+            ]
+          },
+          {
+            "term": "schon",
+            "kind": "diacritic",
+            "relevant": [
+              "de-24",
+              "de-25"
+            ],
+            "hits": [
+              "de-24",
+              "de-25"
+            ]
+          },
+          {
+            "term": "gemuse",
+            "kind": "diacritic",
+            "relevant": [
+              "de-13"
+            ],
+            "hits": [
+              "de-13"
+            ]
+          },
+          {
+            "term": "markt",
+            "kind": "exact",
+            "relevant": [
+              "de-12",
+              "de-13",
+              "de-14"
+            ],
+            "hits": [
+              "de-12",
+              "de-14",
+              "de-13"
+            ]
+          },
+          {
+            "term": "brot",
+            "kind": "exact",
+            "relevant": [
+              "de-28",
+              "de-29"
+            ],
+            "hits": [
+              "de-29",
+              "de-28"
+            ]
+          },
+          {
+            "term": "fluss",
+            "kind": "exact",
+            "relevant": [
+              "de-26",
+              "de-27"
+            ],
+            "hits": [
+              "de-26",
+              "de-27"
+            ]
+          },
+          {
+            "term": "klavier",
+            "kind": "exact",
+            "relevant": [
+              "de-22"
+            ],
+            "hits": [
+              "de-22"
+            ]
+          },
+          {
+            "term": "sinfonie",
+            "kind": "exact",
+            "relevant": [
+              "de-23"
+            ],
+            "hits": [
+              "de-23"
+            ]
+          },
+          {
+            "term": "kühlschrank",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "hubschrauber",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "pirat",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       },
       "per-language": {
-        "precision": 0.3375,
-        "recall": 0.961538,
-        "mrr": 0.961538
+        "precision": 0.34375,
+        "recall": 1,
+        "mrr": 0.9615384615384616,
+        "queries": [
+          {
+            "term": "hunde",
+            "kind": "morphology",
+            "relevant": [
+              "de-01",
+              "de-02",
+              "de-03"
+            ],
+            "hits": [
+              "de-03",
+              "de-01",
+              "de-02"
+            ]
+          },
+          {
+            "term": "katzen",
+            "kind": "morphology",
+            "relevant": [
+              "de-04",
+              "de-05"
+            ],
+            "hits": [
+              "de-04",
+              "de-05"
+            ]
+          },
+          {
+            "term": "häuser",
+            "kind": "morphology",
+            "relevant": [
+              "de-15",
+              "de-16"
+            ],
+            "hits": [
+              "de-05",
+              "de-16",
+              "de-15"
+            ]
+          },
+          {
+            "term": "bücher",
+            "kind": "morphology",
+            "relevant": [
+              "de-06",
+              "de-07"
+            ],
+            "hits": [
+              "de-07",
+              "de-06"
+            ]
+          },
+          {
+            "term": "spielen",
+            "kind": "morphology",
+            "relevant": [
+              "de-21",
+              "de-22"
+            ],
+            "hits": [
+              "de-22",
+              "de-21"
+            ]
+          },
+          {
+            "term": "bäume",
+            "kind": "morphology",
+            "relevant": [
+              "de-17",
+              "de-18"
+            ],
+            "hits": [
+              "de-17",
+              "de-18"
+            ]
+          },
+          {
+            "term": "schon",
+            "kind": "diacritic",
+            "relevant": [
+              "de-24",
+              "de-25"
+            ],
+            "hits": [
+              "de-24",
+              "de-25"
+            ]
+          },
+          {
+            "term": "gemuse",
+            "kind": "diacritic",
+            "relevant": [
+              "de-13"
+            ],
+            "hits": [
+              "de-13"
+            ]
+          },
+          {
+            "term": "markt",
+            "kind": "exact",
+            "relevant": [
+              "de-12",
+              "de-13",
+              "de-14"
+            ],
+            "hits": [
+              "de-14",
+              "de-12",
+              "de-13"
+            ]
+          },
+          {
+            "term": "brot",
+            "kind": "exact",
+            "relevant": [
+              "de-28",
+              "de-29"
+            ],
+            "hits": [
+              "de-28",
+              "de-29"
+            ]
+          },
+          {
+            "term": "fluss",
+            "kind": "exact",
+            "relevant": [
+              "de-26",
+              "de-27"
+            ],
+            "hits": [
+              "de-26",
+              "de-27"
+            ]
+          },
+          {
+            "term": "klavier",
+            "kind": "exact",
+            "relevant": [
+              "de-22"
+            ],
+            "hits": [
+              "de-22"
+            ]
+          },
+          {
+            "term": "sinfonie",
+            "kind": "exact",
+            "relevant": [
+              "de-23"
+            ],
+            "hits": [
+              "de-23"
+            ]
+          },
+          {
+            "term": "kühlschrank",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "hubschrauber",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "pirat",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       },
       "english-default": {
-        "precision": 0.2125,
-        "recall": 0.564103,
-        "mrr": 0.846154
+        "precision": 0.3,
+        "recall": 0.7564102564102563,
+        "mrr": 1,
+        "queries": [
+          {
+            "term": "hunde",
+            "kind": "morphology",
+            "relevant": [
+              "de-01",
+              "de-02",
+              "de-03"
+            ],
+            "hits": [
+              "de-02"
+            ]
+          },
+          {
+            "term": "katzen",
+            "kind": "morphology",
+            "relevant": [
+              "de-04",
+              "de-05"
+            ],
+            "hits": [
+              "de-05"
+            ]
+          },
+          {
+            "term": "häuser",
+            "kind": "morphology",
+            "relevant": [
+              "de-15",
+              "de-16"
+            ],
+            "hits": [
+              "de-16"
+            ]
+          },
+          {
+            "term": "bücher",
+            "kind": "morphology",
+            "relevant": [
+              "de-06",
+              "de-07"
+            ],
+            "hits": [
+              "de-06"
+            ]
+          },
+          {
+            "term": "spielen",
+            "kind": "morphology",
+            "relevant": [
+              "de-21",
+              "de-22"
+            ],
+            "hits": [
+              "de-22"
+            ]
+          },
+          {
+            "term": "bäume",
+            "kind": "morphology",
+            "relevant": [
+              "de-17",
+              "de-18"
+            ],
+            "hits": [
+              "de-18"
+            ]
+          },
+          {
+            "term": "schon",
+            "kind": "diacritic",
+            "relevant": [
+              "de-24",
+              "de-25"
+            ],
+            "hits": [
+              "de-24",
+              "de-25"
+            ]
+          },
+          {
+            "term": "gemuse",
+            "kind": "diacritic",
+            "relevant": [
+              "de-13"
+            ],
+            "hits": [
+              "de-13"
+            ]
+          },
+          {
+            "term": "markt",
+            "kind": "exact",
+            "relevant": [
+              "de-12",
+              "de-13",
+              "de-14"
+            ],
+            "hits": [
+              "de-12",
+              "de-14",
+              "de-13"
+            ]
+          },
+          {
+            "term": "brot",
+            "kind": "exact",
+            "relevant": [
+              "de-28",
+              "de-29"
+            ],
+            "hits": [
+              "de-29",
+              "de-28"
+            ]
+          },
+          {
+            "term": "fluss",
+            "kind": "exact",
+            "relevant": [
+              "de-26",
+              "de-27"
+            ],
+            "hits": [
+              "de-26",
+              "de-27"
+            ]
+          },
+          {
+            "term": "klavier",
+            "kind": "exact",
+            "relevant": [
+              "de-22"
+            ],
+            "hits": [
+              "de-22"
+            ]
+          },
+          {
+            "term": "sinfonie",
+            "kind": "exact",
+            "relevant": [
+              "de-23"
+            ],
+            "hits": [
+              "de-23"
+            ]
+          },
+          {
+            "term": "kühlschrank",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "hubschrauber",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "pirat",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       }
     },
     "french": {
       "multilingual": {
-        "precision": 0.26875,
-        "recall": 0.551282,
-        "mrr": 0.769231
+        "precision": 0.29375,
+        "recall": 0.7051282051282051,
+        "mrr": 0.9230769230769231,
+        "queries": [
+          {
+            "term": "chiens",
+            "kind": "morphology",
+            "relevant": [
+              "fr-01",
+              "fr-02",
+              "fr-03"
+            ],
+            "hits": [
+              "fr-02"
+            ]
+          },
+          {
+            "term": "chats",
+            "kind": "morphology",
+            "relevant": [
+              "fr-04",
+              "fr-05"
+            ],
+            "hits": [
+              "fr-05"
+            ]
+          },
+          {
+            "term": "chevaux",
+            "kind": "morphology",
+            "relevant": [
+              "fr-15",
+              "fr-16"
+            ],
+            "hits": [
+              "fr-16"
+            ]
+          },
+          {
+            "term": "livre",
+            "kind": "morphology",
+            "relevant": [
+              "fr-06",
+              "fr-07"
+            ],
+            "hits": [
+              "fr-06",
+              "fr-07"
+            ]
+          },
+          {
+            "term": "trains",
+            "kind": "morphology",
+            "relevant": [
+              "fr-09",
+              "fr-10",
+              "fr-11"
+            ],
+            "hits": [
+              "fr-10"
+            ]
+          },
+          {
+            "term": "manger",
+            "kind": "morphology",
+            "relevant": [
+              "fr-21",
+              "fr-22"
+            ],
+            "hits": []
+          },
+          {
+            "term": "foret",
+            "kind": "diacritic",
+            "relevant": [
+              "fr-17",
+              "fr-18"
+            ],
+            "hits": [
+              "fr-17",
+              "fr-18"
+            ]
+          },
+          {
+            "term": "ecole",
+            "kind": "diacritic",
+            "relevant": [
+              "fr-19",
+              "fr-20"
+            ],
+            "hits": [
+              "fr-20"
+            ]
+          },
+          {
+            "term": "marche",
+            "kind": "diacritic",
+            "relevant": [
+              "fr-12",
+              "fr-13",
+              "fr-14"
+            ],
+            "hits": [
+              "fr-13",
+              "fr-12",
+              "fr-14"
+            ]
+          },
+          {
+            "term": "pain",
+            "kind": "exact",
+            "relevant": [
+              "fr-23",
+              "fr-24"
+            ],
+            "hits": [
+              "fr-23",
+              "fr-24"
+            ]
+          },
+          {
+            "term": "violon",
+            "kind": "exact",
+            "relevant": [
+              "fr-28"
+            ],
+            "hits": [
+              "fr-28"
+            ]
+          },
+          {
+            "term": "clavecin",
+            "kind": "exact",
+            "relevant": [
+              "fr-29"
+            ],
+            "hits": [
+              "fr-29"
+            ]
+          },
+          {
+            "term": "chocolat",
+            "kind": "exact",
+            "relevant": [
+              "fr-25"
+            ],
+            "hits": [
+              "fr-25"
+            ]
+          },
+          {
+            "term": "telescope",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "refrigerateur",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "dinosaure",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       },
       "per-language": {
         "precision": 0.35,
         "recall": 1,
-        "mrr": 1
+        "mrr": 1,
+        "queries": [
+          {
+            "term": "chiens",
+            "kind": "morphology",
+            "relevant": [
+              "fr-01",
+              "fr-02",
+              "fr-03"
+            ],
+            "hits": [
+              "fr-03",
+              "fr-01",
+              "fr-02"
+            ]
+          },
+          {
+            "term": "chats",
+            "kind": "morphology",
+            "relevant": [
+              "fr-04",
+              "fr-05"
+            ],
+            "hits": [
+              "fr-05",
+              "fr-04"
+            ]
+          },
+          {
+            "term": "chevaux",
+            "kind": "morphology",
+            "relevant": [
+              "fr-15",
+              "fr-16"
+            ],
+            "hits": [
+              "fr-15",
+              "fr-16"
+            ]
+          },
+          {
+            "term": "livre",
+            "kind": "morphology",
+            "relevant": [
+              "fr-06",
+              "fr-07"
+            ],
+            "hits": [
+              "fr-06",
+              "fr-07"
+            ]
+          },
+          {
+            "term": "trains",
+            "kind": "morphology",
+            "relevant": [
+              "fr-09",
+              "fr-10",
+              "fr-11"
+            ],
+            "hits": [
+              "fr-10",
+              "fr-11",
+              "fr-09"
+            ]
+          },
+          {
+            "term": "manger",
+            "kind": "morphology",
+            "relevant": [
+              "fr-21",
+              "fr-22"
+            ],
+            "hits": [
+              "fr-22",
+              "fr-21"
+            ]
+          },
+          {
+            "term": "foret",
+            "kind": "diacritic",
+            "relevant": [
+              "fr-17",
+              "fr-18"
+            ],
+            "hits": [
+              "fr-17",
+              "fr-18"
+            ]
+          },
+          {
+            "term": "ecole",
+            "kind": "diacritic",
+            "relevant": [
+              "fr-19",
+              "fr-20"
+            ],
+            "hits": [
+              "fr-19",
+              "fr-20"
+            ]
+          },
+          {
+            "term": "marche",
+            "kind": "diacritic",
+            "relevant": [
+              "fr-12",
+              "fr-13",
+              "fr-14"
+            ],
+            "hits": [
+              "fr-13",
+              "fr-14",
+              "fr-12"
+            ]
+          },
+          {
+            "term": "pain",
+            "kind": "exact",
+            "relevant": [
+              "fr-23",
+              "fr-24"
+            ],
+            "hits": [
+              "fr-23",
+              "fr-24"
+            ]
+          },
+          {
+            "term": "violon",
+            "kind": "exact",
+            "relevant": [
+              "fr-28"
+            ],
+            "hits": [
+              "fr-28"
+            ]
+          },
+          {
+            "term": "clavecin",
+            "kind": "exact",
+            "relevant": [
+              "fr-29"
+            ],
+            "hits": [
+              "fr-29"
+            ]
+          },
+          {
+            "term": "chocolat",
+            "kind": "exact",
+            "relevant": [
+              "fr-25"
+            ],
+            "hits": [
+              "fr-25"
+            ]
+          },
+          {
+            "term": "telescope",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "refrigerateur",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "dinosaure",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       },
       "english-default": {
-        "precision": 0.2625,
-        "recall": 0.512821,
-        "mrr": 0.692308
+        "precision": 0.29375,
+        "recall": 0.7051282051282051,
+        "mrr": 0.9230769230769231,
+        "queries": [
+          {
+            "term": "chiens",
+            "kind": "morphology",
+            "relevant": [
+              "fr-01",
+              "fr-02",
+              "fr-03"
+            ],
+            "hits": [
+              "fr-02"
+            ]
+          },
+          {
+            "term": "chats",
+            "kind": "morphology",
+            "relevant": [
+              "fr-04",
+              "fr-05"
+            ],
+            "hits": [
+              "fr-05"
+            ]
+          },
+          {
+            "term": "chevaux",
+            "kind": "morphology",
+            "relevant": [
+              "fr-15",
+              "fr-16"
+            ],
+            "hits": [
+              "fr-16"
+            ]
+          },
+          {
+            "term": "livre",
+            "kind": "morphology",
+            "relevant": [
+              "fr-06",
+              "fr-07"
+            ],
+            "hits": [
+              "fr-06",
+              "fr-07"
+            ]
+          },
+          {
+            "term": "trains",
+            "kind": "morphology",
+            "relevant": [
+              "fr-09",
+              "fr-10",
+              "fr-11"
+            ],
+            "hits": [
+              "fr-10"
+            ]
+          },
+          {
+            "term": "manger",
+            "kind": "morphology",
+            "relevant": [
+              "fr-21",
+              "fr-22"
+            ],
+            "hits": []
+          },
+          {
+            "term": "foret",
+            "kind": "diacritic",
+            "relevant": [
+              "fr-17",
+              "fr-18"
+            ],
+            "hits": [
+              "fr-17",
+              "fr-18"
+            ]
+          },
+          {
+            "term": "ecole",
+            "kind": "diacritic",
+            "relevant": [
+              "fr-19",
+              "fr-20"
+            ],
+            "hits": [
+              "fr-20"
+            ]
+          },
+          {
+            "term": "marche",
+            "kind": "diacritic",
+            "relevant": [
+              "fr-12",
+              "fr-13",
+              "fr-14"
+            ],
+            "hits": [
+              "fr-13",
+              "fr-12",
+              "fr-14"
+            ]
+          },
+          {
+            "term": "pain",
+            "kind": "exact",
+            "relevant": [
+              "fr-23",
+              "fr-24"
+            ],
+            "hits": [
+              "fr-23",
+              "fr-24"
+            ]
+          },
+          {
+            "term": "violon",
+            "kind": "exact",
+            "relevant": [
+              "fr-28"
+            ],
+            "hits": [
+              "fr-28"
+            ]
+          },
+          {
+            "term": "clavecin",
+            "kind": "exact",
+            "relevant": [
+              "fr-29"
+            ],
+            "hits": [
+              "fr-29"
+            ]
+          },
+          {
+            "term": "chocolat",
+            "kind": "exact",
+            "relevant": [
+              "fr-25"
+            ],
+            "hits": [
+              "fr-25"
+            ]
+          },
+          {
+            "term": "telescope",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "refrigerateur",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "dinosaure",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       }
     },
     "portuguese": {
       "multilingual": {
-        "precision": 0.28125,
-        "recall": 0.628205,
-        "mrr": 0.846154
+        "precision": 0.30000000000000004,
+        "recall": 0.7435897435897435,
+        "mrr": 0.9230769230769231,
+        "queries": [
+          {
+            "term": "caes",
+            "kind": "morphology",
+            "relevant": [
+              "pt-01",
+              "pt-02",
+              "pt-03"
+            ],
+            "hits": [
+              "pt-02"
+            ]
+          },
+          {
+            "term": "coelhos",
+            "kind": "morphology",
+            "relevant": [
+              "pt-04",
+              "pt-05"
+            ],
+            "hits": [
+              "pt-05"
+            ]
+          },
+          {
+            "term": "livro",
+            "kind": "morphology",
+            "relevant": [
+              "pt-06",
+              "pt-07"
+            ],
+            "hits": [
+              "pt-07",
+              "pt-06"
+            ]
+          },
+          {
+            "term": "comboios",
+            "kind": "morphology",
+            "relevant": [
+              "pt-09",
+              "pt-10",
+              "pt-11"
+            ],
+            "hits": [
+              "pt-10"
+            ]
+          },
+          {
+            "term": "falando",
+            "kind": "morphology",
+            "relevant": [
+              "pt-21",
+              "pt-22"
+            ],
+            "hits": []
+          },
+          {
+            "term": "meninos",
+            "kind": "morphology",
+            "relevant": [
+              "pt-19",
+              "pt-20"
+            ],
+            "hits": [
+              "pt-20"
+            ]
+          },
+          {
+            "term": "arvore",
+            "kind": "diacritic",
+            "relevant": [
+              "pt-15",
+              "pt-16"
+            ],
+            "hits": [
+              "pt-15",
+              "pt-16"
+            ]
+          },
+          {
+            "term": "coracao",
+            "kind": "diacritic",
+            "relevant": [
+              "pt-17",
+              "pt-18"
+            ],
+            "hits": [
+              "pt-17",
+              "pt-18"
+            ]
+          },
+          {
+            "term": "pao",
+            "kind": "diacritic",
+            "relevant": [
+              "pt-23",
+              "pt-24"
+            ],
+            "hits": [
+              "pt-23",
+              "pt-24"
+            ]
+          },
+          {
+            "term": "acordeao",
+            "kind": "diacritic",
+            "relevant": [
+              "pt-29"
+            ],
+            "hits": [
+              "pt-29"
+            ]
+          },
+          {
+            "term": "feira",
+            "kind": "exact",
+            "relevant": [
+              "pt-12",
+              "pt-13",
+              "pt-14"
+            ],
+            "hits": [
+              "pt-13",
+              "pt-14",
+              "pt-12",
+              "pt-30"
+            ]
+          },
+          {
+            "term": "violoncelo",
+            "kind": "exact",
+            "relevant": [
+              "pt-28"
+            ],
+            "hits": [
+              "pt-28"
+            ]
+          },
+          {
+            "term": "laranja",
+            "kind": "exact",
+            "relevant": [
+              "pt-25"
+            ],
+            "hits": [
+              "pt-25"
+            ]
+          },
+          {
+            "term": "submarino",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "geladeira",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "dinossauro",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       },
       "per-language": {
         "precision": 0.3375,
-        "recall": 0.948718,
-        "mrr": 1
+        "recall": 0.9487179487179487,
+        "mrr": 1,
+        "queries": [
+          {
+            "term": "caes",
+            "kind": "morphology",
+            "relevant": [
+              "pt-01",
+              "pt-02",
+              "pt-03"
+            ],
+            "hits": [
+              "pt-02"
+            ]
+          },
+          {
+            "term": "coelhos",
+            "kind": "morphology",
+            "relevant": [
+              "pt-04",
+              "pt-05"
+            ],
+            "hits": [
+              "pt-04",
+              "pt-05"
+            ]
+          },
+          {
+            "term": "livro",
+            "kind": "morphology",
+            "relevant": [
+              "pt-06",
+              "pt-07"
+            ],
+            "hits": [
+              "pt-07",
+              "pt-06"
+            ]
+          },
+          {
+            "term": "comboios",
+            "kind": "morphology",
+            "relevant": [
+              "pt-09",
+              "pt-10",
+              "pt-11"
+            ],
+            "hits": [
+              "pt-11",
+              "pt-09",
+              "pt-10"
+            ]
+          },
+          {
+            "term": "falando",
+            "kind": "morphology",
+            "relevant": [
+              "pt-21",
+              "pt-22"
+            ],
+            "hits": [
+              "pt-21",
+              "pt-22"
+            ]
+          },
+          {
+            "term": "meninos",
+            "kind": "morphology",
+            "relevant": [
+              "pt-19",
+              "pt-20"
+            ],
+            "hits": [
+              "pt-20",
+              "pt-19"
+            ]
+          },
+          {
+            "term": "arvore",
+            "kind": "diacritic",
+            "relevant": [
+              "pt-15",
+              "pt-16"
+            ],
+            "hits": [
+              "pt-15",
+              "pt-16"
+            ]
+          },
+          {
+            "term": "coracao",
+            "kind": "diacritic",
+            "relevant": [
+              "pt-17",
+              "pt-18"
+            ],
+            "hits": [
+              "pt-17",
+              "pt-18"
+            ]
+          },
+          {
+            "term": "pao",
+            "kind": "diacritic",
+            "relevant": [
+              "pt-23",
+              "pt-24"
+            ],
+            "hits": [
+              "pt-23",
+              "pt-24"
+            ]
+          },
+          {
+            "term": "acordeao",
+            "kind": "diacritic",
+            "relevant": [
+              "pt-29"
+            ],
+            "hits": [
+              "pt-29"
+            ]
+          },
+          {
+            "term": "feira",
+            "kind": "exact",
+            "relevant": [
+              "pt-12",
+              "pt-13",
+              "pt-14"
+            ],
+            "hits": [
+              "pt-13",
+              "pt-14",
+              "pt-12",
+              "pt-30"
+            ]
+          },
+          {
+            "term": "violoncelo",
+            "kind": "exact",
+            "relevant": [
+              "pt-28"
+            ],
+            "hits": [
+              "pt-28"
+            ]
+          },
+          {
+            "term": "laranja",
+            "kind": "exact",
+            "relevant": [
+              "pt-25"
+            ],
+            "hits": [
+              "pt-25"
+            ]
+          },
+          {
+            "term": "submarino",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "geladeira",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "dinossauro",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       },
       "english-default": {
-        "precision": 0.2375,
-        "recall": 0.333333,
-        "mrr": 0.461538
+        "precision": 0.30000000000000004,
+        "recall": 0.7435897435897435,
+        "mrr": 0.9230769230769231,
+        "queries": [
+          {
+            "term": "caes",
+            "kind": "morphology",
+            "relevant": [
+              "pt-01",
+              "pt-02",
+              "pt-03"
+            ],
+            "hits": [
+              "pt-02"
+            ]
+          },
+          {
+            "term": "coelhos",
+            "kind": "morphology",
+            "relevant": [
+              "pt-04",
+              "pt-05"
+            ],
+            "hits": [
+              "pt-05"
+            ]
+          },
+          {
+            "term": "livro",
+            "kind": "morphology",
+            "relevant": [
+              "pt-06",
+              "pt-07"
+            ],
+            "hits": [
+              "pt-07",
+              "pt-06"
+            ]
+          },
+          {
+            "term": "comboios",
+            "kind": "morphology",
+            "relevant": [
+              "pt-09",
+              "pt-10",
+              "pt-11"
+            ],
+            "hits": [
+              "pt-10"
+            ]
+          },
+          {
+            "term": "falando",
+            "kind": "morphology",
+            "relevant": [
+              "pt-21",
+              "pt-22"
+            ],
+            "hits": []
+          },
+          {
+            "term": "meninos",
+            "kind": "morphology",
+            "relevant": [
+              "pt-19",
+              "pt-20"
+            ],
+            "hits": [
+              "pt-20"
+            ]
+          },
+          {
+            "term": "arvore",
+            "kind": "diacritic",
+            "relevant": [
+              "pt-15",
+              "pt-16"
+            ],
+            "hits": [
+              "pt-15",
+              "pt-16"
+            ]
+          },
+          {
+            "term": "coracao",
+            "kind": "diacritic",
+            "relevant": [
+              "pt-17",
+              "pt-18"
+            ],
+            "hits": [
+              "pt-17",
+              "pt-18"
+            ]
+          },
+          {
+            "term": "pao",
+            "kind": "diacritic",
+            "relevant": [
+              "pt-23",
+              "pt-24"
+            ],
+            "hits": [
+              "pt-23",
+              "pt-24"
+            ]
+          },
+          {
+            "term": "acordeao",
+            "kind": "diacritic",
+            "relevant": [
+              "pt-29"
+            ],
+            "hits": [
+              "pt-29"
+            ]
+          },
+          {
+            "term": "feira",
+            "kind": "exact",
+            "relevant": [
+              "pt-12",
+              "pt-13",
+              "pt-14"
+            ],
+            "hits": [
+              "pt-13",
+              "pt-14",
+              "pt-12"
+            ]
+          },
+          {
+            "term": "violoncelo",
+            "kind": "exact",
+            "relevant": [
+              "pt-28"
+            ],
+            "hits": [
+              "pt-28"
+            ]
+          },
+          {
+            "term": "laranja",
+            "kind": "exact",
+            "relevant": [
+              "pt-25"
+            ],
+            "hits": [
+              "pt-25"
+            ]
+          },
+          {
+            "term": "submarino",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "geladeira",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "dinossauro",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       }
     },
     "russian": {
       "multilingual": {
-        "precision": 0.26875,
-        "recall": 0.641026,
-        "mrr": 0.923077
+        "precision": 0.26875000000000004,
+        "recall": 0.641025641025641,
+        "mrr": 0.9230769230769231,
+        "queries": [
+          {
+            "term": "собаки",
+            "kind": "morphology",
+            "relevant": [
+              "ru-01",
+              "ru-02",
+              "ru-03"
+            ],
+            "hits": [
+              "ru-02"
+            ]
+          },
+          {
+            "term": "кошки",
+            "kind": "morphology",
+            "relevant": [
+              "ru-04",
+              "ru-05"
+            ],
+            "hits": [
+              "ru-05"
+            ]
+          },
+          {
+            "term": "книги",
+            "kind": "morphology",
+            "relevant": [
+              "ru-06",
+              "ru-07"
+            ],
+            "hits": [
+              "ru-07"
+            ]
+          },
+          {
+            "term": "поезда",
+            "kind": "morphology",
+            "relevant": [
+              "ru-09",
+              "ru-10",
+              "ru-11"
+            ],
+            "hits": [
+              "ru-10"
+            ]
+          },
+          {
+            "term": "играть",
+            "kind": "morphology",
+            "relevant": [
+              "ru-16",
+              "ru-22",
+              "ru-23"
+            ],
+            "hits": []
+          },
+          {
+            "term": "машины",
+            "kind": "morphology",
+            "relevant": [
+              "ru-27",
+              "ru-28"
+            ],
+            "hits": [
+              "ru-28"
+            ]
+          },
+          {
+            "term": "елка",
+            "kind": "diacritic",
+            "relevant": [
+              "ru-25",
+              "ru-26"
+            ],
+            "hits": [
+              "ru-25"
+            ]
+          },
+          {
+            "term": "рынок",
+            "kind": "exact",
+            "relevant": [
+              "ru-12",
+              "ru-13",
+              "ru-14"
+            ],
+            "hits": [
+              "ru-12",
+              "ru-14"
+            ]
+          },
+          {
+            "term": "симфонию",
+            "kind": "exact",
+            "relevant": [
+              "ru-24"
+            ],
+            "hits": [
+              "ru-24"
+            ]
+          },
+          {
+            "term": "шоколадный",
+            "kind": "exact",
+            "relevant": [
+              "ru-21"
+            ],
+            "hits": [
+              "ru-21"
+            ]
+          },
+          {
+            "term": "бассейне",
+            "kind": "exact",
+            "relevant": [
+              "ru-15"
+            ],
+            "hits": [
+              "ru-15"
+            ]
+          },
+          {
+            "term": "пианино",
+            "kind": "exact",
+            "relevant": [
+              "ru-23"
+            ],
+            "hits": [
+              "ru-23"
+            ]
+          },
+          {
+            "term": "экзаменам",
+            "kind": "exact",
+            "relevant": [
+              "ru-30"
+            ],
+            "hits": [
+              "ru-30"
+            ]
+          },
+          {
+            "term": "самолёт",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "холодильник",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "динозавр",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       },
       "per-language": {
         "precision": 0.3375,
-        "recall": 0.974359,
-        "mrr": 1
+        "recall": 0.9743589743589745,
+        "mrr": 1,
+        "queries": [
+          {
+            "term": "собаки",
+            "kind": "morphology",
+            "relevant": [
+              "ru-01",
+              "ru-02",
+              "ru-03"
+            ],
+            "hits": [
+              "ru-03",
+              "ru-02",
+              "ru-01"
+            ]
+          },
+          {
+            "term": "кошки",
+            "kind": "morphology",
+            "relevant": [
+              "ru-04",
+              "ru-05"
+            ],
+            "hits": [
+              "ru-04",
+              "ru-05"
+            ]
+          },
+          {
+            "term": "книги",
+            "kind": "morphology",
+            "relevant": [
+              "ru-06",
+              "ru-07"
+            ],
+            "hits": [
+              "ru-07",
+              "ru-06"
+            ]
+          },
+          {
+            "term": "поезда",
+            "kind": "morphology",
+            "relevant": [
+              "ru-09",
+              "ru-10",
+              "ru-11"
+            ],
+            "hits": [
+              "ru-11",
+              "ru-10",
+              "ru-09"
+            ]
+          },
+          {
+            "term": "играть",
+            "kind": "morphology",
+            "relevant": [
+              "ru-16",
+              "ru-22",
+              "ru-23"
+            ],
+            "hits": [
+              "ru-16",
+              "ru-22",
+              "ru-23"
+            ]
+          },
+          {
+            "term": "машины",
+            "kind": "morphology",
+            "relevant": [
+              "ru-27",
+              "ru-28"
+            ],
+            "hits": [
+              "ru-27",
+              "ru-28"
+            ]
+          },
+          {
+            "term": "елка",
+            "kind": "diacritic",
+            "relevant": [
+              "ru-25",
+              "ru-26"
+            ],
+            "hits": [
+              "ru-25",
+              "ru-26"
+            ]
+          },
+          {
+            "term": "рынок",
+            "kind": "exact",
+            "relevant": [
+              "ru-12",
+              "ru-13",
+              "ru-14"
+            ],
+            "hits": [
+              "ru-14",
+              "ru-12"
+            ]
+          },
+          {
+            "term": "симфонию",
+            "kind": "exact",
+            "relevant": [
+              "ru-24"
+            ],
+            "hits": [
+              "ru-24"
+            ]
+          },
+          {
+            "term": "шоколадный",
+            "kind": "exact",
+            "relevant": [
+              "ru-21"
+            ],
+            "hits": [
+              "ru-21"
+            ]
+          },
+          {
+            "term": "бассейне",
+            "kind": "exact",
+            "relevant": [
+              "ru-15"
+            ],
+            "hits": [
+              "ru-15"
+            ]
+          },
+          {
+            "term": "пианино",
+            "kind": "exact",
+            "relevant": [
+              "ru-23"
+            ],
+            "hits": [
+              "ru-23"
+            ]
+          },
+          {
+            "term": "экзаменам",
+            "kind": "exact",
+            "relevant": [
+              "ru-30"
+            ],
+            "hits": [
+              "ru-30"
+            ]
+          },
+          {
+            "term": "самолёт",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "холодильник",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "динозавр",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       },
       "english-default": {
         "precision": 0.1875,
         "recall": 0,
-        "mrr": 0
+        "mrr": 0,
+        "queries": [
+          {
+            "term": "собаки",
+            "kind": "morphology",
+            "relevant": [
+              "ru-01",
+              "ru-02",
+              "ru-03"
+            ],
+            "hits": []
+          },
+          {
+            "term": "кошки",
+            "kind": "morphology",
+            "relevant": [
+              "ru-04",
+              "ru-05"
+            ],
+            "hits": []
+          },
+          {
+            "term": "книги",
+            "kind": "morphology",
+            "relevant": [
+              "ru-06",
+              "ru-07"
+            ],
+            "hits": []
+          },
+          {
+            "term": "поезда",
+            "kind": "morphology",
+            "relevant": [
+              "ru-09",
+              "ru-10",
+              "ru-11"
+            ],
+            "hits": []
+          },
+          {
+            "term": "играть",
+            "kind": "morphology",
+            "relevant": [
+              "ru-16",
+              "ru-22",
+              "ru-23"
+            ],
+            "hits": []
+          },
+          {
+            "term": "машины",
+            "kind": "morphology",
+            "relevant": [
+              "ru-27",
+              "ru-28"
+            ],
+            "hits": []
+          },
+          {
+            "term": "елка",
+            "kind": "diacritic",
+            "relevant": [
+              "ru-25",
+              "ru-26"
+            ],
+            "hits": []
+          },
+          {
+            "term": "рынок",
+            "kind": "exact",
+            "relevant": [
+              "ru-12",
+              "ru-13",
+              "ru-14"
+            ],
+            "hits": []
+          },
+          {
+            "term": "симфонию",
+            "kind": "exact",
+            "relevant": [
+              "ru-24"
+            ],
+            "hits": []
+          },
+          {
+            "term": "шоколадный",
+            "kind": "exact",
+            "relevant": [
+              "ru-21"
+            ],
+            "hits": []
+          },
+          {
+            "term": "бассейне",
+            "kind": "exact",
+            "relevant": [
+              "ru-15"
+            ],
+            "hits": []
+          },
+          {
+            "term": "пианино",
+            "kind": "exact",
+            "relevant": [
+              "ru-23"
+            ],
+            "hits": []
+          },
+          {
+            "term": "экзаменам",
+            "kind": "exact",
+            "relevant": [
+              "ru-30"
+            ],
+            "hits": []
+          },
+          {
+            "term": "самолёт",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "холодильник",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "динозавр",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       }
     },
     "arabic": {
       "multilingual": {
-        "precision": 0.266667,
-        "recall": 0.486111,
-        "mrr": 0.583333
+        "precision": 0.2733333333333333,
+        "recall": 0.5277777777777778,
+        "mrr": 0.6666666666666666,
+        "queries": [
+          {
+            "term": "معلم",
+            "kind": "morphology",
+            "relevant": [
+              "ar-25",
+              "ar-26"
+            ],
+            "hits": []
+          },
+          {
+            "term": "مهندس",
+            "kind": "morphology",
+            "relevant": [
+              "ar-27",
+              "ar-28"
+            ],
+            "hits": []
+          },
+          {
+            "term": "طالبة",
+            "kind": "morphology",
+            "relevant": [
+              "ar-23",
+              "ar-24"
+            ],
+            "hits": []
+          },
+          {
+            "term": "يلعب",
+            "kind": "morphology",
+            "relevant": [
+              "ar-18",
+              "ar-20"
+            ],
+            "hits": [
+              "ar-18"
+            ]
+          },
+          {
+            "term": "قطة",
+            "kind": "morphology",
+            "relevant": [
+              "ar-04",
+              "ar-05"
+            ],
+            "hits": []
+          },
+          {
+            "term": "مكتبة",
+            "kind": "morphology",
+            "relevant": [
+              "ar-06",
+              "ar-07"
+            ],
+            "hits": [
+              "ar-06"
+            ]
+          },
+          {
+            "term": "الاف",
+            "kind": "diacritic",
+            "relevant": [
+              "ar-06"
+            ],
+            "hits": [
+              "ar-06"
+            ]
+          },
+          {
+            "term": "القطار",
+            "kind": "exact",
+            "relevant": [
+              "ar-09",
+              "ar-10",
+              "ar-11"
+            ],
+            "hits": [
+              "ar-10",
+              "ar-09"
+            ]
+          },
+          {
+            "term": "السوق",
+            "kind": "exact",
+            "relevant": [
+              "ar-12",
+              "ar-13",
+              "ar-14"
+            ],
+            "hits": [
+              "ar-14",
+              "ar-13"
+            ]
+          },
+          {
+            "term": "الشوكولاتة",
+            "kind": "exact",
+            "relevant": [
+              "ar-17"
+            ],
+            "hits": [
+              "ar-17"
+            ]
+          },
+          {
+            "term": "النهر",
+            "kind": "exact",
+            "relevant": [
+              "ar-21",
+              "ar-22"
+            ],
+            "hits": [
+              "ar-21",
+              "ar-22"
+            ]
+          },
+          {
+            "term": "العاصمة",
+            "kind": "exact",
+            "relevant": [
+              "ar-09"
+            ],
+            "hits": [
+              "ar-09"
+            ]
+          },
+          {
+            "term": "غواصة",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "ثلاجة",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "ديناصور",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       },
       "per-language": {
-        "precision": 0.333333,
+        "precision": 0.3333333333333333,
         "recall": 0.875,
-        "mrr": 0.916667
+        "mrr": 0.9166666666666666,
+        "queries": [
+          {
+            "term": "معلم",
+            "kind": "morphology",
+            "relevant": [
+              "ar-25",
+              "ar-26"
+            ],
+            "hits": [
+              "ar-25",
+              "ar-26"
+            ]
+          },
+          {
+            "term": "مهندس",
+            "kind": "morphology",
+            "relevant": [
+              "ar-27",
+              "ar-28"
+            ],
+            "hits": [
+              "ar-27",
+              "ar-28"
+            ]
+          },
+          {
+            "term": "طالبة",
+            "kind": "morphology",
+            "relevant": [
+              "ar-23",
+              "ar-24"
+            ],
+            "hits": [
+              "ar-23",
+              "ar-24"
+            ]
+          },
+          {
+            "term": "يلعب",
+            "kind": "morphology",
+            "relevant": [
+              "ar-18",
+              "ar-20"
+            ],
+            "hits": [
+              "ar-18"
+            ]
+          },
+          {
+            "term": "قطة",
+            "kind": "morphology",
+            "relevant": [
+              "ar-04",
+              "ar-05"
+            ],
+            "hits": []
+          },
+          {
+            "term": "مكتبة",
+            "kind": "morphology",
+            "relevant": [
+              "ar-06",
+              "ar-07"
+            ],
+            "hits": [
+              "ar-07",
+              "ar-06"
+            ]
+          },
+          {
+            "term": "الاف",
+            "kind": "diacritic",
+            "relevant": [
+              "ar-06"
+            ],
+            "hits": [
+              "ar-06"
+            ]
+          },
+          {
+            "term": "القطار",
+            "kind": "exact",
+            "relevant": [
+              "ar-09",
+              "ar-10",
+              "ar-11"
+            ],
+            "hits": [
+              "ar-09",
+              "ar-10",
+              "ar-11"
+            ]
+          },
+          {
+            "term": "السوق",
+            "kind": "exact",
+            "relevant": [
+              "ar-12",
+              "ar-13",
+              "ar-14"
+            ],
+            "hits": [
+              "ar-14",
+              "ar-12",
+              "ar-13"
+            ]
+          },
+          {
+            "term": "الشوكولاتة",
+            "kind": "exact",
+            "relevant": [
+              "ar-17"
+            ],
+            "hits": [
+              "ar-17"
+            ]
+          },
+          {
+            "term": "النهر",
+            "kind": "exact",
+            "relevant": [
+              "ar-21",
+              "ar-22"
+            ],
+            "hits": [
+              "ar-21",
+              "ar-22"
+            ]
+          },
+          {
+            "term": "العاصمة",
+            "kind": "exact",
+            "relevant": [
+              "ar-09"
+            ],
+            "hits": [
+              "ar-09"
+            ]
+          },
+          {
+            "term": "غواصة",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "ثلاجة",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "ديناصور",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       },
       "english-default": {
         "precision": 0.2,
         "recall": 0,
-        "mrr": 0
+        "mrr": 0,
+        "queries": [
+          {
+            "term": "معلم",
+            "kind": "morphology",
+            "relevant": [
+              "ar-25",
+              "ar-26"
+            ],
+            "hits": []
+          },
+          {
+            "term": "مهندس",
+            "kind": "morphology",
+            "relevant": [
+              "ar-27",
+              "ar-28"
+            ],
+            "hits": []
+          },
+          {
+            "term": "طالبة",
+            "kind": "morphology",
+            "relevant": [
+              "ar-23",
+              "ar-24"
+            ],
+            "hits": []
+          },
+          {
+            "term": "يلعب",
+            "kind": "morphology",
+            "relevant": [
+              "ar-18",
+              "ar-20"
+            ],
+            "hits": []
+          },
+          {
+            "term": "قطة",
+            "kind": "morphology",
+            "relevant": [
+              "ar-04",
+              "ar-05"
+            ],
+            "hits": []
+          },
+          {
+            "term": "مكتبة",
+            "kind": "morphology",
+            "relevant": [
+              "ar-06",
+              "ar-07"
+            ],
+            "hits": []
+          },
+          {
+            "term": "الاف",
+            "kind": "diacritic",
+            "relevant": [
+              "ar-06"
+            ],
+            "hits": []
+          },
+          {
+            "term": "القطار",
+            "kind": "exact",
+            "relevant": [
+              "ar-09",
+              "ar-10",
+              "ar-11"
+            ],
+            "hits": []
+          },
+          {
+            "term": "السوق",
+            "kind": "exact",
+            "relevant": [
+              "ar-12",
+              "ar-13",
+              "ar-14"
+            ],
+            "hits": []
+          },
+          {
+            "term": "الشوكولاتة",
+            "kind": "exact",
+            "relevant": [
+              "ar-17"
+            ],
+            "hits": []
+          },
+          {
+            "term": "النهر",
+            "kind": "exact",
+            "relevant": [
+              "ar-21",
+              "ar-22"
+            ],
+            "hits": []
+          },
+          {
+            "term": "العاصمة",
+            "kind": "exact",
+            "relevant": [
+              "ar-09"
+            ],
+            "hits": []
+          },
+          {
+            "term": "غواصة",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "ثلاجة",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          },
+          {
+            "term": "ديناصور",
+            "kind": "negative",
+            "relevant": [],
+            "hits": []
+          }
+        ]
       }
     }
   },
   "macroAverage": {
     "multilingual": {
-      "precision": 0.280938,
-      "recall": 0.625401,
-      "mrr": 0.860577
+      "precision": 0.29270833333333335,
+      "recall": 0.6979166666666666,
+      "mrr": 0.9094551282051283
     },
     "per-language": {
-      "precision": 0.341927,
-      "recall": 0.961672,
-      "mrr": 0.979968
+      "precision": 0.34432291666666665,
+      "recall": 0.9747596153846154,
+      "mrr": 0.9799679487179488
     },
     "english-default": {
-      "precision": 0.242917,
-      "recall": 0.40438,
-      "mrr": 0.556891
+      "precision": 0.27338541666666666,
+      "recall": 0.5518162393162394,
+      "mrr": 0.7107371794871795
     }
   },
   "mixed": {
     "multilingual": {
-      "precision": 0.280952,
-      "recall": 0.625817,
-      "mrr": 0.857843
+      "precision": 0.29285714285714315,
+      "recall": 0.6993464052287582,
+      "mrr": 0.9068627450980392,
+      "queries": [
+        {
+          "term": "running",
+          "kind": "morphology",
+          "relevant": [
+            "en-01",
+            "en-02",
+            "en-03"
+          ],
+          "hits": [
+            "en-02"
+          ]
+        },
+        {
+          "term": "climbing",
+          "kind": "morphology",
+          "relevant": [
+            "en-25",
+            "en-26"
+          ],
+          "hits": [
+            "en-25"
+          ]
+        },
+        {
+          "term": "baking",
+          "kind": "morphology",
+          "relevant": [
+            "en-06"
+          ],
+          "hits": []
+        },
+        {
+          "term": "cats",
+          "kind": "morphology",
+          "relevant": [
+            "en-29",
+            "en-30"
+          ],
+          "hits": [
+            "en-30"
+          ]
+        },
+        {
+          "term": "planting",
+          "kind": "morphology",
+          "relevant": [
+            "en-15",
+            "en-16",
+            "en-17"
+          ],
+          "hits": [
+            "en-16"
+          ]
+        },
+        {
+          "term": "cafe",
+          "kind": "diacritic",
+          "relevant": [
+            "en-13"
+          ],
+          "hits": [
+            "en-13"
+          ]
+        },
+        {
+          "term": "resume",
+          "kind": "diacritic",
+          "relevant": [
+            "en-14"
+          ],
+          "hits": [
+            "en-14"
+          ]
+        },
+        {
+          "term": "library",
+          "kind": "exact",
+          "relevant": [
+            "en-07",
+            "en-08"
+          ],
+          "hits": [
+            "en-08",
+            "en-07"
+          ]
+        },
+        {
+          "term": "garden",
+          "kind": "exact",
+          "relevant": [
+            "en-16",
+            "en-30"
+          ],
+          "hits": [
+            "en-30",
+            "en-16"
+          ]
+        },
+        {
+          "term": "market",
+          "kind": "exact",
+          "relevant": [
+            "en-27",
+            "en-28"
+          ],
+          "hits": [
+            "en-28",
+            "en-27"
+          ]
+        },
+        {
+          "term": "piano",
+          "kind": "exact",
+          "relevant": [
+            "en-22"
+          ],
+          "hits": [
+            "en-22",
+            "it-28"
+          ]
+        },
+        {
+          "term": "bread",
+          "kind": "exact",
+          "relevant": [
+            "en-04"
+          ],
+          "hits": [
+            "en-04"
+          ]
+        },
+        {
+          "term": "astronomy",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "dishwasher",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "elephant",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "cani",
+          "kind": "morphology",
+          "relevant": [
+            "it-01",
+            "it-02",
+            "it-03"
+          ],
+          "hits": [
+            "it-02"
+          ]
+        },
+        {
+          "term": "gatto",
+          "kind": "morphology",
+          "relevant": [
+            "it-04",
+            "it-05"
+          ],
+          "hits": [
+            "it-04"
+          ]
+        },
+        {
+          "term": "libro",
+          "kind": "morphology",
+          "relevant": [
+            "it-06",
+            "it-07"
+          ],
+          "hits": [
+            "es-06",
+            "es-07"
+          ]
+        },
+        {
+          "term": "giocano",
+          "kind": "morphology",
+          "relevant": [
+            "it-19",
+            "it-21"
+          ],
+          "hits": [
+            "it-19"
+          ]
+        },
+        {
+          "term": "treni",
+          "kind": "morphology",
+          "relevant": [
+            "it-09",
+            "it-10",
+            "it-11"
+          ],
+          "hits": [
+            "it-10"
+          ]
+        },
+        {
+          "term": "fiumi",
+          "kind": "morphology",
+          "relevant": [
+            "it-25",
+            "it-26"
+          ],
+          "hits": [
+            "it-26"
+          ]
+        },
+        {
+          "term": "citta",
+          "kind": "diacritic",
+          "relevant": [
+            "it-15",
+            "it-16"
+          ],
+          "hits": [
+            "it-16",
+            "it-15"
+          ]
+        },
+        {
+          "term": "caffe",
+          "kind": "diacritic",
+          "relevant": [
+            "it-17",
+            "it-18"
+          ],
+          "hits": [
+            "it-17",
+            "it-18"
+          ]
+        },
+        {
+          "term": "mercato",
+          "kind": "exact",
+          "relevant": [
+            "it-12",
+            "it-13",
+            "it-14"
+          ],
+          "hits": [
+            "it-12",
+            "it-13",
+            "it-14"
+          ]
+        },
+        {
+          "term": "pane",
+          "kind": "exact",
+          "relevant": [
+            "it-22",
+            "it-23"
+          ],
+          "hits": [
+            "it-22",
+            "it-23"
+          ]
+        },
+        {
+          "term": "montagne",
+          "kind": "exact",
+          "relevant": [
+            "it-26",
+            "it-30"
+          ],
+          "hits": [
+            "fr-27",
+            "it-30"
+          ]
+        },
+        {
+          "term": "violino",
+          "kind": "exact",
+          "relevant": [
+            "it-27"
+          ],
+          "hits": [
+            "it-27"
+          ]
+        },
+        {
+          "term": "sinfonia",
+          "kind": "exact",
+          "relevant": [
+            "it-29"
+          ],
+          "hits": [
+            "it-29"
+          ]
+        },
+        {
+          "term": "astronave",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "frigorifero",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "dinosauro",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "perros",
+          "kind": "morphology",
+          "relevant": [
+            "es-01",
+            "es-02",
+            "es-03"
+          ],
+          "hits": [
+            "es-02"
+          ]
+        },
+        {
+          "term": "gato",
+          "kind": "morphology",
+          "relevant": [
+            "es-04",
+            "es-05"
+          ],
+          "hits": [
+            "es-04",
+            "es-05"
+          ]
+        },
+        {
+          "term": "libro",
+          "kind": "morphology",
+          "relevant": [
+            "es-06",
+            "es-07"
+          ],
+          "hits": [
+            "es-06",
+            "es-07"
+          ]
+        },
+        {
+          "term": "corriendo",
+          "kind": "morphology",
+          "relevant": [
+            "es-29",
+            "es-30"
+          ],
+          "hits": [
+            "es-30"
+          ]
+        },
+        {
+          "term": "trenes",
+          "kind": "morphology",
+          "relevant": [
+            "es-09",
+            "es-10",
+            "es-11"
+          ],
+          "hits": [
+            "es-10"
+          ]
+        },
+        {
+          "term": "nino",
+          "kind": "diacritic",
+          "relevant": [
+            "es-15",
+            "es-16"
+          ],
+          "hits": [
+            "es-15",
+            "es-16"
+          ]
+        },
+        {
+          "term": "arbol",
+          "kind": "diacritic",
+          "relevant": [
+            "es-17",
+            "es-18"
+          ],
+          "hits": [
+            "es-17",
+            "es-18"
+          ]
+        },
+        {
+          "term": "musica",
+          "kind": "diacritic",
+          "relevant": [
+            "es-19",
+            "es-21"
+          ],
+          "hits": [
+            "es-19"
+          ]
+        },
+        {
+          "term": "rio",
+          "kind": "diacritic",
+          "relevant": [
+            "es-25",
+            "es-26"
+          ],
+          "hits": [
+            "es-25",
+            "es-26"
+          ]
+        },
+        {
+          "term": "mercado",
+          "kind": "exact",
+          "relevant": [
+            "es-12",
+            "es-13",
+            "es-14"
+          ],
+          "hits": [
+            "es-13",
+            "es-14",
+            "es-12"
+          ]
+        },
+        {
+          "term": "pan",
+          "kind": "exact",
+          "relevant": [
+            "es-22",
+            "es-23"
+          ],
+          "hits": [
+            "es-22",
+            "es-23",
+            "it-22",
+            "it-23"
+          ]
+        },
+        {
+          "term": "guitarra",
+          "kind": "exact",
+          "relevant": [
+            "es-20"
+          ],
+          "hits": [
+            "es-20"
+          ]
+        },
+        {
+          "term": "chocolate",
+          "kind": "exact",
+          "relevant": [
+            "es-24"
+          ],
+          "hits": [
+            "es-24"
+          ]
+        },
+        {
+          "term": "submarino",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "nevera",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "volcan",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "hunde",
+          "kind": "morphology",
+          "relevant": [
+            "de-01",
+            "de-02",
+            "de-03"
+          ],
+          "hits": [
+            "de-02"
+          ]
+        },
+        {
+          "term": "katzen",
+          "kind": "morphology",
+          "relevant": [
+            "de-04",
+            "de-05"
+          ],
+          "hits": [
+            "de-05"
+          ]
+        },
+        {
+          "term": "häuser",
+          "kind": "morphology",
+          "relevant": [
+            "de-15",
+            "de-16"
+          ],
+          "hits": [
+            "de-16"
+          ]
+        },
+        {
+          "term": "bücher",
+          "kind": "morphology",
+          "relevant": [
+            "de-06",
+            "de-07"
+          ],
+          "hits": [
+            "de-06"
+          ]
+        },
+        {
+          "term": "spielen",
+          "kind": "morphology",
+          "relevant": [
+            "de-21",
+            "de-22"
+          ],
+          "hits": [
+            "de-22"
+          ]
+        },
+        {
+          "term": "bäume",
+          "kind": "morphology",
+          "relevant": [
+            "de-17",
+            "de-18"
+          ],
+          "hits": [
+            "de-18"
+          ]
+        },
+        {
+          "term": "schon",
+          "kind": "diacritic",
+          "relevant": [
+            "de-24",
+            "de-25"
+          ],
+          "hits": [
+            "de-24",
+            "de-25"
+          ]
+        },
+        {
+          "term": "gemuse",
+          "kind": "diacritic",
+          "relevant": [
+            "de-13"
+          ],
+          "hits": [
+            "de-13"
+          ]
+        },
+        {
+          "term": "markt",
+          "kind": "exact",
+          "relevant": [
+            "de-12",
+            "de-13",
+            "de-14"
+          ],
+          "hits": [
+            "de-12",
+            "de-14",
+            "de-13"
+          ]
+        },
+        {
+          "term": "brot",
+          "kind": "exact",
+          "relevant": [
+            "de-28",
+            "de-29"
+          ],
+          "hits": [
+            "de-29",
+            "de-28"
+          ]
+        },
+        {
+          "term": "fluss",
+          "kind": "exact",
+          "relevant": [
+            "de-26",
+            "de-27"
+          ],
+          "hits": [
+            "de-26",
+            "de-27"
+          ]
+        },
+        {
+          "term": "klavier",
+          "kind": "exact",
+          "relevant": [
+            "de-22"
+          ],
+          "hits": [
+            "de-22"
+          ]
+        },
+        {
+          "term": "sinfonie",
+          "kind": "exact",
+          "relevant": [
+            "de-23"
+          ],
+          "hits": [
+            "de-23"
+          ]
+        },
+        {
+          "term": "kühlschrank",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "hubschrauber",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "pirat",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "chiens",
+          "kind": "morphology",
+          "relevant": [
+            "fr-01",
+            "fr-02",
+            "fr-03"
+          ],
+          "hits": [
+            "fr-02"
+          ]
+        },
+        {
+          "term": "chats",
+          "kind": "morphology",
+          "relevant": [
+            "fr-04",
+            "fr-05"
+          ],
+          "hits": [
+            "fr-05"
+          ]
+        },
+        {
+          "term": "chevaux",
+          "kind": "morphology",
+          "relevant": [
+            "fr-15",
+            "fr-16"
+          ],
+          "hits": [
+            "fr-16"
+          ]
+        },
+        {
+          "term": "livre",
+          "kind": "morphology",
+          "relevant": [
+            "fr-06",
+            "fr-07"
+          ],
+          "hits": [
+            "fr-06",
+            "fr-07"
+          ]
+        },
+        {
+          "term": "trains",
+          "kind": "morphology",
+          "relevant": [
+            "fr-09",
+            "fr-10",
+            "fr-11"
+          ],
+          "hits": [
+            "fr-10"
+          ]
+        },
+        {
+          "term": "manger",
+          "kind": "morphology",
+          "relevant": [
+            "fr-21",
+            "fr-22"
+          ],
+          "hits": []
+        },
+        {
+          "term": "foret",
+          "kind": "diacritic",
+          "relevant": [
+            "fr-17",
+            "fr-18"
+          ],
+          "hits": [
+            "fr-17",
+            "fr-18"
+          ]
+        },
+        {
+          "term": "ecole",
+          "kind": "diacritic",
+          "relevant": [
+            "fr-19",
+            "fr-20"
+          ],
+          "hits": [
+            "fr-20"
+          ]
+        },
+        {
+          "term": "marche",
+          "kind": "diacritic",
+          "relevant": [
+            "fr-12",
+            "fr-13",
+            "fr-14"
+          ],
+          "hits": [
+            "fr-13",
+            "fr-12",
+            "fr-14"
+          ]
+        },
+        {
+          "term": "pain",
+          "kind": "exact",
+          "relevant": [
+            "fr-23",
+            "fr-24"
+          ],
+          "hits": [
+            "fr-23",
+            "fr-24"
+          ]
+        },
+        {
+          "term": "violon",
+          "kind": "exact",
+          "relevant": [
+            "fr-28"
+          ],
+          "hits": [
+            "fr-28",
+            "pt-28"
+          ]
+        },
+        {
+          "term": "clavecin",
+          "kind": "exact",
+          "relevant": [
+            "fr-29"
+          ],
+          "hits": [
+            "fr-29"
+          ]
+        },
+        {
+          "term": "chocolat",
+          "kind": "exact",
+          "relevant": [
+            "fr-25"
+          ],
+          "hits": [
+            "fr-25",
+            "es-24"
+          ]
+        },
+        {
+          "term": "telescope",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "refrigerateur",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "dinosaure",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "caes",
+          "kind": "morphology",
+          "relevant": [
+            "pt-01",
+            "pt-02",
+            "pt-03"
+          ],
+          "hits": [
+            "pt-02"
+          ]
+        },
+        {
+          "term": "coelhos",
+          "kind": "morphology",
+          "relevant": [
+            "pt-04",
+            "pt-05"
+          ],
+          "hits": [
+            "pt-05"
+          ]
+        },
+        {
+          "term": "livro",
+          "kind": "morphology",
+          "relevant": [
+            "pt-06",
+            "pt-07"
+          ],
+          "hits": [
+            "pt-07",
+            "pt-06"
+          ]
+        },
+        {
+          "term": "comboios",
+          "kind": "morphology",
+          "relevant": [
+            "pt-09",
+            "pt-10",
+            "pt-11"
+          ],
+          "hits": [
+            "pt-10"
+          ]
+        },
+        {
+          "term": "falando",
+          "kind": "morphology",
+          "relevant": [
+            "pt-21",
+            "pt-22"
+          ],
+          "hits": []
+        },
+        {
+          "term": "meninos",
+          "kind": "morphology",
+          "relevant": [
+            "pt-19",
+            "pt-20"
+          ],
+          "hits": [
+            "pt-20"
+          ]
+        },
+        {
+          "term": "arvore",
+          "kind": "diacritic",
+          "relevant": [
+            "pt-15",
+            "pt-16"
+          ],
+          "hits": [
+            "pt-15",
+            "pt-16"
+          ]
+        },
+        {
+          "term": "coracao",
+          "kind": "diacritic",
+          "relevant": [
+            "pt-17",
+            "pt-18"
+          ],
+          "hits": [
+            "pt-17",
+            "pt-18"
+          ]
+        },
+        {
+          "term": "pao",
+          "kind": "diacritic",
+          "relevant": [
+            "pt-23",
+            "pt-24"
+          ],
+          "hits": [
+            "pt-23",
+            "pt-24"
+          ]
+        },
+        {
+          "term": "acordeao",
+          "kind": "diacritic",
+          "relevant": [
+            "pt-29"
+          ],
+          "hits": [
+            "pt-29"
+          ]
+        },
+        {
+          "term": "feira",
+          "kind": "exact",
+          "relevant": [
+            "pt-12",
+            "pt-13",
+            "pt-14"
+          ],
+          "hits": [
+            "pt-13",
+            "pt-14",
+            "pt-12",
+            "pt-30"
+          ]
+        },
+        {
+          "term": "violoncelo",
+          "kind": "exact",
+          "relevant": [
+            "pt-28"
+          ],
+          "hits": [
+            "pt-28"
+          ]
+        },
+        {
+          "term": "laranja",
+          "kind": "exact",
+          "relevant": [
+            "pt-25"
+          ],
+          "hits": [
+            "pt-25"
+          ]
+        },
+        {
+          "term": "submarino",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "geladeira",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "dinossauro",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "собаки",
+          "kind": "morphology",
+          "relevant": [
+            "ru-01",
+            "ru-02",
+            "ru-03"
+          ],
+          "hits": [
+            "ru-02"
+          ]
+        },
+        {
+          "term": "кошки",
+          "kind": "morphology",
+          "relevant": [
+            "ru-04",
+            "ru-05"
+          ],
+          "hits": [
+            "ru-05"
+          ]
+        },
+        {
+          "term": "книги",
+          "kind": "morphology",
+          "relevant": [
+            "ru-06",
+            "ru-07"
+          ],
+          "hits": [
+            "ru-07"
+          ]
+        },
+        {
+          "term": "поезда",
+          "kind": "morphology",
+          "relevant": [
+            "ru-09",
+            "ru-10",
+            "ru-11"
+          ],
+          "hits": [
+            "ru-10"
+          ]
+        },
+        {
+          "term": "играть",
+          "kind": "morphology",
+          "relevant": [
+            "ru-16",
+            "ru-22",
+            "ru-23"
+          ],
+          "hits": []
+        },
+        {
+          "term": "машины",
+          "kind": "morphology",
+          "relevant": [
+            "ru-27",
+            "ru-28"
+          ],
+          "hits": [
+            "ru-28"
+          ]
+        },
+        {
+          "term": "елка",
+          "kind": "diacritic",
+          "relevant": [
+            "ru-25",
+            "ru-26"
+          ],
+          "hits": [
+            "ru-25"
+          ]
+        },
+        {
+          "term": "рынок",
+          "kind": "exact",
+          "relevant": [
+            "ru-12",
+            "ru-13",
+            "ru-14"
+          ],
+          "hits": [
+            "ru-12",
+            "ru-14"
+          ]
+        },
+        {
+          "term": "симфонию",
+          "kind": "exact",
+          "relevant": [
+            "ru-24"
+          ],
+          "hits": [
+            "ru-24"
+          ]
+        },
+        {
+          "term": "шоколадный",
+          "kind": "exact",
+          "relevant": [
+            "ru-21"
+          ],
+          "hits": [
+            "ru-21"
+          ]
+        },
+        {
+          "term": "бассейне",
+          "kind": "exact",
+          "relevant": [
+            "ru-15"
+          ],
+          "hits": [
+            "ru-15"
+          ]
+        },
+        {
+          "term": "пианино",
+          "kind": "exact",
+          "relevant": [
+            "ru-23"
+          ],
+          "hits": [
+            "ru-23"
+          ]
+        },
+        {
+          "term": "экзаменам",
+          "kind": "exact",
+          "relevant": [
+            "ru-30"
+          ],
+          "hits": [
+            "ru-30"
+          ]
+        },
+        {
+          "term": "самолёт",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "холодильник",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "динозавр",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "معلم",
+          "kind": "morphology",
+          "relevant": [
+            "ar-25",
+            "ar-26"
+          ],
+          "hits": []
+        },
+        {
+          "term": "مهندس",
+          "kind": "morphology",
+          "relevant": [
+            "ar-27",
+            "ar-28"
+          ],
+          "hits": []
+        },
+        {
+          "term": "طالبة",
+          "kind": "morphology",
+          "relevant": [
+            "ar-23",
+            "ar-24"
+          ],
+          "hits": []
+        },
+        {
+          "term": "يلعب",
+          "kind": "morphology",
+          "relevant": [
+            "ar-18",
+            "ar-20"
+          ],
+          "hits": [
+            "ar-18"
+          ]
+        },
+        {
+          "term": "قطة",
+          "kind": "morphology",
+          "relevant": [
+            "ar-04",
+            "ar-05"
+          ],
+          "hits": []
+        },
+        {
+          "term": "مكتبة",
+          "kind": "morphology",
+          "relevant": [
+            "ar-06",
+            "ar-07"
+          ],
+          "hits": [
+            "ar-06"
+          ]
+        },
+        {
+          "term": "الاف",
+          "kind": "diacritic",
+          "relevant": [
+            "ar-06"
+          ],
+          "hits": [
+            "ar-06"
+          ]
+        },
+        {
+          "term": "القطار",
+          "kind": "exact",
+          "relevant": [
+            "ar-09",
+            "ar-10",
+            "ar-11"
+          ],
+          "hits": [
+            "ar-10",
+            "ar-09"
+          ]
+        },
+        {
+          "term": "السوق",
+          "kind": "exact",
+          "relevant": [
+            "ar-12",
+            "ar-13",
+            "ar-14"
+          ],
+          "hits": [
+            "ar-14",
+            "ar-13"
+          ]
+        },
+        {
+          "term": "الشوكولاتة",
+          "kind": "exact",
+          "relevant": [
+            "ar-17"
+          ],
+          "hits": [
+            "ar-17"
+          ]
+        },
+        {
+          "term": "النهر",
+          "kind": "exact",
+          "relevant": [
+            "ar-21",
+            "ar-22"
+          ],
+          "hits": [
+            "ar-21",
+            "ar-22"
+          ]
+        },
+        {
+          "term": "العاصمة",
+          "kind": "exact",
+          "relevant": [
+            "ar-09"
+          ],
+          "hits": [
+            "ar-09"
+          ]
+        },
+        {
+          "term": "غواصة",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "ثلاجة",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "ديناصور",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        }
+      ]
     },
     "english-default": {
-      "precision": 0.242857,
-      "recall": 0.405229,
-      "mrr": 0.553922
+      "precision": 0.27380952380952384,
+      "recall": 0.5555555555555556,
+      "mrr": 0.7107843137254902,
+      "queries": [
+        {
+          "term": "running",
+          "kind": "morphology",
+          "relevant": [
+            "en-01",
+            "en-02",
+            "en-03"
+          ],
+          "hits": [
+            "en-02"
+          ]
+        },
+        {
+          "term": "climbing",
+          "kind": "morphology",
+          "relevant": [
+            "en-25",
+            "en-26"
+          ],
+          "hits": [
+            "en-25"
+          ]
+        },
+        {
+          "term": "baking",
+          "kind": "morphology",
+          "relevant": [
+            "en-06"
+          ],
+          "hits": []
+        },
+        {
+          "term": "cats",
+          "kind": "morphology",
+          "relevant": [
+            "en-29",
+            "en-30"
+          ],
+          "hits": [
+            "en-30"
+          ]
+        },
+        {
+          "term": "planting",
+          "kind": "morphology",
+          "relevant": [
+            "en-15",
+            "en-16",
+            "en-17"
+          ],
+          "hits": [
+            "en-16"
+          ]
+        },
+        {
+          "term": "cafe",
+          "kind": "diacritic",
+          "relevant": [
+            "en-13"
+          ],
+          "hits": [
+            "en-13"
+          ]
+        },
+        {
+          "term": "resume",
+          "kind": "diacritic",
+          "relevant": [
+            "en-14"
+          ],
+          "hits": [
+            "en-14"
+          ]
+        },
+        {
+          "term": "library",
+          "kind": "exact",
+          "relevant": [
+            "en-07",
+            "en-08"
+          ],
+          "hits": [
+            "en-08",
+            "en-07"
+          ]
+        },
+        {
+          "term": "garden",
+          "kind": "exact",
+          "relevant": [
+            "en-16",
+            "en-30"
+          ],
+          "hits": [
+            "en-30",
+            "en-16"
+          ]
+        },
+        {
+          "term": "market",
+          "kind": "exact",
+          "relevant": [
+            "en-27",
+            "en-28"
+          ],
+          "hits": [
+            "en-28",
+            "en-27"
+          ]
+        },
+        {
+          "term": "piano",
+          "kind": "exact",
+          "relevant": [
+            "en-22"
+          ],
+          "hits": [
+            "en-22",
+            "it-28"
+          ]
+        },
+        {
+          "term": "bread",
+          "kind": "exact",
+          "relevant": [
+            "en-04"
+          ],
+          "hits": [
+            "en-04"
+          ]
+        },
+        {
+          "term": "astronomy",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "dishwasher",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "elephant",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "cani",
+          "kind": "morphology",
+          "relevant": [
+            "it-01",
+            "it-02",
+            "it-03"
+          ],
+          "hits": [
+            "it-02"
+          ]
+        },
+        {
+          "term": "gatto",
+          "kind": "morphology",
+          "relevant": [
+            "it-04",
+            "it-05"
+          ],
+          "hits": [
+            "it-04"
+          ]
+        },
+        {
+          "term": "libro",
+          "kind": "morphology",
+          "relevant": [
+            "it-06",
+            "it-07"
+          ],
+          "hits": [
+            "es-06",
+            "es-07"
+          ]
+        },
+        {
+          "term": "giocano",
+          "kind": "morphology",
+          "relevant": [
+            "it-19",
+            "it-21"
+          ],
+          "hits": [
+            "it-19"
+          ]
+        },
+        {
+          "term": "treni",
+          "kind": "morphology",
+          "relevant": [
+            "it-09",
+            "it-10",
+            "it-11"
+          ],
+          "hits": [
+            "it-10"
+          ]
+        },
+        {
+          "term": "fiumi",
+          "kind": "morphology",
+          "relevant": [
+            "it-25",
+            "it-26"
+          ],
+          "hits": [
+            "it-26"
+          ]
+        },
+        {
+          "term": "citta",
+          "kind": "diacritic",
+          "relevant": [
+            "it-15",
+            "it-16"
+          ],
+          "hits": [
+            "it-16",
+            "it-15"
+          ]
+        },
+        {
+          "term": "caffe",
+          "kind": "diacritic",
+          "relevant": [
+            "it-17",
+            "it-18"
+          ],
+          "hits": [
+            "it-17",
+            "it-18"
+          ]
+        },
+        {
+          "term": "mercato",
+          "kind": "exact",
+          "relevant": [
+            "it-12",
+            "it-13",
+            "it-14"
+          ],
+          "hits": [
+            "it-12",
+            "it-13",
+            "it-14"
+          ]
+        },
+        {
+          "term": "pane",
+          "kind": "exact",
+          "relevant": [
+            "it-22",
+            "it-23"
+          ],
+          "hits": [
+            "it-22",
+            "it-23"
+          ]
+        },
+        {
+          "term": "montagne",
+          "kind": "exact",
+          "relevant": [
+            "it-26",
+            "it-30"
+          ],
+          "hits": [
+            "fr-27",
+            "it-30"
+          ]
+        },
+        {
+          "term": "violino",
+          "kind": "exact",
+          "relevant": [
+            "it-27"
+          ],
+          "hits": [
+            "it-27"
+          ]
+        },
+        {
+          "term": "sinfonia",
+          "kind": "exact",
+          "relevant": [
+            "it-29"
+          ],
+          "hits": [
+            "it-29"
+          ]
+        },
+        {
+          "term": "astronave",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "frigorifero",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "dinosauro",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "perros",
+          "kind": "morphology",
+          "relevant": [
+            "es-01",
+            "es-02",
+            "es-03"
+          ],
+          "hits": [
+            "es-02"
+          ]
+        },
+        {
+          "term": "gato",
+          "kind": "morphology",
+          "relevant": [
+            "es-04",
+            "es-05"
+          ],
+          "hits": [
+            "es-04",
+            "es-05"
+          ]
+        },
+        {
+          "term": "libro",
+          "kind": "morphology",
+          "relevant": [
+            "es-06",
+            "es-07"
+          ],
+          "hits": [
+            "es-06",
+            "es-07"
+          ]
+        },
+        {
+          "term": "corriendo",
+          "kind": "morphology",
+          "relevant": [
+            "es-29",
+            "es-30"
+          ],
+          "hits": [
+            "es-30"
+          ]
+        },
+        {
+          "term": "trenes",
+          "kind": "morphology",
+          "relevant": [
+            "es-09",
+            "es-10",
+            "es-11"
+          ],
+          "hits": [
+            "es-10"
+          ]
+        },
+        {
+          "term": "nino",
+          "kind": "diacritic",
+          "relevant": [
+            "es-15",
+            "es-16"
+          ],
+          "hits": [
+            "es-15",
+            "es-16"
+          ]
+        },
+        {
+          "term": "arbol",
+          "kind": "diacritic",
+          "relevant": [
+            "es-17",
+            "es-18"
+          ],
+          "hits": [
+            "es-17",
+            "es-18"
+          ]
+        },
+        {
+          "term": "musica",
+          "kind": "diacritic",
+          "relevant": [
+            "es-19",
+            "es-21"
+          ],
+          "hits": [
+            "es-19"
+          ]
+        },
+        {
+          "term": "rio",
+          "kind": "diacritic",
+          "relevant": [
+            "es-25",
+            "es-26"
+          ],
+          "hits": [
+            "es-25",
+            "es-26"
+          ]
+        },
+        {
+          "term": "mercado",
+          "kind": "exact",
+          "relevant": [
+            "es-12",
+            "es-13",
+            "es-14"
+          ],
+          "hits": [
+            "es-13",
+            "es-14",
+            "es-12"
+          ]
+        },
+        {
+          "term": "pan",
+          "kind": "exact",
+          "relevant": [
+            "es-22",
+            "es-23"
+          ],
+          "hits": [
+            "es-22",
+            "es-23",
+            "it-22",
+            "it-23"
+          ]
+        },
+        {
+          "term": "guitarra",
+          "kind": "exact",
+          "relevant": [
+            "es-20"
+          ],
+          "hits": [
+            "es-20"
+          ]
+        },
+        {
+          "term": "chocolate",
+          "kind": "exact",
+          "relevant": [
+            "es-24"
+          ],
+          "hits": [
+            "es-24"
+          ]
+        },
+        {
+          "term": "submarino",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "nevera",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "volcan",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "hunde",
+          "kind": "morphology",
+          "relevant": [
+            "de-01",
+            "de-02",
+            "de-03"
+          ],
+          "hits": [
+            "de-02"
+          ]
+        },
+        {
+          "term": "katzen",
+          "kind": "morphology",
+          "relevant": [
+            "de-04",
+            "de-05"
+          ],
+          "hits": [
+            "de-05"
+          ]
+        },
+        {
+          "term": "häuser",
+          "kind": "morphology",
+          "relevant": [
+            "de-15",
+            "de-16"
+          ],
+          "hits": [
+            "de-16"
+          ]
+        },
+        {
+          "term": "bücher",
+          "kind": "morphology",
+          "relevant": [
+            "de-06",
+            "de-07"
+          ],
+          "hits": [
+            "de-06"
+          ]
+        },
+        {
+          "term": "spielen",
+          "kind": "morphology",
+          "relevant": [
+            "de-21",
+            "de-22"
+          ],
+          "hits": [
+            "de-22"
+          ]
+        },
+        {
+          "term": "bäume",
+          "kind": "morphology",
+          "relevant": [
+            "de-17",
+            "de-18"
+          ],
+          "hits": [
+            "de-18"
+          ]
+        },
+        {
+          "term": "schon",
+          "kind": "diacritic",
+          "relevant": [
+            "de-24",
+            "de-25"
+          ],
+          "hits": [
+            "de-24",
+            "de-25"
+          ]
+        },
+        {
+          "term": "gemuse",
+          "kind": "diacritic",
+          "relevant": [
+            "de-13"
+          ],
+          "hits": [
+            "de-13"
+          ]
+        },
+        {
+          "term": "markt",
+          "kind": "exact",
+          "relevant": [
+            "de-12",
+            "de-13",
+            "de-14"
+          ],
+          "hits": [
+            "de-12",
+            "de-14",
+            "de-13"
+          ]
+        },
+        {
+          "term": "brot",
+          "kind": "exact",
+          "relevant": [
+            "de-28",
+            "de-29"
+          ],
+          "hits": [
+            "de-29",
+            "de-28"
+          ]
+        },
+        {
+          "term": "fluss",
+          "kind": "exact",
+          "relevant": [
+            "de-26",
+            "de-27"
+          ],
+          "hits": [
+            "de-26",
+            "de-27"
+          ]
+        },
+        {
+          "term": "klavier",
+          "kind": "exact",
+          "relevant": [
+            "de-22"
+          ],
+          "hits": [
+            "de-22"
+          ]
+        },
+        {
+          "term": "sinfonie",
+          "kind": "exact",
+          "relevant": [
+            "de-23"
+          ],
+          "hits": [
+            "de-23"
+          ]
+        },
+        {
+          "term": "kühlschrank",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "hubschrauber",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "pirat",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "chiens",
+          "kind": "morphology",
+          "relevant": [
+            "fr-01",
+            "fr-02",
+            "fr-03"
+          ],
+          "hits": [
+            "fr-02"
+          ]
+        },
+        {
+          "term": "chats",
+          "kind": "morphology",
+          "relevant": [
+            "fr-04",
+            "fr-05"
+          ],
+          "hits": [
+            "fr-05"
+          ]
+        },
+        {
+          "term": "chevaux",
+          "kind": "morphology",
+          "relevant": [
+            "fr-15",
+            "fr-16"
+          ],
+          "hits": [
+            "fr-16"
+          ]
+        },
+        {
+          "term": "livre",
+          "kind": "morphology",
+          "relevant": [
+            "fr-06",
+            "fr-07"
+          ],
+          "hits": [
+            "fr-06",
+            "fr-07"
+          ]
+        },
+        {
+          "term": "trains",
+          "kind": "morphology",
+          "relevant": [
+            "fr-09",
+            "fr-10",
+            "fr-11"
+          ],
+          "hits": [
+            "fr-10"
+          ]
+        },
+        {
+          "term": "manger",
+          "kind": "morphology",
+          "relevant": [
+            "fr-21",
+            "fr-22"
+          ],
+          "hits": []
+        },
+        {
+          "term": "foret",
+          "kind": "diacritic",
+          "relevant": [
+            "fr-17",
+            "fr-18"
+          ],
+          "hits": [
+            "fr-17",
+            "fr-18"
+          ]
+        },
+        {
+          "term": "ecole",
+          "kind": "diacritic",
+          "relevant": [
+            "fr-19",
+            "fr-20"
+          ],
+          "hits": [
+            "fr-20"
+          ]
+        },
+        {
+          "term": "marche",
+          "kind": "diacritic",
+          "relevant": [
+            "fr-12",
+            "fr-13",
+            "fr-14"
+          ],
+          "hits": [
+            "fr-13",
+            "fr-12",
+            "fr-14"
+          ]
+        },
+        {
+          "term": "pain",
+          "kind": "exact",
+          "relevant": [
+            "fr-23",
+            "fr-24"
+          ],
+          "hits": [
+            "fr-23",
+            "fr-24"
+          ]
+        },
+        {
+          "term": "violon",
+          "kind": "exact",
+          "relevant": [
+            "fr-28"
+          ],
+          "hits": [
+            "fr-28",
+            "pt-28"
+          ]
+        },
+        {
+          "term": "clavecin",
+          "kind": "exact",
+          "relevant": [
+            "fr-29"
+          ],
+          "hits": [
+            "fr-29"
+          ]
+        },
+        {
+          "term": "chocolat",
+          "kind": "exact",
+          "relevant": [
+            "fr-25"
+          ],
+          "hits": [
+            "fr-25",
+            "es-24"
+          ]
+        },
+        {
+          "term": "telescope",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "refrigerateur",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "dinosaure",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "caes",
+          "kind": "morphology",
+          "relevant": [
+            "pt-01",
+            "pt-02",
+            "pt-03"
+          ],
+          "hits": [
+            "pt-02"
+          ]
+        },
+        {
+          "term": "coelhos",
+          "kind": "morphology",
+          "relevant": [
+            "pt-04",
+            "pt-05"
+          ],
+          "hits": [
+            "pt-05"
+          ]
+        },
+        {
+          "term": "livro",
+          "kind": "morphology",
+          "relevant": [
+            "pt-06",
+            "pt-07"
+          ],
+          "hits": [
+            "pt-07",
+            "pt-06"
+          ]
+        },
+        {
+          "term": "comboios",
+          "kind": "morphology",
+          "relevant": [
+            "pt-09",
+            "pt-10",
+            "pt-11"
+          ],
+          "hits": [
+            "pt-10"
+          ]
+        },
+        {
+          "term": "falando",
+          "kind": "morphology",
+          "relevant": [
+            "pt-21",
+            "pt-22"
+          ],
+          "hits": []
+        },
+        {
+          "term": "meninos",
+          "kind": "morphology",
+          "relevant": [
+            "pt-19",
+            "pt-20"
+          ],
+          "hits": [
+            "pt-20"
+          ]
+        },
+        {
+          "term": "arvore",
+          "kind": "diacritic",
+          "relevant": [
+            "pt-15",
+            "pt-16"
+          ],
+          "hits": [
+            "pt-15",
+            "pt-16"
+          ]
+        },
+        {
+          "term": "coracao",
+          "kind": "diacritic",
+          "relevant": [
+            "pt-17",
+            "pt-18"
+          ],
+          "hits": [
+            "pt-17",
+            "pt-18"
+          ]
+        },
+        {
+          "term": "pao",
+          "kind": "diacritic",
+          "relevant": [
+            "pt-23",
+            "pt-24"
+          ],
+          "hits": [
+            "pt-23",
+            "pt-24"
+          ]
+        },
+        {
+          "term": "acordeao",
+          "kind": "diacritic",
+          "relevant": [
+            "pt-29"
+          ],
+          "hits": [
+            "pt-29"
+          ]
+        },
+        {
+          "term": "feira",
+          "kind": "exact",
+          "relevant": [
+            "pt-12",
+            "pt-13",
+            "pt-14"
+          ],
+          "hits": [
+            "pt-13",
+            "pt-14",
+            "pt-12"
+          ]
+        },
+        {
+          "term": "violoncelo",
+          "kind": "exact",
+          "relevant": [
+            "pt-28"
+          ],
+          "hits": [
+            "pt-28"
+          ]
+        },
+        {
+          "term": "laranja",
+          "kind": "exact",
+          "relevant": [
+            "pt-25"
+          ],
+          "hits": [
+            "pt-25"
+          ]
+        },
+        {
+          "term": "submarino",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "geladeira",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "dinossauro",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "собаки",
+          "kind": "morphology",
+          "relevant": [
+            "ru-01",
+            "ru-02",
+            "ru-03"
+          ],
+          "hits": []
+        },
+        {
+          "term": "кошки",
+          "kind": "morphology",
+          "relevant": [
+            "ru-04",
+            "ru-05"
+          ],
+          "hits": []
+        },
+        {
+          "term": "книги",
+          "kind": "morphology",
+          "relevant": [
+            "ru-06",
+            "ru-07"
+          ],
+          "hits": []
+        },
+        {
+          "term": "поезда",
+          "kind": "morphology",
+          "relevant": [
+            "ru-09",
+            "ru-10",
+            "ru-11"
+          ],
+          "hits": []
+        },
+        {
+          "term": "играть",
+          "kind": "morphology",
+          "relevant": [
+            "ru-16",
+            "ru-22",
+            "ru-23"
+          ],
+          "hits": []
+        },
+        {
+          "term": "машины",
+          "kind": "morphology",
+          "relevant": [
+            "ru-27",
+            "ru-28"
+          ],
+          "hits": []
+        },
+        {
+          "term": "елка",
+          "kind": "diacritic",
+          "relevant": [
+            "ru-25",
+            "ru-26"
+          ],
+          "hits": []
+        },
+        {
+          "term": "рынок",
+          "kind": "exact",
+          "relevant": [
+            "ru-12",
+            "ru-13",
+            "ru-14"
+          ],
+          "hits": []
+        },
+        {
+          "term": "симфонию",
+          "kind": "exact",
+          "relevant": [
+            "ru-24"
+          ],
+          "hits": []
+        },
+        {
+          "term": "шоколадный",
+          "kind": "exact",
+          "relevant": [
+            "ru-21"
+          ],
+          "hits": []
+        },
+        {
+          "term": "бассейне",
+          "kind": "exact",
+          "relevant": [
+            "ru-15"
+          ],
+          "hits": []
+        },
+        {
+          "term": "пианино",
+          "kind": "exact",
+          "relevant": [
+            "ru-23"
+          ],
+          "hits": []
+        },
+        {
+          "term": "экзаменам",
+          "kind": "exact",
+          "relevant": [
+            "ru-30"
+          ],
+          "hits": []
+        },
+        {
+          "term": "самолёт",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "холодильник",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "динозавр",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "معلم",
+          "kind": "morphology",
+          "relevant": [
+            "ar-25",
+            "ar-26"
+          ],
+          "hits": []
+        },
+        {
+          "term": "مهندس",
+          "kind": "morphology",
+          "relevant": [
+            "ar-27",
+            "ar-28"
+          ],
+          "hits": []
+        },
+        {
+          "term": "طالبة",
+          "kind": "morphology",
+          "relevant": [
+            "ar-23",
+            "ar-24"
+          ],
+          "hits": []
+        },
+        {
+          "term": "يلعب",
+          "kind": "morphology",
+          "relevant": [
+            "ar-18",
+            "ar-20"
+          ],
+          "hits": []
+        },
+        {
+          "term": "قطة",
+          "kind": "morphology",
+          "relevant": [
+            "ar-04",
+            "ar-05"
+          ],
+          "hits": []
+        },
+        {
+          "term": "مكتبة",
+          "kind": "morphology",
+          "relevant": [
+            "ar-06",
+            "ar-07"
+          ],
+          "hits": []
+        },
+        {
+          "term": "الاف",
+          "kind": "diacritic",
+          "relevant": [
+            "ar-06"
+          ],
+          "hits": []
+        },
+        {
+          "term": "القطار",
+          "kind": "exact",
+          "relevant": [
+            "ar-09",
+            "ar-10",
+            "ar-11"
+          ],
+          "hits": []
+        },
+        {
+          "term": "السوق",
+          "kind": "exact",
+          "relevant": [
+            "ar-12",
+            "ar-13",
+            "ar-14"
+          ],
+          "hits": []
+        },
+        {
+          "term": "الشوكولاتة",
+          "kind": "exact",
+          "relevant": [
+            "ar-17"
+          ],
+          "hits": []
+        },
+        {
+          "term": "النهر",
+          "kind": "exact",
+          "relevant": [
+            "ar-21",
+            "ar-22"
+          ],
+          "hits": []
+        },
+        {
+          "term": "العاصمة",
+          "kind": "exact",
+          "relevant": [
+            "ar-09"
+          ],
+          "hits": []
+        },
+        {
+          "term": "غواصة",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "ثلاجة",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        },
+        {
+          "term": "ديناصور",
+          "kind": "negative",
+          "relevant": [],
+          "hits": []
+        }
+      ]
     }
-  }
+  },
+  "warnings": []
 }

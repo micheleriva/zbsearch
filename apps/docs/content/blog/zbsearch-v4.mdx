@@ -1,0 +1,255 @@
+---
+title: "ZBSearch v4.0.0: Come for the speed, stay for the quality."
+description: A suggestions API, non-blocking indexing, chunked persistence - and a fresh head-to-head against Orama on speed, memory, quality, and index size.
+author: Michele Riva
+date: 2026-08-11
+---
+
+ZBSearch v4.0.0 is out. It ships **schema-less databases**, a new **suggestions API**, **non-blocking batch indexing**, **chunked persistence** for large indexes, and a pile of smaller fixes.
+
+If you only remember one thing: **ZBSearch 4.0.0 is faster than Orama on every search, indexing, and vector workload** - while using less memory, shipping smaller indexes, and returning more relevant results.
+
+ZBSearch is a fork of Orama maintained by the original Orama team, and it's **100% backward compatible** with Orama: migrating is a one-line import change.
+
+By [losing access to Orama](https://www.micheleriva.dev/writings/my-last-day-at-orama), **we lost over 10.5k GitHub stars**. Help us get them back by [giving us a star](https://github.com/micheleriva/zbsearch)!
+
+## Search throughput: the headline numbers
+
+Same dataset, same queries, same Node.js process for both engines. ZBSearch is faster on **every search workload**, from simple prefix searches to geosearch with filters:
+
+<BenchChart
+  title="How much faster ZBSearch 4.0.0 answers each workload vs Orama 3.1.18"
+  showRatio={false}
+  showLegend={false}
+  note="ZBSearch's throughput advantage per workload (Δ% in ops/s). 1,512 records, Node v24.16.0, Apple Silicon, August 11, 2026."
+  rows={[
+    { label: 'Geosearch + filters', value: 222.1, display: '+222%', subject: true },
+    { label: 'Geosearch (radius)', value: 217.1, display: '+217%', subject: true },
+    { label: 'Plain full-text', value: 150.6, display: '+151%', subject: true },
+    { label: 'Complex query + filters', value: 94.2, display: '+94%', subject: true },
+    { label: 'Typo-tolerant', value: 81.1, display: '+81%', subject: true },
+    { label: 'Facets + filters', value: 66.7, display: '+67%', subject: true },
+    { label: 'Exact match', value: 56.3, display: '+56%', subject: true },
+    { label: 'Facets', value: 37.9, display: '+38%', subject: true },
+    { label: 'Field boosting', value: 29.6, display: '+30%', subject: true },
+    { label: 'Prefix search', value: 26.2, display: '+26%', subject: true },
+    { label: 'Filters', value: 20.1, display: '+20%', subject: true },
+    { label: 'Results pinning', value: 7.6, display: '+8%', subject: true },
+  ]}
+/>
+
+In absolute terms, a plain full-text search runs at **83,980 ops/s** in ZBSearch versus **33,510 ops/s** in Orama, and typo-tolerant search at **12,860 ops/s** versus **7,100 ops/s**. Both of those sit on the hot path of every keystroke in a search box.
+
+## Indexing, updates, and deletes
+
+v4's insert path is built around an explicit postings-list inverted index. Indexing the full 1,512-document dataset:
+
+<BenchChart
+  title="Indexing 1,512 documents with insertMultiple (median latency)"
+  better="lower"
+  ratioLabel="slower"
+  note="Median wall-clock time to index the full dataset. Lower is better."
+  rows={[
+    { label: 'ZBSearch 4.0.0', value: 39.94, display: '39.94 ms', subject: true },
+    { label: 'Orama 3.1.18', value: 59.73, display: '59.73 ms' },
+  ]}
+/>
+
+One-by-one inserts show the same shape (**40.23 ms** vs **68.66 ms**, 41% faster), and removing 100 documents takes **39.23 ms** in ZBSearch versus **68.39 ms** in Orama. If you rebuild indexes in CI or at boot, that's roughly **40% off your indexing time**.
+
+## Memory and serialized index size
+
+The postings-list index pays off a second time here: it also stores less. After indexing the same dataset in isolated, GC-controlled Node.js processes:
+
+<BenchChart
+  title="Memory footprint after indexing (RSS delta)"
+  better="lower"
+  ratioLabel="larger"
+  note="Resident set size increase over a GC'd baseline after building the index. Lower is better."
+  rows={[
+    { label: 'ZBSearch 4.0.0', value: 12.20, display: '12.20 MB', subject: true },
+    { label: 'Orama 3.1.18', value: 22.27, display: '22.27 MB' },
+  ]}
+/>
+
+Heap delta shows the same trend: **11.68 MB** vs **14.69 MB** (20% lower). And when you persist the index - to ship it to a browser, an edge worker, or object storage - delta-encoded postings make the difference even bigger:
+
+<BenchChart
+  title="Serialized index size (JSON)"
+  better="lower"
+  ratioLabel="larger"
+  note="save() output for the same indexed dataset. Lower is better."
+  rows={[
+    { label: 'ZBSearch 4.0.0', value: 2.88, display: '2.88 MB', subject: true },
+    { label: 'Orama 3.1.18', value: 4.98, display: '4.98 MB' },
+  ]}
+/>
+
+**42% smaller serialized indexes** means 42% less to store, transfer, and parse on every cold start.
+
+## Search quality, measured
+
+Speed is easy to game - return worse results faster. So we also measure **ranking quality** on standard [BEIR](https://github.com/beir-cellar/beir) collections (SciFact, NFCorpus, ArguAna) with official relevance judgments, using exact trec_eval semantics. Every engine runs in its best relevance configuration using only features its own ecosystem ships.
+
+<BenchChart
+  title="Ranking quality: macro-average nDCG@10 across SciFact, NFCorpus, ArguAna"
+  ratioLabel="worse"
+  note="BEIR test collections with official qrels, trec_eval semantics. Each engine in its best own-ecosystem relevance configuration. Higher is better. MiniSearch and Fuse.js exceeded the 5-minute query budget on ArguAna and score 0 there."
+  rows={[
+    { label: 'ZBSearch (BM25)', value: 0.453, display: '0.453', subject: true },
+    { label: 'Lunr', value: 0.425, display: '0.425' },
+    { label: 'MiniSearch', value: 0.305, display: '0.305' },
+    { label: 'Orama', value: 0.222, display: '0.222' },
+    { label: 'FlexSearch', value: 0.168, display: '0.168' },
+    { label: 'Fuse.js', value: 0.066, display: '0.066' },
+  ]}
+/>
+
+ZBSearch's default BM25 configuration scores **0.453 macro nDCG@10** - more than **twice Orama's 0.222** - while answering queries **3× faster** (8.8 ms/query vs 27.8 ms/query, averaged over all judged queries). On SciFact, ZBSearch's 0.675 nDCG@10 lands *above* the published Lucene BM25 reference of 0.665.
+
+This is the core of the pitch: ZBSearch returns **more relevant results and returns them faster**, so the usual speed-versus-quality trade-off simply never comes up. The optional QPS and PT15 algorithms trade relevance for raw throughput and index size, and score lower on BEIR; the [benchmarks page](/benchmarks) has the full per-dataset tables for every engine and configuration.
+
+## New in v4.0.0
+
+### Schema-less databases
+
+The `schema` option is now optional. Call `create()` with no arguments and ZBSearch infers the type of every property the first time it sees it, indexing documents on the fly - nested objects, arrays, and geopoints included:
+
+```ts
+import { create, insert, search } from 'zbsearch'
+
+const db = create()
+
+await insert(db, { title: 'The Godfather', year: 1972, cast: { director: 'Coppola' } })
+// inferred schema: { title: 'string', year: 'number', cast: { director: 'string' } }
+
+await search(db, { term: 'godfather' })
+```
+
+Inference stays predictable: types lock the first time a property is seen (a later `year: "1972"` is rejected exactly as with a declared schema), inferred schemas survive `save`/`load` round-trips, and vector properties still need an explicit declaration since an embedding is indistinguishable from a plain `number[]`. The [create docs](/docs/zbsearch/usage/create) cover the full inference rules.
+
+### Suggestions API
+
+`suggest()` returns ranked query completions straight from the index - no more deduping full search results to build an autocomplete dropdown:
+
+```ts
+import { suggest } from 'zbsearch'
+
+const result = suggest(db, { term: 'noise can' })
+// {
+//   count: 2,
+//   suggestions: [
+//     { suggestion: 'noise cancelling', score: 4.2, count: 3 },
+//     { suggestion: 'noise cancellation', score: 1.1, count: 1 }
+//   ]
+// }
+```
+
+Read more in the [autocomplete docs](/docs/zbsearch/search/autocomplete).
+
+### Non-blocking indexing
+
+`insertMultipleAsync()` indexes in batches and yields to the event loop between them, with progress callbacks - so a big index build doesn't freeze your UI or starve your server's request handlers:
+
+```ts
+await insertMultipleAsync(db, docs, {
+  batchSize: 500,
+  onProgress: ({ processed, total }) => updateProgressBar(processed / total),
+})
+```
+
+The responsiveness suite indexes 30,000 documents on the main thread. Synchronous `insertMultiple` holds the event loop hostage for the entire run; the async variant stays under a 60fps frame budget while finishing in the same total time:
+
+<BenchChart
+  title="Worst main-thread block while indexing 30,000 documents"
+  better="lower"
+  ratioLabel="longer"
+  note="Longest stretch the event loop could not run. Chrome flags anything over 50 ms as a long task; a 60fps frame budget is 16.7 ms. Total wall-clock time is ~equal (783 ms sync, 713 ms async)."
+  rows={[
+    { label: 'insertMultipleAsync', value: 6.7, display: '6.7 ms', subject: true },
+    { label: 'insertMultiple (sync)', value: 783, display: '783 ms (fully blocked)' },
+  ]}
+/>
+
+### Chunked persistence
+
+`save(db, { format: 'chunked' })` splits the serialized index into fixed-size chunks, and `loadAsync()` restores it without blocking the main thread. Large indexes no longer hit string-length limits or freeze the tab while loading. See the [serialization docs](/docs/zbsearch/usage/serialization).
+
+## Things Orama's core simply doesn't have
+
+Beyond the shared API surface, ZBSearch ships features with no Orama equivalent:
+
+- **IVF vector indexing** - approximate nearest-neighbor search for vector and hybrid queries.
+- **Zero-config multilingual tokenization** - `language: 'multilingual'` handles Unicode tokenization and diacritic folding across scripts, including Cyrillic and Arabic.
+- **An edge runtime** - [self-hosted search on Cloudflare Workers + R2](/blog/deploying-zbsearch-to-cloudflare), with snapshot + WAL storage.
+- **Docs integrations and search boxes** - covered in their own section below.
+
+The IVF index deserves its own chart. On 2,000 documents with 128-dimensional vectors:
+
+<BenchChart
+  title="Vector search throughput: flat scan vs IVF (2,000 docs, 128d)"
+  note="Approximate nearest-neighbor with nlist=179, nprobe=16. Higher is better. Orama's JS core has no IVF equivalent."
+  rows={[
+    { label: 'ZBSearch (IVF)', value: 11810, display: '11,810 ops/s', subject: true },
+    { label: 'ZBSearch (flat)', value: 2674, display: '2,674 ops/s', subject: true },
+    { label: 'Orama (flat)', value: 2215, display: '2,215 ops/s' },
+  ]}
+/>
+
+ZBSearch's flat index already beats Orama's on every vector workload (13-33% faster), but flip on IVF and vector search runs at **5.3× Orama's throughput** - 16,441 vs 4,476 ops/s on strict-similarity queries, 16,621 vs 5,216 ops/s with filters. Orama has nothing to flip on.
+
+## Search for your docs site, in one package
+
+If what you actually want is "good search on my documentation site", you don't have to touch the engine at all. ZBSearch ships first-class integrations that index your content at build time and replace the default search dialog:
+
+- **[Docusaurus](/docs/zbsearch/integrations/docusaurus)** - `@zbsearch/plugin-docusaurus` indexes your docs, blog posts, and MDX pages while Docusaurus builds.
+- **[Starlight](/docs/zbsearch/integrations/starlight)** - `@zbsearch/plugin-starlight` swaps Starlight's built-in Pagefind search, wired into your content collections.
+- **[VitePress](/docs/zbsearch/integrations/vitepress)** - `@zbsearch/plugin-vitepress` builds the index from VitePress' own content loader, so results follow your `srcDir`, `cleanUrls`, and `base` exactly as the router does.
+
+The index ships with your static build and runs in the visitor's browser - no search server, no API key, no per-query pricing.
+
+### A headless search box you can actually theme
+
+Under those integrations sit **[`@zbsearch/searchbox-react`](/docs/zbsearch/integrations/searchbox-react)** and **[`@zbsearch/searchbox-vue`](/docs/zbsearch/integrations/searchbox-vue)**. They ship the *behavior* - searching, result grouping, keyboard navigation, accessibility - and leave the *look* to a handful of CSS variables:
+
+```css
+.my-search {
+  --zbs-surface: #ffffff;
+  --zbs-accent: #18181b;
+  --zbs-text: #09090b;
+  --zbs-border: rgb(9 9 11 / 10%);
+  --zbs-radius: 6px;
+  /* ...that's the whole theming API */
+}
+```
+
+Here it is live - a real ZBSearch index of this documentation, running in your browser right now. Switch presets to restyle the same component from "minimal" to "terminal" to "soft", in light and dark; the panel on the right shows the exact variables being painted:
+
+<SearchBoxLiveDemo />
+
+All of this is self-hosted and free: no cloud account, no API key, no per-query bill - and nothing equivalent ships in Orama's open-source core.
+
+## Migrating from Orama
+
+ZBSearch is 100% backward compatible with Orama. For most projects, migration is:
+
+```diff
+- import { create, insert, search } from '@orama/orama'
++ import { create, insert, search } from 'zbsearch'
+```
+
+Schemas, queries, filters, facets, hooks, and plugins keep working. The [ZBSearch vs Orama page](/docs/zbsearch/vs-orama) has the full benchmark methodology and per-suite numbers, updated for this release.
+
+```sh
+npm install zbsearch
+```
+
+Every benchmark in this post is reproducible from the repository:
+
+```sh
+cd benchmarks && npm install
+npm run benchmark:compare        # Orama vs ZBSearch head-to-head
+npm run benchmark:search-quality # BEIR ranking quality
+```
+
+Come for the speed, stay for the quality.

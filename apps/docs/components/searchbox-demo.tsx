@@ -216,7 +216,15 @@ function useIsDesktop(): boolean {
   return isDesktop
 }
 
-export function SearchBoxDemo({ docs }: { docs: SearchBoxDemoDoc[] }) {
+export function SearchBoxDemo({
+  docs,
+  stacked = false,
+  defaultTerm
+}: {
+  docs: SearchBoxDemoDoc[]
+  stacked?: boolean
+  defaultTerm?: string
+}) {
   const [presetId, setPresetId] = useState(presets[0].id)
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -280,12 +288,17 @@ export function SearchBoxDemo({ docs }: { docs: SearchBoxDemoDoc[] }) {
         ))}
       </div>
 
-      <div className="grid overflow-hidden rounded-2xl border border-fd-border lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div
+        className={cn(
+          'grid overflow-hidden rounded-2xl border border-fd-border',
+          !stacked && 'lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]'
+        )}
+      >
         <div className="bg-fd-muted/40 p-4 sm:p-6" style={vars as CSSProperties}>
-          <InlinePanel searcher={searcher} />
+          <InlinePanel searcher={searcher} defaultTerm={defaultTerm} />
         </div>
 
-        <div className="flex flex-col border-fd-border max-lg:border-t lg:border-l">
+        <div className={cn('flex flex-col border-fd-border', stacked ? 'border-t' : 'max-lg:border-t lg:border-l')}>
           <div className="flex items-baseline justify-between gap-3 border-b border-fd-border px-4 py-2.5">
             <span className="font-mono text-[0.6875rem] uppercase tracking-[0.12em] text-fd-muted-foreground">
               {preset.name}
@@ -314,14 +327,27 @@ export function SearchBoxDemo({ docs }: { docs: SearchBoxDemoDoc[] }) {
  * this rebuilds the panel from the exported hooks and reuses the shipped
  * `zbs-searchbox__*` classes, which is the headless path the section describes.
  */
-function InlinePanel({ searcher }: { searcher: (term: string) => Promise<SearchHit[]> }) {
+function InlinePanel({
+  searcher,
+  defaultTerm
+}: {
+  searcher: (term: string) => Promise<SearchHit[]>
+  defaultTerm?: string
+}) {
   const { term, setTerm, hits, status } = useSearch(searcher, 80)
   const [selected, setSelected] = useState(0)
   const groups = useMemo(() => groupHits(hits), [hits])
   const trimmed = term.trim()
 
+  // Pre-filled once on mount so the panel opens showing real results; typing
+  // takes over from there.
+  useEffect(() => {
+    if (defaultTerm) setTerm(defaultTerm)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
-    <div className="zbs-searchbox zbs-demo-panel">
+    <div className="zbs-searchbox zbs-demo-panel mx-auto">
       <div className="zbs-searchbox__header">
         <span className="zbs-searchbox__input-icon" aria-hidden="true">
           <Search />

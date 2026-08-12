@@ -1,5 +1,5 @@
 ---
-title: "ZBSearch v4.0.0: Faster Everywhere It Counts"
+title: "ZBSearch v4.0.0: Come for the speed, stay for the quality."
 description: A suggestions API, non-blocking indexing, chunked persistence - and a fresh head-to-head against Orama on speed, memory, quality, and index size.
 author: Michele Riva
 date: 2026-08-11
@@ -7,15 +7,15 @@ date: 2026-08-11
 
 ZBSearch v4.0.0 is out. It ships **schema-less databases**, a new **suggestions API**, **non-blocking batch indexing**, **chunked persistence** for large indexes, and a pile of smaller fixes.
 
-For this release we re-ran **every benchmark in the repository** against the latest published Orama (**3.1.18**), on the same machine, the same datasets, the same day. This post is the summary; every number below comes from the [`benchmarks/`](https://github.com/micheleriva/zbsearch/tree/main/benchmarks) suite you can run yourself.
-
 If you only remember one thing: **ZBSearch 4.0.0 is faster than Orama on every search, indexing, and vector workload** - while using less memory, shipping smaller indexes, and returning more relevant results.
 
-ZBSearch is a fork of Orama maintained by the original Orama engineering team. The API is the same on purpose: migrating is a one-line import change.
+ZBSearch is a fork of Orama maintained by the original Orama team, and it's **100% backward compatible** with Orama: migrating is a one-line import change.
+
+By [losing access to Orama](https://www.micheleriva.dev/writings/my-last-day-at-orama), **we lost over 10.5k GitHub stars**. Help us get them back by [giving us a star](https://github.com/micheleriva/zbsearch)!
 
 ## Search throughput: the headline numbers
 
-Same dataset (1,512 game records), same queries, same Node.js process for both engines. ZBSearch is faster on **every search workload**, from simple prefix searches to geosearch with filters:
+Same dataset, same queries, same Node.js process for both engines. ZBSearch is faster on **every search workload**, from simple prefix searches to geosearch with filters:
 
 <BenchChart
   title="How much faster ZBSearch 4.0.0 answers each workload vs Orama 3.1.18"
@@ -231,7 +231,7 @@ All of this is self-hosted and free: no cloud account, no API key, no per-query 
 
 ## Migrating from Orama
 
-The API is intentionally compatible. For most projects, migration is:
+ZBSearch is 100% backward compatible with Orama. For most projects, migration is:
 
 ```diff
 - import { create, insert, search } from '@orama/orama'

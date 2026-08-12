@@ -16,6 +16,30 @@ export type BenchChartRow = {
   subject?: boolean
 }
 
+type EngineMark = { icon: string; rounded?: 'full' | 'sm' } | { initial: string; bg: string }
+
+/**
+ * Identity badges for engine rows: real logos where one exists at 16px (Lunr
+ * has none), otherwise an initial on a stable per-engine color (validated for
+ * both surfaces; the adjacent name text carries identity, never the color
+ * alone). Rows that name a workload rather than an engine keep the
+ * subject/other dot.
+ */
+const ENGINE_MARKS: Array<{ pattern: RegExp; mark: EngineMark }> = [
+  { pattern: /zbsearch|insertmultiple/i, mark: { icon: '/icons/zbsearch.svg' } },
+  // The Orama avatar has an opaque dark background, so it renders as a disc.
+  { pattern: /orama/i, mark: { icon: '/icons/orama.png', rounded: 'full' } },
+  { pattern: /lunr/i, mark: { initial: 'L', bg: '#0284c7' } },
+  { pattern: /minisearch/i, mark: { icon: '/icons/minisearch.svg' } },
+  // Opaque square tile; the X's tips reach the edges, so a full circle would clip them.
+  { pattern: /flexsearch/i, mark: { icon: '/icons/flexsearch.png', rounded: 'sm' } },
+  { pattern: /fuse/i, mark: { icon: '/icons/fuse.png' } }
+]
+
+function engineMark(label: string): EngineMark | undefined {
+  return ENGINE_MARKS.find((entry) => entry.pattern.test(label))?.mark
+}
+
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -126,10 +150,7 @@ export function BenchChart({
             )}
           >
             <span className="inline-flex items-center gap-2 text-xs font-medium text-fd-foreground">
-              <span
-                aria-hidden
-                className={cn('size-2 shrink-0 rounded-full', row.subject ? 'bg-chart-subject' : 'bg-chart-other')}
-              />
+              <RowMark label={row.label} subject={row.subject} />
               {row.label}
             </span>
 
@@ -154,5 +175,42 @@ export function BenchChart({
 
       {note && <p className="mt-3 text-xs leading-relaxed text-fd-muted-foreground">{note}</p>}
     </figure>
+  )
+}
+
+function RowMark({ label, subject }: { label: string; subject?: boolean }) {
+  const mark = engineMark(label)
+
+  if (!mark) {
+    return (
+      <span
+        aria-hidden
+        className={cn('size-2 shrink-0 rounded-full', subject ? 'bg-chart-subject' : 'bg-chart-other')}
+      />
+    )
+  }
+
+  if ('icon' in mark) {
+    return (
+      <img
+        src={mark.icon}
+        alt=""
+        className={cn(
+          'size-4 shrink-0 object-contain',
+          mark.rounded === 'full' && 'rounded-full',
+          mark.rounded === 'sm' && 'rounded-[3px]'
+        )}
+      />
+    )
+  }
+
+  return (
+    <span
+      aria-hidden
+      style={{ backgroundColor: mark.bg }}
+      className="flex size-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold leading-none text-white"
+    >
+      {mark.initial}
+    </span>
   )
 }

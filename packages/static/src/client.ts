@@ -165,9 +165,26 @@ export function createStaticSearchClient(options: StaticClientOptions = {}): Sta
       }
     }
 
-    // String `where` filters resolve through exact trie lookups.
-    if (params.where) {
-      for (const [prop, value] of Object.entries(params.where)) {
+    // String `where` filters resolve through exact trie lookups. Logical
+    // clauses (`and`, `or`, `not`) nest arbitrarily, so the walk recurses the
+    // same way core's searchByWhereClause does.
+    const collectWhereTerms = (clause: Record<string, unknown> | undefined): void => {
+      if (!clause) {
+        return
+      }
+
+      for (const [prop, value] of Object.entries(clause)) {
+        if (prop === 'and' || prop === 'or') {
+          for (const sub of Array.isArray(value) ? value : [value]) {
+            collectWhereTerms(sub as Record<string, unknown>)
+          }
+          continue
+        }
+        if (prop === 'not') {
+          collectWhereTerms(value as Record<string, unknown>)
+          continue
+        }
+
         const tree = shell.tries[prop]
         if (!tree) {
           continue
@@ -178,7 +195,7 @@ export function createStaticSearchClient(options: StaticClientOptions = {}): Sta
           if (typeof item !== 'string') {
             continue
           }
-          for (const token of shell.db.tokenizer.tokenize(item, undefined)) {
+          for (const token of shell.db.tokenizer.tokenize(item, undefined, prop)) {
             const matched = tree.find({ term: token, exact: true, tolerance: 0 })
             for (const word of Object.keys(matched)) {
               if (!shell.mergedTerms.has(word)) {
@@ -189,6 +206,7 @@ export function createStaticSearchClient(options: StaticClientOptions = {}): Sta
         }
       }
     }
+    collectWhereTerms(params.where)
 
     return needed
   }
@@ -234,7 +252,9 @@ export function createStaticSearchClient(options: StaticClientOptions = {}): Sta
     // Browsing with no term, filters, or properties means "all documents":
     // the engine walks the documents store directly, so the displayed page of
     // documents must be resident and the total count comes from the manifest.
-    const isBrowseAll = !params.term && !params.where && !params.properties
+    // An empty filter object is no filter, exactly as core treats it.
+    const hasFilters = params.where !== undefined && Object.keys(params.where).length > 0
+    const isBrowseAll = !params.term && !hasFilters && !params.properties
 
     if (isBrowseAll) {
       if (!params.preflight) {
@@ -248,17 +268,24 @@ export function createStaticSearchClient(options: StaticClientOptions = {}): Sta
       return results
     }
 
-    if (!params.preflight) {
+    const isExact = Boolean(params.exact && params.term)
+
+    if (!params.preflight || isExact) {
       // First pass scores against the merged postings to learn which documents
-      // will be displayed; only their fragments are fetched.
+      // will be displayed; only their fragments are fetched. Core implements
+      // `exact` with a document-level text check, so that pass runs without it
+      // (same trie walk via prefix:false/tolerance:0) and every candidate's
+      // document is fetched - the check can reject candidates, which would
+      // otherwise pull unfetched ones into the displayed page.
+      const scoringParams = isExact ? { ...params, exact: false, prefix: false, tolerance: 0 } : params
       const scored = internals.innerFullTextSearch(
         shell.db as AnyZBSearch,
-        params as Parameters<typeof internals.innerFullTextSearch>[1],
+        scoringParams as Parameters<typeof internals.innerFullTextSearch>[1],
         undefined
       ) as TokenScore[]
       scored.sort(internals.sortTokenScorePredicate)
 
-      const end = (params.offset ?? 0) + (params.limit ?? 10)
+      const end = isExact ? scored.length : (params.offset ?? 0) + (params.limit ?? 10)
       await prefetchDocuments(
         shell,
         scored.slice(0, end).map(([id]) => id)

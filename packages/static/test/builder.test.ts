@@ -95,4 +95,15 @@ describe('buildStaticIndex', () => {
       buildStaticIndex({ records: [], schema: { n: 'number' } as unknown as Record<string, 'string'> })
     ).rejects.toThrow(/string/)
   })
+
+  it('rejects invalid shard and fragment sizing', async () => {
+    for (const fragmentGroupSize of [0, -1, 2.5, Number.NaN]) {
+      await expect(buildStaticIndex({ records: [], schema: CORPUS_SCHEMA, fragmentGroupSize })).rejects.toThrow(
+        /fragmentGroupSize/
+      )
+    }
+    await expect(buildStaticIndex({ records: [], schema: CORPUS_SCHEMA, targetShardBytes: 0 })).rejects.toThrow(
+      /targetShardBytes/
+    )
+  })
 })

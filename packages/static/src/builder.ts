@@ -70,6 +70,15 @@ export async function buildStaticIndex(options: BuildStaticIndexOptions): Promis
 
   assertStringSchema(schema)
 
+  for (const [name, value] of [
+    ['targetShardBytes', targetShardBytes],
+    ['fragmentGroupSize', fragmentGroupSize]
+  ] as const) {
+    if (!Number.isSafeInteger(value) || value < 1) {
+      throw new Error(`[zbsearch-static] ${name} must be a positive integer, got "${value}"`)
+    }
+  }
+
   const db = create({ schema, language, inferSchema: false, sort: { enabled: false } })
 
   if (records.length > 0) {

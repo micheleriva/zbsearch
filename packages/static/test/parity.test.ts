@@ -129,6 +129,32 @@ describe('sharded search matches monolithic search exactly', () => {
     await expectParity(client, { term: 'xyzzynotaword' })
     await expectParity(client, { term: '' })
   })
+
+  it('exact matching on a cold client, as the very first query', async () => {
+    // Core verifies `exact` against the stored document text, so the client
+    // must fetch every candidate's document before the final search runs -
+    // including when no earlier query happened to warm the fragment cache.
+    await expectParity(newClient(), { term: 'fuzzy matching', exact: true })
+    await expectParity(newClient(), { term: 'sharding', exact: true })
+    await expectParity(newClient(), { term: 'fuzzy matching', exact: true, preflight: true })
+    await expectParity(newClient(), { term: 'levenshtein distance', exact: true, limit: 3 })
+  })
+
+  it('an empty where object is browsing, not filtering', async () => {
+    await expectParity(newClient(), { where: {} })
+    await expectParity(newClient(), { where: {}, limit: 5, offset: 5 })
+  })
+
+  it('logical where clauses fetch the postings of their nested terms', async () => {
+    const client = newClient()
+    await expectParity(client, { term: 'search', where: { and: [{ section: 'basics' }] } })
+    await expectParity(client, { term: 'query', where: { or: [{ section: 'filtering' }, { section: 'basics' }] } })
+    await expectParity(client, { term: 'search', where: { not: { section: 'basics' } } })
+    await expectParity(newClient(), {
+      term: 'search',
+      where: { and: [{ or: [{ section: 'basics' }, { section: 'relevance' }] }, { not: { title: 'thresholds' } }] }
+    })
+  })
 })
 
 describe('network behavior', () => {

@@ -51,6 +51,10 @@ export interface StaticSearchClient {
   stats(): StaticClientStats
 }
 
+function documentIdFor(shell: StaticShell, internalId: number): string {
+  return shell.manifest.sequentialIds ? String(internalId) : shell.manifest.internalIdToId![internalId - 1]
+}
+
 function defaultFetchBytes(baseUrl: string) {
   return async (path: string): Promise<Uint8Array> => {
     const response = await fetch(baseUrl + path)
@@ -147,6 +151,12 @@ export function createStaticSearchClient(options: StaticClientOptions = {}): Sta
         : shell.manifest.props
 
     const tokens = shell.db.tokenizer.tokenize(term, undefined)
+    // Core inserts an empty token for property-only searches (no term, but
+    // `properties` given) and walks every word; mirror it so those queries
+    // prefetch the postings they will score against.
+    if (!tokens.length && !term && params.properties) {
+      tokens.push('')
+    }
     const needed = new Set<string>()
 
     for (const prop of props) {
@@ -257,15 +267,34 @@ export function createStaticSearchClient(options: StaticClientOptions = {}): Sta
     const isBrowseAll = !params.term && !hasFilters && !params.properties
 
     if (isBrowseAll) {
-      if (!params.preflight) {
-        const end = Math.min((params.offset ?? 0) + (params.limit ?? 10), shell.manifest.docsCount)
-        const ids = Array.from({ length: end }, (_, i) => i + 1)
-        await prefetchDocuments(shell, ids)
+      // Browsing is served directly from the fragment files for exactly the
+      // requested page: running core search here would paginate over whatever
+      // documents happen to be resident, and prefetching everything up to the
+      // offset would make fragment traffic scale with deep pagination.
+      const t0 = internals.getNanosecondsTime()
+      const offset = params.offset ?? 0
+      const limit = params.limit ?? 10
+      const end = Math.min(offset + limit, shell.manifest.docsCount)
+      const ids: number[] = []
+      for (let id = offset + 1; id <= end; id++) {
+        ids.push(id)
       }
 
-      const results = (await coreSearch(shell.db, params as never)) as Results<Doc>
-      results.count = shell.manifest.docsCount
-      return results
+      const hits: Results<Doc>['hits'] = []
+      if (!params.preflight) {
+        await prefetchDocuments(shell, ids)
+        const store = shell.db.data.docs as unknown as { docs: Record<number, Doc> }
+        for (const id of ids) {
+          hits.push({ id: documentIdFor(shell, id), score: 0, document: store.docs[id] } as Results<Doc>['hits'][number])
+        }
+      }
+
+      const elapsed = internals.getNanosecondsTime() - t0
+      return {
+        elapsed: { raw: Number(elapsed), formatted: internals.formatNanoseconds(elapsed) },
+        hits,
+        count: shell.manifest.docsCount
+      } as Results<Doc>
     }
 
     const isExact = Boolean(params.exact && params.term)

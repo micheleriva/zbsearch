@@ -145,6 +145,23 @@ describe('sharded search matches monolithic search exactly', () => {
     await expectParity(newClient(), { where: {}, limit: 5, offset: 5 })
   })
 
+  it('property-only searches work on a cold client', async () => {
+    await expectParity(newClient(), { properties: ['title'] })
+    await expectParity(newClient(), { term: '', properties: ['title', 'content'], limit: 20 })
+  })
+
+  it('deep browse pagination fetches only the requested page', async () => {
+    const client = newClient()
+    await expectParity(client, { offset: 100, limit: 8 })
+
+    // IDs 101-108 span at most two fragment groups of 8; nothing before the
+    // offset should have been downloaded.
+    expect(client.stats().fragmentsFetched).toBeLessThanOrEqual(2)
+
+    await expectParity(client, { offset: records.length - 3, limit: 10 })
+    await expectParity(client, { offset: records.length + 5, limit: 10 })
+  })
+
   it('logical where clauses fetch the postings of their nested terms', async () => {
     const client = newClient()
     await expectParity(client, { term: 'search', where: { and: [{ section: 'basics' }] } })

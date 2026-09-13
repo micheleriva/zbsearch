@@ -256,11 +256,13 @@ export function fullTextSearch<T extends AnyZBSearch, ResultDocument = TypedDocu
   return performSearchLogic()
 }
 
-export const defaultBM25Params: BM25Params = {
+// Frozen and typed readonly: this object is exported through `internals`, and
+// a mutation would silently change default ranking for every search.
+export const defaultBM25Params: Readonly<Required<BM25Params>> = Object.freeze({
   k: 1.2,
   b: 0.75,
   d: 0.5
-}
+})
 export function applyDefault(bm25Relevance?: BM25Params): Required<BM25Params> {
   const r = bm25Relevance ?? {}
   r.k = r.k ?? defaultBM25Params.k

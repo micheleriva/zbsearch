@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { create, insertMultiple, save, search } from '../src/index.js'
+import { create, insertMultiple, save, search, internals } from '../src/index.js'
 import type { AnyZBSearch, RawData } from '../src/index.js'
 import type { Index } from '../src/components/index.js'
-import { RadixTree, type RadixNodeJSON } from '../src/trees/radix.js'
-import { decodePostings, type SerializedPostings } from '../src/trees/postings.js'
+// Deliberately imported through the public subpath entry points: this suite
+// pins the consumer-facing API the static-index client is built on.
+import { radix, postings } from '../src/trees.js'
+
+const { RadixTree } = radix
+const { decodePostings } = postings
+type RadixNodeJSON = radix.RadixNodeJSON
+type SerializedPostings = postings.SerializedPostings
 
 // These tests pin down the engine behaviors the static-sharded browser client
 // (packages/static) is built on: a dictionary-only trie must report matched
@@ -118,6 +124,20 @@ function prefetchAndMerge(
 }
 
 describe('static shell contract', () => {
+  it('the internals entry point exposes the primitives the static client needs', () => {
+    expect(typeof internals.BM25).toBe('function')
+    expect(typeof internals.bm25Idf).toBe('function')
+    expect(typeof internals.prefixExpansionDemotion).toBe('function')
+    expect(typeof internals.calculateResultScores).toBe('function')
+    expect(typeof internals.innerFullTextSearch).toBe('function')
+    expect(typeof internals.getPropertiesToSearch).toBe('function')
+    expect(typeof internals.applyDefault).toBe('function')
+    expect(typeof internals.sortTokenScorePredicate).toBe('function')
+    expect(internals.defaultBM25Params).toEqual({ k: 1.2, b: 0.75, d: 0.5 })
+    // The defaults are frozen: consumers cannot mutate global ranking behavior.
+    expect(Object.isFrozen(internals.defaultBM25Params)).toBe(true)
+  })
+
   it('a dictionary-only trie reports matched words with empty postings', async () => {
     const full = await buildFullDb()
     const raw = save(full) as RawData

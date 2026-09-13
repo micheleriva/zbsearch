@@ -40,7 +40,8 @@ export default function zbsearchDocusaurus(
       // production builds shard once the payload outgrows the limit.
       if (process.env.NODE_ENV === 'production') {
         const auto = await buildIndexAuto(records, resolved.language, {
-          baseUrl: `${context.baseUrl}${STATIC_DIR}/`
+          baseUrl: `${context.baseUrl}${STATIC_DIR}/`,
+          inlineLimitBytes: options.inlineLimitBytes
         })
         staticFiles = auto.staticFiles
         await writePayload(context.generatedFilesDir, auto.payload)
@@ -82,7 +83,7 @@ export default function zbsearchDocusaurus(
         await writeFile(target, bytes)
       }
 
-      console.log(`[${PLUGIN_NAME}] sharded search index: ${staticFiles.size} files under /${STATIC_DIR}/`)
+      console.log(`[${PLUGIN_NAME}] sharded search index: ${staticFiles.size} files under ${context.baseUrl}${STATIC_DIR}/`)
     }
   }
 }

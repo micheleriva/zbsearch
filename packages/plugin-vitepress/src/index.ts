@@ -118,7 +118,7 @@ export default function zbsearchVitePress(userOptions: ZBSearchVitePressOptions 
           this.emitFile({ type: 'asset', fileName: `${STATIC_DIR}/${file}`, source })
         }
         config.logger.info(
-          `[zbsearch] sharded search index: ${cached.staticFiles.size} files under /${STATIC_DIR}/`
+          `[zbsearch] sharded search index: ${cached.staticFiles.size} files under ${withBase(`/${STATIC_DIR}/`, base)}`
         )
       }
     }

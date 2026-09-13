@@ -24,6 +24,12 @@ export interface ZBSearchDocusaurusOptions {
   searchButtonLabel?: string
   placeholder?: string
   labels?: Record<string, string>
+  /**
+   * Build-time only: inline payloads up to this JSON byte size ship as a
+   * single file; larger indexes are emitted as a sharded, lazily-fetched
+   * file set.
+   */
+  inlineLimitBytes?: number
 }
 
 export interface ResolvedOptions {

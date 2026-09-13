@@ -63,7 +63,7 @@ export async function buildIndexAuto(
   const inline = await buildIndex(records, language)
   const payloadJson = JSON.stringify(inline)
 
-  if (payloadJson.length <= (options.inlineLimitBytes ?? DEFAULT_INLINE_LIMIT_BYTES)) {
+  if (Buffer.byteLength(payloadJson, 'utf8') <= (options.inlineLimitBytes ?? DEFAULT_INLINE_LIMIT_BYTES)) {
     return { payload: inline, payloadJson }
   }
 
@@ -78,7 +78,10 @@ export async function buildIndexAuto(
 export async function shardBuiltPayload(payloadJson: string, options: AutoIndexOptions): Promise<AutoIndexResult> {
   const payload = JSON.parse(payloadJson) as SearchIndexPayload
 
-  if (isShardedPayload(payload) || payloadJson.length <= (options.inlineLimitBytes ?? DEFAULT_INLINE_LIMIT_BYTES)) {
+  if (
+    isShardedPayload(payload) ||
+    Buffer.byteLength(payloadJson, 'utf8') <= (options.inlineLimitBytes ?? DEFAULT_INLINE_LIMIT_BYTES)
+  ) {
     return { payload, payloadJson }
   }
 

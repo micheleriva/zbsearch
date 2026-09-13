@@ -32,6 +32,22 @@ describe('buildIndexAuto', () => {
     expect(result.staticFiles).toBeUndefined()
   })
 
+  it('measures the limit in encoded bytes, not UTF-16 code units', async () => {
+    // CJK text: ~3 UTF-8 bytes per character, 1 UTF-16 code unit each.
+    const records = makeRecords(4).map((record) => ({
+      ...record,
+      content: '検索インデックスの遅延読み込みは帯域幅を節約します。'.repeat(40)
+    }))
+
+    const inline = JSON.stringify(await buildIndex(records, 'english'))
+    expect(Buffer.byteLength(inline, 'utf8')).toBeGreaterThan(inline.length)
+
+    // A limit between the code-unit count and the byte count must shard.
+    const limit = Math.floor((inline.length + Buffer.byteLength(inline, 'utf8')) / 2)
+    const result = await buildIndexAuto(records, 'english', { baseUrl: BASE_URL, inlineLimitBytes: limit })
+    expect(isShardedPayload(result.payload)).toBe(true)
+  })
+
   it('shards above the limit', async () => {
     const result = await buildIndexAuto(makeRecords(50), 'english', { baseUrl: BASE_URL, inlineLimitBytes: 4096 })
     expect(isShardedPayload(result.payload)).toBe(true)

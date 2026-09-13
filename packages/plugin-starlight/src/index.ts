@@ -76,9 +76,13 @@ export default function zbsearchStarlight(userOptions: ZBSearchStarlightOptions 
               const distDir = fileURLToPath(dir)
               const indexPath = path.join(distDir, INDEX_ROUTE.replace(/^\//, ''))
 
+              // Public paths in diagnostics carry the configured base, the
+              // same way clients fetch them.
+              const publicIndexRoute = `${base.replace(/\/+$/, '')}${INDEX_ROUTE}`
+
               const payloadJson = await readFile(indexPath, 'utf8').catch(() => undefined)
               if (payloadJson === undefined) {
-                buildLogger.warn(`could not read ${INDEX_ROUTE}; leaving the search index as built`)
+                buildLogger.warn(`could not read ${publicIndexRoute}; leaving the search index as built`)
                 return
               }
 
@@ -89,7 +93,7 @@ export default function zbsearchStarlight(userOptions: ZBSearchStarlightOptions 
               })
 
               if (!result.staticFiles) {
-                buildLogger.info(`search index available at ${INDEX_ROUTE}`)
+                buildLogger.info(`search index available at ${publicIndexRoute}`)
                 return
               }
 
@@ -102,7 +106,7 @@ export default function zbsearchStarlight(userOptions: ZBSearchStarlightOptions 
               await writeFile(indexPath, result.payloadJson, 'utf8')
 
               buildLogger.info(
-                `sharded search index: ${result.staticFiles.size} files under ${baseUrl} (payload sentinel at ${INDEX_ROUTE})`
+                `sharded search index: ${result.staticFiles.size} files under ${baseUrl} (payload sentinel at ${publicIndexRoute})`
               )
             }
           }

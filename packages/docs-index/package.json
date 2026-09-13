@@ -68,7 +68,8 @@
     "micromark-extension-mdxjs": "^3.0.0",
     "micromark-extension-mdxjs-esm": "^3.0.0",
     "yaml": "^2.9.0",
-    "zbsearch": "workspace:*"
+    "zbsearch": "workspace:*",
+    "@zbsearch/static": "workspace:*"
   },
   "devDependencies": {
     "@types/mdast": "^4.0.4",

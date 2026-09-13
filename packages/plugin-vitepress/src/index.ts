@@ -1,4 +1,5 @@
-import { buildIndex } from '@zbsearch/docs-index/node'
+import { STATIC_DIR } from '@zbsearch/docs-index'
+import { buildIndex, buildIndexAuto, type AutoIndexResult } from '@zbsearch/docs-index/node'
 import type { Plugin, ResolvedConfig } from 'vite'
 import { collectRecords, type ContentEntry, withBase } from './collect.js'
 import { resolveOptions, type VirtualOptions, type ZBSearchVitePressOptions } from './options.js'
@@ -30,9 +31,9 @@ export default function zbsearchVitePress(userOptions: ZBSearchVitePressOptions 
 
   let config: ResolvedConfig
   let base = '/'
-  let cached: string | undefined
+  let cached: AutoIndexResult | undefined
 
-  const buildPayload = async (): Promise<string> => {
+  const collect = async () => {
     const entries = await loadEntries()
     const records = collectRecords(entries, runtime, base)
 
@@ -40,8 +41,13 @@ export default function zbsearchVitePress(userOptions: ZBSearchVitePressOptions 
       config.logger.warn('[zbsearch] no content was indexed; the search box will stay empty')
     }
 
-    return JSON.stringify(await buildIndex(records, runtime.language))
+    return records
   }
+
+  // The dev server always serves the inline payload: dev content sets are
+  // small, and a single file keeps edit-refresh-search instant. Production
+  // builds switch to the sharded file set once the payload outgrows the limit.
+  const buildDevPayload = async (): Promise<string> => JSON.stringify(await buildIndex(await collect(), runtime.language))
 
   return {
     name: 'zbsearch-vitepress',
@@ -81,7 +87,7 @@ export default function zbsearchVitePress(userOptions: ZBSearchVitePressOptions 
         try {
           response.setHeader('content-type', 'application/json;charset=utf-8')
           response.setHeader('cache-control', 'no-store')
-          response.end(await buildPayload())
+          response.end(await buildDevPayload())
         } catch (error) {
           next(error)
         }
@@ -94,7 +100,10 @@ export default function zbsearchVitePress(userOptions: ZBSearchVitePressOptions 
         return
       }
 
-      cached = await buildPayload()
+      cached = await buildIndexAuto(await collect(), runtime.language, {
+        baseUrl: withBase(`/${STATIC_DIR}/`, base),
+        inlineLimitBytes: userOptions.inlineLimitBytes
+      })
     },
 
     generateBundle() {
@@ -102,7 +111,16 @@ export default function zbsearchVitePress(userOptions: ZBSearchVitePressOptions 
         return
       }
 
-      this.emitFile({ type: 'asset', fileName: INDEX_FILE, source: cached })
+      this.emitFile({ type: 'asset', fileName: INDEX_FILE, source: cached.payloadJson })
+
+      if (cached.staticFiles) {
+        for (const [file, source] of cached.staticFiles) {
+          this.emitFile({ type: 'asset', fileName: `${STATIC_DIR}/${file}`, source })
+        }
+        config.logger.info(
+          `[zbsearch] sharded search index: ${cached.staticFiles.size} files under ${withBase(`/${STATIC_DIR}/`, base)}`
+        )
+      }
     }
   }
 }

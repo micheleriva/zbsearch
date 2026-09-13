@@ -15,6 +15,11 @@ export interface ZBSearchVitePressOptions {
   searchButtonLabel?: string
   placeholder?: string
   labels?: Record<string, string>
+  /**
+   * Build-time only: inline payloads up to this JSON size ship as a single
+   * file; larger indexes are emitted as a sharded, lazily-fetched file set.
+   */
+  inlineLimitBytes?: number
 }
 
 export interface ResolvedOptions extends SearchRuntimeOptions {

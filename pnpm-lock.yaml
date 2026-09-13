@@ -283,6 +283,9 @@ importers:
       '@zbsearch/searchbox-core':
         specifier: workspace:*
         version: link:../searchbox-core
+      '@zbsearch/static':
+        specifier: workspace:*
+        version: link:../static
       acorn:
         specifier: ^8.18.0
         version: 8.18.0

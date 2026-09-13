@@ -94,7 +94,9 @@ describe('sharded payload through the searchbox pipeline', () => {
     expect(staticFiles).toBeDefined()
 
     // The static client fetches shards over HTTP; serve them from memory.
+    let fetchCalls = 0
     vi.stubGlobal('fetch', async (url: string) => {
+      fetchCalls++
       const file = String(url).replace(BASE_URL, '')
       const bytes = staticFiles!.get(file)
       if (!bytes) {
@@ -104,6 +106,11 @@ describe('sharded payload through the searchbox pipeline', () => {
     })
 
     const loadIndex = createIndexLoader(async () => payload)
+
+    // Hydration preloads manifest and dictionary, so the hover/focus
+    // prefetch leaves the index ready-to-query like in inline mode.
+    await loadIndex()
+    expect(fetchCalls).toBe(2)
     const searcher = createSearcher(loadIndex, {
       boost: { title: 4, section: 3, hierarchy: 1.5, content: 1 },
       maxResults: 8,

@@ -41,6 +41,11 @@ export async function hydrateIndex(payload: SearchIndexPayload): Promise<LoadedI
     const { createStaticSearchClient } = await import('@zbsearch/static')
     const client = createStaticSearchClient({ baseUrl: payload.baseUrl })
 
+    // Fetch the manifest and dictionary now, so a hydrated index is
+    // ready-to-query in both modes and the hover/focus prefetch keeps
+    // hiding the bootstrap cost.
+    await client.preload()
+
     return {
       query: (options) => client.search<SearchRecord>(options) as Promise<Results<SearchRecord>>
     }

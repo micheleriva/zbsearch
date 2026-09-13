@@ -114,6 +114,27 @@ const client = createStaticSearchClient({
 });
 ```
 
+## Compared with Pagefind
+
+Pagefind established the lazy-loading model for static-site search; `@zbsearch/static` keeps that model
+and pairs it with ZBSearch's search quality. The repository ships a head-to-head benchmark
+(`npm run benchmark:pagefind` in `benchmarks/`) that indexes the identical corpus with both engines,
+serves both bundles from the same gzip-capable server and drives them in headless Chromium. What ZBSearch
+brings, measured:
+
+- **Typos keep working.** On one-edit typos ZBSearch finds the target document 98% of the time, Pagefind
+  3% - the resident dictionary corrects a misspelling locally before anything is fetched, so a typo'd
+  query costs the same single round trip as a correct one.
+- **A cheaper first search.** A cold visitor's first query completes in ~92 KB of transfer on a
+  1,500-page corpus and ~130 KB on a 10,000-page one - engine, index and results included - against
+  Pagefind's ~131 KB and ~151 KB.
+- **Fewer round trips per query.** 0.4 requests per query on the 1,500-page corpus against 1.4; on
+  real-world connections, round trips are what a visitor feels.
+- **Flat tail latency at scale.** At 10,000 pages the p95 query time is 9 ms against 70 ms.
+- **Faster builds.** Indexing runs 15-30× faster: 0.5 s against 14.9 s at 10,000 pages.
+- **Better prefix recall.** Search-as-you-type finds the target within the top five for 97% of
+  4-character prefixes, against 88%.
+
 ## Current limits
 
 - Only `string` properties are indexed; other property values still ride along on the stored documents.

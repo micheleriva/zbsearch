@@ -249,6 +249,9 @@ importers:
       '@zbsearch/plugin-qps':
         specifier: file:../packages/plugin-qps
         version: file:packages/plugin-qps
+      '@zbsearch/static':
+        specifier: file:../packages/static
+        version: file:packages/static
       '@zbsearch/stemmers':
         specifier: file:../packages/stemmers
         version: link:../packages/stemmers
@@ -277,6 +280,12 @@ importers:
       esbuild:
         specifier: ^0.28.1
         version: 0.28.1
+      pagefind:
+        specifier: ^1.5.2
+        version: 1.5.2
+      playwright-core:
+        specifier: ^1.61.1
+        version: 1.61.1
 
   packages/docs-index:
     dependencies:
@@ -6228,6 +6237,9 @@ packages:
 
   '@zbsearch/plugin-qps@file:packages/plugin-qps':
     resolution: {directory: packages/plugin-qps, type: directory}
+
+  '@zbsearch/static@file:packages/static':
+    resolution: {directory: packages/static, type: directory}
 
   abort-controller@3.0.0:
     resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
@@ -19241,6 +19253,10 @@ snapshots:
       zbsearch: link:packages/zbsearch
 
   '@zbsearch/plugin-qps@file:packages/plugin-qps':
+    dependencies:
+      zbsearch: link:packages/zbsearch
+
+  '@zbsearch/static@file:packages/static':
     dependencies:
       zbsearch: link:packages/zbsearch
 

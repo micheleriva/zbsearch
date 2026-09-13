@@ -4,10 +4,14 @@ export {
   PAYLOAD_VERSION,
   RECORD_SCHEMA,
   SEARCHABLE_PROPERTIES,
+  STATIC_DIR,
+  isShardedPayload,
+  type InlineIndexPayload,
   type SearchBoost,
   type SearchIndexPayload,
   type SearchRecord,
-  type SearchRuntimeOptions
+  type SearchRuntimeOptions,
+  type ShardedIndexPayload
 } from './records.js'
 
 export {
@@ -16,5 +20,6 @@ export {
   createSearcher,
   hydrateIndex,
   type LoadedIndex,
+  type QueryOptions,
   type SearcherOptions
 } from './client.js'

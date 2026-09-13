@@ -1,19 +1,28 @@
 import type { SearchHit } from '@zbsearch/searchbox-core'
 import { snippetAround } from '@zbsearch/searchbox-core'
-import type { AnyZBSearch } from 'zbsearch'
+import type { Results } from 'zbsearch'
 import {
   HIERARCHY_SEPARATOR,
   PAYLOAD_VERSION,
   RECORD_SCHEMA,
   SEARCHABLE_PROPERTIES,
+  isShardedPayload,
   type SearchIndexPayload,
   type SearchRecord,
   type SearchRuntimeOptions
 } from './records.js'
 
+export interface QueryOptions {
+  term: string
+  properties?: string[]
+  boost?: Record<string, number>
+  limit?: number
+  tolerance?: number
+  threshold?: number
+}
+
 export interface LoadedIndex {
-  db: AnyZBSearch
-  search: typeof import('zbsearch').search
+  query: (options: QueryOptions) => Promise<Results<SearchRecord>>
 }
 
 export function assertPayloadVersion(payload: SearchIndexPayload): SearchIndexPayload {
@@ -28,12 +37,23 @@ export function assertPayloadVersion(payload: SearchIndexPayload): SearchIndexPa
 }
 
 export async function hydrateIndex(payload: SearchIndexPayload): Promise<LoadedIndex> {
+  if (isShardedPayload(payload)) {
+    const { createStaticSearchClient } = await import('@zbsearch/static')
+    const client = createStaticSearchClient({ baseUrl: payload.baseUrl })
+
+    return {
+      query: (options) => client.search<SearchRecord>(options) as Promise<Results<SearchRecord>>
+    }
+  }
+
   const { create, loadAsync, search } = await import('zbsearch')
   const db = create({ schema: RECORD_SCHEMA, language: payload.language, inferSchema: false, sort: { enabled: false } })
 
   await loadAsync(db, payload.index)
 
-  return { db, search }
+  return {
+    query: async (options) => (await search(db, options as never)) as unknown as Results<SearchRecord>
+  }
 }
 
 export function createIndexLoader(fetchPayload: () => Promise<SearchIndexPayload>): () => Promise<LoadedIndex> {
@@ -74,7 +94,7 @@ export type SearcherOptions = Pick<
 
 export function createSearcher(getIndex: () => Promise<LoadedIndex>, options: SearcherOptions) {
   return async (term: string, signal: AbortSignal): Promise<SearchHit[]> => {
-    const { db, search } = await getIndex()
+    const { query } = await getIndex()
 
     if (signal.aborted) {
       return []
@@ -82,7 +102,7 @@ export function createSearcher(getIndex: () => Promise<LoadedIndex>, options: Se
 
     const boost: Record<string, number> = { ...options.boost }
 
-    const results = await search(db, {
+    const results = await query({
       term,
       properties: [...SEARCHABLE_PROPERTIES],
       boost,

@@ -151,13 +151,13 @@ describe('sharded search matches monolithic search exactly', () => {
   })
 
   it('deep browse pagination fetches only the requested page', async () => {
+    // IDs 41-48 are exactly one fragment group of 8. A regression back to
+    // "fetch everything up to the offset" would fetch six groups here.
     const client = newClient()
-    await expectParity(client, { offset: 100, limit: 8 })
+    await expectParity(client, { offset: 40, limit: 8 })
+    expect(client.stats().fragmentsFetched).toBe(1)
 
-    // IDs 101-108 span at most two fragment groups of 8; nothing before the
-    // offset should have been downloaded.
-    expect(client.stats().fragmentsFetched).toBeLessThanOrEqual(2)
-
+    // The tail page and a past-the-end offset stay exact too.
     await expectParity(client, { offset: records.length - 3, limit: 10 })
     await expectParity(client, { offset: records.length + 5, limit: 10 })
   })

@@ -66,6 +66,41 @@ Only `title`, `section`, `hierarchy` and `content` are tokenized. `url`, `catego
 untouched and come back on every hit - which keeps permalinks out of the inverted index, where they would add
 weight and noise without ever improving a match.
 
+## Large sites
+
+An inline payload grows with your content, and past a certain point shipping all of it to search any of it
+stops being a good deal. `buildIndexAuto` draws that line for you:
+
+```typescript copy
+import { buildIndexAuto } from '@zbsearch/docs-index/node';
+
+const { payload, payloadJson, staticFiles } = await buildIndexAuto(records, 'english', {
+  baseUrl: '/zbsearch-static/',
+});
+```
+
+Below the limit - 256 KB of JSON by default, tunable with `inlineLimitBytes` - the result is the familiar
+single-file payload, and `staticFiles` is absent. Above it, the index is built as a
+[sharded static file set](/docs/zbsearch/integrations/static) instead: `staticFiles` holds the artifacts to
+write under `baseUrl`, and `payload` shrinks to a sentinel of about a hundred bytes that tells the browser
+where to find them.
+
+The browser side needs no second code path: `createIndexLoader` and `createSearcher` accept either payload,
+and a sharded one makes the searcher fetch postings and documents lazily per query - with rankings identical
+to the inline index.
+
+`shardBuiltPayload` does the same for integrations that only see the already-serialized payload, such as a
+prerendered route in a finished build. It recovers the records from the payload's own documents store, so
+nothing needs to be re-collected:
+
+```typescript copy
+import { shardBuiltPayload } from '@zbsearch/docs-index/node';
+
+const result = await shardBuiltPayload(await readFile('dist/zbsearch-index.json', 'utf8'), {
+  baseUrl: '/zbsearch-static/',
+});
+```
+
 ## Searching in the browser
 
 ```typescript copy
@@ -98,6 +133,6 @@ The resulting `searcher` is exactly the shape
 | Entry point | Contents |
 | --- | --- |
 | `@zbsearch/docs-index` | Record shape, schema, defaults, and the browser-side loader and searcher |
-| `@zbsearch/docs-index/node` | `parseMarkdown`, `stripInlineMarkup` and `buildIndex` |
+| `@zbsearch/docs-index/node` | `parseMarkdown`, `stripInlineMarkup`, `buildIndex`, `buildIndexAuto` and `shardBuiltPayload` |
 
 The split matters: the `node` entry point pulls in a markdown parser you do not want in a browser bundle.

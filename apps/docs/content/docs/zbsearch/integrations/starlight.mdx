@@ -103,6 +103,12 @@ zbsearch({
 
 Every string in the dialog can be replaced through `labels`, which is how you localise it.
 
+### Build
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `inlineLimitBytes` | `262144` | JSON size above which the production index ships as sharded files |
+
 ## How it works
 
 The plugin injects a prerendered route at `/zbsearch-index.json`. That endpoint reads the `docs` collection
@@ -118,6 +124,14 @@ itself weighs on the initial page load.
 The route respects your `base`, `build.format` and `trailingSlash` settings, so result links match the URLs
 Starlight actually generates.
 </Callout>
+
+### Large sites
+
+Once the built payload passes `inlineLimitBytes` - 256 KB of JSON by default - the production build switches
+to a [sharded static index](/docs/zbsearch/integrations/static): the payload at `/zbsearch-index.json` becomes
+a small pointer, the index itself lands under `/zbsearch-static/`, and each search fetches only the few
+kilobytes it needs. Rankings are identical in both modes, and the switch is automatic - the dev server keeps
+the single-file index either way, so nothing changes while you write.
 
 ## Styling
 

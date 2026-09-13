@@ -1,0 +1,125 @@
+---
+title: Sharded static indexes
+description: Serve a large search index as lazily-fetched shards, with rankings identical to the full index.
+---
+
+`@zbsearch/static` splits a ZBSearch index into a set of static files the browser fetches lazily: a visitor
+downloads a small manifest and term dictionary up front, and each query then pulls only the few kilobytes of
+postings and documents it actually touches. A 10,000-page site answers its first search within a couple of
+hundred kilobytes, where the single-file index would weigh megabytes.
+
+The trade is transfer size for round trips, and quality is kept out of the trade entirely: the client runs
+ZBSearch's own `search()` against the fetched data, so every ranking - BM25 scores, prefix expansion, typo
+tolerance, thresholds, boosts - is bit-identical to what the full in-memory index returns. The test suite
+asserts exactly that, query by query.
+
+<Callout type='info'>
+The [Docusaurus](/docs/zbsearch/integrations/docusaurus), [Starlight](/docs/zbsearch/integrations/starlight)
+and [VitePress](/docs/zbsearch/integrations/vitepress) plugins use this package automatically once a site's
+index outgrows a single file - there is nothing to install or configure there. Reach for `@zbsearch/static`
+directly when you are wiring search into something those plugins do not cover.
+</Callout>
+
+## Installation
+
+```bash
+npm install @zbsearch/static
+```
+
+## The file set
+
+`buildStaticIndex` turns your records into a deployable directory:
+
+| File | Role | Loaded |
+| --- | --- | --- |
+| `manifest.json` | Global statistics (document count, average field lengths), the shard table and format version | Up front |
+| `dictionary.json` | Every indexed term as a compact trie, without postings | Up front, ideally prefetched on focus |
+| `postings/*.bin` | Binary postings shards, packed by sorted term ranges to roughly 40 KB each | Per query, only the shards covering its terms |
+| `fragments/*.json` | Stored documents in small groups | Only for the results being shown - everything up to the requested page |
+
+The dictionary staying resident is what keeps search quality intact: once it is loaded, prefix expansion
+and typo correction walk the local trie with no further network involved, so a misspelled query costs the
+same single round trip as a correct one. Each postings entry carries its term frequency and exact field
+length inline, which is why one shard fetch is enough to score a term exactly.
+
+## Building
+
+```typescript copy
+import { buildStaticIndex } from '@zbsearch/static';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+
+const { files, stats } = await buildStaticIndex({
+  records,
+  schema: { title: 'string', content: 'string' },
+  language: 'english',
+});
+
+for (const [file, bytes] of files) {
+  const target = path.join('dist/search', file);
+  await mkdir(path.dirname(target), { recursive: true });
+  await writeFile(target, bytes);
+}
+
+console.log(`${stats.termCount} terms in ${stats.shardCount} shards, ${stats.totalBytes} bytes`);
+```
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `records` | - | The documents to index |
+| `schema` | - | Property types; `string` properties only for now |
+| `language` | `'english'` | Language used to tokenize and stem the index |
+| `targetShardBytes` | `40960` | Byte budget per postings shard, before compression |
+| `fragmentGroupSize` | `16` | Documents per fragment file |
+
+Records without an `id` receive sequential ones, which the client regenerates from the document count alone -
+zero bytes on the wire. Records that bring their own `id` keep it, and the mapping ships in the manifest.
+
+## Searching
+
+```typescript copy
+import { createStaticSearchClient } from '@zbsearch/static';
+
+const client = createStaticSearchClient({ baseUrl: '/search/' });
+
+// Optional: fetch manifest and dictionary while the visitor is still reaching for the input.
+searchButton.addEventListener('focus', () => client.preload());
+
+const results = await client.search({ term: 'sharded quey', tolerance: 1, limit: 10 });
+```
+
+`search()` accepts the familiar ZBSearch options: `term`, `properties`, `exact`, `tolerance`, `prefix`,
+`threshold`, `boost`, `relevance`, `limit`, `offset`, `where` and `preflight`. Results have the same shape
+`search(db, ...)` returns, documents included.
+
+A query travels like this:
+
+1. The term is tokenized and resolved against the resident dictionary - exact words, prefix expansions and
+   typo corrections, all locally.
+2. The shards covering those words are fetched, in parallel, skipping any already in memory.
+3. ZBSearch's own `search()` runs against the merged postings.
+4. Fragments are fetched for the results up to the requested page (`offset + limit`), and the hits come
+   back hydrated. Exact-match queries fetch every candidate's document, because the engine verifies
+   `exact` against the stored text.
+
+Every fetched shard and document stays merged for the rest of the session, so refining a query usually costs
+nothing further, and repeating one costs no requests at all. `client.stats()` reports requests, bytes and
+shard counts if you want to watch it happen.
+
+`fetchBytes` swaps the transport - tests serve the file set straight from memory:
+
+```typescript copy
+const client = createStaticSearchClient({
+  fetchBytes: async (file) => files.get(file)!,
+});
+```
+
+## Current limits
+
+- Only `string` properties are indexed; other property values still ride along on the stored documents.
+- `facets`, `groupBy`, `distinctOn`, `sortBy` and vector search are rejected with a clear error rather than
+  returning something incomplete. They are on the roadmap.
+- The index is immutable once built - rebuild and redeploy, as with any static asset.
+
+The builder and client version together through the manifest's format version: a client refuses an index
+written by an incompatible format rather than misreading it.

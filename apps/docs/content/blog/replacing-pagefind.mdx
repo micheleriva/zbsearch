@@ -1,0 +1,152 @@
+---
+title: "Replacing Pagefind: keep the bandwidth, upgrade the search"
+description: ZBSearch now ships a sharded static index - Pagefind's lazy-loading model with typo tolerance, faster builds, fewer round trips, and search that works in dev.
+author: Michele Riva
+date: 2026-09-13
+---
+
+Pagefind deserves real credit: it taught static sites that search does not need a server, an API key, or a
+multi-megabyte download. Its trick - split the index into files and fetch only what a query needs - is why
+it became the default on so many documentation sites.
+
+ZBSearch now speaks that same language. **`@zbsearch/static` is a sharded, lazily-fetched index**: a small
+manifest and term dictionary up front, then a few kilobytes of postings per query, and documents only for
+the results a visitor actually sees. The difference is what answers the query once the bytes arrive - a
+full search engine, with the ranking quality we've been [benchmarking in the open](/blog/zbsearch-v4) all
+year.
+
+If you only remember one thing: **a visitor who makes a typo still finds the page.** On our head-to-head
+benchmark, one-edit typos find the target document **98% of the time with ZBSearch, and 3% with Pagefind**.
+
+## Why typos are the whole story
+
+Every search box meets misspelled queries - on mobile keyboards, most queries are a little wrong. Pagefind
+addresses its index chunks by stemmed word ranges, so a misspelled term computes the wrong address and
+there is nothing client-side to correct it against. The result: "rnning" finds nothing about running.
+
+ZBSearch keeps the **term dictionary resident in the browser**. Typo correction runs locally, over a trie,
+with bounded Levenshtein distance - *before* anything is fetched. A typo'd query costs the same single
+round trip as a correct one, and it finds the right page.
+
+The same resident dictionary powers prefix search: on 4-character prefixes, ZBSearch puts the target page
+in the top five **97% of the time, against 88%**.
+
+## The numbers
+
+The benchmark indexes the identical corpus with both engines - Pagefind through its own Node API, with its
+own HTML element weighting - serves both bundles from the same gzip-capable server, and drives both in
+headless Chromium. Reproduce it with `npm run benchmark:pagefind` in the
+[repository](https://github.com/micheleriva/zbsearch).
+
+| What a visitor feels | ZBSearch static | Pagefind |
+| --- | ---: | ---: |
+| One-edit typo finds the page (top 5) | **98%** | 3% |
+| 4-char prefix finds the page (top 5) | **97%** | 88% |
+| Cold first search, total transfer (1,500 pages) | **92 KB** | 131 KB |
+| Requests per query (1,500 pages) | **0.4** | 1.4 |
+| Query latency p95 (10,000 pages) | **9 ms** | 70 ms |
+
+| What you feel at build time | ZBSearch static | Pagefind |
+| --- | ---: | ---: |
+| Index build, 1,500 pages | **94 ms** | 1.4 s |
+| Index build, 10,000 pages | **0.5 s** | 14.9 s |
+
+And one guarantee no chunked index has offered before: **sharded results are bit-identical to the full
+index**. The browser client runs ZBSearch's own `search()` against lazily-fetched data, so BM25 scores,
+prefix expansion, boosts and thresholds are exactly what the engine computes in memory - and the test suite
+asserts it, query by query.
+
+## Search that works in dev, too
+
+If you have used Pagefind with Vite or Astro, you know the dance: the index only exists after a build, the
+dev server 404s, and results go stale between rebuilds.
+
+ZBSearch's integrations index through your framework's own content pipeline, so **the dev server always
+answers with a fresh index** - edit a page, reload, search it. Sharding is a production-build concern:
+below 256 KB the index ships as a single file, above it the sharded file set is emitted automatically.
+There is no flag to remember. Nothing changes in your components either way.
+
+## Replacing Pagefind in five minutes
+
+### Starlight
+
+Starlight ships Pagefind by default. Swapping it is one plugin:
+
+```bash
+npm install @zbsearch/plugin-starlight @astrojs/react react react-dom
+```
+
+```js copy
+import starlight from '@astrojs/starlight';
+import zbsearch from '@zbsearch/plugin-starlight';
+import { defineConfig } from 'astro/config';
+
+export default defineConfig({
+  integrations: [
+    starlight({
+      title: 'My docs',
+      plugins: [zbsearch()],
+    }),
+  ],
+});
+```
+
+The plugin disables Pagefind for you and takes over the search dialog. That's the whole migration.
+
+### VitePress
+
+```bash
+npm install @zbsearch/plugin-vitepress
+```
+
+```ts copy
+import { defineConfig } from 'vitepress';
+import zbsearch from '@zbsearch/plugin-vitepress';
+
+export default defineConfig({
+  vite: {
+    plugins: [zbsearch()],
+  },
+});
+```
+
+### Docusaurus
+
+```bash
+npm install @zbsearch/plugin-docusaurus
+```
+
+```ts copy
+export default {
+  plugins: ['@zbsearch/plugin-docusaurus'],
+};
+```
+
+### Everything else
+
+Any static site can use [`@zbsearch/static`](/docs/zbsearch/integrations/static) directly: build the file
+set at deploy time, upload it with your pages, and point the browser client at it. No service, no API key,
+no query ever leaving the page.
+
+## How it works
+
+At build time, the index splits into four kinds of files:
+
+- **`manifest.json`** - global ranking statistics and the shard table. A few KB.
+- **`dictionary.json`** - every indexed term as a compact trie, postings stripped. This is the piece that
+  stays resident and makes typo and prefix search free.
+- **`postings/*.bin`** - binary shards packed by sorted term ranges, ~40 KB each. A query fetches only the
+  shards covering its terms, and each entry carries everything BM25 needs, so one fetch is enough to score.
+- **`fragments/*.json`** - the documents themselves, in small groups, fetched only for displayed results.
+
+Everything fetched stays warm for the session: refining a query usually costs nothing further, and
+repeating one costs no requests at all.
+
+The full design - APIs, the query flow, and the parity guarantee - is in the
+[documentation](/docs/zbsearch/integrations/static).
+
+---
+
+ZBSearch is a fork of Orama maintained by the original Orama team. If sharded static search is something
+you've been waiting for, [give us a star](https://github.com/micheleriva/zbsearch) - and if you migrate a
+site off Pagefind, we'd love to hear how it went.

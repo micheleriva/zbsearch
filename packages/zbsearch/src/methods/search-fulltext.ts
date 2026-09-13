@@ -256,9 +256,9 @@ export function fullTextSearch<T extends AnyZBSearch, ResultDocument = TypedDocu
   return performSearchLogic()
 }
 
-// Frozen: this object is exported through `internals`, and a mutation would
-// silently change default ranking for every subsequent search.
-export const defaultBM25Params: BM25Params = Object.freeze({
+// Frozen and typed readonly: this object is exported through `internals`, and
+// a mutation would silently change default ranking for every search.
+export const defaultBM25Params: Readonly<Required<BM25Params>> = Object.freeze({
   k: 1.2,
   b: 0.75,
   d: 0.5

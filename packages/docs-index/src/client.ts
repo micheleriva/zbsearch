@@ -28,10 +28,10 @@ export function assertPayloadVersion(payload: SearchIndexPayload): SearchIndexPa
 }
 
 export async function hydrateIndex(payload: SearchIndexPayload): Promise<LoadedIndex> {
-  const { create, load, search } = await import('zbsearch')
-  const db = create({ schema: RECORD_SCHEMA, language: payload.language, inferSchema: false })
+  const { create, loadAsync, search } = await import('zbsearch')
+  const db = create({ schema: RECORD_SCHEMA, language: payload.language, inferSchema: false, sort: { enabled: false } })
 
-  load(db, payload.index)
+  await loadAsync(db, payload.index)
 
   return { db, search }
 }

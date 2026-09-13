@@ -35,12 +35,12 @@ npm install @zbsearch/static
 | `manifest.json` | Global statistics (document count, average field lengths), the shard table and format version | Up front |
 | `dictionary.json` | Every indexed term as a compact trie, without postings | Up front, ideally prefetched on focus |
 | `postings/*.bin` | Binary postings shards, packed by sorted term ranges to roughly 40 KB each | Per query, only the shards covering its terms |
-| `fragments/*.json` | Stored documents in small groups | Only for the results actually displayed |
+| `fragments/*.json` | Stored documents in small groups | Only for the results being shown - everything up to the requested page |
 
-The dictionary staying resident is what keeps search quality intact: prefix expansion and typo correction
-walk the local trie before anything is fetched, so a misspelled query costs the same single round trip as a
-correct one. Each postings entry carries its term frequency and exact field length inline, which is why one
-shard fetch is enough to score a term exactly.
+The dictionary staying resident is what keeps search quality intact: once it is loaded, prefix expansion
+and typo correction walk the local trie with no further network involved, so a misspelled query costs the
+same single round trip as a correct one. Each postings entry carries its term frequency and exact field
+length inline, which is why one shard fetch is enough to score a term exactly.
 
 ## Building
 
@@ -98,7 +98,9 @@ A query travels like this:
    typo corrections, all locally.
 2. The shards covering those words are fetched, in parallel, skipping any already in memory.
 3. ZBSearch's own `search()` runs against the merged postings.
-4. Fragments are fetched for the page of results being displayed, and the hits come back hydrated.
+4. Fragments are fetched for the results up to the requested page (`offset + limit`), and the hits come
+   back hydrated. Exact-match queries fetch every candidate's document, because the engine verifies
+   `exact` against the stored text.
 
 Every fetched shard and document stays merged for the rest of the session, so refining a query usually costs
 nothing further, and repeating one costs no requests at all. `client.stats()` reports requests, bytes and

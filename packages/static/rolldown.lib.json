@@ -1,0 +1,10 @@
+{
+  "entry": {
+    "index": "src/index.ts"
+  },
+  "formats": {
+    "es": ".js",
+    "cjs": ".cjs"
+  },
+  "noExternal": []
+}

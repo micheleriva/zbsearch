@@ -695,6 +695,12 @@ describe('Czech, Slovak and Slovenian stemming', () => {
 })
 
 describe('Custom stop-words rules', async () => {
+  it('the English list drops the articles "a", "an" and "the"', async () => {
+    const tokenizer = await createTokenizer({ language: 'english', stopWords: englishStopwords, stemming: false })
+
+    expect(tokenizer.tokenize('a cat, an owl and the fox')).toStrictEqual(['cat', 'owl', 'fox'])
+  })
+
   it('custom array of stop-words', async () => {
     const tokenizer = await createTokenizer({
       language: 'english',

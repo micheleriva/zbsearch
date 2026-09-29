@@ -149,7 +149,8 @@
     "test:ci": "vitest run --coverage",
     "test:smoke": "vitest run --config vitest.smoke.config.ts",
     "test:types": "vitest run --typecheck --config vitest.types.config.ts",
-    "ci": "npm run build && npm run test:ci && npm run test:types"
+    "ci": "npm run build && npm run test:ci && npm run test:types",
+    "prepublishOnly": "node ../../scripts/check-publish.mjs"
   },
   "devDependencies": {
     "@swc/cli": "^0.7.10",

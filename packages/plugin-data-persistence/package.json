@@ -46,7 +46,8 @@
     "build": "node ../../scripts/mixed-build.mjs",
     "test": "vitest run",
     "benchmark": "tsx benchmark/index.ts",
-    "lint": "oxlint --fix --fix-suggestions"
+    "lint": "oxlint --fix --fix-suggestions",
+    "prepublishOnly": "node ../../scripts/check-publish.mjs"
   },
   "dependencies": {
     "@msgpack/msgpack": "^3.1.2",

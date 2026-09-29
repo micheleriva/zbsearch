@@ -22,7 +22,8 @@
     "build": "node ../../scripts/oxc-build.mjs && tsc -p . --emitDeclarationOnly",
     "rebuild": "node dist/cli.js rebuild",
     "test": "vitest run",
-    "lint": "oxlint --fix --fix-suggestions"
+    "lint": "oxlint --fix --fix-suggestions",
+    "prepublishOnly": "node ../../scripts/check-publish.mjs"
   },
   "dependencies": {
     "@zbsearch/edge-core": "workspace:*",

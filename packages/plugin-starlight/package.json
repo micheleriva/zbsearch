@@ -40,7 +40,8 @@
   "scripts": {
     "build": "exit 0",
     "lint": "oxlint --fix --fix-suggestions",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "node ../../scripts/check-publish.mjs"
   },
   "dependencies": {
     "@zbsearch/docs-index": "workspace:*",

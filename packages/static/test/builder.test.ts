@@ -98,6 +98,23 @@ describe('buildStaticIndex', () => {
     }
   })
 
+  it('moves the build id when only the external document IDs change', async () => {
+    const records = [
+      { id: 'doc-a', title: 'alpha', section: 's', content: 'alpha content' },
+      { id: 'doc-b', title: 'beta', section: 's', content: 'beta content' }
+    ]
+    const first = await buildStaticIndex({ records, schema: CORPUS_SCHEMA })
+    const renamed = await buildStaticIndex({
+      records: records.map((record, i) => ({ ...record, id: `renamed-${i}` })),
+      schema: CORPUS_SCHEMA
+    })
+
+    // Same dictionary, postings and fragments; only the manifest mapping differs.
+    expect(renamed.files.get(DICTIONARY_FILE)!.length).toBe(first.files.get(DICTIONARY_FILE)!.length)
+    expect(renamed.manifest.internalIdToId).not.toEqual(first.manifest.internalIdToId)
+    expect(renamed.manifest.buildId).not.toBe(first.manifest.buildId)
+  })
+
   it('indexes words that collide with Object.prototype members', async () => {
     const records = [
       { title: 'constructor', section: 'toString', content: 'the constructor and prototype of hasOwnProperty' },

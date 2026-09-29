@@ -97,9 +97,9 @@ function trim(text: string[]): string[] {
   return text
 }
 
-// Fallback for runtimes without Intl.Segmenter: maximal runs of Unicode letters/numbers.
+// Fallback for runtimes without Intl.Segmenter: maximal runs of Unicode letters, combining marks and numbers.
 // Less precise than UAX #29 word segmentation (e.g. it keeps "l'amour" whole instead of splitting on the apostrophe) but script-agnostic.
-const UNICODE_WORD = /[\p{L}\p{N}]+/gu
+const UNICODE_WORD = /[\p{L}\p{M}\p{N}]+/gu
 
 let multilingualSegmenter: Intl.Segmenter | undefined
 

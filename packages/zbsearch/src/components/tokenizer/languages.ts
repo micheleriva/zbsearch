@@ -54,10 +54,13 @@ const FOLDABLE_LETTERS = '\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u017F'
 
 // Per-language word characters beyond letters, as character-class bodies: digits, and for some
 // languages `_`, `'` or `-` so that "t-shirt" and "it's" stay whole. Every splitter also accepts any
-// Unicode letter (`\p{L}`), so a letter from another script never cuts a word: under a
-// Latin-only class "β-blockers" would lose its β and leak "-blockers" into the index. The letters
-// listed here are kept for documentation; `FOLDABLE_LETTERS` and `\p{L}` are *prepended* rather than
-// appended, because several entries end in a literal `-` that would otherwise be read as the start of a range.
+// Unicode letter (`\p{L}`) and combining mark (`\p{M}`), so a letter from another script never cuts
+// a word: under a Latin-only class "β-blockers" would lose its β and leak "-blockers" into the
+// index. Marks matter for scripts that write vowels as marks on a consonant (Devanagari "किताब" is
+// three letters and two vowel signs) and for decomposed accents ("é" as "e" plus U+0301); without
+// them such words would be split into fragments. The letters listed here are kept for
+// documentation; `FOLDABLE_LETTERS`, `\p{L}` and `\p{M}` are *prepended* rather than appended,
+// because several entries end in a literal `-` that would otherwise be read as the start of a range.
 const SPLITTER_ALPHABETS: Record<SupportedLanguage, string> = {
   dutch: "A-Za-zàèéìòóù0-9_'-",
   english: "A-Za-zàèéìòóù0-9_'-",
@@ -98,7 +101,7 @@ const SPLITTER_ALPHABETS: Record<SupportedLanguage, string> = {
 export const SPLITTERS: Record<SupportedLanguage, RegExp> = Object.fromEntries(
   Object.entries(SPLITTER_ALPHABETS).map(([language, alphabet]) => [
     language,
-    new RegExp(`[^\\p{L}${FOLDABLE_LETTERS}${alphabet}]+`, 'gimu')
+    new RegExp(`[^\\p{L}\\p{M}${FOLDABLE_LETTERS}${alphabet}]+`, 'gimu')
   ])
 )
 

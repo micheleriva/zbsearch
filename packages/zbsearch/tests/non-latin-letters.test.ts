@@ -17,6 +17,17 @@ describe('letters outside the language alphabet', () => {
     expect(createTokenizer({ language: 'russian' }).tokenize('β-блокаторы')).toStrictEqual(['β', 'блокаторы'])
   })
 
+  it('keep combining marks inside words', () => {
+    const tokenizer = createTokenizer({ language: 'english' })
+
+    // Devanagari vowel signs are combining marks, not letters: without them "किताब" would break
+    // into fragments that other words could match.
+    expect(tokenizer.tokenize('किताब पढ़ो')).toStrictEqual(['किताब', 'पढ़ो'])
+    // A decomposed accent (e + U+0301) stays attached to its letter too.
+    expect(tokenizer.tokenize('cafe\u0301 bar')).toStrictEqual(['cafe\u0301', 'bar'])
+    expect(createTokenizer({ language: 'multilingual' }).tokenize('किताब पढ़ो')).toStrictEqual(['किताब', 'पढ़ो'])
+  })
+
   it('still split on punctuation, symbols and whitespace', () => {
     const tokenizer = createTokenizer({ language: 'english' })
 

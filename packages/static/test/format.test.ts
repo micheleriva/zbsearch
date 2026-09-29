@@ -118,11 +118,15 @@ describe('dictionary codec', () => {
     const raw = save(db) as RawData
     const { index: rawIndex } = rawParts(raw)
 
-    const bytes = encodeDictionary({
-      title: rawIndex.indexes['title'].node,
-      content: rawIndex.indexes['content'].node
-    })
-    const tries = decodeDictionary(bytes)
+    const bytes = encodeDictionary(
+      {
+        title: rawIndex.indexes['title'].node,
+        content: rawIndex.indexes['content'].node
+      },
+      'build-1'
+    )
+    const { buildId, tries } = decodeDictionary(bytes)
+    expect(buildId).toBe('build-1')
 
     for (const prop of ['title', 'content'] as const) {
       const original = Object.keys(rawIndex.indexes[prop].node.postings ?? {}).sort()

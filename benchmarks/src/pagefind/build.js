@@ -19,7 +19,11 @@ export function dirBytes(dir) {
   return total
 }
 
-/** Builds the ZBSearch sharded static index under www/zb/. */
+/**
+ * Builds the ZBSearch sharded static index under www/zb/. The timer runs
+ * through the file writes, so `buildMs` covers the same end-to-end work as
+ * Pagefind's, whose API only exposes indexing and writing as one step.
+ */
 export async function buildZb(records, wwwDir) {
   const outDir = path.join(wwwDir, 'zb')
   await rm(outDir, { recursive: true, force: true })
@@ -30,15 +34,16 @@ export async function buildZb(records, wwwDir) {
     schema: { title: 'string', content: 'string' },
     language: 'english'
   })
-  const buildMs = performance.now() - t0
+  const indexMs = performance.now() - t0
 
   for (const [file, bytes] of files) {
     const target = path.join(outDir, file)
     await mkdir(path.dirname(target), { recursive: true })
     await writeFile(target, bytes)
   }
+  const buildMs = performance.now() - t0
 
-  return { buildMs, bundleBytes: dirBytes(outDir), stats }
+  return { buildMs, indexMs, bundleBytes: dirBytes(outDir), stats }
 }
 
 /**

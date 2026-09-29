@@ -3,7 +3,7 @@ import type { AnyZBSearch } from 'zbsearch'
 import { radix } from 'zbsearch/trees'
 import { decodeDictionary } from './dictionary.js'
 import type { FragmentDocs } from './fragments.js'
-import type { StaticManifest } from './manifest.js'
+import { assertSameBuild, type StaticManifest } from './manifest.js'
 import type { TermPostings } from './shard.js'
 
 type RadixTree = InstanceType<typeof radix.RadixTree>
@@ -44,7 +44,8 @@ export function createShell(manifest: StaticManifest, dictionaryBytes: Uint8Arra
   }) as AnyZBSearch
 
   const index = db.data.index as unknown as ShellIndexData
-  const tries = decodeDictionary(dictionaryBytes)
+  const { buildId, tries } = decodeDictionary(dictionaryBytes)
+  assertSameBuild(manifest, buildId)
 
   for (const prop of manifest.props) {
     const tree = tries[prop]

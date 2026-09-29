@@ -22,7 +22,8 @@
     "benchmark:multilingual-quality": "node multilingual-quality.js",
     "benchmark:search-quality": "node search-quality.js",
     "test:search-quality": "node --test \"src/search-quality/*.test.js\"",
-    "benchmark:pagefind": "node pagefind-compare.js"
+    "benchmark:pagefind": "node pagefind-compare.js",
+    "benchmark:pagefind:setup": "playwright-core install chromium"
   },
   "keywords": [],
   "author": "",

@@ -16,6 +16,7 @@ export {
   MANIFEST_FILE,
   DICTIONARY_FILE,
   STATIC_FORMAT_VERSION,
+  assertSameBuild,
   assertSupportedManifest,
   fragmentFile,
   shardFile,
@@ -27,11 +28,15 @@ export { createShell, mergeDocuments, mergeTermPostings, type StaticShell } from
 export { encodeShard, decodeShard, encodedTermSize, type TermPostings, type TermPostingEntry } from './shard.js'
 export {
   buildDictionaryTree,
+  compactDictionary,
   decodeDictionary,
+  encodeCompactDictionary,
   encodeDictionary,
   toCompactNode,
-  type CompactNode
+  type CompactNode,
+  type DecodedDictionary
 } from './dictionary.js'
+export { buildIdFor } from './build-id.js'
 export {
   DEFAULT_FRAGMENT_GROUP_SIZE,
   decodeFragment,

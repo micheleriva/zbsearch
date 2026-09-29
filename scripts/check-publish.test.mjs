@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -20,8 +20,12 @@ function runGuard(manifest, userAgent) {
     env.npm_config_user_agent = userAgent
   }
 
-  const result = spawnSync(process.execPath, [guard], { cwd, env, encoding: 'utf-8' })
-  return { status: result.status, stderr: result.stderr }
+  try {
+    const result = spawnSync(process.execPath, [guard], { cwd, env, encoding: 'utf-8' })
+    return { status: result.status, stderr: result.stderr }
+  } finally {
+    rmSync(cwd, { recursive: true, force: true })
+  }
 }
 
 const workspaceManifest = {

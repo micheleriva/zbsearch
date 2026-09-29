@@ -1,5 +1,5 @@
 ---
-title: "Replacing Pagefind: keep the bandwidth, upgrade the search"
+title: Replacing Pagefind with ZBSearch
 description: ZBSearch now ships a sharded static index - Pagefind's lazy-loading model with typo tolerance, faster builds, fewer round trips, and search that works in dev.
 author: Michele Riva
 date: 2026-09-13
@@ -47,10 +47,53 @@ headless Chromium. Reproduce it with `npm run benchmark:pagefind` in the
 | Requests per query (1,500 pages) | **0.4** | 1.4 |
 | Query latency p95 (10,000 pages) | **8 ms** | 71 ms |
 
+<BenchChart
+  title="Target page found in the top five after one dropped character"
+  ratioLabel="worse"
+  note="60 target documents from the 1,512-record games corpus. Each query drops one character from a word unique to the target's title (Levenshtein distance 1). Higher is better."
+  rows={[
+    { label: 'ZBSearch static', value: 98, display: '98%', subject: true },
+    { label: 'Pagefind', value: 3, display: '3%' },
+  ]}
+/>
+
+<BenchChart
+  title="Cold first search, total transfer (1,512 pages)"
+  better="lower"
+  ratioLabel="larger"
+  note="Bytes on the wire for a fresh page load answering a single query: engine code, index files and results, gzipped where that helps. Averaged over three queries. Lower is better."
+  rows={[
+    { label: 'ZBSearch static', value: 92.1, display: '92 KB', subject: true },
+    { label: 'Pagefind', value: 122.9, display: '123 KB' },
+  ]}
+/>
+
+<BenchChart
+  title="Query latency p95 (10,000 pages)"
+  better="lower"
+  ratioLabel="slower"
+  note="95th percentile of in-browser query time on the 10,000-page synthetic docs corpus, headless Chromium. Lower is better."
+  rows={[
+    { label: 'ZBSearch static', value: 8, display: '8 ms', subject: true },
+    { label: 'Pagefind', value: 71, display: '71 ms' },
+  ]}
+/>
+
 | What you feel at build time | ZBSearch static | Pagefind |
 | --- | ---: | ---: |
 | Index build, 1,500 pages | **0.14 s** | 0.9 s |
 | Index build, 10,000 pages | **0.7 s** | 5.1 s |
+
+<BenchChart
+  title="Index build, 10,000 pages"
+  better="lower"
+  ratioLabel="slower"
+  note="Wall-clock time from records to index files on disk, for both engines. Lower is better."
+  rows={[
+    { label: 'ZBSearch static', value: 745, display: '0.7 s', subject: true },
+    { label: 'Pagefind', value: 5054, display: '5.1 s' },
+  ]}
+/>
 
 The typo battery drops one character from a word (Levenshtein distance 1); insertions and substitutions
 are not measured. Build times cover indexing through writing the files to disk, for both engines.

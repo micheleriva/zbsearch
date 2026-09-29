@@ -48,24 +48,24 @@ describe('hyphens and apostrophes at the edges of a token', () => {
     ])
   })
 
-  it('are trimmed from tokenizeSkipProperties values too, so full-text search still finds them', async () => {
+  it('are kept verbatim for tokenizeSkipProperties values so exact filters stay exact', async () => {
     const db = create({
       schema: { tag: 'string' } as const,
       components: { tokenizer: { tokenizeSkipProperties: ['tag'] } }
     })
-    await insert(db, { tag: '-foo' })
-    await insert(db, { tag: "'foo bar'" })
+    const dashId = await insert(db, { tag: '-foo' })
+    const plainId = await insert(db, { tag: 'foo' })
 
-    // The value is still kept whole (no split on the space), only its edges are trimmed.
-    expect(db.tokenizer.tokenize("'foo bar'", 'english', 'tag')).toStrictEqual(['foo bar'])
-    expect(db.tokenizer.tokenize('--', 'english', 'tag')).toStrictEqual([])
+    // The whole value is one token and its edges are not trimmed: `-foo` and `foo` stay distinct.
+    expect(db.tokenizer.tokenize('-foo', 'english', 'tag')).toStrictEqual(['-foo'])
 
-    // The query goes through the tokenizer without the property name and becomes `foo`.
-    expect(search(db, { term: '-foo', properties: ['tag'] }).count).toBe(2)
-    expect(search(db, { term: '-foo', properties: ['tag'], prefix: false }).count).toBe(1)
-    // Filters tokenize both sides with the property name, so they keep working as before.
-    expect(search(db, { where: { tag: '-foo' } }).count).toBe(1)
-    expect(search(db, { where: { tag: "'foo bar'" } }).count).toBe(1)
+    const plain = search(db, { where: { tag: 'foo' } })
+    expect(plain.count).toBe(1)
+    expect(plain.hits[0].id).toBe(plainId)
+
+    const dash = search(db, { where: { tag: '-foo' } })
+    expect(dash.count).toBe(1)
+    expect(dash.hits[0].id).toBe(dashId)
   })
 
   it('cannot leak a leading hyphen into the index', async () => {

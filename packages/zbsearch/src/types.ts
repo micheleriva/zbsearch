@@ -1339,6 +1339,12 @@ export type DefaultTokenizerConfig = {
   stemming?: boolean
   stemmer?: Stemmer
   stemmerSkipProperties?: string | string[]
+  /**
+   * Properties whose whole value is indexed as a single token, without splitting it into words
+   * or trimming punctuation from its edges. This is meant for exact `where` filters on the
+   * property. Full-text `search` tokenizes the query without knowing the property, so a query
+   * only matches such a value when it is a single word that survives tokenization unchanged.
+   */
   tokenizeSkipProperties?: string | string[]
   stopWords?: boolean | string[] | ((stopWords: string[]) => string[])
   allowDuplicates?: boolean

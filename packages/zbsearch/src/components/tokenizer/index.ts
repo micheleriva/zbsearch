@@ -47,7 +47,10 @@ function cacheNormalizedToken(tokenizer: DefaultTokenizer, key: string, token: s
 }
 
 export function normalizeToken(this: DefaultTokenizer, prop: string, token: string, withCache: boolean = true): string {
-  const key = `${this.language}:${prop}:${token}`
+  // The property length is part of the key so that the boundary between property and token is
+  // unambiguous: property `a` with the unsplit token `x:y` and property `a:x` with token `y` would
+  // otherwise share the key `english:a:x:y`, and a cache hit would index the wrong token.
+  const key = `${this.language}:${prop.length}:${prop}:${token}`
 
   if (withCache && this.normalizationCache.has(key)) {
     return this.normalizationCache.get(key)!

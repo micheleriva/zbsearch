@@ -576,8 +576,8 @@ it('insert populates the tokenizer normalization cache', async () => {
   })
 
   // Each stemmed surface form is cached per property, so later inserts of the same word skip the stemmer.
-  expect(db.tokenizer.normalizationCache.get('english:name:foxes')).toBe('fox')
-  expect(db.tokenizer.normalizationCache.get('english:name:dogs')).toBe('dog')
+  expect(db.tokenizer.normalizationCache.get('english:4:name:foxes')).toBe('fox')
+  expect(db.tokenizer.normalizationCache.get('english:4:name:dogs')).toBe('dog')
 })
 
 interface BaseDataEvent extends AnyDocument {

@@ -929,12 +929,23 @@ describe('Custom stop-words rules', async () => {
     const tokenizer = createTokenizer({ language: 'english', stemming: true, normalizationCacheSize: 2 })
 
     expect(tokenizer.tokenize('running jumps')).toStrictEqual(['run', 'jump'])
-    expect([...tokenizer.normalizationCache.keys()]).toStrictEqual(['english::running', 'english::jumps'])
+    expect([...tokenizer.normalizationCache.keys()]).toStrictEqual(['english:0::running', 'english:0::jumps'])
 
     // A third distinct token evicts the oldest entry. Re-seeing a cached token is a hit, not a new entry.
     expect(tokenizer.tokenize('jumps cakes')).toStrictEqual(['jump', 'cake'])
-    expect([...tokenizer.normalizationCache.keys()]).toStrictEqual(['english::jumps', 'english::cakes'])
-    expect(tokenizer.normalizationCache.get('english::cakes')).toBe('cake')
+    expect([...tokenizer.normalizationCache.keys()]).toStrictEqual(['english:0::jumps', 'english:0::cakes'])
+    expect(tokenizer.normalizationCache.get('english:0::cakes')).toBe('cake')
+  })
+
+  it('keeps cache entries of different properties apart even when their names contain the separator', () => {
+    const tokenizer = createTokenizer({ language: 'english', tokenizeSkipProperties: ['a'] })
+
+    // Property `a` skips splitting, so `x:y` is cached whole. Property `a:x` with token `y` must not
+    // hit that entry: with an ambiguous key both would map to `english:a:x:y`.
+    expect(tokenizer.tokenize('x:y', 'english', 'a')).toStrictEqual(['x:y'])
+    expect(tokenizer.tokenize('y', 'english', 'a:x')).toStrictEqual(['y'])
+    expect(tokenizer.normalizationCache.get('english:1:a:x:y')).toBe('x:y')
+    expect(tokenizer.normalizationCache.get('english:3:a:x:y')).toBe('y')
   })
 
   it('caps the normalization cache by default', () => {

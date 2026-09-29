@@ -49,7 +49,8 @@
   "scripts": {
     "build": "vite build && vue-tsc -p tsconfig.build.json --emitDeclarationOnly",
     "lint": "oxlint --fix --fix-suggestions",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "node ../../scripts/check-publish.mjs"
   },
   "dependencies": {
     "@zbsearch/searchbox-core": "workspace:*"

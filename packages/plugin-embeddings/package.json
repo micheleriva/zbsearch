@@ -38,7 +38,8 @@
   "scripts": {
     "build": "node ../../scripts/rolldown-build.mjs && tsc -p . --emitDeclarationOnly",
     "lint": "oxlint --fix --fix-suggestions",
-    "test": "exit 0"
+    "test": "exit 0",
+    "prepublishOnly": "node ../../scripts/check-publish.mjs"
   },
   "dependencies": {
     "@tensorflow-models/universal-sentence-encoder": "^1.3.3",

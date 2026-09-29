@@ -208,7 +208,8 @@
     "build": "node scripts/build.js",
     "lint": "oxlint --fix --fix-suggestions",
     "test": "exit 0;",
-    "ci": "npm run test"
+    "ci": "npm run test",
+    "prepublishOnly": "node ../../scripts/check-publish.mjs"
   },
   "devDependencies": {
     "@swc/core": "^1.15.43"

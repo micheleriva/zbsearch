@@ -30,7 +30,8 @@
     "dev": "wrangler dev --config deploy/wrangler.monorepo.toml",
     "deploy": "wrangler deploy --config deploy/wrangler.monorepo.toml",
     "test": "vitest run",
-    "lint": "oxlint --fix --fix-suggestions"
+    "lint": "oxlint --fix --fix-suggestions",
+    "prepublishOnly": "node ../../scripts/check-publish.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.750.0",

@@ -35,7 +35,8 @@
   "scripts": {
     "build": "node ../../scripts/rolldown-build.mjs && tsc -p . --emitDeclarationOnly",
     "lint": "oxlint --fix --fix-suggestions",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "node ../../scripts/check-publish.mjs"
   },
   "dependencies": {
     "zbsearch": "workspace:*"

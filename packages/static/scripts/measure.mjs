@@ -78,7 +78,7 @@ for (const shard of manifest.shards) {
 let fragRaw = 0
 let fragGz = 0
 for (let g = 0; g < manifest.fragments.count; g++) {
-  const b = files.get(`fragments/${g}.json`)
+  const b = files.get(`fragments/${manifest.buildId}/${g}.json`)
   fragRaw += b.length
   fragGz += gz(b)
 }

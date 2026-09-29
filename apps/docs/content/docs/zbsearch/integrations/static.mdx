@@ -32,10 +32,15 @@ npm install @zbsearch/static
 
 | File | Role | Loaded |
 | --- | --- | --- |
-| `manifest.json` | Global statistics (document count, average field lengths), the shard table and format version | Up front |
+| `manifest.json` | Global statistics (document count, average field lengths), the shard table, the format version and the build id | Up front |
 | `dictionary.json` | Every indexed term as a compact trie, without postings | Up front, ideally prefetched on focus |
-| `postings/*.bin` | Binary postings shards, packed by sorted term ranges to roughly 40 KB each | Per query, only the shards covering its terms |
-| `fragments/*.json` | Stored documents in small groups | Only for the results being shown - everything up to the requested page |
+| `postings/<build>/*.bin` | Binary postings shards, packed by sorted term ranges to roughly 40 KB each | Per query, only the shards covering its terms |
+| `fragments/<build>/*.json` | Stored documents in small groups | Only for the results being shown - everything up to the requested page |
+
+`<build>` is a hash of the index contents. The manifest names it, the dictionary carries it, and shards and
+fragments live under it, so a redeploy or a stale cache can never combine files from two different builds:
+the client refuses a dictionary from another build outright, and asks for shards and fragments by the
+manifest's build id, where a mismatch shows up as a missing file instead of silently different results.
 
 The dictionary staying resident is what keeps search quality intact: once it is loaded, prefix expansion
 and typo correction walk the local trie with no further network involved, so a misspelled query costs the
@@ -143,4 +148,5 @@ brings, measured:
 - The index is immutable once built - rebuild and redeploy, as with any static asset.
 
 The builder and client version together through the manifest's format version: a client refuses an index
-written by an incompatible format rather than misreading it.
+written by an incompatible format rather than misreading it. Within a format, the build id keeps every
+file of a deploy together.

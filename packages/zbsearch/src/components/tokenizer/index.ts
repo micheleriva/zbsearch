@@ -46,11 +46,18 @@ function cacheNormalizedToken(tokenizer: DefaultTokenizer, key: string, token: s
   cache.set(key, token)
 }
 
-export function normalizeToken(this: DefaultTokenizer, prop: string, token: string, withCache: boolean = true): string {
+export function normalizeToken(
+  this: DefaultTokenizer,
+  prop: Optional<string>,
+  token: string,
+  withCache: boolean = true
+): string {
+  // Custom tokenizers may call this without a property: an omitted property is the empty property.
+  const property = prop ?? ''
   // The property length is part of the key so that the boundary between property and token is
   // unambiguous: property `a` with the unsplit token `x:y` and property `a:x` with token `y` would
   // otherwise share the key `english:a:x:y`, and a cache hit would index the wrong token.
-  const key = `${this.language}:${prop.length}:${prop}:${token}`
+  const key = `${this.language}:${property.length}:${property}:${token}`
 
   if (withCache && this.normalizationCache.has(key)) {
     return this.normalizationCache.get(key)!
@@ -70,7 +77,7 @@ export function normalizeToken(this: DefaultTokenizer, prop: string, token: stri
   }
 
   // Apply stemming if enabled
-  if (this.stemmer && !this.stemmerSkipProperties.has(prop)) {
+  if (this.stemmer && !this.stemmerSkipProperties.has(property)) {
     token = this.stemmer(token)
   }
   if (withCache) {

@@ -948,6 +948,16 @@ describe('Custom stop-words rules', async () => {
     expect(tokenizer.normalizationCache.get('english:3:a:x:y')).toBe('y')
   })
 
+  it('treats an omitted property as the empty property when normalizing a token', () => {
+    const tokenizer = createTokenizer({ language: 'english', stemming: true })
+
+    // `normalizeToken` is exported for custom tokenizers, which may call it without a property.
+    expect(tokenizer.normalizeToken(undefined, 'running')).toBe('run')
+    expect(tokenizer.normalizationCache.get('english:0::running')).toBe('run')
+    expect(tokenizer.normalizeToken('', 'running')).toBe('run')
+    expect(tokenizer.normalizationCache.size).toBe(1)
+  })
+
   it('caps the normalization cache by default', () => {
     const tokenizer = createTokenizer({ language: 'english' })
 

@@ -141,6 +141,11 @@ Changing a page in dev regenerates the index on reload. If the index ever looks 
 removes `.docusaurus` and forces a fresh one.
 </Callout>
 
+Once the built payload passes 256 KB of JSON, `docusaurus build` switches to a
+[sharded static index](/docs/zbsearch/integrations/static): the generated payload becomes a small pointer,
+the index itself is written under `/zbsearch-static/`, and each search fetches only the few kilobytes it
+needs. Rankings are identical in both modes, and `docusaurus start` keeps the single-file index either way.
+
 ## Styling
 
 Every colour, radius and font in the search box is a `--zbs-*` custom property, so you can re-theme it from

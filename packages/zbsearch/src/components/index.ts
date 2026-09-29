@@ -518,12 +518,12 @@ function filterIdsToCandidates(ids: InternalDocumentID[], candidates: Set<Intern
 // Prefix-expanded words (the query token is a strict prefix of the indexed word) score at a demoted weight so that documents matching the full query token always outrank partial, prefix-only matches.
 const PREFIX_EXPANSION_SCORE_DEMOTION = 0.5
 
-function bm25Idf(documentFrequency: number, docsCount: number): number {
+export function bm25Idf(documentFrequency: number, docsCount: number): number {
   return Math.log(1 + (docsCount - documentFrequency + 0.5) / (documentFrequency + 0.5))
 }
 
 // Demotion factor for a prefix-expanded word. Beyond the flat demotion, the word's effective IDF is capped at the exact token's IDF (Lucene blends term statistics across expansions the same way): a rare expansion must not outscore the exact token just because it appears in fewer documents.
-function prefixExpansionDemotion(tokenDf: number | undefined, wordDf: number, docsCount: number): number {
+export function prefixExpansionDemotion(tokenDf: number | undefined, wordDf: number, docsCount: number): number {
   if (tokenDf === undefined) {
     return PREFIX_EXPANSION_SCORE_DEMOTION
   }

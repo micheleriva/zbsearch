@@ -123,6 +123,12 @@ zbsearch({
 | `placeholder` | `'Search documentation…'` | Placeholder of the search input |
 | `labels` | `{}` | Copy overrides for the dialog |
 
+### Build
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `inlineLimitBytes` | `262144` | JSON size above which the production index ships as sharded files |
+
 ## How it works
 
 The plugin serves the index at `/zbsearch-index.json`. In development that is a middleware which rebuilds the
@@ -131,6 +137,11 @@ emitted as a static asset next to your pages.
 
 The search box fetches it the first time a visitor shows intent to search, so neither the index nor ZBSearch
 itself weighs on the initial page load.
+
+Once the built payload passes `inlineLimitBytes` - 256 KB of JSON by default - the production build emits a
+[sharded static index](/docs/zbsearch/integrations/static) under `/zbsearch-static/` instead, and
+`/zbsearch-index.json` becomes a small pointer to it. Each search then fetches only the few kilobytes it
+needs, with rankings identical to the single-file index. The dev server keeps the inline index either way.
 
 ## Styling
 

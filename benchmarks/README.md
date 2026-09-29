@@ -74,6 +74,39 @@ Fork PRs are supported: benchmarks run on `pull_request` (read-only token), and 
 | `npm run benchmark:bundle-size` | Serialized index size |
 | `npm run benchmark:algorithms` | BM25 / QPS / PT15 |
 | `npm run benchmark:search-quality` | Standardized ranking quality on BEIR datasets (nDCG@10 / MAP@100 / R@100) |
+| `npm run benchmark:pagefind` | ZBSearch sharded static index vs Pagefind, end to end in a real browser |
+
+## ZBSearch static vs Pagefind
+
+Head-to-head for the static-site niche: both engines index the identical corpus, serve their bundles
+from the same byte-counting HTTP server (responses gzipped when that helps, as a CDN would), and answer
+the same query battery in headless Chromium.
+
+```sh
+# From repo root: the benchmark imports the built @zbsearch/static package, which depends on zbsearch
+pnpm --filter zbsearch build
+pnpm --filter @zbsearch/stopwords build
+pnpm --filter @zbsearch/static build
+
+cd benchmarks
+npm install
+npm run benchmark:pagefind:setup   # once: downloads Chromium for playwright-core
+npm run benchmark:pagefind
+```
+
+Two corpora run by default: the 1,512-record games dataset (real English, with quality scoring) and a
+10,000-page synthetic docs corpus (transfer and latency at scale). Per engine it reports build time
+(indexing through writing the files to disk, for both engines; ZBSearch's indexing-only time is listed
+underneath), bundle size, initial transfer, cold-single-query transfer, marginal bytes and requests per
+query, latency percentiles, and result quality (MRR@5 and found@5) against known target documents across
+four categories: exact unique terms, typos, 4-character prefixes, and two-word queries. The typo category
+deletes the fourth character of each target's anchor word (Levenshtein distance 1); insertions and
+substitutions are not part of the battery.
+
+Pagefind indexes synthesized HTML pages through its own Node API, so its element weighting (`h1` and
+friends) applies exactly as on a real site; ZBSearch runs with the docs-index defaults
+(`tolerance: 1`, `threshold: 0`, title boost 4). Flags: `--quick` (fewer targets, 2k-page scale run),
+`--pages=N` (scale corpus size), `--skip-scale`.
 
 ## Standardized search quality (BEIR)
 

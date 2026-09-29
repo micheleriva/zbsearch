@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'vitest'
-import { create, load, search } from 'zbsearch'
 import { buildIndex } from '../src/build.js'
-import { DEFAULT_BOOST, PAYLOAD_VERSION, RECORD_SCHEMA } from '../src/records.js'
+import { assertPayloadVersion, createSearcher, hydrateIndex } from '../src/client.js'
+import { DEFAULT_BOOST, PAYLOAD_VERSION } from '../src/records.js'
 import type { SearchIndexPayload, SearchRecord } from '../src/records.js'
 
 const records: SearchRecord[] = [
@@ -35,11 +35,12 @@ const records: SearchRecord[] = [
   }
 ]
 
-function rehydrate(payload: SearchIndexPayload) {
-  const db = create({ schema: RECORD_SCHEMA, language: payload.language, inferSchema: false })
-  load(db, payload.index)
+function roundTrip(payload: SearchIndexPayload): SearchIndexPayload {
+  return JSON.parse(JSON.stringify(payload))
+}
 
-  return db
+async function rehydrate(payload: SearchIndexPayload) {
+  return hydrateIndex(assertPayloadVersion(payload))
 }
 
 test('buildIndex stamps the payload with the current version and language', async () => {
@@ -51,16 +52,15 @@ test('buildIndex stamps the payload with the current version and language', asyn
 })
 
 test('the serialized index survives a JSON round trip', async () => {
-  const payload = await buildIndex(records, 'english')
-  const restored: SearchIndexPayload = JSON.parse(JSON.stringify(payload))
-  const results = await search(rehydrate(restored), { term: 'embeddings' })
+  const { query } = await rehydrate(roundTrip(await buildIndex(records, 'english')))
+  const results = await query({ term: 'embeddings' })
   assert.equal(results.count, 1)
   assert.equal((results.hits[0].document as unknown as SearchRecord).url, '/docs/vector#embeddings')
 })
 
 test('a restored index returns the stored url and category', async () => {
-  const payload: SearchIndexPayload = JSON.parse(JSON.stringify(await buildIndex(records, 'english')))
-  const results = await search(rehydrate(payload), { term: 'npm' })
+  const { query } = await rehydrate(roundTrip(await buildIndex(records, 'english')))
+  const results = await query({ term: 'npm' })
   const document = results.hits[0].document as unknown as SearchRecord
 
   assert.equal(document.url, '/docs/intro')
@@ -75,13 +75,13 @@ test('only the declared properties are indexed', async () => {
 })
 
 test('permalinks are not searchable', async () => {
-  const payload: SearchIndexPayload = JSON.parse(JSON.stringify(await buildIndex(records, 'english')))
-  assert.equal((await search(rehydrate(payload), { term: 'docs' })).count, 0)
+  const { query } = await rehydrate(roundTrip(await buildIndex(records, 'english')))
+  assert.equal((await query({ term: 'docs' })).count, 0)
 })
 
 test('boosting ranks a title match above a body match', async () => {
-  const payload: SearchIndexPayload = JSON.parse(JSON.stringify(await buildIndex(records, 'english')))
-  const results = await search(rehydrate(payload), {
+  const { query } = await rehydrate(roundTrip(await buildIndex(records, 'english')))
+  const results = await query({
     term: 'hybrid',
     properties: ['title', 'section', 'hierarchy', 'content'],
     boost: { ...DEFAULT_BOOST }
@@ -94,5 +94,41 @@ test('buildIndex handles a site with no content', async () => {
   const payload = await buildIndex([], 'english')
 
   assert.equal(payload.recordCount, 0)
-  assert.equal((await search(rehydrate(JSON.parse(JSON.stringify(payload))), { term: 'anything' })).count, 0)
+
+  const { query } = await rehydrate(roundTrip(payload))
+  assert.equal((await query({ term: 'anything' })).count, 0)
+})
+
+test('buildIndex disables sorting so the payload carries no sort index', async () => {
+  const payload = await buildIndex(records, 'english')
+  const sorting = payload.index.sorting as { enabled?: boolean; sorts?: Record<string, unknown> }
+
+  assert.equal(sorting.enabled, false)
+  assert.equal(Object.keys(sorting.sorts ?? {}).length, 0)
+})
+
+test('hydrateIndex rejects a payload built by a different version', async () => {
+  const payload = roundTrip(await buildIndex(records, 'english'))
+  payload.version = PAYLOAD_VERSION + 1
+
+  await assert.rejects(() => rehydrate(payload), /does not match the expected/)
+})
+
+test('createSearcher searches a hydrated index and maps hits to search results', async () => {
+  const payload = roundTrip(await buildIndex(records, 'english'))
+  const getIndex = () => hydrateIndex(assertPayloadVersion(payload))
+  const searcher = createSearcher(getIndex, {
+    boost: { ...DEFAULT_BOOST },
+    maxResults: 5,
+    tolerance: 0,
+    threshold: 0,
+    snippetLength: 60
+  })
+
+  const hits = await searcher('hybrid', new AbortController().signal)
+
+  assert.equal(hits[0].url, '/docs/hybrid')
+  assert.equal(hits[0].title, 'Hybrid Search')
+  assert.equal(hits[0].category, 'Docs')
+  assert.ok(hits[0].snippet?.toLowerCase().includes('hybrid'))
 })

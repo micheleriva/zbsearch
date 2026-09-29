@@ -49,9 +49,30 @@ export interface SearchRuntimeOptions {
   labels: Record<string, string>
 }
 
-export interface SearchIndexPayload {
+/** Directory (relative to the site root) that sharded index artifacts are served from. */
+export const STATIC_DIR = 'zbsearch-static'
+
+export interface InlineIndexPayload {
   version: number
   language: string
   recordCount: number
   index: RawData
+}
+
+/**
+ * Sentinel payload emitted instead of the inline index when the site is large
+ * enough that the index ships as a sharded, lazily-fetched file set.
+ */
+export interface ShardedIndexPayload {
+  version: number
+  language: string
+  recordCount: number
+  mode: 'sharded'
+  baseUrl: string
+}
+
+export type SearchIndexPayload = InlineIndexPayload | ShardedIndexPayload
+
+export function isShardedPayload(payload: SearchIndexPayload): payload is ShardedIndexPayload {
+  return (payload as ShardedIndexPayload).mode === 'sharded'
 }

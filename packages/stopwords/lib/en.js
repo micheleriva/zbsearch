@@ -130,6 +130,7 @@ export const stopwords = [
   "why's",
   "how's",
 
+  'a',
   'an',
   'the',
 

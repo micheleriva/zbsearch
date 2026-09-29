@@ -6,9 +6,11 @@
 // byte-counting HTTP server, and answer the same query battery in headless
 // Chromium. Reported per engine: build time, bundle size, initial transfer,
 // per-query transfer and latency, and result quality against known target
-// documents (exact terms, one-edit typos, prefixes, two-word queries).
+// documents (exact terms, single-character deletions, prefixes, two-word
+// queries).
 //
 // Usage: node pagefind-compare.js [--quick] [--pages=10000] [--skip-scale]
+// Requires Chromium: npm run benchmark:pagefind:setup (once).
 
 import { mkdir, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
@@ -134,28 +136,35 @@ async function comparisonRun({ name, records, battery, browser }) {
   await writeDrivers(wwwDir)
 
   const server = await startServer(wwwDir)
-
-  const zb = await runSession(browser, server.port, 'zbsearch.html', battery)
-  const pf = await runSession(browser, server.port, 'pagefind.html', battery)
-
-  // Cold sessions: a fresh page answering a single query.
-  const coldTerms = battery.filter((q) => !q.category || q.category === 'exact').slice(0, 3)
+  let zb
+  let pf
   let zbCold = 0
   let pfCold = 0
-  for (const q of coldTerms) {
-    zbCold += await coldQuery(browser, server.port, 'zbsearch.html', q.term)
-    pfCold += await coldQuery(browser, server.port, 'pagefind.html', q.term)
-  }
-  zbCold /= coldTerms.length
-  pfCold /= coldTerms.length
 
-  await server.close()
+  try {
+    zb = await runSession(browser, server.port, 'zbsearch.html', battery)
+    pf = await runSession(browser, server.port, 'pagefind.html', battery)
+
+    // Cold sessions: a fresh page answering a single query.
+    const coldTerms = battery.filter((q) => !q.category || q.category === 'exact').slice(0, 3)
+    for (const q of coldTerms) {
+      zbCold += await coldQuery(browser, server.port, 'zbsearch.html', q.term)
+      pfCold += await coldQuery(browser, server.port, 'pagefind.html', q.term)
+    }
+    zbCold /= coldTerms.length
+    pfCold /= coldTerms.length
+  } finally {
+    // A failed session must not leave the listening socket holding the
+    // process open.
+    await server.close()
+  }
 
   const zbSummary = summarize(zb)
   const pfSummary = summarize(pf)
 
   printTable(`${name} — delivery`, [
-    ['Build time', ms(zbBuild.buildMs), ms(pfBuild.buildMs)],
+    ['Build time (index + write files)', ms(zbBuild.buildMs), ms(pfBuild.buildMs)],
+    ['  of which indexing', ms(zbBuild.indexMs), 'n/a'],
     ['Bundle on disk', kb(zbBuild.bundleBytes + clientBytes), kb(pfBuild.bundleBytes)],
     ['JS runtime (client code)', kb(clientBytes), '~30 KB js + ~75 KB wasm'],
     ['Initial transfer (page + engine + boot)', kb(zbSummary.initBytes), kb(pfSummary.initBytes)],
@@ -187,34 +196,49 @@ async function comparisonRun({ name, records, battery, browser }) {
   return { name, records: records.length, zbBuild, pfBuild, clientBytes, zbSummary, pfSummary, zbCold, pfCold, zbQuality: [...zbQuality], pfQuality: [...pfQuality] }
 }
 
-const browser = await chromium.launch()
+async function launchBrowser() {
+  try {
+    return await chromium.launch()
+  } catch (error) {
+    // playwright-core ships no browser; the benchmark needs Chromium installed once.
+    console.error(
+      `Could not launch Chromium: ${error.message.split('\n')[0]}\n` +
+        'Install it once with:\n\n    npm run benchmark:pagefind:setup\n'
+    )
+    process.exit(1)
+  }
+}
+
+const browser = await launchBrowser()
 const report = { date: new Date().toISOString(), quick: QUICK, runs: [] }
 
-// Part A: real English corpus, with quality scoring.
-{
-  const records = gamesCorpus()
-  const battery = buildBattery(records, QUICK ? 15 : 60)
-  report.runs.push(await comparisonRun({ name: 'games-1512', records, battery, browser }))
-}
-
-// Part B: scale — transfer and latency at docs-site page counts.
-if (!SKIP_SCALE) {
-  const records = syntheticCorpus(QUICK ? 2000 : SCALE_PAGES)
-
-  const df = new Map()
-  for (const record of records) {
-    for (const token of new Set(tokenize(`${record.title} ${record.content}`))) {
-      df.set(token, (df.get(token) ?? 0) + 1)
-    }
+try {
+  // Part A: real English corpus, with quality scoring.
+  {
+    const records = gamesCorpus()
+    const battery = buildBattery(records, QUICK ? 15 : 60)
+    report.runs.push(await comparisonRun({ name: 'games-1512', records, battery, browser }))
   }
-  const terms = [...df.entries()]
-  const pick = (filter, n) => terms.filter(([, d]) => filter(d)).slice(0, n).map(([t]) => ({ term: t }))
-  const battery = [...pick((d) => d >= 10 && d <= 100, 15), ...pick((d) => d <= 5, 15)]
 
-  report.runs.push(await comparisonRun({ name: `synthetic-${records.length}`, records, battery, browser }))
+  // Part B: scale — transfer and latency at docs-site page counts.
+  if (!SKIP_SCALE) {
+    const records = syntheticCorpus(QUICK ? 2000 : SCALE_PAGES)
+
+    const df = new Map()
+    for (const record of records) {
+      for (const token of new Set(tokenize(`${record.title} ${record.content}`))) {
+        df.set(token, (df.get(token) ?? 0) + 1)
+      }
+    }
+    const terms = [...df.entries()]
+    const pick = (filter, n) => terms.filter(([, d]) => filter(d)).slice(0, n).map(([t]) => ({ term: t }))
+    const battery = [...pick((d) => d >= 10 && d <= 100, 15), ...pick((d) => d <= 5, 15)]
+
+    report.runs.push(await comparisonRun({ name: `synthetic-${records.length}`, records, battery, browser }))
+  }
+} finally {
+  await browser.close()
 }
-
-await browser.close()
 
 await mkdir(path.join(BENCH_DIR, 'out'), { recursive: true })
 const outFile = path.join(BENCH_DIR, 'out', 'pagefind-compare.json')

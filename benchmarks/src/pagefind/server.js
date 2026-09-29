@@ -22,6 +22,7 @@ const TYPES = {
  * sent on the wire.
  */
 export function startServer(wwwDir) {
+  const root = path.resolve(wwwDir)
   const tally = { bytes: 0, requests: 0 }
 
   const server = http.createServer(async (req, res) => {
@@ -39,8 +40,16 @@ export function startServer(wwwDir) {
       return
     }
 
+    // Decoding happens before resolution, so an encoded "../" cannot escape
+    // the serving directory: anything that resolves outside it is a 404.
+    const filePath = path.resolve(wwwDir, `.${decodeURIComponent(url.pathname)}`)
+    if (filePath !== root && !filePath.startsWith(root + path.sep)) {
+      res.statusCode = 404
+      res.end('not found')
+      return
+    }
+
     try {
-      const filePath = path.join(wwwDir, decodeURIComponent(url.pathname))
       let body = await readFile(filePath)
       res.setHeader('content-type', TYPES[path.extname(filePath)] ?? 'application/octet-stream')
       res.setHeader('cache-control', 'no-store')

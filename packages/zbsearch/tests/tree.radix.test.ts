@@ -27,6 +27,20 @@ describe('radix tree', () => {
     })
   })
 
+  it('removes every posting of a document from a word', () => {
+    const tree = new RadixTree()
+    tree.insert('apple', 1)
+    tree.insert('apple', 2)
+    tree.insert('apple', 1)
+    expect(tree.find({ term: 'apple' })).toStrictEqual({ apple: [1, 2, 1] })
+
+    tree.removeDocumentByWord('apple', 1, true)
+    expect(tree.find({ term: 'apple' })).toStrictEqual({ apple: [2] })
+
+    tree.removeDocumentByWord('apple', 2, true)
+    expect(tree.find({ term: 'apple' })).toStrictEqual({ apple: [] })
+  })
+
   it('should correctly find a complete sentence', () => {
     const tree = new RadixTree()
     for (const { doc, id } of phrases) {

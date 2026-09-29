@@ -102,6 +102,9 @@ export function insertString(
 
   let quantumIndex = 0
   let tokenNumber = 0
+  // A token repeated across sentences gets one posting: the per-sentence occurrences are tracked
+  // in `tokenQuantums`, and a second posting would score the document twice and outlive its removal.
+  const posted = new Set<string>()
   for (const sentence of sentences) {
     const tokens = uniqueTokens(tokenizer.tokenize(sentence, language, prop))
 
@@ -119,7 +122,10 @@ export function insertString(
         tokenBitIndex
       )
 
-      radixTree.insert(token, internalId)
+      if (!posted.has(token)) {
+        posted.add(token)
+        radixTree.insert(token, internalId)
+      }
     }
 
     // Don't increment the quantum index if the sentence is too short

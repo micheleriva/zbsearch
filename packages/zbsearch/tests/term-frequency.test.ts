@@ -55,6 +55,20 @@ describe('term frequency', () => {
     expect(strict.count).toBe(2)
   })
 
+  it('suggest completes the last typed word even when it repeats an earlier one', async () => {
+    const db = create({ schema: { text: 'string' } as const })
+    await insertMultiple(db, docs)
+
+    // A prefix that merely starts like a context word is not a repeat of it.
+    const { suggestions } = suggest(db, { term: 'banana apple ban' })
+    expect(suggestions.map((s) => s.suggestion)).toStrictEqual(['banana apple banana'])
+
+    // "apple" appears twice: once as context and once as the word being typed. The completion
+    // target is the trailing one, and the context is matched once.
+    const repeated = suggest(db, { term: 'apple banana apple' })
+    expect(repeated.suggestions.map((s) => s.terms)).toStrictEqual([['banana', 'apple']])
+  })
+
   it('suggest ignores repeated query terms', async () => {
     const db = create({ schema: { text: 'string' } as const })
     await insertMultiple(db, docs)

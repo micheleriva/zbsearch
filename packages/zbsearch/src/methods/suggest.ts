@@ -54,7 +54,7 @@ export function suggest<T extends AnyZBSearch>(
 
   const index = zbsearch.data.index
   const propertiesToSearch = getPropertiesToSearch(zbsearch, params.properties)
-  const tokens = uniqueTokens(zbsearch.tokenizer.tokenize(term ?? '', language))
+  const tokens = suggestionTokens(zbsearch.tokenizer.tokenize(term ?? '', language))
 
   if (!tokens.length || !propertiesToSearch.length) {
     return emptyResults(zbsearch, timeStart)
@@ -94,6 +94,20 @@ export function suggest<T extends AnyZBSearch>(
     count: suggestions.length,
     suggestions: suggestions.slice(offset, offset + limit)
   }
+}
+
+// The last typed word is the completion target even when it repeats an earlier one: "apple banana
+// apple" completes the trailing "apple" with "banana" as context. The earlier words are matched
+// once each, so a repeat among them does not score a document twice.
+function suggestionTokens(tokens: string[]): string[] {
+  if (tokens.length < 2) {
+    return tokens
+  }
+
+  const last = tokens[tokens.length - 1]
+  const context = uniqueTokens(tokens.slice(0, -1)).filter((token) => token !== last)
+  context.push(last)
+  return context
 }
 
 /**

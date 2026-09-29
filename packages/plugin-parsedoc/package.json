@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/plugin-parsedoc",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "ZBSearch plugin to populate an index with HTML/Markdown documents",
   "keywords": [],
   "homepage": "https://github.com/micheleriva/zbsearch#readme",

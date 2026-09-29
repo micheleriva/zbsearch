@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/storage-s3",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "S3-compatible object storage driver for ZBSearch Edge (AWS S3, R2, MinIO)",
   "license": "Apache-2.0",
   "files": [

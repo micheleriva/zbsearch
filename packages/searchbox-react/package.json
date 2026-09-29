@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/searchbox-react",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "Accessible, unstyled-by-default React search box UI for ZBSearch",
   "keywords": [
     "autocomplete",

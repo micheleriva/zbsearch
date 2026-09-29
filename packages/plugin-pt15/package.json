@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/plugin-pt15",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "Performant search algorithm optimized for descriptive texts",
   "keywords": [
     "embeddings",

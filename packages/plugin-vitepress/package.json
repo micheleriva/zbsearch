@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/plugin-vitepress",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "Make ZBSearch the search engine of your VitePress site",
   "keywords": [
     "full-text search",

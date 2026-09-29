@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/static",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "Sharded, lazily-loaded static search indexes for ZBSearch: Pagefind-class bandwidth with full ZBSearch search quality",
   "keywords": [
     "full-text search",

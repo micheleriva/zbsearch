@@ -95,8 +95,10 @@ export default function zbsearchVitePress(userOptions: ZBSearchVitePressOptions 
     },
 
     async buildStart() {
-      // Only the client build emits assets; the SSR pass would duplicate it.
-      if (config.build.ssr) {
+      // The dev server serves an inline payload rebuilt per request, so there
+      // is nothing to shard there. Of the two build passes only the client
+      // one emits assets; the SSR pass would duplicate them.
+      if (config.command !== 'build' || config.build.ssr) {
         return
       }
 

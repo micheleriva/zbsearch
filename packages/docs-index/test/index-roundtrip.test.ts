@@ -40,9 +40,7 @@ function roundTrip(payload: SearchIndexPayload): SearchIndexPayload {
 }
 
 async function rehydrate(payload: SearchIndexPayload) {
-  const { db, search } = await hydrateIndex(assertPayloadVersion(payload))
-
-  return { db, search }
+  return hydrateIndex(assertPayloadVersion(payload))
 }
 
 test('buildIndex stamps the payload with the current version and language', async () => {
@@ -54,15 +52,15 @@ test('buildIndex stamps the payload with the current version and language', asyn
 })
 
 test('the serialized index survives a JSON round trip', async () => {
-  const { db, search } = await rehydrate(roundTrip(await buildIndex(records, 'english')))
-  const results = await search(db, { term: 'embeddings' })
+  const { query } = await rehydrate(roundTrip(await buildIndex(records, 'english')))
+  const results = await query({ term: 'embeddings' })
   assert.equal(results.count, 1)
   assert.equal((results.hits[0].document as unknown as SearchRecord).url, '/docs/vector#embeddings')
 })
 
 test('a restored index returns the stored url and category', async () => {
-  const { db, search } = await rehydrate(roundTrip(await buildIndex(records, 'english')))
-  const results = await search(db, { term: 'npm' })
+  const { query } = await rehydrate(roundTrip(await buildIndex(records, 'english')))
+  const results = await query({ term: 'npm' })
   const document = results.hits[0].document as unknown as SearchRecord
 
   assert.equal(document.url, '/docs/intro')
@@ -77,13 +75,13 @@ test('only the declared properties are indexed', async () => {
 })
 
 test('permalinks are not searchable', async () => {
-  const { db, search } = await rehydrate(roundTrip(await buildIndex(records, 'english')))
-  assert.equal((await search(db, { term: 'docs' })).count, 0)
+  const { query } = await rehydrate(roundTrip(await buildIndex(records, 'english')))
+  assert.equal((await query({ term: 'docs' })).count, 0)
 })
 
 test('boosting ranks a title match above a body match', async () => {
-  const { db, search } = await rehydrate(roundTrip(await buildIndex(records, 'english')))
-  const results = await search(db, {
+  const { query } = await rehydrate(roundTrip(await buildIndex(records, 'english')))
+  const results = await query({
     term: 'hybrid',
     properties: ['title', 'section', 'hierarchy', 'content'],
     boost: { ...DEFAULT_BOOST }
@@ -97,8 +95,8 @@ test('buildIndex handles a site with no content', async () => {
 
   assert.equal(payload.recordCount, 0)
 
-  const { db, search } = await rehydrate(roundTrip(payload))
-  assert.equal((await search(db, { term: 'anything' })).count, 0)
+  const { query } = await rehydrate(roundTrip(payload))
+  assert.equal((await query({ term: 'anything' })).count, 0)
 })
 
 test('buildIndex disables sorting so the payload carries no sort index', async () => {

@@ -1345,6 +1345,11 @@ export type DefaultTokenizerConfig = {
   tokenizeSkipProperties?: string | string[]
   stopWords?: boolean | string[] | ((stopWords: string[]) => string[])
   allowDuplicates?: boolean
+  /**
+   * Maximum number of normalized tokens kept in the tokenizer cache. Defaults to 50000.
+   * Set to 0 to disable caching.
+   */
+  normalizationCacheSize?: number
 }
 
 export interface Tokenizer {

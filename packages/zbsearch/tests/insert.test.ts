@@ -559,19 +559,25 @@ describe('insertMultiple method', async () => {
   })
 })
 
-it("insert shouldn't use tokenizer cache", async () => {
+it('insert populates the tokenizer normalization cache', async () => {
   const db = await create({
     schema: {
       name: 'string'
-    } as const
+    } as const,
+    components: {
+      tokenizer: {
+        stemming: true
+      }
+    }
   })
 
   await insert(db, {
-    name: 'The quick brown fox jumps over the lazy dog'
+    name: 'The quick brown foxes jump over the lazy dogs'
   })
 
-  // Empty map
-  expect(db.tokenizer.normalizationCache).toStrictEqual(new Map())
+  // Each stemmed surface form is cached per property, so later inserts of the same word skip the stemmer.
+  expect(db.tokenizer.normalizationCache.get('english:4:name:foxes')).toBe('fox')
+  expect(db.tokenizer.normalizationCache.get('english:4:name:dogs')).toBe('dog')
 })
 
 interface BaseDataEvent extends AnyDocument {

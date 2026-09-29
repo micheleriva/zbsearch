@@ -269,7 +269,7 @@ function insertScalarValue(
       break
     }
     case 'Radix': {
-      const tokens = tokenizer.tokenize(value as string, language, prop, false)
+      const tokens = tokenizer.tokenize(value as string, language, prop)
       insertRadixTokens(index, prop, node as RadixTree, id, internalId, tokens, docsCount)
       break
     }

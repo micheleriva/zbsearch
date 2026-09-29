@@ -263,10 +263,12 @@ export const defaultBM25Params: Readonly<Required<BM25Params>> = Object.freeze({
   b: 0.75,
   d: 0.5
 })
+// Returns a fresh object so callers can pass `defaultBM25Params` itself (or any
+// frozen relevance object) without triggering a write to a read-only property.
 export function applyDefault(bm25Relevance?: BM25Params): Required<BM25Params> {
-  const r = bm25Relevance ?? {}
-  r.k = r.k ?? defaultBM25Params.k
-  r.b = r.b ?? defaultBM25Params.b
-  r.d = r.d ?? defaultBM25Params.d
-  return r as Required<BM25Params>
+  return {
+    k: bm25Relevance?.k ?? defaultBM25Params.k,
+    b: bm25Relevance?.b ?? defaultBM25Params.b,
+    d: bm25Relevance?.d ?? defaultBM25Params.d
+  }
 }

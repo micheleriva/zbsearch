@@ -1,7 +1,7 @@
 import { create, insertMultiple, save } from 'zbsearch'
 import type { RawData } from 'zbsearch'
 import { DEFAULT_FRAGMENT_GROUP_SIZE, encodeFragment, fragmentIndexFor, type FragmentDocs } from './fragments.js'
-import { encodeDictionary, type DictionaryNodeJSON } from './dictionary.js'
+import { compactDictionary, encodeCompactDictionary, type DictionaryNodeJSON } from './dictionary.js'
 import {
   DICTIONARY_FILE,
   MANIFEST_FILE,
@@ -14,6 +14,7 @@ import {
 import { decodeRawPostings, rawParts, type SerializedPostings } from './raw.js'
 import { encodeShard, encodedTermSize, type TermPostings } from './shard.js'
 import { encodeJSON } from './varint.js'
+import { buildIdFor } from './build-id.js'
 
 export const DEFAULT_TARGET_SHARD_BYTES = 40 * 1024
 
@@ -106,7 +107,10 @@ export async function buildStaticIndex(options: BuildStaticIndexOptions): Promis
   const terms = Array.from(termSet).sort()
 
   const files = new Map<string, Uint8Array>()
-  const shards: ShardRef[] = []
+  // Shard and fragment paths embed the build id, which is a hash of their
+  // contents, so bytes are collected first and named once the hash is known.
+  const shardBytes: Uint8Array[] = []
+  const shards: Array<Omit<ShardRef, 'file'>> = []
 
   let currentTerms: TermPostings[] = []
   let currentBytes = 0
@@ -118,10 +122,8 @@ export async function buildStaticIndex(options: BuildStaticIndexOptions): Promis
     }
 
     const bytes = encodeShard(currentTerms)
-    const file = shardFile(shards.length)
-    files.set(file, bytes)
+    shardBytes.push(bytes)
     shards.push({
-      file,
       bytes: bytes.length,
       firstTerm: currentTerms[0].term,
       lastTerm: currentTerms[currentTerms.length - 1].term,
@@ -137,10 +139,12 @@ export async function buildStaticIndex(options: BuildStaticIndexOptions): Promis
 
     for (let propIdx = 0; propIdx < props.length; propIdx++) {
       const prop = props[propIdx]
-      const encoded = postingsByProp[prop][term]
-      if (!encoded) {
+      // A plain `[term]` lookup would find inherited members such as
+      // `constructor` on a property that never indexed that word.
+      if (!Object.hasOwn(postingsByProp[prop], term)) {
         continue
       }
+      const encoded = postingsByProp[prop][term]
 
       const docIds = decodeRawPostings(encoded)
       const entries = docIds.map((docId) => {
@@ -186,9 +190,10 @@ export async function buildStaticIndex(options: BuildStaticIndexOptions): Promis
 
   let fragmentsBytes = 0
   const fragmentCount = records.length === 0 ? 0 : fragmentIndexFor(records.length, fragmentGroupSize) + 1
+  const fragmentBytes = new Map<number, Uint8Array>()
   for (const [group, docs] of fragmentGroups) {
     const bytes = encodeFragment(docs)
-    files.set(fragmentFile(group), bytes)
+    fragmentBytes.set(group, bytes)
     fragmentsBytes += bytes.length
   }
 
@@ -196,20 +201,43 @@ export async function buildStaticIndex(options: BuildStaticIndexOptions): Promis
   for (const prop of props) {
     dictionaryNodes[prop] = rawIndex.indexes[prop].node
   }
-  const dictionaryBytes = encodeDictionary(dictionaryNodes)
+  const compactDictionaryNodes = compactDictionary(dictionaryNodes)
+
+  // The build id hashes every artifact the client will combine, so two
+  // builds of the same content share an id and any change produces a new one.
+  const buildId = await buildIdFor([
+    encodeJSON(compactDictionaryNodes),
+    ...shardBytes,
+    ...Array.from(fragmentBytes.keys())
+      .sort((a, b) => a - b)
+      .map((group) => fragmentBytes.get(group)!)
+  ])
+
+  const dictionaryBytes = encodeCompactDictionary(compactDictionaryNodes, buildId)
   files.set(DICTIONARY_FILE, dictionaryBytes)
+
+  const namedShards: ShardRef[] = shards.map((shard, index) => {
+    const file = shardFile(index, buildId)
+    files.set(file, shardBytes[index])
+    return { file, ...shard }
+  })
+
+  for (const [group, bytes] of fragmentBytes) {
+    files.set(fragmentFile(group, buildId), bytes)
+  }
 
   const sequentialIds = isSequential(internalIdToId)
 
   const manifest: StaticManifest = {
     version: STATIC_FORMAT_VERSION,
+    buildId,
     language,
     docsCount: records.length,
     props,
     schema,
     avgFieldLength: { ...rawIndex.avgFieldLength },
     dictionary: { file: DICTIONARY_FILE, bytes: dictionaryBytes.length },
-    shards,
+    shards: namedShards,
     fragments: { groupSize: fragmentGroupSize, count: fragmentCount },
     sequentialIds,
     ...(sequentialIds ? {} : { internalIdToId })
@@ -228,7 +256,7 @@ export async function buildStaticIndex(options: BuildStaticIndexOptions): Promis
     files,
     stats: {
       termCount: terms.length,
-      shardCount: shards.length,
+      shardCount: namedShards.length,
       fragmentCount,
       dictionaryBytes: dictionaryBytes.length,
       postingsBytes,

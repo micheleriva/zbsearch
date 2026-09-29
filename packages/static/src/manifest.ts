@@ -3,12 +3,17 @@ export const STATIC_FORMAT_VERSION = 1
 export const MANIFEST_FILE = 'manifest.json'
 export const DICTIONARY_FILE = 'dictionary.json'
 
-export function shardFile(index: number): string {
-  return `postings/${index}.bin`
+/**
+ * Shards and fragments live under a directory named after the build they
+ * belong to, so a manifest can never be paired with files from another build:
+ * a stale cache yields a missing file, never a silently different index.
+ */
+export function shardFile(index: number, buildId: string): string {
+  return `postings/${buildId}/${index}.bin`
 }
 
-export function fragmentFile(index: number): string {
-  return `fragments/${index}.json`
+export function fragmentFile(index: number, buildId: string): string {
+  return `fragments/${buildId}/${index}.json`
 }
 
 export interface ShardRef {
@@ -23,6 +28,12 @@ export interface ShardRef {
 
 export interface StaticManifest {
   version: number
+  /**
+   * Content hash of the build. Every other artifact either carries it (the
+   * dictionary) or is addressed by it (shards, fragments), so the client can
+   * tell when a redeploy or a cache served pieces of different builds.
+   */
+  buildId: string
   language: string
   docsCount: number
   /** Ordered searchable string properties; shard entries reference them by position. */
@@ -48,7 +59,20 @@ export function assertSupportedManifest(manifest: StaticManifest): StaticManifes
     )
   }
 
+  if (typeof manifest.buildId !== 'string' || manifest.buildId.length === 0) {
+    throw new Error('[zbsearch-static] the manifest carries no build id. Rebuild the index and redeploy it.')
+  }
+
   return manifest
+}
+
+export function assertSameBuild(manifest: StaticManifest, dictionaryBuildId: string): void {
+  if (dictionaryBuildId !== manifest.buildId) {
+    throw new Error(
+      `[zbsearch-static] the dictionary comes from build ${dictionaryBuildId} but the manifest from build ${manifest.buildId}. ` +
+        'The index files were served from different deploys: redeploy every file together and clear stale caches.'
+    )
+  }
 }
 
 /** Locates the shard whose [firstTerm, lastTerm] range covers `term`, if any. */

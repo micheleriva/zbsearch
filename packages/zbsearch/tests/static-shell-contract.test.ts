@@ -138,6 +138,22 @@ describe('static shell contract', () => {
     expect(Object.isFrozen(internals.defaultBM25Params)).toBe(true)
   })
 
+  it('applyDefault never writes to the relevance object it receives', () => {
+    const filled = internals.applyDefault(internals.defaultBM25Params)
+    expect(filled).toEqual({ k: 1.2, b: 0.75, d: 0.5 })
+    expect(filled).not.toBe(internals.defaultBM25Params)
+
+    const partial = Object.freeze({ k: 2 })
+    expect(internals.applyDefault(partial)).toEqual({ k: 2, b: 0.75, d: 0.5 })
+    expect(partial).toEqual({ k: 2 })
+  })
+
+  it('a search can use the frozen defaults as its relevance parameters', async () => {
+    const db = await buildFullDb()
+    const results = await search(db, { term: 'query', relevance: internals.defaultBM25Params })
+    expect(results.count).toBeGreaterThan(0)
+  })
+
   it('a dictionary-only trie reports matched words with empty postings', async () => {
     const full = await buildFullDb()
     const raw = save(full) as RawData

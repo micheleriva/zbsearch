@@ -16,7 +16,8 @@ full search engine, with the ranking quality we've been [benchmarking in the ope
 year.
 
 If you only remember one thing: **a visitor who makes a typo still finds the page.** On our head-to-head
-benchmark, one-edit typos find the target document **98% of the time with ZBSearch, and 3% with Pagefind**.
+benchmark, queries with one character dropped from a word find the target document **98% of the time with
+ZBSearch, and 3% with Pagefind**.
 
 ## Why typos are the whole story
 
@@ -40,16 +41,19 @@ headless Chromium. Reproduce it with `npm run benchmark:pagefind` in the
 
 | What a visitor feels | ZBSearch static | Pagefind |
 | --- | ---: | ---: |
-| One-edit typo finds the page (top 5) | **98%** | 3% |
+| One dropped character still finds the page (top 5) | **98%** | 3% |
 | 4-char prefix finds the page (top 5) | **97%** | 88% |
-| Cold first search, total transfer (1,500 pages) | **92 KB** | 131 KB |
+| Cold first search, total transfer (1,500 pages) | **92 KB** | 123 KB |
 | Requests per query (1,500 pages) | **0.4** | 1.4 |
-| Query latency p95 (10,000 pages) | **9 ms** | 70 ms |
+| Query latency p95 (10,000 pages) | **8 ms** | 71 ms |
 
 | What you feel at build time | ZBSearch static | Pagefind |
 | --- | ---: | ---: |
-| Index build, 1,500 pages | **94 ms** | 1.4 s |
-| Index build, 10,000 pages | **0.5 s** | 14.9 s |
+| Index build, 1,500 pages | **0.14 s** | 0.9 s |
+| Index build, 10,000 pages | **0.7 s** | 5.1 s |
+
+The typo battery drops one character from a word (Levenshtein distance 1); insertions and substitutions
+are not measured. Build times cover indexing through writing the files to disk, for both engines.
 
 And one guarantee no chunked index has offered before: **sharded results are bit-identical to the full
 index**. The browser client runs ZBSearch's own `search()` against lazily-fetched data, so BM25 scores,
@@ -132,12 +136,18 @@ no query ever leaving the page.
 
 At build time, the index splits into four kinds of files:
 
-- **`manifest.json`** - global ranking statistics and the shard table. A few KB.
+- **`manifest.json`** - global ranking statistics, the shard table and the build id. A few KB.
 - **`dictionary.json`** - every indexed term as a compact trie, postings stripped. This is the piece that
   stays resident and makes typo and prefix search free.
-- **`postings/*.bin`** - binary shards packed by sorted term ranges, ~40 KB each. A query fetches only the
-  shards covering its terms, and each entry carries everything BM25 needs, so one fetch is enough to score.
-- **`fragments/*.json`** - the documents themselves, in small groups, fetched only for displayed results.
+- **`postings/<build>/*.bin`** - binary shards packed by sorted term ranges, ~40 KB each. A query fetches
+  only the shards covering its terms, and each entry carries everything BM25 needs, so one fetch is enough
+  to score.
+- **`fragments/<build>/*.json`** - the documents themselves, in small groups, fetched only for displayed
+  results.
+
+The build id is a hash of the index contents. The dictionary carries it and the shards and fragments live
+under it, so a redeploy or a stale CDN cache can never mix files from two builds into one silently wrong
+index.
 
 Everything fetched stays warm for the session: refining a query usually costs nothing further, and
 repeating one costs no requests at all.

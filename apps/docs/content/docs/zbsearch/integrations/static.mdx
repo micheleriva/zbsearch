@@ -37,10 +37,13 @@ npm install @zbsearch/static
 | `postings/<build>/*.bin` | Binary postings shards, packed by sorted term ranges to roughly 40 KB each | Per query, only the shards covering its terms |
 | `fragments/<build>/*.json` | Stored documents in small groups | Only for the results being shown - everything up to the requested page |
 
-`<build>` is a hash of the index contents. The manifest names it, the dictionary carries it, and shards and
-fragments live under it, so a redeploy or a stale cache can never combine files from two different builds:
-the client refuses a dictionary from another build outright, and asks for shards and fragments by the
-manifest's build id, where a mismatch shows up as a missing file instead of silently different results.
+`<build>` is a hash of everything the client combines: the dictionary, every shard and fragment, and the
+manifest's own identity (language, schema, statistics and the document ID mapping), so even a rebuild that
+changes only the records' `id` values gets a new build id. The manifest names it, the dictionary carries it,
+and shards and fragments live under it. A redeploy or a stale cache therefore cannot combine files from two
+different builds: the client refuses a dictionary from another build outright, and asks for shards and
+fragments by the manifest's build id, where a mismatch shows up as a missing file instead of silently
+different results.
 
 The dictionary staying resident is what keeps search quality intact: once it is loaded, prefix expansion
 and typo correction walk the local trie with no further network involved, so a misspelled query costs the

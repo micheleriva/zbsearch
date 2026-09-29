@@ -49,7 +49,7 @@ describe('Tokenizer', () => {
     const O1 = tokenizer.tokenize(I1, 'english')
     const O2 = tokenizer.tokenize(I2, 'english')
 
-    expect(O1).toStrictEqual(['the', 'quick', 'brown', 'fox', 'jump', 'over', 'lazi', 'dog'])
+    expect(O1).toStrictEqual(['the', 'quick', 'brown', 'fox', 'jump', 'over', 'the', 'lazi', 'dog'])
     expect(O2).toStrictEqual(['i', 'bake', 'some', 'cake'])
   })
 
@@ -380,6 +380,7 @@ describe('Tokenizer', () => {
       'нещ',
       'неочакван',
       'док',
+      'се',
       'изпълняват',
       'тест'
     ])
@@ -708,7 +709,7 @@ describe('Custom stop-words rules', async () => {
 
     const O2 = tokenizer.tokenize(I2)
 
-    expect(O1).toEqual(['the', 'jump', 'over', 'lazi'])
+    expect(O1).toEqual(['the', 'jump', 'over', 'the', 'lazi'])
     expect(O2).toEqual(['i', 'bake', 'some', 'cake'])
   })
 
@@ -740,7 +741,7 @@ describe('Custom stop-words rules', async () => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    expect(O1).toEqual(['the', 'quick', 'brown', 'fox', 'jump', 'over', 'lazi', 'dog'])
+    expect(O1).toEqual(['the', 'quick', 'brown', 'fox', 'jump', 'over', 'the', 'lazi', 'dog'])
     expect(O2).toEqual(['i', 'bake', 'some', 'cake'])
   })
 

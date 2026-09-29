@@ -137,7 +137,7 @@ export function insertString(
   language: string | undefined,
   tokenizer: Tokenizer
 ) {
-  const tokens = tokenizer.tokenize(value, language, prop)
+  const tokens = uniqueTokens(tokenizer.tokenize(value, language, prop))
   const tokensLength = tokens.length
   for (let i = 0; i < tokensLength; i++) {
     const token = tokens[i]
@@ -169,7 +169,7 @@ export function searchString(
   boostPerProp: number,
   whereFiltersIDs: Set<InternalDocumentID> | undefined
 ) {
-  const tokens = tokenizer.tokenize(term)
+  const tokens = uniqueTokens(tokenizer.tokenize(term))
 
   const ret: Map<number, number> = new Map()
   for (const token of tokens) {
@@ -206,7 +206,7 @@ export function removeString(
   tokenizer: Tokenizer,
   language: string | undefined
 ) {
-  const tokens = tokenizer.tokenize(value, language, prop)
+  const tokens = uniqueTokens(tokenizer.tokenize(value, language, prop))
   const tokensLength = tokens.length
   for (let i = 0; i < tokensLength; i++) {
     const token = tokens[i]
@@ -226,4 +226,10 @@ export function removeString(
       }
     }
   }
+}
+
+// PT15 scores by token position, not term frequency, so it works on each distinct token once
+// regardless of the tokenizer's `allowDuplicates` setting.
+export function uniqueTokens(tokens: string[]): string[] {
+  return tokens.length > 1 ? Array.from(new Set(tokens)) : tokens
 }

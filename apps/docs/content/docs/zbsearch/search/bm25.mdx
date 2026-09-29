@@ -35,4 +35,23 @@ const searchResult = search(movieDB, {
 });
 ```
 
+## Term frequency and `allowDuplicates`
+
+BM25 rewards documents that repeat a query term, up to the saturation set by `k`. For that to work, the tokenizer has to hand the index every occurrence of a word. This is the default: `allowDuplicates` is `true`, so a field like `"apple apple apple banana"` is indexed with a term frequency of 3 for `apple` and a field length of 4.
+
+Set `allowDuplicates: false` on the default tokenizer to index each distinct token once. Term frequency is then always 1, and the field length counts distinct tokens, so repetition no longer affects ranking.
+
+```javascript copy
+const db = create({
+  schema: { text: "string" },
+  components: {
+    tokenizer: {
+      allowDuplicates: false,
+    },
+  },
+});
+```
+
+Repeated words in the query are always matched once, whatever the setting.
+
 You can learn more about the BM25 algorithm in the [Okapi BM25 Wikipedia](https://en.wikipedia.org/wiki/Okapi_BM25) page.

@@ -10,7 +10,7 @@ import type {
   SuggestParams,
   SuggestResults
 } from '../types.js'
-import { getNanosecondsTime } from '../utils.js'
+import { getNanosecondsTime, uniqueTokens } from '../utils.js'
 import { count } from './docs.js'
 import { applyDefault, getPropertiesToSearch } from './search-fulltext.js'
 
@@ -54,7 +54,7 @@ export function suggest<T extends AnyZBSearch>(
 
   const index = zbsearch.data.index
   const propertiesToSearch = getPropertiesToSearch(zbsearch, params.properties)
-  const tokens = zbsearch.tokenizer.tokenize(term ?? '', language)
+  const tokens = uniqueTokens(zbsearch.tokenizer.tokenize(term ?? '', language))
 
   if (!tokens.length || !propertiesToSearch.length) {
     return emptyResults(zbsearch, timeStart)

@@ -536,3 +536,9 @@ export function yieldToEventLoop(): Promise<void> {
     setTimeout(resolve, 0)
   })
 }
+
+// Query terms are matched once each, however many times the user repeats them, so query-side
+// tokenization drops duplicates even when the tokenizer keeps them for indexing.
+export function uniqueTokens(tokens: string[]): string[] {
+  return tokens.length > 1 ? Array.from(new Set(tokens)) : tokens
+}

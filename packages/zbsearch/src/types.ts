@@ -474,7 +474,8 @@ export interface SearchParamsFullText<
    * Threshold to use for refining the search results.
    * The threshold is a number between 0 and 1. With 1, every document that matches at least one
    * search term is returned. With 0, only the documents that match every search term are returned.
-   * Values in between return the documents matching every term plus that fraction of the partial matches.
+   * When documents match every term, values in between return those documents plus a fraction of the partial matches.
+   * If no document matches every term, all partial matches are returned.
    * By default, the threshold is 1.
    *
    * Full documentation: https://docs.zbsearch.com/docs/zbsearch-js/search/threshold

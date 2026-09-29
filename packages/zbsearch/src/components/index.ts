@@ -29,7 +29,14 @@ import type {
   TokenScore,
   WhereCondition
 } from '../types.js'
-import { convertDistanceToMeters, setDifference, setIntersection, setUnion, yieldToEventLoop } from '../utils.js'
+import {
+  convertDistanceToMeters,
+  setDifference,
+  setIntersection,
+  setUnion,
+  yieldToEventLoop,
+  uniqueTokens
+} from '../utils.js'
 import { BM25 } from './algorithms.js'
 import { getInnerType, getVectorSize, isArrayType, isVectorType } from './defaults.js'
 import { levenshtein } from './levenshtein.js'
@@ -672,7 +679,7 @@ export function search(
   threshold = 0,
   prefix = true
 ): TokenScore[] {
-  const tokens = tokenizer.tokenize(term, language)
+  const tokens = uniqueTokens(tokenizer.tokenize(term, language))
   const keywordsCount = tokens.length || 1
 
   if (!tokens.length && !term) {

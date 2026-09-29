@@ -1,6 +1,54 @@
 import { expect, it } from 'vitest'
 import { create, insertMultiple, load, remove, save, search } from 'zbsearch'
 import { pluginQPS } from '../src/index.js'
+import { radix } from 'zbsearch/trees'
+
+it('a word repeated across sentences is posted once and fully removed', async () => {
+  const db = create({
+    schema: { name: 'string' } as const,
+    plugins: [pluginQPS()]
+  })
+
+  await insertMultiple(db, [
+    { id: '1', name: 'apple cat. apple dog' },
+    { id: '2', name: 'apple pie' }
+  ])
+
+  const before = await search(db, { term: 'apple' })
+  expect(before.count).toBe(2)
+  expect(before.hits.map((hit) => hit.id)).toStrictEqual(['1', '2'])
+
+  await remove(db, '1')
+
+  const after = await search(db, { term: 'apple' })
+  expect(after.count).toBe(1)
+  expect(after.hits.map((hit) => hit.id)).toStrictEqual(['2'])
+})
+
+it('removes the duplicate postings left by an index built before repeated words were posted once', async () => {
+  const db = create({
+    schema: { name: 'string' } as const,
+    plugins: [pluginQPS()]
+  })
+
+  await insertMultiple(db, [
+    { id: '1', name: 'apple cat. apple dog' },
+    { id: '2', name: 'apple pie' }
+  ])
+
+  // The earlier implementation inserted a posting per sentence, so `apple` held document 1 twice.
+  const tree = db.data.index.indexes.name.node as radix.RadixTree
+  const internalId = db.internalDocumentIDStore.idToInternalId.get('1')!
+  tree.insert('apple', internalId)
+  expect(tree.find({ term: 'apple' }).apple.filter((id) => id === internalId)).toHaveLength(2)
+
+  await remove(db, '1')
+
+  expect(tree.find({ term: 'apple' }).apple).not.toContain(internalId)
+  const after = await search(db, { term: 'apple' })
+  expect(after.count).toBe(1)
+  expect(after.hits.map((hit) => hit.id)).toStrictEqual(['2'])
+})
 
 it('plugin-qps', async () => {
   const db = create({

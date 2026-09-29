@@ -14,7 +14,14 @@ import type {
   BM25Params
 } from 'zbsearch'
 import { index as Index, internalDocumentIDStore } from 'zbsearch/components'
-import { insertString, QPSIndex as QPSIndexStorage, recursiveCreate, removeString, searchString } from './algorithm.js'
+import {
+  insertString,
+  QPSIndex as QPSIndexStorage,
+  recursiveCreate,
+  removeString,
+  searchString,
+  uniqueTokens
+} from './algorithm.js'
 import { radix } from 'zbsearch/trees'
 import { setIntersection } from 'zbsearch/internals'
 
@@ -47,7 +54,7 @@ function search<T extends AnyZBSearch>(
   const all: Map<InternalDocumentID, [number, number]> = new Map()
 
   const args = {
-    tokens: tokenizer.tokenize(term, language),
+    tokens: uniqueTokens(tokenizer.tokenize(term, language)),
     radixNode: unusedRadix,
     exact,
     tolerance,

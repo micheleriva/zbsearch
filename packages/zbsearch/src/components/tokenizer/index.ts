@@ -241,7 +241,7 @@ export function createTokenizer(config: DefaultTokenizerConfig = {}): DefaultTok
           LANGUAGES_WITH_SIGNIFICANT_DIACRITICS.has(config.language) ? stopWords : stopWords.map(replaceDiacritics)
         )
       : undefined,
-    allowDuplicates: Boolean(config.allowDuplicates),
+    allowDuplicates: config.allowDuplicates ?? true,
     normalizeToken,
     normalizationCache: new Map(),
     normalizationCacheSize: config.normalizationCacheSize ?? DEFAULT_NORMALIZATION_CACHE_SIZE

@@ -102,8 +102,11 @@ export function insertString(
 
   let quantumIndex = 0
   let tokenNumber = 0
+  // A token repeated across sentences gets one posting: the per-sentence occurrences are tracked
+  // in `tokenQuantums`, and a second posting would score the document twice and outlive its removal.
+  const posted = new Set<string>()
   for (const sentence of sentences) {
-    const tokens = tokenizer.tokenize(sentence, language, prop)
+    const tokens = uniqueTokens(tokenizer.tokenize(sentence, language, prop))
 
     for (const token of tokens) {
       tokenNumber++
@@ -119,7 +122,10 @@ export function insertString(
         tokenBitIndex
       )
 
-      radixTree.insert(token, internalId)
+      if (!posted.has(token)) {
+        posted.add(token)
+        radixTree.insert(token, internalId)
+      }
     }
 
     // Don't increment the quantum index if the sentence is too short
@@ -243,7 +249,7 @@ export function removeString(
   const tokensLength = stats.tokensLength
   const tokenQuantums = stats.tokenQuantums
 
-  const tokens = tokenizer.tokenize(value, language, prop)
+  const tokens = uniqueTokens(tokenizer.tokenize(value, language, prop))
 
   for (const token of tokens) {
     radixTree.removeDocumentByWord(token, internalId, true)
@@ -251,4 +257,10 @@ export function removeString(
 
   tokensLength.delete(internalId)
   delete tokenQuantums[internalId]
+}
+
+// QPS scores presence and position, not term frequency, so it works on each distinct token once
+// regardless of the tokenizer's `allowDuplicates` setting.
+export function uniqueTokens(tokens: string[]): string[] {
+  return tokens.length > 1 ? Array.from(new Set(tokens)) : tokens
 }

@@ -1344,6 +1344,10 @@ export type DefaultTokenizerConfig = {
   stemmerSkipProperties?: string | string[]
   tokenizeSkipProperties?: string | string[]
   stopWords?: boolean | string[] | ((stopWords: string[]) => string[])
+  /**
+   * Whether repeated words in a field are kept as repeated tokens. Defaults to true, so BM25 sees
+   * real term frequencies and field lengths. Set to false to index each distinct token once.
+   */
   allowDuplicates?: boolean
   /**
    * Maximum number of normalized tokens kept in the tokenizer cache. Defaults to 50000.

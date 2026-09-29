@@ -322,8 +322,10 @@ describe('Tokenizer', () => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    expect(O1).toStrictEqual(['கத'])
-    expect(O2).toStrictEqual(['அவன', 'ல'])
+    // Tamil vowel signs are combining marks: the words stay whole instead of breaking on them, and
+    // the stemmer then gets a real word to work on.
+    expect(O1).toStrictEqual(['கதை'])
+    expect(O2).toStrictEqual(['அவன்'])
   })
 
   it('should tokenize and stem correctly in ukrainian', async () => {

@@ -174,7 +174,8 @@ test('excluded routes are absent from the index', async ({ page }) => {
 test('mdx imports and admonition markers are kept out of the index', async ({ page }) => {
   const box = await openSearch(page)
 
-  await query(box, 'nowhere')
+  // `astrojs` only occurs in the import statement at the top of the API reference page.
+  await query(box, 'astrojs')
 
   await expect(box.noResults).toBeVisible()
 })

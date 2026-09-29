@@ -174,10 +174,11 @@ test('excluded routes are absent from the index', async ({ page }) => {
   await expect(box.noResults).toBeVisible()
 })
 
-test('mdx imports and admonition markers are kept out of the index', async ({ page }) => {
+test('script setup imports and admonition markers are kept out of the index', async ({ page }) => {
   const box = await openSearch(page)
 
-  await query(box, 'nowhere')
+  // `useData` only occurs in the script block at the top of the API reference page.
+  await query(box, 'usedata')
 
   await expect(box.noResults).toBeVisible()
 })

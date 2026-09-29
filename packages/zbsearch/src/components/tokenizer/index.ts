@@ -97,9 +97,9 @@ function trim(text: string[]): string[] {
   return text
 }
 
-// Fallback for runtimes without Intl.Segmenter: maximal runs of Unicode letters/numbers.
+// Fallback for runtimes without Intl.Segmenter: maximal runs of Unicode letters, combining marks and numbers.
 // Less precise than UAX #29 word segmentation (e.g. it keeps "l'amour" whole instead of splitting on the apostrophe) but script-agnostic.
-const UNICODE_WORD = /[\p{L}\p{N}]+/gu
+const UNICODE_WORD = /[\p{L}\p{M}\p{N}]+/gu
 
 let multilingualSegmenter: Intl.Segmenter | undefined
 
@@ -119,6 +119,21 @@ function splitMultilingual(input: string): string[] {
   }
 
   return input.toLowerCase().match(UNICODE_WORD) ?? []
+}
+
+// Hyphens and apostrophes are word characters in several splitters so that "t-shirt" and "it's"
+// stay whole. At the edges of a token they are punctuation instead ("-blockers", "'quoted'", "rock-")
+// and would keep the word from matching, so they are trimmed off.
+const EDGE_PUNCTUATION = /^['-]+|['-]+$/g
+
+function trimEdgePunctuation(part: string): string {
+  const first = part.charCodeAt(0)
+  const last = part.charCodeAt(part.length - 1)
+  // 39 is `'`, 45 is `-`. Most parts have neither, so skip the regex for them.
+  if (first === 39 || first === 45 || last === 39 || last === 45) {
+    return part.replace(EDGE_PUNCTUATION, '')
+  }
+  return part
 }
 
 function tokenize(
@@ -152,7 +167,7 @@ function tokenize(
   const partsLength = parts.length
 
   for (let i = 0; i < partsLength; i++) {
-    const part = parts[i]!
+    const part = trimEdgePunctuation(parts[i]!)
     if (!part) continue
     const token = this.normalizeToken(property, part, withCache)
     if (token) {

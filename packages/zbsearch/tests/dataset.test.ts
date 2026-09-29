@@ -118,9 +118,9 @@ describe('zbsearch.dataset', async () => {
       properties: ['description']
     })
 
-    expect(s1.count).toBe(14927)
-    expect(s2.count).toBe(2926)
-    expect(s3.count).toBe(3332)
+    expect(s1.count).toBe(14992)
+    expect(s2.count).toBe(2930)
+    expect(s3.count).toBe(3341)
   })
 
   it('should perform paginate search', async ({ task }) => {

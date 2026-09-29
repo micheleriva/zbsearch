@@ -116,7 +116,7 @@ export function createStaticSearchClient(options: StaticClientOptions = {}): Sta
   }
 
   function fetchFragment(shell: StaticShell, group: number): Promise<void> {
-    const file = fragmentFile(group)
+    const file = fragmentFile(group, shell.manifest.buildId)
     let pending = fragmentPromises.get(file)
     if (!pending) {
       pending = fetchBytes(file)

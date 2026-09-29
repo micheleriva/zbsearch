@@ -9,6 +9,7 @@ const errors = {
   INVALID_STEMMER_FUNCTION_TYPE: `config.stemmer property must be a function.`,
   MISSING_STEMMER: `As of version 1.0.0 zbsearch does not ship non English stemmers by default. To solve this, please explicitly import and specify the "%s" stemmer from the package @zbsearch/stemmers. See https://docs.zbsearch.com/docs/zbsearch-js/text-analysis/stemming for more information.`,
   CUSTOM_STOP_WORDS_MUST_BE_FUNCTION_OR_ARRAY: 'Custom stop words array must only contain strings.',
+  INVALID_NORMALIZATION_CACHE_SIZE: 'config.normalizationCacheSize must be a non-negative integer, received %s.',
   UNSUPPORTED_COMPONENT: `Unsupported component "%s".`,
   COMPONENT_MUST_BE_FUNCTION: `The component "%s" must be a function.`,
   COMPONENT_MUST_BE_FUNCTION_OR_ARRAY_FUNCTIONS: `The component "%s" must be a function or an array of functions.`,

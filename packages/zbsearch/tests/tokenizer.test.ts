@@ -37,7 +37,7 @@ import { stopwords as ukrainianStopwords } from '@zbsearch/stopwords/ukrainian'
 import { stopwords as tamilStopwords } from '@zbsearch/stopwords/tamil'
 import { stopwords as vietnameseStopwords } from '@zbsearch/stopwords/vietnamese'
 
-import { createTokenizer } from '../src/components/tokenizer/index.js'
+import { createTokenizer, DEFAULT_NORMALIZATION_CACHE_SIZE } from '../src/components/tokenizer/index.js'
 
 describe('Tokenizer', () => {
   it('should tokenize and stem correctly in english', async () => {
@@ -923,5 +923,37 @@ describe('Custom stop-words rules', async () => {
     // The unaccented spelling of a stopword is dropped too, so a query typed
     // without accents behaves exactly like the accented one.
     expect(tokenizer.tokenize('Ou est le gateau ete')).toStrictEqual(['est', 'le', 'gateau'])
+  })
+
+  it('caches normalized tokens and evicts the oldest entry once full', () => {
+    const tokenizer = createTokenizer({ language: 'english', stemming: true, normalizationCacheSize: 2 })
+
+    expect(tokenizer.tokenize('running jumps')).toStrictEqual(['run', 'jump'])
+    expect([...tokenizer.normalizationCache.keys()]).toStrictEqual(['english::running', 'english::jumps'])
+
+    // A third distinct token evicts the oldest entry. Re-seeing a cached token is a hit, not a new entry.
+    expect(tokenizer.tokenize('jumps cakes')).toStrictEqual(['jump', 'cake'])
+    expect([...tokenizer.normalizationCache.keys()]).toStrictEqual(['english::jumps', 'english::cakes'])
+    expect(tokenizer.normalizationCache.get('english::cakes')).toBe('cake')
+  })
+
+  it('caps the normalization cache by default', () => {
+    const tokenizer = createTokenizer({ language: 'english' })
+
+    expect(DEFAULT_NORMALIZATION_CACHE_SIZE).toBe(50_000)
+    expect(tokenizer.normalizationCacheSize).toBe(DEFAULT_NORMALIZATION_CACHE_SIZE)
+  })
+
+  it('normalizationCacheSize: 0 disables the cache', () => {
+    const tokenizer = createTokenizer({ language: 'english', stemming: true, normalizationCacheSize: 0 })
+
+    expect(tokenizer.tokenize('running')).toStrictEqual(['run'])
+    expect(tokenizer.tokenize('running')).toStrictEqual(['run'])
+    expect(tokenizer.normalizationCache.size).toBe(0)
+  })
+
+  it('rejects an invalid normalizationCacheSize', () => {
+    expect(() => createTokenizer({ language: 'english', normalizationCacheSize: -1 })).toThrow('non-negative integer')
+    expect(() => createTokenizer({ language: 'english', normalizationCacheSize: 1.5 })).toThrow('non-negative integer')
   })
 })

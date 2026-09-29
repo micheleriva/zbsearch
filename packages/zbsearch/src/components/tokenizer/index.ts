@@ -12,6 +12,11 @@ import {
 } from './languages.js'
 import { stemmer as english } from './english-stemmer.js'
 
+// Upper bound on the number of entries kept in `normalizationCache`. The cache is keyed by
+// language, property and surface form, so indexing a large corpus with many distinct tokens
+// would otherwise grow it without limit. Once full, the oldest entry is evicted for each new one.
+export const DEFAULT_NORMALIZATION_CACHE_SIZE = 50_000
+
 export interface DefaultTokenizer extends Tokenizer {
   language: Language
   stemmer?: Stemmer
@@ -21,7 +26,24 @@ export interface DefaultTokenizer extends Tokenizer {
   stopWordsSet?: Set<string>
   allowDuplicates: boolean
   normalizationCache: Map<string, string>
+  normalizationCacheSize?: number
   normalizeToken(this: DefaultTokenizer, prop: Optional<string>, token: string, withCache: Optional<boolean>): string
+}
+
+function cacheNormalizedToken(tokenizer: DefaultTokenizer, key: string, token: string): void {
+  const cache = tokenizer.normalizationCache
+  const maxSize = tokenizer.normalizationCacheSize ?? DEFAULT_NORMALIZATION_CACHE_SIZE
+
+  if (maxSize <= 0) {
+    return
+  }
+
+  if (cache.size >= maxSize && !cache.has(key)) {
+    // Map iterates in insertion order, so the first key is the oldest entry.
+    cache.delete(cache.keys().next().value!)
+  }
+
+  cache.set(key, token)
 }
 
 export function normalizeToken(this: DefaultTokenizer, prop: string, token: string, withCache: boolean = true): string {
@@ -39,7 +61,7 @@ export function normalizeToken(this: DefaultTokenizer, prop: string, token: stri
   // Remove stopwords if enabled
   if (this.stopWordsSet?.has(token)) {
     if (withCache) {
-      this.normalizationCache.set(key, '')
+      cacheNormalizedToken(this, key, '')
     }
     return ''
   }
@@ -49,7 +71,7 @@ export function normalizeToken(this: DefaultTokenizer, prop: string, token: stri
     token = this.stemmer(token)
   }
   if (withCache) {
-    this.normalizationCache.set(key, token)
+    cacheNormalizedToken(this, key, token)
   }
   return token
 }
@@ -163,6 +185,13 @@ export function createTokenizer(config: DefaultTokenizerConfig = {}): DefaultTok
     }
   }
 
+  if (
+    config.normalizationCacheSize !== undefined &&
+    (!Number.isInteger(config.normalizationCacheSize) || config.normalizationCacheSize < 0)
+  ) {
+    throw createError('INVALID_NORMALIZATION_CACHE_SIZE', String(config.normalizationCacheSize))
+  }
+
   // Handle stopwords
   let stopWords: Optional<string[]>
 
@@ -204,7 +233,8 @@ export function createTokenizer(config: DefaultTokenizerConfig = {}): DefaultTok
       : undefined,
     allowDuplicates: Boolean(config.allowDuplicates),
     normalizeToken,
-    normalizationCache: new Map()
+    normalizationCache: new Map(),
+    normalizationCacheSize: config.normalizationCacheSize ?? DEFAULT_NORMALIZATION_CACHE_SIZE
   }
 
   tokenizer.tokenize = tokenize.bind(tokenizer)

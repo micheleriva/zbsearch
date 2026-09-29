@@ -203,9 +203,24 @@ export async function buildStaticIndex(options: BuildStaticIndexOptions): Promis
   }
   const compactDictionaryNodes = compactDictionary(dictionaryNodes)
 
-  // The build id hashes every artifact the client will combine, so two
-  // builds of the same content share an id and any change produces a new one.
+  const sequentialIds = isSequential(internalIdToId)
+
+  // The build id hashes everything the client will combine: the manifest's
+  // own identity (language, schema, statistics and the document ID mapping)
+  // as well as every artifact. Two builds of the same content share an id,
+  // and any change, even to external IDs alone, produces a new one.
   const buildId = await buildIdFor([
+    encodeJSON({
+      version: STATIC_FORMAT_VERSION,
+      language,
+      docsCount: records.length,
+      props,
+      schema,
+      avgFieldLength: rawIndex.avgFieldLength,
+      fragmentGroupSize,
+      sequentialIds,
+      internalIdToId: sequentialIds ? undefined : internalIdToId
+    }),
     encodeJSON(compactDictionaryNodes),
     ...shardBytes,
     ...Array.from(fragmentBytes.keys())
@@ -225,8 +240,6 @@ export async function buildStaticIndex(options: BuildStaticIndexOptions): Promis
   for (const [group, bytes] of fragmentBytes) {
     files.set(fragmentFile(group, buildId), bytes)
   }
-
-  const sequentialIds = isSequential(internalIdToId)
 
   const manifest: StaticManifest = {
     version: STATIC_FORMAT_VERSION,

@@ -3,7 +3,9 @@ title: API Reference
 description: Every function exported from the package root.
 ---
 
-import Something from 'nowhere'
+<script setup>
+import { useData } from 'vitepress'
+</script>
 
 Every function below is exported from the package root.
 

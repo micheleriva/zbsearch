@@ -89,6 +89,21 @@ function splitMultilingual(input: string): string[] {
   return input.toLowerCase().match(UNICODE_WORD) ?? []
 }
 
+// Hyphens and apostrophes are word characters in several splitters so that "t-shirt" and "it's"
+// stay whole. At the edges of a token they are punctuation instead ("-blockers", "'quoted'", "rock-")
+// and would keep the word from matching, so they are trimmed off.
+const EDGE_PUNCTUATION = /^['-]+|['-]+$/g
+
+function trimEdgePunctuation(part: string): string {
+  const first = part.charCodeAt(0)
+  const last = part.charCodeAt(part.length - 1)
+  // 39 is `'`, 45 is `-`. Most parts have neither, so skip the regex for them.
+  if (first === 39 || first === 45 || last === 39 || last === 45) {
+    return part.replace(EDGE_PUNCTUATION, '')
+  }
+  return part
+}
+
 function tokenize(
   this: DefaultTokenizer,
   input: string,
@@ -120,7 +135,7 @@ function tokenize(
   const partsLength = parts.length
 
   for (let i = 0; i < partsLength; i++) {
-    const part = parts[i]!
+    const part = trimEdgePunctuation(parts[i]!)
     if (!part) continue
     const token = this.normalizeToken(property, part, withCache)
     if (token) {

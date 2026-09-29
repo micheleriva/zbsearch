@@ -4,7 +4,7 @@
     "hits": [
       {
         "id": "",
-        "score": 5.210105404591927,
+        "score": 5.253326654456064,
         "document": {
           "date": "-53",
           "description": "Parthian war:",
@@ -17,7 +17,20 @@
       },
       {
         "id": "",
-        "score": 4.972740926113907,
+        "score": 5.077951406472955,
+        "document": {
+          "date": "1870/07/19",
+          "description": " Franco-Prussian War: France declares war on Prussia.",
+          "granularity": "year",
+          "categories": {
+            "first": "July/September",
+            "second": ""
+          }
+        }
+      },
+      {
+        "id": "",
+        "score": 5.0320123273873705,
         "document": {
           "date": "1728/10/20",
           "description": "The Meerkat–Mongoose war.",
@@ -30,7 +43,129 @@
       },
       {
         "id": "",
-        "score": 4.756061975725999,
+        "score": 4.961720415553232,
+        "document": {
+          "date": "1846/05/13",
+          "description": " Mexican-American War: The United States declares war on Mexico.",
+          "granularity": "year",
+          "categories": {
+            "first": "April/June",
+            "second": ""
+          }
+        }
+      },
+      {
+        "id": "",
+        "score": 4.961720415553232,
+        "document": {
+          "date": "1854/03/27",
+          "description": " Crimean War: The United Kingdom declares war on Russia.",
+          "granularity": "year",
+          "categories": {
+            "first": "January/March",
+            "second": ""
+          }
+        }
+      },
+      {
+        "id": "",
+        "score": 4.961720415553232,
+        "document": {
+          "date": "1977/07/13",
+          "description": " Somalia declares war on Ethiopia, starting the Ethiopian-Somali War.",
+          "granularity": "year",
+          "categories": {
+            "first": "July",
+            "second": ""
+          }
+        }
+      },
+      {
+        "id": "",
+        "score": 4.8506912609251875,
+        "document": {
+          "date": "1264",
+          "description": "Before May ampampndash The Second Barons' War, a civil war in England, begins.",
+          "granularity": "year",
+          "categories": {
+            "first": "By area",
+            "second": "Europe"
+          }
+        }
+      },
+      {
+        "id": "",
+        "score": 4.8506912609251875,
+        "document": {
+          "date": "1739/10/23",
+          "description": " War of Jenkins' Ear: Great Britain declares war on Spain.",
+          "granularity": "year",
+          "categories": {
+            "first": "July/December",
+            "second": ""
+          }
+        }
+      },
+      {
+        "id": "",
+        "score": 4.8506912609251875,
+        "document": {
+          "date": "1814/12/24",
+          "description": " War of 1812: The Treaty of Ghent is signed, officially ending the war.",
+          "granularity": "year",
+          "categories": {
+            "first": "October/December",
+            "second": ""
+          }
+        }
+      },
+      {
+        "id": "",
+        "score": 4.8506912609251875,
+        "document": {
+          "date": "1912/10/08",
+          "description": "The First Balkan War begins: Montenegro declares war against Turkey.",
+          "granularity": "year",
+          "categories": {
+            "first": "October",
+            "second": ""
+          }
+        }
+      }
+    ]
+  },
+  "should perform paginate search-page-2": {
+    "count": 679,
+    "hits": [
+      {
+        "id": "",
+        "score": 4.8506912609251875,
+        "document": {
+          "date": "1953/08/05",
+          "description": "Operation Big Switch: Prisoners of war are repatriated after the Korean War.",
+          "granularity": "year",
+          "categories": {
+            "first": "August",
+            "second": ""
+          }
+        }
+      },
+      {
+        "id": "",
+        "score": 4.8506912609251875,
+        "document": {
+          "date": "1973/02/11",
+          "description": "Vietnam War: The first American prisoners of war are released from Vietnam.",
+          "granularity": "year",
+          "categories": {
+            "first": "February",
+            "second": ""
+          }
+        }
+      },
+      {
+        "id": "",
+        "score": 4.828591422565418,
         "document": {
           "date": "-156",
           "description": "The first Dalmatian war begins.",
@@ -43,7 +178,7 @@
       },
       {
         "id": "",
-        "score": 4.756061975725999,
+        "score": 4.828591422565418,
         "document": {
           "date": "-119",
           "description": "The second Dalmatian war begins.",
@@ -56,7 +191,7 @@
       },
       {
         "id": "",
-        "score": 4.756061975725999,
+        "score": 4.828591422565418,
         "document": {
           "date": "-78",
           "description": "The Third Dalmatian war begins.",
@@ -69,277 +204,7 @@
       },
       {
         "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "599",
-          "description": "The Chinese win the war at Ordos.",
-          "granularity": "year",
-          "categories": {
-            "first": "By place",
-            "second": "Asia"
-          }
-        }
-      },
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1027/08/16",
-          "description": "Civil war begins in Japan.",
-          "granularity": "year",
-          "categories": {
-            "first": "By place",
-            "second": "Asia"
-          }
-        }
-      },
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1695/12/31",
-          "description": "Russia declares war on Turkey.",
-          "granularity": "year",
-          "categories": {
-            "first": "Date unknown",
-            "second": ""
-          }
-        }
-      },
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1792/04/20",
-          "description": " France declares war against Austria.",
-          "granularity": "year",
-          "categories": {
-            "first": "April/June",
-            "second": ""
-          }
-        }
-      },
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1792/06/04",
-          "description": "Prussia declares war against France.",
-          "granularity": "year",
-          "categories": {
-            "first": "April/June",
-            "second": ""
-          }
-        }
-      }
-    ]
-  },
-  "should perform paginate search-page-2": {
-    "count": 679,
-    "hits": [
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1793/03/07",
-          "description": " France declares war on Spain.",
-          "granularity": "year",
-          "categories": {
-            "first": "January/June",
-            "second": ""
-          }
-        }
-      },
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1804/12/12",
-          "description": " Spain declares war on Britain",
-          "granularity": "year",
-          "categories": {
-            "first": "October/December",
-            "second": ""
-          }
-        }
-      },
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1805/12/26",
-          "description": "Sweden declares war on France.",
-          "granularity": "year",
-          "categories": {
-            "first": "Date unknown",
-            "second": ""
-          }
-        }
-      },
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1823/12/02",
-          "description": "Beginning of the first Anglo-Ashanti war.",
-          "granularity": "year",
-          "categories": {
-            "first": "Date unknown",
-            "second": ""
-          }
-        }
-      },
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1841/04/06",
-          "description": "May ampampndash Start of the Sino-Sikh war.",
-          "granularity": "year",
-          "categories": {
-            "first": "April/June",
-            "second": ""
-          }
-        }
-      },
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1854/03/28",
-          "description": " France declares war on Russia.",
-          "granularity": "year",
-          "categories": {
-            "first": "January/March",
-            "second": ""
-          }
-        }
-      },
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1878/02/02",
-          "description": " Greece declares war on Turkey.",
-          "granularity": "year",
-          "categories": {
-            "first": "January/March",
-            "second": ""
-          }
-        }
-      },
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1914/08/04",
-          "description": "Montenegro declares war on Austria-Hungary.",
-          "granularity": "year",
-          "categories": {
-            "first": "August",
-            "second": ""
-          }
-        }
-      },
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1914/08/06",
-          "description": " Austria-Hungary declares war on Russia.",
-          "granularity": "year",
-          "categories": {
-            "first": "August",
-            "second": ""
-          }
-        }
-      },
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1914/08/23",
-          "description": " Japan declares war on Germany.",
-          "granularity": "year",
-          "categories": {
-            "first": "August",
-            "second": ""
-          }
-        }
-      }
-    ]
-  },
-  "should perform paginate search-page-3": {
-    "count": 679,
-    "hits": [
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1933/05/08",
-          "description": "Paraguay declares war on Bolivia.",
-          "granularity": "year",
-          "categories": {
-            "first": "May",
-            "second": ""
-          }
-        }
-      },
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1941/12/07",
-          "description": "Canada declares war on Japan.",
-          "granularity": "year",
-          "categories": {
-            "first": "December",
-            "second": ""
-          }
-        }
-      },
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1943/01/16",
-          "description": " Iraq declares war on the Axis",
-          "granularity": "year",
-          "categories": {
-            "first": "January",
-            "second": ""
-          }
-        }
-      },
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1945/07/14",
-          "description": " Italy declares war on Japan.",
-          "granularity": "year",
-          "categories": {
-            "first": "July",
-            "second": ""
-          }
-        }
-      },
-      {
-        "id": "",
-        "score": 4.756061975725999,
-        "document": {
-          "date": "1962/09/26",
-          "description": " Civil war erupts in Yemen.",
-          "granularity": "year",
-          "categories": {
-            "first": "September",
-            "second": ""
-          }
-        }
-      },
-      {
-        "id": "",
-        "score": 4.557477443850574,
+        "score": 4.828591422565418,
         "document": {
           "date": "17/05/26",
           "description": "Beginning of a civil war in Germania.",
@@ -352,10 +217,10 @@
       },
       {
         "id": "",
-        "score": 4.557477443850574,
+        "score": 4.828591422565418,
         "document": {
-          "date": "350/12/25",
-          "description": "The Wei-Jie war breaks out in North China.",
+          "date": "599",
+          "description": "The Chinese win the war at Ordos.",
           "granularity": "year",
           "categories": {
             "first": "By place",
@@ -365,7 +230,7 @@
       },
       {
         "id": "",
-        "score": 4.557477443850574,
+        "score": 4.828591422565418,
         "document": {
           "date": "618",
           "description": "A civil war begins in Medina.",
@@ -378,26 +243,161 @@
       },
       {
         "id": "",
-        "score": 4.557477443850574,
+        "score": 4.828591422565418,
         "document": {
-          "date": "1240/07/15",
-          "description": "The civil war era in Norway ends.",
+          "date": "1027/08/16",
+          "description": "Civil war begins in Japan.",
           "granularity": "year",
           "categories": {
-            "first": "By area",
-            "second": "Europe"
+            "first": "By place",
+            "second": "Asia"
           }
         }
       },
       {
         "id": "",
-        "score": 4.557477443850574,
+        "score": 4.828591422565418,
         "document": {
-          "date": "1635/04/13",
-          "description": "May ampampndash France declares war on Spain.",
+          "date": "1695/12/31",
+          "description": "Russia declares war on Turkey.",
+          "granularity": "year",
+          "categories": {
+            "first": "Date unknown",
+            "second": ""
+          }
+        }
+      }
+    ]
+  },
+  "should perform paginate search-page-3": {
+    "count": 679,
+    "hits": [
+      {
+        "id": "",
+        "score": 4.828591422565418,
+        "document": {
+          "date": "1792/04/20",
+          "description": " France declares war against Austria.",
+          "granularity": "year",
+          "categories": {
+            "first": "April/June",
+            "second": ""
+          }
+        }
+      },
+      {
+        "id": "",
+        "score": 4.828591422565418,
+        "document": {
+          "date": "1792/06/04",
+          "description": "Prussia declares war against France.",
+          "granularity": "year",
+          "categories": {
+            "first": "April/June",
+            "second": ""
+          }
+        }
+      },
+      {
+        "id": "",
+        "score": 4.828591422565418,
+        "document": {
+          "date": "1793/03/07",
+          "description": " France declares war on Spain.",
           "granularity": "year",
           "categories": {
             "first": "January/June",
+            "second": ""
+          }
+        }
+      },
+      {
+        "id": "",
+        "score": 4.828591422565418,
+        "document": {
+          "date": "1804/12/12",
+          "description": " Spain declares war on Britain",
+          "granularity": "year",
+          "categories": {
+            "first": "October/December",
+            "second": ""
+          }
+        }
+      },
+      {
+        "id": "",
+        "score": 4.828591422565418,
+        "document": {
+          "date": "1805/12/26",
+          "description": "Sweden declares war on France.",
+          "granularity": "year",
+          "categories": {
+            "first": "Date unknown",
+            "second": ""
+          }
+        }
+      },
+      {
+        "id": "",
+        "score": 4.828591422565418,
+        "document": {
+          "date": "1823/12/02",
+          "description": "Beginning of the first Anglo-Ashanti war.",
+          "granularity": "year",
+          "categories": {
+            "first": "Date unknown",
+            "second": ""
+          }
+        }
+      },
+      {
+        "id": "",
+        "score": 4.828591422565418,
+        "document": {
+          "date": "1841/04/06",
+          "description": "May ampampndash Start of the Sino-Sikh war.",
+          "granularity": "year",
+          "categories": {
+            "first": "April/June",
+            "second": ""
+          }
+        }
+      },
+      {
+        "id": "",
+        "score": 4.828591422565418,
+        "document": {
+          "date": "1854/03/28",
+          "description": " France declares war on Russia.",
+          "granularity": "year",
+          "categories": {
+            "first": "January/March",
+            "second": ""
+          }
+        }
+      },
+      {
+        "id": "",
+        "score": 4.828591422565418,
+        "document": {
+          "date": "1878/02/02",
+          "description": " Greece declares war on Turkey.",
+          "granularity": "year",
+          "categories": {
+            "first": "January/March",
+            "second": ""
+          }
+        }
+      },
+      {
+        "id": "",
+        "score": 4.828591422565418,
+        "document": {
+          "date": "1914/08/04",
+          "description": "Montenegro declares war on Austria-Hungary.",
+          "granularity": "year",
+          "categories": {
+            "first": "August",
             "second": ""
           }
         }

@@ -137,7 +137,7 @@ export function insertString(
   language: string | undefined,
   tokenizer: Tokenizer
 ) {
-  const tokens = tokenizer.tokenize(value, language, prop)
+  const tokens = uniqueTokens(tokenizer.tokenize(value, language, prop))
   const tokensLength = tokens.length
   for (let i = 0; i < tokensLength; i++) {
     const token = tokens[i]
@@ -169,7 +169,7 @@ export function searchString(
   boostPerProp: number,
   whereFiltersIDs: Set<InternalDocumentID> | undefined
 ) {
-  const tokens = tokenizer.tokenize(term)
+  const tokens = uniqueTokens(tokenizer.tokenize(term))
 
   const ret: Map<number, number> = new Map()
   for (const token of tokens) {
@@ -206,24 +206,32 @@ export function removeString(
   tokenizer: Tokenizer,
   language: string | undefined
 ) {
-  const tokens = tokenizer.tokenize(value, language, prop)
-  const tokensLength = tokens.length
-  for (let i = 0; i < tokensLength; i++) {
-    const token = tokens[i]
-    const position = MAX_POSITION - get_position(i, tokensLength) - 1
-
-    const positionStorage = positionsStorage[position]
-
+  // Every bucket is scanned instead of recomputing the bucket from the token's index. An index
+  // saved when the tokenizer kept duplicates placed a repeated token in several buckets and scaled
+  // the positions over the longer token list, so the bucket a token lands in today is not
+  // necessarily the one it was stored in.
+  const tokens = uniqueTokens(tokenizer.tokenize(value, language, prop))
+  for (const token of tokens) {
     const tokenLength = token.length
     for (let j = tokenLength; j > 0; j--) {
       const tokenPart = token.slice(0, j)
-      const a = positionStorage[tokenPart]
-      if (a) {
-        const index = a.indexOf(internalId)
-        if (index !== -1) {
+      for (let position = 0; position < MAX_POSITION; position++) {
+        const a = positionsStorage[position][tokenPart]
+        if (!a) {
+          continue
+        }
+        let index = a.indexOf(internalId)
+        while (index !== -1) {
           a.splice(index, 1)
+          index = a.indexOf(internalId, index)
         }
       }
     }
   }
+}
+
+// PT15 scores by token position, not term frequency, so it works on each distinct token once
+// regardless of the tokenizer's `allowDuplicates` setting.
+export function uniqueTokens(tokens: string[]): string[] {
+  return tokens.length > 1 ? Array.from(new Set(tokens)) : tokens
 }

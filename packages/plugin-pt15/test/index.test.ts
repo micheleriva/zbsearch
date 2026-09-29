@@ -95,6 +95,38 @@ it('plugin-pt15', async () => {
   expect(result3.count).toBe(2)
 })
 
+it('removes the extra positions left by an index saved with repeated tokens', async () => {
+  const db = create({
+    schema: { name: 'string' } as const,
+    plugins: [pluginPT15()]
+  })
+
+  await insertMultiple(db, [
+    { id: '1', name: 'apple cat apple' },
+    { id: '2', name: 'apple pie' }
+  ])
+
+  // An index saved when the tokenizer kept duplicates stored the second `apple` of document 1 in
+  // another position bucket. Recreate that by copying its postings into an empty bucket.
+  const storage = db.data.index.indexes.name.node as Record<string, number[]>[]
+  const internalId = db.internalDocumentIDStore.idToInternalId.get('1')!
+  const stored = storage.findIndex((bucket) => bucket.apple?.includes(internalId))
+  const other = storage.findIndex((bucket) => !bucket.apple)
+  expect(stored).not.toBe(-1)
+  expect(other).not.toBe(-1)
+  for (const prefix of ['apple', 'appl', 'app', 'ap', 'a']) {
+    storage[other][prefix] = [internalId]
+  }
+
+  expect((await search(db, { term: 'apple' })).count).toBe(2)
+
+  await remove(db, '1')
+
+  const after = await search(db, { term: 'apple' })
+  expect(after.count).toBe(1)
+  expect(after.hits.map((hit) => hit.id)).toStrictEqual(['2'])
+})
+
 it('where string', async () => {
   const db = create({
     schema: {

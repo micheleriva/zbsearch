@@ -37,7 +37,7 @@ import { stopwords as ukrainianStopwords } from '@zbsearch/stopwords/ukrainian'
 import { stopwords as tamilStopwords } from '@zbsearch/stopwords/tamil'
 import { stopwords as vietnameseStopwords } from '@zbsearch/stopwords/vietnamese'
 
-import { createTokenizer } from '../src/components/tokenizer/index.js'
+import { createTokenizer, DEFAULT_NORMALIZATION_CACHE_SIZE } from '../src/components/tokenizer/index.js'
 
 describe('Tokenizer', () => {
   it('should tokenize and stem correctly in english', async () => {
@@ -49,7 +49,7 @@ describe('Tokenizer', () => {
     const O1 = tokenizer.tokenize(I1, 'english')
     const O2 = tokenizer.tokenize(I2, 'english')
 
-    expect(O1).toStrictEqual(['the', 'quick', 'brown', 'fox', 'jump', 'over', 'lazi', 'dog'])
+    expect(O1).toStrictEqual(['the', 'quick', 'brown', 'fox', 'jump', 'over', 'the', 'lazi', 'dog'])
     expect(O2).toStrictEqual(['i', 'bake', 'some', 'cake'])
   })
 
@@ -380,6 +380,7 @@ describe('Tokenizer', () => {
       'нещ',
       'неочакван',
       'док',
+      'се',
       'изпълняват',
       'тест'
     ])
@@ -694,6 +695,12 @@ describe('Czech, Slovak and Slovenian stemming', () => {
 })
 
 describe('Custom stop-words rules', async () => {
+  it('the English list drops the articles "a", "an" and "the"', async () => {
+    const tokenizer = await createTokenizer({ language: 'english', stopWords: englishStopwords, stemming: false })
+
+    expect(tokenizer.tokenize('a cat, an owl and the fox')).toStrictEqual(['cat', 'owl', 'fox'])
+  })
+
   it('custom array of stop-words', async () => {
     const tokenizer = await createTokenizer({
       language: 'english',
@@ -708,7 +715,7 @@ describe('Custom stop-words rules', async () => {
 
     const O2 = tokenizer.tokenize(I2)
 
-    expect(O1).toEqual(['the', 'jump', 'over', 'lazi'])
+    expect(O1).toEqual(['the', 'jump', 'over', 'the', 'lazi'])
     expect(O2).toEqual(['i', 'bake', 'some', 'cake'])
   })
 
@@ -740,7 +747,7 @@ describe('Custom stop-words rules', async () => {
     const O1 = tokenizer.tokenize(I1)
     const O2 = tokenizer.tokenize(I2)
 
-    expect(O1).toEqual(['the', 'quick', 'brown', 'fox', 'jump', 'over', 'lazi', 'dog'])
+    expect(O1).toEqual(['the', 'quick', 'brown', 'fox', 'jump', 'over', 'the', 'lazi', 'dog'])
     expect(O2).toEqual(['i', 'bake', 'some', 'cake'])
   })
 
@@ -923,5 +930,58 @@ describe('Custom stop-words rules', async () => {
     // The unaccented spelling of a stopword is dropped too, so a query typed
     // without accents behaves exactly like the accented one.
     expect(tokenizer.tokenize('Ou est le gateau ete')).toStrictEqual(['est', 'le', 'gateau'])
+  })
+
+  it('caches normalized tokens and evicts the oldest entry once full', () => {
+    const tokenizer = createTokenizer({ language: 'english', stemming: true, normalizationCacheSize: 2 })
+
+    expect(tokenizer.tokenize('running jumps')).toStrictEqual(['run', 'jump'])
+    expect([...tokenizer.normalizationCache.keys()]).toStrictEqual(['english:0::running', 'english:0::jumps'])
+
+    // A third distinct token evicts the oldest entry. Re-seeing a cached token is a hit, not a new entry.
+    expect(tokenizer.tokenize('jumps cakes')).toStrictEqual(['jump', 'cake'])
+    expect([...tokenizer.normalizationCache.keys()]).toStrictEqual(['english:0::jumps', 'english:0::cakes'])
+    expect(tokenizer.normalizationCache.get('english:0::cakes')).toBe('cake')
+  })
+
+  it('keeps cache entries of different properties apart even when their names contain the separator', () => {
+    const tokenizer = createTokenizer({ language: 'english', tokenizeSkipProperties: ['a'] })
+
+    // Property `a` skips splitting, so `x:y` is cached whole. Property `a:x` with token `y` must not
+    // hit that entry: with an ambiguous key both would map to `english:a:x:y`.
+    expect(tokenizer.tokenize('x:y', 'english', 'a')).toStrictEqual(['x:y'])
+    expect(tokenizer.tokenize('y', 'english', 'a:x')).toStrictEqual(['y'])
+    expect(tokenizer.normalizationCache.get('english:1:a:x:y')).toBe('x:y')
+    expect(tokenizer.normalizationCache.get('english:3:a:x:y')).toBe('y')
+  })
+
+  it('treats an omitted property as the empty property when normalizing a token', () => {
+    const tokenizer = createTokenizer({ language: 'english', stemming: true })
+
+    // `normalizeToken` is exported for custom tokenizers, which may call it without a property.
+    expect(tokenizer.normalizeToken(undefined, 'running')).toBe('run')
+    expect(tokenizer.normalizationCache.get('english:0::running')).toBe('run')
+    expect(tokenizer.normalizeToken('', 'running')).toBe('run')
+    expect(tokenizer.normalizationCache.size).toBe(1)
+  })
+
+  it('caps the normalization cache by default', () => {
+    const tokenizer = createTokenizer({ language: 'english' })
+
+    expect(DEFAULT_NORMALIZATION_CACHE_SIZE).toBe(50_000)
+    expect(tokenizer.normalizationCacheSize).toBe(DEFAULT_NORMALIZATION_CACHE_SIZE)
+  })
+
+  it('normalizationCacheSize: 0 disables the cache', () => {
+    const tokenizer = createTokenizer({ language: 'english', stemming: true, normalizationCacheSize: 0 })
+
+    expect(tokenizer.tokenize('running')).toStrictEqual(['run'])
+    expect(tokenizer.tokenize('running')).toStrictEqual(['run'])
+    expect(tokenizer.normalizationCache.size).toBe(0)
+  })
+
+  it('rejects an invalid normalizationCacheSize', () => {
+    expect(() => createTokenizer({ language: 'english', normalizationCacheSize: -1 })).toThrow('non-negative integer')
+    expect(() => createTokenizer({ language: 'english', normalizationCacheSize: 1.5 })).toThrow('non-negative integer')
   })
 })

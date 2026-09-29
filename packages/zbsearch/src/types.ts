@@ -472,26 +472,29 @@ export interface SearchParamsFullText<
 
   /**
    * Threshold to use for refining the search results.
-   * The threshold is a number between 0 and 1 that represents the minimum score of the documents to return.
-   * By default, the threshold is 0.
+   * The threshold is a number between 0 and 1. With 1, every document that matches at least one
+   * search term is returned. With 0, only the documents that match every search term are returned.
+   * When documents match every term, values in between return those documents plus a fraction of the partial matches.
+   * If no document matches every term, all partial matches are returned.
+   * By default, the threshold is 1.
    *
    * Full documentation: https://docs.zbsearch.com/docs/zbsearch-js/search/threshold
    *
    * @example
    *
    * const result = await search(db, {
-   *  term: 'Red Headphones'
+   *  term: 'Red Headphones',
    *  threshold: 0
    * });
    *
-   * // The result will contain all the documents that contain both 'Red' and 'Headphones' in their properties.
+   * // The result will contain only the documents that contain both 'Red' and 'Headphones' in their properties.
    *
    * const result2 = await search(db, {
-   *  term: 'Red Headphones'
+   *  term: 'Red Headphones',
    *  threshold: 1
    * });
    *
-   * // The result will contain all the documents that contain either 'Red' and 'Headphones' in their properties.
+   * // The result will contain all the documents that contain either 'Red' or 'Headphones' in their properties.
    */
   threshold?: number
 
@@ -1349,7 +1352,16 @@ export type DefaultTokenizerConfig = {
    */
   tokenizeSkipProperties?: string | string[]
   stopWords?: boolean | string[] | ((stopWords: string[]) => string[])
+  /**
+   * Whether repeated words in a field are kept as repeated tokens. Defaults to true, so BM25 sees
+   * real term frequencies and field lengths. Set to false to index each distinct token once.
+   */
   allowDuplicates?: boolean
+  /**
+   * Maximum number of normalized tokens kept in the tokenizer cache. Defaults to 50000.
+   * Set to 0 to disable caching.
+   */
+  normalizationCacheSize?: number
 }
 
 export interface Tokenizer {

@@ -81,12 +81,19 @@ export class RadixNode {
       return false
     }
 
-    const index = list.indexOf(docID)
+    let index = list.indexOf(docID)
     if (index === -1) {
       return false
     }
 
-    list.splice(index, 1)
+    // A document may have been posted under the same word more than once (an index built by an
+    // earlier version of plugin-qps did so for a word repeated across sentences). Removing the
+    // document from the word means removing every one of its postings.
+    do {
+      list.splice(index, 1)
+      index = list.indexOf(docID, index)
+    } while (index !== -1)
+
     if (list.length === 0) {
       postings.delete(this.w)
       this.d = undefined

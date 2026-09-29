@@ -69,7 +69,7 @@ export function createTokenizer(config: KoreanTokenizerConfig = defaultConfig): 
     stemmerSkipProperties: new Set(config.stemmerSkipProperties ? [config.stemmerSkipProperties].flat() : []),
     tokenizeSkipProperties: new Set(config.tokenizeSkipProperties ? [config.tokenizeSkipProperties].flat() : []),
     stopWords: config.stopWords as string[] | undefined,
-    allowDuplicates: Boolean(config.allowDuplicates),
+    allowDuplicates: config.allowDuplicates ?? true,
     normalizeToken,
     normalizationCache: new Map()
   }

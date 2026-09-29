@@ -109,7 +109,11 @@ This still yields between stores and index properties, but the `JSON.parse` rema
 
 ## Compatibility
 
-- Indexes saved by older versions load unchanged through `load` and `loadAsync`.
+- Indexes saved by older versions load unchanged through `load` and `loadAsync`. Loading does not
+  re-tokenize the documents, so an index carries the tokens of the version that built it. When a
+  release changes how text is split (for example, hyphens and apostrophes at the edges of a word
+  are now trimmed, and letters from any script are kept), searches and removals on an old index use
+  the new rules against the old tokens. Rebuild and re-save the index after upgrading.
 - `load` also accepts the chunked format, so you are not forced into the async API.
 - A chunked index **cannot** be read by a version of ZBSearch that predates the format. The
   envelope carries a `version` field and a mismatched reader throws rather than misbehaving, but

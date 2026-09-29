@@ -48,6 +48,26 @@ describe('hyphens and apostrophes at the edges of a token', () => {
     ])
   })
 
+  it('are trimmed from tokenizeSkipProperties values too, so full-text search still finds them', async () => {
+    const db = create({
+      schema: { tag: 'string' } as const,
+      components: { tokenizer: { tokenizeSkipProperties: ['tag'] } }
+    })
+    await insert(db, { tag: '-foo' })
+    await insert(db, { tag: "'foo bar'" })
+
+    // The value is still kept whole (no split on the space), only its edges are trimmed.
+    expect(db.tokenizer.tokenize("'foo bar'", 'english', 'tag')).toStrictEqual(['foo bar'])
+    expect(db.tokenizer.tokenize('--', 'english', 'tag')).toStrictEqual([])
+
+    // The query goes through the tokenizer without the property name and becomes `foo`.
+    expect(search(db, { term: '-foo', properties: ['tag'] }).count).toBe(2)
+    expect(search(db, { term: '-foo', properties: ['tag'], prefix: false }).count).toBe(1)
+    // Filters tokenize both sides with the property name, so they keep working as before.
+    expect(search(db, { where: { tag: '-foo' } }).count).toBe(1)
+    expect(search(db, { where: { tag: "'foo bar'" } }).count).toBe(1)
+  })
+
   it('cannot leak a leading hyphen into the index', async () => {
     const db = create({ schema: { text: 'string' } as const })
     await insert(db, { text: 'temperatures of -5 degrees, 😀-blockers' })

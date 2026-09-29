@@ -123,7 +123,11 @@ function tokenize(
   const property = prop ?? ''
 
   if (prop && this.tokenizeSkipProperties.has(prop)) {
-    const token = this.normalizeToken(property, input, withCache)
+    // The value is kept whole, but its edges are trimmed like any other token: queries never carry
+    // the property name, so a stored `-foo` could otherwise only be found by a query that has
+    // already become `foo`.
+    const part = trimEdgePunctuation(input)
+    const token = part ? this.normalizeToken(property, part, withCache) : ''
     return token ? [token] : []
   }
 

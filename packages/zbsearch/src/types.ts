@@ -472,26 +472,28 @@ export interface SearchParamsFullText<
 
   /**
    * Threshold to use for refining the search results.
-   * The threshold is a number between 0 and 1 that represents the minimum score of the documents to return.
-   * By default, the threshold is 0.
+   * The threshold is a number between 0 and 1. With 1, every document that matches at least one
+   * search term is returned. With 0, only the documents that match every search term are returned.
+   * Values in between return the documents matching every term plus that fraction of the partial matches.
+   * By default, the threshold is 1.
    *
    * Full documentation: https://docs.zbsearch.com/docs/zbsearch-js/search/threshold
    *
    * @example
    *
    * const result = await search(db, {
-   *  term: 'Red Headphones'
+   *  term: 'Red Headphones',
    *  threshold: 0
    * });
    *
-   * // The result will contain all the documents that contain both 'Red' and 'Headphones' in their properties.
+   * // The result will contain only the documents that contain both 'Red' and 'Headphones' in their properties.
    *
    * const result2 = await search(db, {
-   *  term: 'Red Headphones'
+   *  term: 'Red Headphones',
    *  threshold: 1
    * });
    *
-   * // The result will contain all the documents that contain either 'Red' and 'Headphones' in their properties.
+   * // The result will contain all the documents that contain either 'Red' or 'Headphones' in their properties.
    */
   threshold?: number
 

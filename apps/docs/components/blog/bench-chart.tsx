@@ -78,8 +78,7 @@ export function BenchChart({
   const [exporting, setExporting] = useState<'idle' | 'busy' | 'done'>('idle')
 
   const max = Math.max(...rows.map((row) => row.value))
-  const winnerValue =
-    better === 'higher' ? max : Math.min(...rows.map((row) => row.value))
+  const winnerValue = better === 'higher' ? max : Math.min(...rows.map((row) => row.value))
   const suffix = ratioLabel ?? (better === 'higher' ? 'slower' : 'larger')
 
   function ratioText(value: number): string {
@@ -163,9 +162,7 @@ export function BenchChart({
 
             <div className="min-w-[6.5rem] text-right">
               <p className="text-sm font-semibold tabular-nums text-fd-foreground">{row.display}</p>
-              {showRatio && (
-                <p className="text-[10px] tabular-nums text-fd-muted-foreground">{ratioText(row.value)}</p>
-              )}
+              {showRatio && <p className="text-[10px] tabular-nums text-fd-muted-foreground">{ratioText(row.value)}</p>}
             </div>
           </div>
         ))}

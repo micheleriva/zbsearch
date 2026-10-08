@@ -45,9 +45,6 @@ minimumReleaseAgeExclude:
 
 overrides:
   hastscript: ^9.0.1
-  # Fumadocs depends on @orama/orama; map only that edge to local zbsearch.
-  # Do not override globally — benchmarks must compare against real Orama.
-  'fumadocs-core>@orama/orama': 'link:packages/zbsearch'
 
 peerDependencyRules:
   ignoreMissing:

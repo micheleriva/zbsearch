@@ -34,19 +34,19 @@ type Preset = {
 
 /** Follows the docs site's own tokens, so it tracks the theme toggle for free. */
 const siteVars: Vars = {
-  '--zbs-surface': 'var(--color-fd-card)',
+  '--zbs-surface': 'var(--color-fd-popover)',
   '--zbs-surface-raised': 'var(--color-fd-muted)',
-  '--zbs-surface-hover': 'color-mix(in oklab, var(--color-fd-primary) 10%, transparent)',
+  '--zbs-surface-hover': 'color-mix(in oklab, var(--color-fd-primary) 9%, transparent)',
   '--zbs-border': 'var(--color-fd-border)',
-  '--zbs-border-strong': 'var(--color-fd-border)',
+  '--zbs-border-strong': 'color-mix(in oklab, var(--color-fd-foreground) 16%, var(--color-fd-popover))',
   '--zbs-text': 'var(--color-fd-foreground)',
   '--zbs-text-muted': 'var(--color-fd-muted-foreground)',
-  '--zbs-text-faint': 'var(--color-fd-muted-foreground)',
+  '--zbs-text-faint': 'hsl(255, 6%, 48%)',
   '--zbs-accent': 'var(--color-fd-primary)',
-  '--zbs-accent-soft': 'color-mix(in oklab, var(--color-fd-primary) 12%, transparent)',
+  '--zbs-accent-soft': 'color-mix(in oklab, var(--color-fd-primary) 11%, transparent)',
   '--zbs-wordmark-ink': 'var(--color-fd-foreground)',
-  '--zbs-radius': '8px',
-  '--zbs-radius-sm': '4px'
+  '--zbs-radius': 'var(--radius-2xl)',
+  '--zbs-radius-sm': 'var(--radius-lg)'
 }
 
 const presets: Preset[] = [
@@ -55,7 +55,7 @@ const presets: Preset[] = [
     name: 'This site',
     blurb: 'Pointed at the design tokens already on the page.',
     light: siteVars,
-    dark: siteVars
+    dark: { ...siteVars, '--zbs-text-faint': 'hsl(255, 7%, 56%)' }
   },
   {
     id: 'minimal',

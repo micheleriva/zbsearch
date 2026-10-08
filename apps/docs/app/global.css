@@ -79,6 +79,134 @@
   --color-fd-border: hsl(255, 9%, 18%);
 }
 
+body {
+  --zbs-font: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --zbs-surface: var(--color-fd-popover);
+  --zbs-surface-raised: var(--color-fd-muted);
+  --zbs-surface-hover: color-mix(in oklab, var(--color-fd-primary) 9%, transparent);
+  --zbs-border: var(--color-fd-border);
+  --zbs-border-strong: color-mix(in oklab, var(--color-fd-foreground) 16%, var(--color-fd-popover));
+
+  --zbs-text: var(--color-fd-foreground);
+  --zbs-text-muted: var(--color-fd-muted-foreground);
+  --zbs-text-faint: hsl(255, 6%, 48%);
+  --zbs-accent: var(--color-fd-primary);
+  --zbs-accent-soft: color-mix(in oklab, var(--color-fd-primary) 11%, transparent);
+  --zbs-wordmark-ink: var(--color-fd-foreground);
+
+  --zbs-backdrop: hsl(255 30% 8% / 0.42);
+  --zbs-shadow:
+    0 1px 2px hsl(255 30% 10% / 0.08), 0 16px 32px -12px hsl(255 30% 10% / 0.18),
+    0 40px 80px -24px hsl(255 30% 10% / 0.24);
+
+  --zbs-radius: var(--radius-2xl);
+  --zbs-radius-sm: var(--radius-lg);
+}
+
+.dark body {
+  --zbs-text-faint: hsl(255, 7%, 56%);
+  --zbs-backdrop: hsl(255 10% 3% / 0.7);
+  --zbs-shadow:
+    0 0 0 1px hsl(255, 9%, 14%), 0 1px 2px hsl(0 0% 0% / 0.5), 0 20px 40px -12px hsl(0 0% 0% / 0.6),
+    0 48px 96px -24px hsl(0 0% 0% / 0.7);
+}
+
+body .zbs-searchbox-backdrop {
+  backdrop-filter: blur(6px) saturate(1.1);
+}
+
+body .zbs-searchbox:not(.zbs-demo-panel) {
+  border-color: transparent;
+}
+
+body .zbs-searchbox__input {
+  caret-color: var(--zbs-accent);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+body .zbs-searchbox__input::placeholder {
+  font-weight: 400;
+}
+
+body .zbs-searchbox ::selection {
+  background: color-mix(in oklab, var(--color-fd-primary) 22%, transparent);
+}
+
+body .zbs-searchbox__body {
+  scrollbar-color: color-mix(in oklab, var(--color-fd-foreground) 18%, transparent) transparent;
+}
+
+body .zbs-searchbox__group-name {
+  color: var(--zbs-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+body .zbs-searchbox__group-tag {
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-fd-primary) 35%, transparent);
+  color: var(--zbs-accent);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+body .zbs-searchbox__hit {
+  padding: 10px 12px;
+  transition: background-color 0.12s ease;
+}
+
+body .zbs-searchbox__hit-title {
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+body .zbs-searchbox__hit[data-selected] .zbs-searchbox__hit-title {
+  color: var(--zbs-accent);
+}
+
+body .zbs-searchbox__mark {
+  font-weight: 600;
+}
+
+body .zbs-searchbox__hit-snippet .zbs-searchbox__mark {
+  color: var(--zbs-text);
+}
+
+body .zbs-searchbox__kbd,
+body .zbs-searchbox__clear {
+  border-radius: var(--radius-md);
+  background: transparent;
+}
+
+body .zbs-searchbox__kbd {
+  border-color: var(--zbs-border-strong);
+  color: var(--zbs-text-faint);
+  font-weight: 500;
+}
+
+body .zbs-searchbox__clear {
+  border: 1px solid var(--zbs-border);
+}
+
+body .zbs-searchbox__clear:hover {
+  border-color: var(--zbs-border-strong);
+}
+
+body .zbs-searchbox__footer {
+  background: color-mix(in oklab, var(--color-fd-muted) 60%, var(--color-fd-popover));
+}
+
+body .zbs-searchbox__state--error {
+  color: var(--color-fd-primary);
+}
+
 /* neutral.css scopes its own surfaces to the sidebar; keep them on-system. */
 .dark #nd-sidebar {
   --color-fd-muted: hsl(255, 9%, 12%);

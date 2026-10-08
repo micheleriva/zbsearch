@@ -2,9 +2,11 @@ import { RootProvider } from 'fumadocs-ui/provider/next'
 import './global.css'
 import { Inter } from 'next/font/google'
 import type { Metadata } from 'next'
+import SearchDialog from '@/components/search/search-dialog'
 
 const inter = Inter({
-  subsets: ['latin']
+  subsets: ['latin'],
+  variable: '--font-inter'
 })
 
 export const metadata: Metadata = {
@@ -19,9 +21,9 @@ export const metadata: Metadata = {
 
 export default function Layout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" className={inter.className} suppressHydrationWarning>
+    <html lang="en" className={`${inter.className} ${inter.variable}`} suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">
-        <RootProvider>{children}</RootProvider>
+        <RootProvider search={{ SearchDialog }}>{children}</RootProvider>
       </body>
     </html>
   )

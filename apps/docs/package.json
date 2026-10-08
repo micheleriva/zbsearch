@@ -13,6 +13,7 @@
     "lint": "oxlint --fix --fix-suggestions"
   },
   "dependencies": {
+    "@zbsearch/docs-index": "workspace:*",
     "@zbsearch/searchbox-react": "workspace:*",
     "cnfast": "^0.0.8",
     "fumadocs-core": "^16.11.1",

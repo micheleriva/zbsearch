@@ -947,7 +947,8 @@ describe('Custom stop-words rules', async () => {
   })
 
   it('keeps cache entries of different properties apart even when their names contain the separator', () => {
-    const tokenizer = createTokenizer({ language: 'english', tokenizeSkipProperties: ['a'] })
+    // Only stemmed tokens are cached, so stemming is enabled here.
+    const tokenizer = createTokenizer({ language: 'english', stemming: true, tokenizeSkipProperties: ['a'] })
 
     // Property `a` skips splitting, so `x:y` is cached whole. Property `a:x` with token `y` must not
     // hit that entry: with an ambiguous key both would map to `english:a:x:y`.
@@ -965,6 +966,48 @@ describe('Custom stop-words rules', async () => {
     expect(tokenizer.normalizationCache.get('english:0::running')).toBe('run')
     expect(tokenizer.normalizeToken('', 'running')).toBe('run')
     expect(tokenizer.normalizationCache.size).toBe(1)
+  })
+
+  it('keeps evicting the oldest entry across many evictions and a cleared cache', () => {
+    const tokenizer = createTokenizer({ language: 'english', stemming: true, normalizationCacheSize: 3 })
+    const words = Array.from({ length: 50 }, (_, i) => `word${String.fromCharCode(97 + (i % 26))}${Math.floor(i / 26)}`)
+
+    for (const word of words) tokenizer.tokenize(word)
+    expect([...tokenizer.normalizationCache.keys()]).toStrictEqual(words.slice(-3).map((w) => `english:0::${w}`))
+
+    tokenizer.normalizationCache.clear()
+    tokenizer.tokenize('alpha beta gamma delta')
+    expect([...tokenizer.normalizationCache.keys()]).toStrictEqual([
+      'english:0::beta',
+      'english:0::gamma',
+      'english:0::delta'
+    ])
+  })
+
+  it('does not cache tokens that are not stemmed', () => {
+    const tokenizer = createTokenizer({ language: 'english', stemming: true, stemmerSkipProperties: ['raw'] })
+
+    expect(tokenizer.tokenize('Running cakés', 'english', 'raw')).toStrictEqual(['running', 'cakes'])
+    expect(tokenizer.normalizationCache.size).toBe(0)
+    expect(createTokenizer({ language: 'english' }).normalizeToken('a', 'running')).toBe('running')
+
+    expect(tokenizer.tokenize('Running cakés', 'english', 'title')).toStrictEqual(['run', 'cake'])
+    expect([...tokenizer.normalizationCache.keys()]).toStrictEqual(['english:5:title:running', 'english:5:title:cakes'])
+  })
+
+  it('splits text with surrogate pairs and edge punctuation like the splitter regex', () => {
+    const tokenizer = createTokenizer({ language: 'english' })
+
+    expect(tokenizer.tokenize("😀hello 'world'- --- 𝒜b-c it's")).toStrictEqual(['hello', 'world', '𝒜b-c', "it's"])
+    expect(tokenizer.tokenize("-'x'- ×÷ a×b")).toStrictEqual(['x', 'a', 'b'])
+    expect(tokenizer.tokenize('')).toStrictEqual([])
+  })
+
+  it('uses a custom normalizeToken when one is installed', () => {
+    const tokenizer = createTokenizer({ language: 'english' })
+    tokenizer.normalizeToken = (_prop, token) => token.toUpperCase()
+
+    expect(tokenizer.tokenize('hello world')).toStrictEqual(['HELLO', 'WORLD'])
   })
 
   it('caps the normalization cache by default', () => {

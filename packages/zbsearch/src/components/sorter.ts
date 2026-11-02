@@ -184,14 +184,6 @@ function ensureIsSorted(sorter: Sorter): void {
   sorter.isSorted = true
 }
 
-function stringSort(
-  language: string | undefined,
-  value: [InternalDocumentID, SortValue],
-  d: [InternalDocumentID, SortValue]
-): number {
-  return (value[1] as string).localeCompare(d[1] as string, getLocale(language))
-}
-
 function numberSort(value: [InternalDocumentID, SortValue], d: [InternalDocumentID, SortValue]): number {
   return (value[1] as number) - (d[1] as number)
 }
@@ -205,9 +197,17 @@ function ensurePropertyIsSorted(sorter: Sorter, prop: string): void {
 
   let predicate: (value: [InternalDocumentID, SortValue], d: [InternalDocumentID, SortValue]) => number
   switch (s.type) {
-    case 'string':
-      predicate = stringSort.bind(null, sorter.language)
+    case 'string': {
+      // localeCompare(other, locale) is specified as comparing with a new Intl.Collator(locale): build it once
+      // instead of on every comparison.
+      const locale = getLocale(sorter.language)
+      const compare =
+        typeof Intl === 'undefined'
+          ? (a: string, b: string) => a.localeCompare(b, locale)
+          : new Intl.Collator(locale).compare
+      predicate = (value, d) => compare(value[1] as string, d[1] as string)
       break
+    }
     case 'number':
       predicate = numberSort.bind(null)
       break
@@ -257,6 +257,56 @@ function remove(sorter: Sorter, prop: string, id: DocumentID) {
   s.orderedDocsToRemove.set(internalId, true)
 }
 
+// Up to this many documents, sortBy packs each document's sort position and its index in the input into one exactly
+// representable double (position * 2^21 + index < 2^52), so that a native numeric sort of a Float64Array replaces the
+// comparator sort that looked up both positions on every comparison.
+const PACKED_SORT_INDEX_FACTOR = 2 ** 21
+const MAX_PACKED_SORT_LENGTH = PACKED_SORT_INDEX_FACTOR
+
+// Same order as the stable comparator sort in sortBy: indexed documents by position (ascending, or descending), with
+// equal positions in input order, followed by the unindexed documents in input order.
+function sortByPackedPositions(
+  sorter: Sorter,
+  s: PropertySort<SortValue>,
+  docIds: [DocumentID, number][],
+  isDesc: boolean
+): [DocumentID, number][] {
+  const docIdsLength = docIds.length
+  const keys = new Float64Array(docIdsLength)
+  const unindexed: [DocumentID, number][] = []
+  let indexedCount = 0
+
+  for (let i = 0; i < docIdsLength; i++) {
+    const position = s.docs.get(getInternalDocumentId(sorter.sharedInternalDocumentStore, docIds[i][0]))
+
+    if (position === undefined) {
+      unindexed.push(docIds[i])
+    } else {
+      keys[indexedCount++] = (isDesc ? -position : position) * PACKED_SORT_INDEX_FACTOR + i
+    }
+  }
+
+  const sortedKeys = keys.subarray(0, indexedCount).sort()
+  const sorted: [DocumentID, number][] = new Array(docIdsLength)
+
+  for (let i = 0; i < indexedCount; i++) {
+    const key = sortedKeys[i]
+    // The index is the (non-negative) remainder of the key modulo the factor
+    sorted[i] = docIds[key - Math.floor(key / PACKED_SORT_INDEX_FACTOR) * PACKED_SORT_INDEX_FACTOR]
+  }
+
+  const unindexedLength = unindexed.length
+  for (let i = 0; i < unindexedLength; i++) {
+    sorted[indexedCount + i] = unindexed[i]
+  }
+
+  for (let i = 0; i < docIdsLength; i++) {
+    docIds[i] = sorted[i]
+  }
+
+  return docIds
+}
+
 function sortBy<T extends AnyZBSearch>(
   sorter: Sorter,
   docIds: [DocumentID, number][],
@@ -276,6 +326,11 @@ function sortBy<T extends AnyZBSearch>(
 
   ensureOrderedDocsAreDeletedByProperty(sorter, property)
   ensureIsSorted(sorter)
+
+  const docIdsLength = docIds.length
+  if (docIdsLength <= MAX_PACKED_SORT_LENGTH) {
+    return sortByPackedPositions(sorter, s, docIds, isDesc)
+  }
 
   docIds.sort((a, b) => {
     // This sort algorithm works leveraging on

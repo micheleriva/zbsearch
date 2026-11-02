@@ -38,38 +38,46 @@ function _boundedLevenshtein(term: string, word: string, tolerance: number): num
   // If the length difference is greater than the tolerance, return early
   if (diff > tolerance) return -1
 
-  // Initialize the matrix
-  const matrix: number[][] = []
-  for (let i = 0; i <= m; i++) {
-    matrix[i] = [i]
-    for (let j = 1; j <= n; j++) {
-      matrix[i][j] = i === 0 ? j : 0
-    }
+  // Two rolling rows of the matrix are enough
+  let previousRow = new Array<number>(n + 1)
+  let currentRow = new Array<number>(n + 1)
+  for (let j = 0; j <= n; j++) {
+    previousRow[j] = j
   }
 
   // Fill the matrix
   for (let i = 1; i <= m; i++) {
+    const termChar = term.charCodeAt(i - 1)
     let rowMin = Infinity
+    currentRow[0] = i
     for (let j = 1; j <= n; j++) {
-      if (term[i - 1] === word[j - 1]) {
-        matrix[i][j] = matrix[i - 1][j - 1]
+      let value: number
+      if (termChar === word.charCodeAt(j - 1)) {
+        value = previousRow[j - 1]
       } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j] + 1, // deletion
-          matrix[i][j - 1] + 1, // insertion
-          matrix[i - 1][j - 1] + 1 // substitution
+        value = Math.min(
+          previousRow[j] + 1, // deletion
+          currentRow[j - 1] + 1, // insertion
+          previousRow[j - 1] + 1 // substitution
         )
       }
-      rowMin = Math.min(rowMin, matrix[i][j])
+      currentRow[j] = value
+      if (value < rowMin) {
+        rowMin = value
+      }
     }
 
     // Early termination if all values in this row exceed tolerance
     if (rowMin > tolerance) {
       return -1
     }
+
+    const swap = previousRow
+    previousRow = currentRow
+    currentRow = swap
   }
 
-  return matrix[m][n] <= tolerance ? matrix[m][n] : -1
+  return previousRow[n] <= tolerance ? previousRow[n] : -1
 }
 
 /**
@@ -112,14 +120,18 @@ export function levenshtein(a: string, b: string): number {
     b = swap
   }
 
-  const row = Array.from({ length: a.length + 1 }, (_, i) => i)
+  const row = new Array<number>(a.length + 1)
+  for (let i = 0; i <= a.length; i++) {
+    row[i] = i
+  }
   let val = 0
 
   for (let i = 1; i <= b.length; i++) {
     let prev = i
+    const bChar = b.charCodeAt(i - 1)
 
     for (let j = 1; j <= a.length; j++) {
-      if (b[i - 1] === a[j - 1]) {
+      if (bChar === a.charCodeAt(j - 1)) {
         val = row[j - 1]
       } else {
         val = Math.min(row[j - 1] + 1, Math.min(prev + 1, row[j] + 1))

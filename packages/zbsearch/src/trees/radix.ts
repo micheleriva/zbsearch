@@ -32,6 +32,15 @@ export type RadixNodeJSON = {
 
 const EMPTY_POSTINGS: InternalDocumentID[] = []
 
+// Reusable buffers for the trie-walking Levenshtein search (grown on demand, never shrunk).
+let levenshteinRows = new Int32Array(256)
+let levenshteinTermCodes = new Int32Array(32)
+const levenshteinAsciiMasks = new Int32Array(128)
+// Longest term the bit-parallel search handles: one bit per term prefix (length + 1 bits) in an int32.
+const MAX_BIT_PARALLEL_TERM_LENGTH = 30
+// Highest tolerance the bit-parallel search handles (it keeps one mask per error count).
+const MAX_BIT_PARALLEL_TOLERANCE = 30
+
 export class RadixNode {
   // Node key
   public k: string
@@ -151,12 +160,7 @@ export class RadixNode {
           }
         }
 
-        const docIDs = node.getDocumentsFromPostings(postings)
-        if (docIDs.length > 0) {
-          output[w] = [...docIDs]
-        } else {
-          output[w] = []
-        }
+        output[w] = node.getDocumentsFromPostings(postings).slice()
       }
 
       const children = node.c
@@ -247,52 +251,95 @@ export class RadixNode {
       return
     }
 
-    const initialRow = new Array<number>(termLength + 1)
-
-    for (let i = 0; i <= termLength; i++) {
-      initialRow[i] = i
+    if (
+      termLength <= MAX_BIT_PARALLEL_TERM_LENGTH &&
+      tolerance > 0 &&
+      tolerance <= MAX_BIT_PARALLEL_TOLERANCE &&
+      (tolerance | 0) === tolerance
+    ) {
+      this._findLevenshteinBitParallel(term, tolerance, output, postings)
+      return
     }
 
-    const stack: Array<{ node: RadixNode; row: number[] }> = [{ node: this, row: initialRow }]
+    // Rows live in one reusable typed buffer: slots 0 and 1 are ping-pong scratch rows, slot 2 holds the
+    // row of the node being expanded and slots 3+ hold the rows of the nodes waiting on the stack.
+    const width = termLength + 1
+    if (levenshteinTermCodes.length < termLength) {
+      levenshteinTermCodes = new Int32Array(termLength * 2)
+    }
+    const termCodes = levenshteinTermCodes
+    for (let i = 0; i < termLength; i++) {
+      termCodes[i] = term.charCodeAt(i)
+    }
+
+    let rows = levenshteinRows
+    if (rows.length < width * 4) {
+      rows = levenshteinRows = new Int32Array(width * 8)
+    }
+
+    const scratchA = 0
+    const scratchB = width
+    const parentOffset = width * 2
+
+    for (let i = 0; i <= termLength; i++) {
+      rows[parentOffset + width + i] = i
+    }
+
+    const stack: RadixNode[] = [this]
 
     while (stack.length > 0) {
-      const { node, row } = stack.pop()!
+      const node = stack.pop()!
+      const nodeOffset = (3 + stack.length) * width
+      for (let i = 0; i <= termLength; i++) {
+        rows[parentOffset + i] = rows[nodeOffset + i]
+      }
 
-      if (node.e && row[termLength] <= tolerance) {
-        const docIDs = node.getDocumentsFromPostings(postings)
-        output[node.w] = docIDs.length > 0 ? [...docIDs] : []
+      if (node.e && rows[parentOffset + termLength] <= tolerance) {
+        output[node.w] = node.getDocumentsFromPostings(postings).slice()
       }
 
       for (const child of node.c.values()) {
         const label = child.s
-        let currentRow = row
+        const labelLength = label.length
+        let previous = parentOffset
+        let current = scratchA
         let pruned = false
         let prefixMatched = false
 
-        for (let charIndex = 0; charIndex < label.length; charIndex++) {
+        for (let charIndex = 0; charIndex < labelLength; charIndex++) {
           const charCode = label.charCodeAt(charIndex)
-          const nextRow = new Array<number>(termLength + 1)
 
-          nextRow[0] = currentRow[0] + 1
-
-          let rowMin = nextRow[0]
+          let diagonal = rows[previous]
+          let left = diagonal + 1
+          rows[current] = left
+          let rowMin = left
 
           for (let i = 1; i <= termLength; i++) {
-            const value =
-              term.charCodeAt(i - 1) === charCode
-                ? currentRow[i - 1]
-                : Math.min(currentRow[i] + 1, nextRow[i - 1] + 1, currentRow[i - 1] + 1)
+            const up = rows[previous + i]
+            let value: number
+            if (termCodes[i - 1] === charCode) {
+              value = diagonal
+            } else {
+              value = up < diagonal ? up : diagonal
+              if (left < value) {
+                value = left
+              }
+              value++
+            }
 
-            nextRow[i] = value
+            rows[current + i] = value
+            left = value
+            diagonal = up
 
             if (value < rowMin) {
               rowMin = value
             }
           }
 
-          currentRow = nextRow
+          previous = current
+          current = current === scratchA ? scratchB : scratchA
 
-          if (!nextRow[termLength]) {
+          if (!left) {
             prefixMatched = true
             break
           }
@@ -306,8 +353,161 @@ export class RadixNode {
         if (prefixMatched) {
           child.findAllWords(output, term, postings, false, 0)
         } else if (!pruned) {
-          stack.push({ node: child, row: currentRow })
+          const childOffset = (3 + stack.length) * width
+          if (childOffset + width > rows.length) {
+            const grown = new Int32Array(rows.length * 2)
+            grown.set(rows)
+            rows = levenshteinRows = grown
+          }
+          for (let i = 0; i <= termLength; i++) {
+            rows[childOffset + i] = rows[previous + i]
+          }
+          stack.push(child)
         }
+      }
+    }
+  }
+
+  // Same walk and same output (words and order) as the row-based search in `_findLevenshtein`, but the
+  // Levenshtein state of a trie path is kept as one bitmask per error count (Wu-Manber): bit `i` of mask `k`
+  // is set when the first `i` term characters are within `k` edits of the path. A step costs O(tolerance)
+  // instead of O(term length), and the first character of an edge is read from its child map key, so
+  // edges pruned on their first character never load the child node.
+  private _findLevenshteinBitParallel(term: string, tolerance: number, output: FindResult, postings: PostingsMap) {
+    const termLength = term.length
+    const asciiMasks = levenshteinAsciiMasks
+    const otherCodes: number[] = []
+    const otherMasks: number[] = []
+
+    for (let i = 0; i < termLength; i++) {
+      const code = term.charCodeAt(i)
+      const bit = 1 << (i + 1)
+      if (code < 128) {
+        asciiMasks[code] |= bit
+      } else {
+        const index = otherCodes.indexOf(code)
+        if (index === -1) {
+          otherCodes.push(code)
+          otherMasks.push(bit)
+        } else {
+          otherMasks[index] |= bit
+        }
+      }
+    }
+
+    // Slots 0 and 1 are ping-pong scratch states, slot 2 holds the state of the node being expanded and
+    // slots 3+ hold the states of the nodes waiting on the stack.
+    const width = tolerance + 1
+    const allBits = (1 << (termLength + 1)) - 1
+    const endBit = 1 << termLength
+
+    let states = levenshteinRows
+    if (states.length < width * 4) {
+      states = levenshteinRows = new Int32Array(width * 8)
+    }
+
+    const scratchA = 0
+    const scratchB = width
+    const parentOffset = width * 2
+
+    for (let k = 0; k <= tolerance; k++) {
+      states[parentOffset + width + k] = k < termLength ? (1 << (k + 1)) - 1 : allBits
+    }
+
+    const stack: RadixNode[] = [this]
+
+    while (stack.length > 0) {
+      const node = stack.pop()!
+      const nodeOffset = (3 + stack.length) * width
+      for (let k = 0; k <= tolerance; k++) {
+        states[parentOffset + k] = states[nodeOffset + k]
+      }
+
+      if (node.e && states[parentOffset + tolerance] & endBit) {
+        output[node.w] = node.getDocumentsFromPostings(postings).slice()
+      }
+
+      const children = node.c
+      for (const key of children.keys()) {
+        let child: RadixNode | undefined
+        let label = key
+        let labelLength = 1
+        let previous = parentOffset
+        let current = scratchA
+        let pruned = false
+        let prefixMatched = false
+
+        for (let charIndex = 0; charIndex < labelLength; charIndex++) {
+          const charCode = label.charCodeAt(charIndex)
+          let charMask = 0
+          if (charCode < 128) {
+            charMask = asciiMasks[charCode]
+          } else {
+            const index = otherCodes.indexOf(charCode)
+            if (index !== -1) {
+              charMask = otherMasks[index]
+            }
+          }
+
+          let above = states[previous]
+          let next = (above << 1) & charMask
+          states[current] = next
+
+          for (let k = 1; k <= tolerance; k++) {
+            const old = states[previous + k]
+            next = (((old << 1) & charMask) | above | (above << 1) | (next << 1)) & allBits
+            states[current + k] = next
+            above = old
+          }
+
+          previous = current
+          current = current === scratchA ? scratchB : scratchA
+
+          if (states[previous] & endBit) {
+            prefixMatched = true
+            break
+          }
+
+          if (!next) {
+            pruned = true
+            break
+          }
+
+          if (child === undefined) {
+            child = children.get(key)!
+            label = child.s
+            labelLength = label.length
+          }
+        }
+
+        if (child === undefined) {
+          if (pruned) {
+            continue
+          }
+          child = children.get(key)!
+        }
+
+        if (prefixMatched) {
+          child.findAllWords(output, term, postings, false, 0)
+        } else if (!pruned) {
+          const childOffset = (3 + stack.length) * width
+          if (childOffset + width > states.length) {
+            const grown = new Int32Array(states.length * 2)
+            grown.set(states)
+            states = levenshteinRows = grown
+          }
+          for (let k = 0; k <= tolerance; k++) {
+            states[childOffset + k] = states[previous + k]
+          }
+          stack.push(child)
+        }
+      }
+    }
+
+    for (let i = 0; i < termLength; i++) {
+      const code = term.charCodeAt(i)
+      if (code < 128) {
+        asciiMasks[code] = 0
       }
     }
   }
@@ -484,10 +684,27 @@ export class RadixTree extends RadixNode {
   }
 
   public insert(word: string, docId: InternalDocumentID): void {
+    // Every posted word already has its end node in the tree (postings entries are created by, and
+    // removed together with, the node they belong to), so a known word skips the tree walk entirely.
+    const list = this.postings.get(word)
+    if (list !== undefined) {
+      list.push(docId)
+      return
+    }
     this.insertWithPostings(word, docId, this.postings)
   }
 
   public find(params: FindParams): FindResult {
+    if (params.exact) {
+      // A posted word always has its end node in the tree, so an exact lookup of a known word can skip the
+      // tree walk. Unknown words (and end nodes left without postings) still go through the tree.
+      const list = this.postings.get(params.term)
+      if (list !== undefined) {
+        const output: FindResult = {}
+        output[params.term] = list.slice()
+        return output
+      }
+    }
     return this.findWithPostings(params, this.postings)
   }
 

@@ -9,20 +9,20 @@ ZBSearch is an <a href="https://github.com/micheleriva/zbsearch" target="_blank"
 
 ## Performance vs Orama
 
-ZBSearch is a drop-in fork of Orama with the same API and persistence format, but with heavily optimized internals - including explicit **postings lists** for the full-text inverted index. We benchmark both engines head-to-head in the [`benchmarks/`](https://github.com/micheleriva/zbsearch/tree/main/benchmarks) suite (Orama **3.1.18** vs ZBSearch **4.0.0**, August 2026). The headline: **ZBSearch wins 18 of 20 head-to-head metrics - faster on every query path, with better ranking quality, lower memory use, and a smaller on-disk bundle.** Full results are on the [ZBSearch vs Orama](/docs/zbsearch/vs-orama) page.
+ZBSearch is a drop-in fork of Orama with the same API and persistence format, but with heavily optimized internals - including explicit **postings lists** for the full-text inverted index. We benchmark both engines head-to-head in the [`benchmarks/`](https://github.com/micheleriva/zbsearch/tree/main/benchmarks) suite (Orama **3.1.18** vs ZBSearch **4.0.1**, November 2026). The headline: **ZBSearch wins 17 of 19 head-to-head metrics - faster on every query path, with better ranking quality, lower memory use, and a smaller on-disk bundle.** Full results are on the [ZBSearch vs Orama](/docs/zbsearch/vs-orama) page.
 
 | Area | ZBSearch vs Orama | Highlight |
 | --- | --- | --- |
-| **Indexing** | **~42–43% faster** | **26.1 ops/s** full-dataset insert vs 15.2 |
-| **Full-text search** | **7–56% faster** | **73,090 ops/s** plain search vs 31,928 |
-| **Search quality (BEIR)** | **2× macro nDCG@10** | **0.453** vs 0.222, at 3× lower query latency |
-| **Facets** | **27–57% faster** | Faster across every facet scenario tested |
-| **Vector search (flat)** | **13–33% faster** | **6,128 ops/s** strict similarity vs 4,133 |
-| **Vector search (IVF)** | **3.2–5.3× faster** | **11,810 ops/s** vector search - Orama has no IVF equivalent |
-| **Geosearch** | **up to ~75× faster** | **275,793 ops/s** on 500m radius vs 3,702 |
-| **Sorted indexes (AVL)** | **2–54% faster** | Faster on every AVL operation, including removes |
-| **Memory footprint** | **20–41% lower** | **11.68 MB** indexed heap delta vs 14.69 MB |
-| **Persistence** | **42% smaller** | **3.03 MB** serialized JSON vs 5.23 MB |
+| **Indexing** | **~2.5× faster** | **36.7 ops/s** full-dataset insert vs 14.1 |
+| **Full-text search** | **1.9–4.2× faster** | **139,880 ops/s** plain search vs 33,075 |
+| **Search quality (BEIR)** | **2× macro nDCG@10** | **0.437** vs 0.222, at 16× lower query latency |
+| **Facets** | **2.9–4.0× faster** | Faster across every facet scenario tested |
+| **Vector search (flat)** | **11–32% faster** | **6,829 ops/s** strict similarity vs 4,794 |
+| **Vector search (IVF)** | **3.6–6.5× faster** | **14,266 ops/s** vector search - Orama has no IVF equivalent |
+| **Geosearch** | **up to ~76× faster** | **267,051 ops/s** on 500m radius vs 3,505 |
+| **Sorted indexes (AVL)** | **2–56% faster** | Faster on every AVL operation, including removes |
+| **Memory footprint** | **22% lower** | **11.28 MB** indexed heap delta vs 14.54 MB |
+| **Persistence** | **42% smaller** | **3.01 MB** serialized JSON vs 5.18 MB |
 
 ## Requirements
 

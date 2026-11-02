@@ -1,55 +1,55 @@
 {
   "name": "search with long text and complex filters",
-  "date": "2026-08-11T23:54:59.531Z",
+  "date": "2026-11-02T23:21:41.456Z",
   "version": "1.0.0",
   "results": [
     {
       "name": "search with long text and complex filters in Orama 3.1.18",
-      "ops": 7157,
+      "ops": 7046,
+      "margin": 0.69,
+      "percentSlower": 81.67
+    },
+    {
+      "name": "search with long text and complex filters in ZBSearch (BM25) 4.0.1",
+      "ops": 27758,
+      "margin": 0.59,
+      "percentSlower": 27.78
+    },
+    {
+      "name": "search with long text and complex filters in ZBSearch (QPS) 4.0.1",
+      "ops": 22442,
+      "margin": 0.71,
+      "percentSlower": 41.61
+    },
+    {
+      "name": "search with long text and complex filters in ZBSearch (PT15) 4.0.1",
+      "ops": 30344,
       "margin": 0.51,
-      "percentSlower": 82.02
-    },
-    {
-      "name": "search with long text and complex filters in ZBSearch (BM25) 4.0.0",
-      "ops": 14405,
-      "margin": 0.87,
-      "percentSlower": 63.81
-    },
-    {
-      "name": "search with long text and complex filters in ZBSearch (QPS) 4.0.0",
-      "ops": 14659,
-      "margin": 0.78,
-      "percentSlower": 63.17
-    },
-    {
-      "name": "search with long text and complex filters in ZBSearch (PT15) 4.0.0",
-      "ops": 19486,
-      "margin": 0.65,
-      "percentSlower": 51.04
+      "percentSlower": 21.06
     },
     {
       "name": "search with long text and complex filters in FlexSearch 0.8.212",
-      "ops": 39802,
-      "margin": 0.64,
+      "ops": 38437,
+      "margin": 0.53,
       "percentSlower": 0
     },
     {
       "name": "search with long text and complex filters in Fuse.js 7.5.0",
       "ops": 14,
-      "margin": 0.34,
+      "margin": 0.94,
       "percentSlower": 99.96
     },
     {
       "name": "search with long text and complex filters in Lunr 2.3.9",
-      "ops": 1591,
-      "margin": 0.64,
-      "percentSlower": 96
+      "ops": 1532,
+      "margin": 1.64,
+      "percentSlower": 96.01
     },
     {
       "name": "search with long text and complex filters in MiniSearch 7.2.0",
-      "ops": 2237,
-      "margin": 1.01,
-      "percentSlower": 94.38
+      "ops": 2144,
+      "margin": 0.62,
+      "percentSlower": 94.42
     }
   ],
   "fastest": {

@@ -34,26 +34,26 @@ const db = create({
 
 **QPS** scores documents by how close matching tokens are, which helps with short, focused queries and browser/edge environments.
 
-**PT15**, inspired by [Thomas Wilkerling](https://github.com/ts-thomas)'s work on Flexsearch, stores tokens in 15 positional buckets and prefers matches that appear earlier in a document. It is typically the fastest of the three at search time.
+**PT15**, inspired by [Thomas Wilkerling](https://github.com/ts-thomas)'s work on Flexsearch, stores tokens in 15 positional buckets and prefers matches that appear earlier in a document. It is typically the fastest of the three on filtered and prefix queries.
 
 ## Benchmarks
 
-Same 1,512-document dataset, **ZBSearch 4.0.0** (`npm run benchmark:algorithms`). Higher ops/s is better.
+Same 1,512-document dataset, **ZBSearch 4.0.1** (`npm run benchmark:algorithms`). Higher ops/s is better.
 
 | Benchmark | BM25 | QPS | PT15 |
 | --- | ---: | ---: | ---: |
-| Insert multiple | **29** | 17 | 15 |
-| Plain search | 78,046 | 51,316 | **80,490** |
-| Search with filters | 28,698 | 33,571 | **42,148** |
-| Long text + complex filters | 15,617 | 15,957 | **21,037** |
-| Single-term prefix | 2,725 | 4,043 | **8,259** |
+| Insert multiple | **35** | 23 | 17 |
+| Plain search | **140,715** | 60,502 | 78,382 |
+| Search with filters | 47,645 | 45,542 | **56,489** |
+| Long text + complex filters | 27,614 | 22,233 | **29,770** |
+| Single-term prefix | 6,473 | 4,291 | **7,365** |
 
-BM25 indexes fastest (~**1.7–1.9×** QPS/PT15). **PT15** wins every search case here (about **3×** BM25 on prefixes). **QPS** trades some throughput for proximity-aware ranking.
+BM25 indexes fastest (~**1.5–2.1×** QPS/PT15) and wins plain search (about **1.8×** PT15). **PT15** wins the filtered, long-text, and prefix cases (**8–19%** over BM25). **QPS** trades some throughput for proximity-aware ranking.
 
 ## How to choose
 
 - Stick with **BM25** unless you have a reason to change.
 - Try **QPS** when proximity (e.g. `"machine learning"` vs `"learning machine"`) matters for relevance.
-- Try **PT15** when you want position-aware ranking and maximum search throughput.
+- Try **PT15** when you want position-aware ranking and the fastest filtered and prefix searches.
 
 Test each algorithm on your own dataset and queries before committing.

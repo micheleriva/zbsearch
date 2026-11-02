@@ -20,9 +20,14 @@ interface PreparedRange {
 }
 
 interface PreparedFacet {
-  values: Record<string, number>
   process: (doc: AnyDocument) => void
-  finalize: () => Record<string, number>
+  finalize: () => { count: number; values: Record<string, number> }
+}
+
+interface ValueCounter {
+  count: number
+  // Index of the last processed document that incremented this value, used to count array values once per document
+  lastDoc: number
 }
 
 function sortAsc(a: [string, number], b: [string, number]) {
@@ -48,54 +53,11 @@ function getValueAtPath(doc: AnyDocument, pathParts: string[]): SearchableValue 
   return value as SearchableValue | undefined
 }
 
-function incrementNumberFacet(
-  ranges: PreparedRange[],
-  values: Record<string, number>,
-  facetValue: number,
-  alreadyInsertedValues?: Set<string>
-) {
-  for (let i = 0; i < ranges.length; i++) {
-    const range = ranges[i]!
-    if (alreadyInsertedValues?.has(range.key)) {
-      continue
-    }
-
-    if (facetValue >= range.from && facetValue <= range.to) {
-      const current = values[range.key]
-      if (current === undefined) {
-        values[range.key] = 1
-      } else {
-        values[range.key] = current + 1
-        alreadyInsertedValues?.add(range.key)
-      }
-    }
+function toFacetKey(facetValue: unknown, defaultValue: string): string {
+  if (typeof facetValue === 'string') {
+    return facetValue
   }
-}
-
-function incrementBooleanStringOrEnumFacet(
-  values: Record<string, number>,
-  propertyType: 'string' | 'boolean' | 'enum',
-  facetValue: FacetValue,
-  alreadyInsertedValues?: Set<string>
-) {
-  const defaultValue = propertyType === 'boolean' ? 'false' : ''
-  const value = facetValue?.toString() ?? defaultValue
-  if (alreadyInsertedValues?.has(value)) {
-    return
-  }
-
-  const current = values[value]
-  values[value] = current === undefined ? 1 : current + 1
-  alreadyInsertedValues?.add(value)
-}
-
-function prepareRangeValues(ranges: NumberFacetDefinition['ranges']): Record<string, number> {
-  const values: Record<string, number> = {}
-  for (let i = 0; i < ranges.length; i++) {
-    const range = ranges[i]!
-    values[`${range.from}-${range.to}`] = 0
-  }
-  return values
+  return (facetValue as FacetValue | undefined)?.toString() ?? defaultValue
 }
 
 function prepareRanges(ranges: NumberFacetDefinition['ranges']): PreparedRange[] {
@@ -111,6 +73,21 @@ function prepareRanges(ranges: NumberFacetDefinition['ranges']): PreparedRange[]
   return prepared
 }
 
+function finalizeRangeCounts(
+  ranges: PreparedRange[],
+  counts: number[]
+): { count: number; values: Record<string, number> } {
+  const values: Record<string, number> = {}
+  for (let i = 0; i < ranges.length; i++) {
+    values[ranges[i]!.key] = 0
+  }
+  for (let i = 0; i < ranges.length; i++) {
+    const key = ranges[i]!.key
+    values[key] += counts[i]!
+  }
+  return { count: Object.keys(values).length, values }
+}
+
 function prepareFacet<T extends AnyZBSearch>(
   facet: string,
   facetsConfig: FacetsParams<T>,
@@ -121,84 +98,141 @@ function prepareFacet<T extends AnyZBSearch>(
     ? (doc: AnyDocument) => getValueAtPath(doc, pathParts)
     : (doc: AnyDocument) => doc[facet]
 
-  let values: Record<string, number> = {}
-  let process: (doc: AnyDocument) => void
-  let finalize: () => Record<string, number> = () => values
-
   switch (propertyType) {
     case 'number': {
       const { ranges } = facetsConfig[facet] as NumberFacetDefinition
       const preparedRanges = prepareRanges(ranges)
-      values = prepareRangeValues(ranges)
-      process = (doc) => {
-        const facetValue = getFacetValue(doc)
-        if (typeof facetValue === 'number') {
-          incrementNumberFacet(preparedRanges, values, facetValue)
-        }
+      const rangesLength = preparedRanges.length
+      const counts: number[] = new Array(rangesLength).fill(0)
+      return {
+        process: (doc) => {
+          const facetValue = getFacetValue(doc)
+          if (typeof facetValue !== 'number') {
+            return
+          }
+          for (let i = 0; i < rangesLength; i++) {
+            const range = preparedRanges[i]!
+            if (facetValue >= range.from && facetValue <= range.to) {
+              counts[i]++
+            }
+          }
+        },
+        finalize: () => finalizeRangeCounts(preparedRanges, counts)
       }
-      break
     }
     case 'number[]': {
       const { ranges } = facetsConfig[facet] as NumberFacetDefinition
       const preparedRanges = prepareRanges(ranges)
-      values = prepareRangeValues(ranges)
-      process = (doc) => {
-        const facetValue = getFacetValue(doc)
-        if (!Array.isArray(facetValue)) {
-          return
-        }
-
-        const alreadyInsertedValues = new Set<string>()
-        for (let i = 0; i < facetValue.length; i++) {
-          incrementNumberFacet(preparedRanges, values, facetValue[i] as number, alreadyInsertedValues)
+      const rangesLength = preparedRanges.length
+      const counts: number[] = new Array(rangesLength).fill(0)
+      // Ranges sharing the same key are counted once per document, by the first of them
+      const isDuplicateRange: boolean[] = new Array(rangesLength).fill(false)
+      for (let i = 0; i < rangesLength; i++) {
+        for (let j = 0; j < i; j++) {
+          if (preparedRanges[j]!.key === preparedRanges[i]!.key) {
+            isDuplicateRange[i] = true
+            break
+          }
         }
       }
-      break
+      const lastDoc: number[] = new Array(rangesLength).fill(-1)
+      let docIndex = 0
+      return {
+        process: (doc) => {
+          const facetValue = getFacetValue(doc)
+          if (!Array.isArray(facetValue)) {
+            return
+          }
+
+          const currentDoc = docIndex++
+          for (let i = 0; i < facetValue.length; i++) {
+            const value = facetValue[i] as number
+            for (let j = 0; j < rangesLength; j++) {
+              const range = preparedRanges[j]!
+              if (lastDoc[j] !== currentDoc && !isDuplicateRange[j] && value >= range.from && value <= range.to) {
+                counts[j]++
+                lastDoc[j] = currentDoc
+              }
+            }
+          }
+        },
+        finalize: () => finalizeRangeCounts(preparedRanges, counts)
+      }
     }
     case 'boolean':
     case 'enum':
-    case 'string': {
-      const innerType = propertyType as 'string' | 'boolean' | 'enum'
-      process = (doc) => {
-        const facetValue = getFacetValue(doc)
-        incrementBooleanStringOrEnumFacet(values, innerType, facetValue as FacetValue)
-      }
+    case 'string':
+    case 'boolean[]':
+    case 'enum[]':
+    case 'string[]': {
+      const isArrayType = propertyType.endsWith('[]')
+      const defaultValue = propertyType === 'boolean' || propertyType === 'boolean[]' ? 'false' : ''
+      const counters = new Map<string, ValueCounter>()
+      let docIndex = 0
+
+      const process = isArrayType
+        ? (doc: AnyDocument) => {
+            const facetValue = getFacetValue(doc)
+            if (!Array.isArray(facetValue)) {
+              return
+            }
+
+            const currentDoc = docIndex++
+            for (let i = 0; i < facetValue.length; i++) {
+              const key = toFacetKey(facetValue[i], defaultValue)
+              const counter = counters.get(key)
+              if (counter === undefined) {
+                counters.set(key, { count: 1, lastDoc: currentDoc })
+              } else if (counter.lastDoc !== currentDoc) {
+                counter.count++
+                counter.lastDoc = currentDoc
+              }
+            }
+          }
+        : (doc: AnyDocument) => {
+            const key = toFacetKey(getFacetValue(doc), defaultValue)
+            const counter = counters.get(key)
+            if (counter === undefined) {
+              counters.set(key, { count: 1, lastDoc: 0 })
+            } else {
+              counter.count++
+            }
+          }
+
+      let sortingPredicate: ((a: [string, number], b: [string, number]) => number) | undefined
+      let offset = 0
+      let limit = 10
       if (propertyType === 'string') {
         const stringFacetDefinition = facetsConfig[facet] as StringFacetDefinition
-        const sortingPredicate = sortingPredicateBuilder(stringFacetDefinition.sort)
-        const offset = stringFacetDefinition.offset ?? 0
-        const limit = stringFacetDefinition.limit ?? 10
-        finalize = () =>
-          Object.fromEntries(
+        sortingPredicate = sortingPredicateBuilder(stringFacetDefinition.sort)
+        offset = stringFacetDefinition.offset ?? 0
+        limit = stringFacetDefinition.limit ?? 10
+      }
+
+      const finalize = () => {
+        const values: Record<string, number> = {}
+        for (const [key, counter] of counters) {
+          values[key] = counter.count
+        }
+        const count = Object.keys(values).length
+        if (sortingPredicate === undefined) {
+          return { count, values }
+        }
+        return {
+          count,
+          values: Object.fromEntries(
             Object.entries(values)
               .sort(sortingPredicate)
               .slice(offset, offset + limit)
           )
-      }
-      break
-    }
-    case 'boolean[]':
-    case 'enum[]':
-    case 'string[]': {
-      const innerType = propertyType === 'boolean[]' ? 'boolean' : 'string'
-      process = (doc) => {
-        const facetValue = getFacetValue(doc)
-        if (!Array.isArray(facetValue)) {
-          return
         }
+      }
 
-        const alreadyInsertedValues = new Set<string>()
-        for (let i = 0; i < facetValue.length; i++) {
-          incrementBooleanStringOrEnumFacet(values, innerType, facetValue[i] as FacetValue, alreadyInsertedValues)
-        }
-      }
-      break
+      return { process, finalize }
     }
     default:
       throw createError('FACET_NOT_SUPPORTED', propertyType)
   }
-
-  return { values, process, finalize }
 }
 
 export function getFacets<T extends AnyZBSearch>(
@@ -216,29 +250,23 @@ export function getFacets<T extends AnyZBSearch>(
     const facet = facetKeys[i]!
     const pathParts = facet.includes('.') ? facet.split('.') : null
     preparedFacets[i] = prepareFacet(facet, facetsConfig, properties[facet]!, pathParts)
-    facets[facet] = {
-      count: 0,
-      values: preparedFacets[i]!.values
-    }
   }
 
   const resultsLength = results.length
+  const facetsLength = preparedFacets.length
   for (let i = 0; i < resultsLength; i++) {
     const doc = docs[results[i]![0]!]
     if (!doc) {
       continue
     }
 
-    for (let j = 0; j < facetKeys.length; j++) {
+    for (let j = 0; j < facetsLength; j++) {
       preparedFacets[j]!.process(doc)
     }
   }
 
   for (let i = 0; i < facetKeys.length; i++) {
-    const facet = facetKeys[i]!
-    const preparedFacet = preparedFacets[i]!
-    facets[facet]!.count = Object.keys(preparedFacet.values).length
-    facets[facet]!.values = preparedFacet.finalize()
+    facets[facetKeys[i]!] = preparedFacets[i]!.finalize()
   }
 
   return facets

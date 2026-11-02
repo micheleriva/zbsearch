@@ -29,14 +29,7 @@ import type {
   TokenScore,
   WhereCondition
 } from '../types.js'
-import {
-  convertDistanceToMeters,
-  setDifference,
-  setIntersection,
-  setUnion,
-  yieldToEventLoop,
-  uniqueTokens
-} from '../utils.js'
+import { convertDistanceToMeters, setIntersection, yieldToEventLoop, uniqueTokens } from '../utils.js'
 import { BM25 } from './algorithms.js'
 import { getInnerType, getVectorSize, isArrayType, isVectorType } from './defaults.js'
 import { levenshtein } from './levenshtein.js'
@@ -496,30 +489,331 @@ export function calculateResultScores(
   }
 }
 
-function collectFindResultIds(searchResult: FindResult): Set<InternalDocumentID> {
+// The scores of a search, accumulated per internal document ID in dense typed arrays instead of a Map. The arrays
+// are reused by every search on the same index; `stamps[id] === stamp` tells the documents scored by the current one.
+type ScoreAccumulator = {
+  scores: Float64Array
+  stamps: Uint32Array
+  stamp: number
+  // The scored IDs, in the order they were first scored (the order a Map would iterate them in)
+  ids: InternalDocumentID[]
+  // The filter set of the current search and, once looking IDs up in it has cost as much as marking all of its IDs,
+  // `filterMarks[id] === stamp` for each of them
+  filter: Set<InternalDocumentID> | undefined
+  filterLookups: number
+  filterMarked: boolean
+  filterMarks: Uint32Array
+  // Keyword matches per document within one property, allocated on first use: `matchCounts[id]` is current when
+  // `matchMarks[id] === matchStamp`, and `matchedIds` lists those IDs. `fullMatchMarks[id] === stamp` for the
+  // documents that matched all the keywords in at least one property.
+  matchCounts: Uint32Array | undefined
+  matchMarks: Uint32Array | undefined
+  matchStamp: number
+  matchedIds: InternalDocumentID[]
+  fullMatchMarks: Uint32Array | undefined
+}
+
+const scoreAccumulators = new WeakMap<Index, ScoreAccumulator>()
+
+function getScoreAccumulator(index: Index): ScoreAccumulator {
+  let accumulator = scoreAccumulators.get(index)
+
+  if (!accumulator) {
+    const size = index.sharedInternalDocumentStore.internalIdToId.length + 1
+    accumulator = {
+      scores: new Float64Array(size),
+      stamps: new Uint32Array(size),
+      stamp: 0,
+      ids: [],
+      filter: undefined,
+      filterLookups: 0,
+      filterMarked: false,
+      filterMarks: new Uint32Array(size),
+      matchCounts: undefined,
+      matchMarks: undefined,
+      matchStamp: 0,
+      matchedIds: [],
+      fullMatchMarks: undefined
+    }
+    scoreAccumulators.set(index, accumulator)
+  }
+
+  if (accumulator.stamp === 0xffffffff) {
+    accumulator.stamps.fill(0)
+    accumulator.filterMarks.fill(0)
+    accumulator.fullMatchMarks?.fill(0)
+    accumulator.stamp = 0
+  }
+
+  accumulator.stamp++
+  accumulator.ids = []
+  accumulator.filter = undefined
+  accumulator.filterLookups = 0
+  accumulator.filterMarked = false
+
+  return accumulator
+}
+
+function resizeUint32Array(array: Uint32Array, size: number): Uint32Array {
+  const resized = new Uint32Array(size)
+  resized.set(array)
+  return resized
+}
+
+function growScoreAccumulator(accumulator: ScoreAccumulator, internalId: InternalDocumentID): void {
+  const size = Math.max(internalId + 1, accumulator.scores.length * 2)
+  const scores = new Float64Array(size)
+  scores.set(accumulator.scores)
+  accumulator.scores = scores
+  accumulator.stamps = resizeUint32Array(accumulator.stamps, size)
+  accumulator.filterMarks = resizeUint32Array(accumulator.filterMarks, size)
+
+  if (accumulator.matchCounts && accumulator.matchMarks && accumulator.fullMatchMarks) {
+    accumulator.matchCounts = resizeUint32Array(accumulator.matchCounts, size)
+    accumulator.matchMarks = resizeUint32Array(accumulator.matchMarks, size)
+    accumulator.fullMatchMarks = resizeUint32Array(accumulator.fullMatchMarks, size)
+  }
+}
+
+// Starts counting keyword matches per document for a new property
+function startPropertyMatches(accumulator: ScoreAccumulator): void {
+  if (!accumulator.matchCounts || !accumulator.matchMarks || !accumulator.fullMatchMarks) {
+    const size = accumulator.scores.length
+    accumulator.matchCounts = new Uint32Array(size)
+    accumulator.matchMarks = new Uint32Array(size)
+    accumulator.fullMatchMarks = new Uint32Array(size)
+  }
+
+  if (accumulator.matchStamp === 0xffffffff) {
+    accumulator.matchMarks.fill(0)
+    accumulator.matchStamp = 0
+  }
+
+  accumulator.matchStamp++
+  accumulator.matchedIds = []
+}
+
+// Marks the documents that matched `keywordsCount` keywords in the property started last
+function markFullMatches(accumulator: ScoreAccumulator, keywordsCount: number): void {
+  const { matchedIds, stamp } = accumulator
+  const matchCounts = accumulator.matchCounts!
+  const fullMatchMarks = accumulator.fullMatchMarks!
+  const matchedIdsLength = matchedIds.length
+
+  for (let i = 0; i < matchedIdsLength; i++) {
+    const id = matchedIds[i]
+    if (matchCounts[id] === keywordsCount) {
+      fullMatchMarks[id] = stamp
+    }
+  }
+}
+
+// Returns the marks of `filter` once `lookups` more lookups would bring the lookups made so far to its size, or
+// undefined while looking IDs up in the Set is still cheaper than marking all of them.
+function getFilterMarks(
+  accumulator: ScoreAccumulator,
+  filter: Set<InternalDocumentID>,
+  lookups: number
+): Uint32Array | undefined {
+  if (accumulator.filter !== filter) {
+    if (accumulator.filter !== undefined) {
+      // Only one filter set per search can be marked
+      return undefined
+    }
+    accumulator.filter = filter
+  }
+
+  if (accumulator.filterMarked) {
+    return accumulator.filterMarks
+  }
+
+  accumulator.filterLookups += lookups
+  if (accumulator.filterLookups < filter.size) {
+    return undefined
+  }
+
+  const stamp = accumulator.stamp
+  for (const id of filter) {
+    if (id >= accumulator.filterMarks.length) {
+      growScoreAccumulator(accumulator, id)
+    }
+    accumulator.filterMarks[id] = stamp
+  }
+  accumulator.filterMarked = true
+
+  return accumulator.filterMarks
+}
+
+function getAccumulatedScores(accumulator: ScoreAccumulator): TokenScore[] {
+  const { ids, scores } = accumulator
+  const idsLength = ids.length
+  const results: TokenScore[] = new Array(idsLength)
+
+  for (let i = 0; i < idsLength; i++) {
+    const id = ids[i]
+    results[i] = [id, scores[id]]
+  }
+
+  return results
+}
+
+// Adds the BM25 score of `term` to `accumulator` for each of `ids` (and, with `trackMatches`, counts the match per
+// document, see startPropertyMatches). Same scores as calculateResultScores, bit for bit: it mirrors BM25() from
+// algorithms.ts operation by operation, but computes the per-term factors (IDF, k + 1, 1 - b) once instead of once
+// per document.
+function scoreTermIds(
+  index: Index,
+  prop: string,
+  term: string,
+  ids: InternalDocumentID[],
+  docsCount: number,
+  bm25Relevance: Required<BM25Params>,
+  accumulator: ScoreAccumulator,
+  boostPerProperty: number,
+  whereFiltersIDs: Set<InternalDocumentID> | undefined,
+  trackMatches = false
+): void {
+  const avgFieldLength = index.avgFieldLength[prop]
+  const fieldLengths = index.fieldLengths[prop]
+  const zbsearchFrequencies = index.frequencies[prop]
+  const matchingCount = getTermDocumentFrequency(index, prop, term)
+
+  const { k, b, d } = bm25Relevance
+  const idf = Math.log(1 + (docsCount - matchingCount + 0.5) / (matchingCount + 0.5))
+  const kPlusOne = k + 1
+  const oneMinusB = 1 - b
+
+  const documentIDsLength = ids.length
+  const filterMarks = whereFiltersIDs ? getFilterMarks(accumulator, whereFiltersIDs, documentIDsLength) : undefined
+
+  const { stamp, ids: scoredIds, matchStamp, matchedIds } = accumulator
+  let { scores, stamps, matchCounts, matchMarks } = accumulator
+
+  // Calculate TF-IDF value for each term, in each document, for each index.
+  for (let i = 0; i < documentIDsLength; i++) {
+    const internalId = ids[i]
+    if (whereFiltersIDs && (filterMarks ? filterMarks[internalId] !== stamp : !whereFiltersIDs.has(internalId))) {
+      continue
+    }
+
+    const tf = zbsearchFrequencies?.[internalId]?.[term] ?? 0
+    const bm25 = (idf * (d + tf * kPlusOne)) / (tf + k * (oneMinusB + (b * fieldLengths[internalId]!) / avgFieldLength))
+
+    if (stamps[internalId] === stamp) {
+      scores[internalId] += bm25 * boostPerProperty
+    } else {
+      if (internalId >= stamps.length) {
+        growScoreAccumulator(accumulator, internalId)
+        ;({ scores, stamps, matchCounts, matchMarks } = accumulator)
+      }
+
+      stamps[internalId] = stamp
+      scores[internalId] = bm25 * boostPerProperty
+      scoredIds.push(internalId)
+    }
+
+    // The ID is within the arrays' bounds now
+    if (trackMatches) {
+      if (matchMarks![internalId] === matchStamp) {
+        matchCounts![internalId]++
+      } else {
+        matchMarks![internalId] = matchStamp
+        matchCounts![internalId] = 1
+        matchedIds.push(internalId)
+      }
+    }
+  }
+}
+
+// Collects the IDs of the documents in `searchResult`, keeping only those in `within` when given (an intersection
+// that never materializes the IDs outside of it).
+function collectFindResultIds(
+  searchResult: FindResult,
+  within: Set<InternalDocumentID> | undefined
+): Set<InternalDocumentID> {
   const ids = new Set<InternalDocumentID>()
 
   for (const word in searchResult) {
     const docIds = searchResult[word]
-    for (let i = 0; i < docIds.length; i++) {
-      ids.add(docIds[i])
+    const docIdsLength = docIds.length
+    for (let i = 0; i < docIdsLength; i++) {
+      const id = docIds[i]
+      if (!within || within.has(id)) {
+        ids.add(id)
+      }
     }
   }
 
   return ids
 }
 
-function filterIdsToCandidates(ids: InternalDocumentID[], candidates: Set<InternalDocumentID>): InternalDocumentID[] {
-  const filtered: InternalDocumentID[] = []
+function byScoreDescending(a: TokenScore, b: TokenScore): number {
+  return b[1] - a[1]
+}
 
-  for (let i = 0; i < ids.length; i++) {
-    const id = ids[i]
-    if (candidates.has(id)) {
-      filtered.push(id)
+const TYPED_SCORE_SORT_MIN_LENGTH = 64
+
+// Returns `results` ordered exactly as the stable `results.sort(byScoreDescending)` would: by score, highest first,
+// with equal scores in their original order. Small inputs are insertion sorted. Larger ones sort the (negated) scores
+// as a Float64Array, natively and without a comparator, then place each result, in input order, at the next free slot
+// of its score's run.
+function sortByScoreDescending(results: TokenScore[]): TokenScore[] {
+  const length = results.length
+
+  for (let i = 0; i < length; i++) {
+    const score = results[i][1]
+    // NaN compares as equal to everything: leave that to the comparator sort
+    if (score !== score) {
+      return results.sort(byScoreDescending)
     }
   }
 
-  return filtered
+  if (length < TYPED_SCORE_SORT_MIN_LENGTH) {
+    // Without NaNs, `b[1] - a[1] > 0` is `b[1] > a[1]`
+    for (let i = 1; i < length; i++) {
+      const result = results[i]
+      const score = result[1]
+      let j = i - 1
+
+      while (j >= 0 && score > results[j][1]) {
+        results[j + 1] = results[j]
+        j--
+      }
+
+      results[j + 1] = result
+    }
+
+    return results
+  }
+
+  const keys = new Float64Array(length)
+  for (let i = 0; i < length; i++) {
+    keys[i] = -results[i][1]
+  }
+
+  const sortedKeys = keys.slice().sort()
+  const takenSlots = new Uint32Array(length)
+  const sorted: TokenScore[] = new Array(length)
+
+  for (let i = 0; i < length; i++) {
+    const key = keys[i]
+
+    // First slot of this score's run (-0 and 0 share one, as they compare as equal)
+    let low = 0
+    let high = length
+    while (low < high) {
+      const mid = (low + high) >>> 1
+      if (sortedKeys[mid] < key) {
+        low = mid + 1
+      } else {
+        high = mid
+      }
+    }
+
+    sorted[low + takenSlots[low]++] = results[i]
+  }
+
+  return sorted
 }
 
 // Prefix-expanded words (the query token is a strict prefix of the indexed word) score at a demoted weight so that documents matching the full query token always outrank partial, prefix-only matches.
@@ -555,9 +849,10 @@ function searchThresholdZero(
   docsCount: number,
   whereFiltersIDs: Set<InternalDocumentID> | undefined
 ): TokenScore[] {
-  const findCache = new Map<string, FindResult>()
   const candidateIds = new Set<InternalDocumentID>()
   const matchingProperties: string[] = []
+  // The radix search results of each matching property, one per token
+  const matchingSearchResults: FindResult[][] = []
 
   for (const prop of propertiesToSearch) {
     if (!(prop in index.indexes)) {
@@ -574,27 +869,36 @@ function searchThresholdZero(
       throw createError('INVALID_BOOST_VALUE', boostPerProperty)
     }
 
-    let propertyIntersection: Set<InternalDocumentID> | undefined
     const tokenLength = tokens.length
+    const searchResults: FindResult[] = new Array(tokenLength)
+    const postingsCounts: number[] = new Array(tokenLength)
+    let hasEmptyToken = false
 
     for (let i = 0; i < tokenLength; i++) {
-      const token = tokens[i]
-      const cacheKey = `${prop}\0${token}`
-      let searchResult = findCache.get(cacheKey)
+      const searchResult = (tree.node as RadixTree).find({ term: tokens[i], exact, tolerance })
+      searchResults[i] = searchResult
 
-      if (!searchResult) {
-        searchResult = (tree.node as RadixTree).find({ term: token, exact, tolerance })
-        findCache.set(cacheKey, searchResult)
+      let postingsCount = 0
+      for (const word in searchResult) {
+        postingsCount += searchResult[word].length
       }
 
-      if (!Object.keys(searchResult).length) {
-        propertyIntersection = undefined
+      if (!postingsCount) {
+        hasEmptyToken = true
         break
       }
+      postingsCounts[i] = postingsCount
+    }
 
-      const tokenIds = collectFindResultIds(searchResult)
-      propertyIntersection =
-        propertyIntersection === undefined ? tokenIds : setIntersection(propertyIntersection, tokenIds)
+    if (hasEmptyToken) {
+      continue
+    }
+
+    // Intersect starting from the token with the fewest postings, so that the sets stay as small as possible
+    const tokenOrder = Array.from(tokens.keys()).sort((a, b) => postingsCounts[a] - postingsCounts[b])
+    let propertyIntersection: Set<InternalDocumentID> | undefined
+    for (let i = 0; i < tokenLength; i++) {
+      propertyIntersection = collectFindResultIds(searchResults[tokenOrder[i]], propertyIntersection)
 
       if (!propertyIntersection.size) {
         break
@@ -606,6 +910,7 @@ function searchThresholdZero(
     }
 
     matchingProperties.push(prop)
+    matchingSearchResults.push(searchResults)
 
     for (const id of propertyIntersection) {
       if (!whereFiltersIDs || whereFiltersIDs.has(id)) {
@@ -618,50 +923,43 @@ function searchThresholdZero(
     return []
   }
 
-  const resultsMap = new Map<number, number>()
+  const accumulator = getScoreAccumulator(index)
 
-  for (const prop of matchingProperties) {
-    const tree = index.indexes[prop]
-    if (tree.type !== 'Radix') {
-      continue
-    }
-
+  const matchingPropertiesLength = matchingProperties.length
+  for (let p = 0; p < matchingPropertiesLength; p++) {
+    const prop = matchingProperties[p]
+    const searchResults = matchingSearchResults[p]
     const boostPerProperty = boost[prop] ?? 1
     const tokenLength = tokens.length
 
     for (let i = 0; i < tokenLength; i++) {
       const token = tokens[i]
-      const cacheKey = `${prop}\0${token}`
-      const searchResult = findCache.get(cacheKey)!
+      const searchResult = searchResults[i]
 
       const words = Object.keys(searchResult)
       for (let j = 0; j < words.length; j++) {
         const word = words[j]
-        const filteredIds = filterIdsToCandidates(searchResult[word], candidateIds)
 
-        if (filteredIds.length > 0) {
-          calculateResultScores(
-            index,
-            prop,
-            word,
-            filteredIds,
-            docsCount,
-            relevance,
-            resultsMap,
-            boostPerProperty *
-              (word === token
-                ? 1
-                : prefixExpansionDemotion(searchResult[token]?.length, searchResult[word]!.length, docsCount)),
-            whereFiltersIDs
-          )
-        }
+        // candidateIds is already restricted to whereFiltersIDs, so it is the only filter needed here.
+        scoreTermIds(
+          index,
+          prop,
+          word,
+          searchResult[word],
+          docsCount,
+          relevance,
+          accumulator,
+          boostPerProperty *
+            (word === token
+              ? 1
+              : prefixExpansionDemotion(searchResult[token]?.length, searchResult[word]!.length, docsCount)),
+          candidateIds
+        )
       }
     }
   }
 
-  return Array.from(resultsMap.entries())
-    .map(([id, score]): TokenScore => [id, score])
-    .sort((a, b) => b[1] - a[1])
+  return sortByScoreDescending(getAccumulatedScores(accumulator))
 }
 
 export function search(
@@ -702,11 +1000,12 @@ export function search(
     )
   }
 
-  // Track keyword matches per document and property
-  const keywordMatchesMap = new Map<InternalDocumentID, Map<string, number>>()
+  // Per-property keyword match counts are only needed to find the documents that match all the keywords in at least
+  // one property, which the threshold handling below skips when every result is returned anyway.
+  const trackKeywordMatches = threshold !== 1 && !(threshold === 0 && keywordsCount === 1)
   // Track which tokens were found in the search
   const tokenFoundMap = new Map<string, boolean>()
-  const resultsMap = new Map<number, number>()
+  const accumulator = getScoreAccumulator(index)
 
   for (const prop of propertiesToSearch) {
     if (!(prop in index.indexes)) {
@@ -721,6 +1020,11 @@ export function search(
     const boostPerProperty = boost[prop] ?? 1
     if (boostPerProperty <= 0) {
       throw createError('INVALID_BOOST_VALUE', boostPerProperty)
+    }
+
+    // Count keyword matches per document within this property
+    if (trackKeywordMatches) {
+      startPropertyMatches(accumulator)
     }
 
     // Process each token in the search term
@@ -740,27 +1044,31 @@ export function search(
       for (let j = 0; j < termsFoundLength; j++) {
         const word = termsFound[j]
         const ids = searchResult[word]
-        calculateResultScores(
+        scoreTermIds(
           index,
           prop,
           word,
           ids,
           docsCount,
           relevance,
-          resultsMap,
+          accumulator,
           boostPerProperty *
             (word === token ? 1 : prefixExpansionDemotion(searchResult[token]?.length, ids!.length, docsCount)),
           whereFiltersIDs,
-          keywordMatchesMap
+          trackKeywordMatches
         )
       }
+    }
+
+    if (trackKeywordMatches) {
+      markFullMatches(accumulator, keywordsCount)
     }
   }
 
   // Convert to array and sort by score
-  const results = Array.from(resultsMap.entries())
-    .map(([id, score]): TokenScore => [id, score])
-    .sort((a, b) => b[1] - a[1])
+  const results = sortByScoreDescending(getAccumulatedScores(accumulator))
+  // Documents that have all keywords in at least one property are marked with the search's stamp
+  const { fullMatchMarks, stamp } = accumulator
 
   if (results.length === 0) {
     return []
@@ -787,29 +1095,24 @@ export function search(
     }
 
     // Find documents that have all keywords in at least one property
-    const fullMatches = results.filter(([id]) => {
-      const propertyMatches = keywordMatchesMap.get(id)
-      if (!propertyMatches) return false
-
-      // Check if any property has all keywords
-      return Array.from(propertyMatches.values()).some((matches) => matches === keywordsCount)
-    })
-
-    return fullMatches
+    return results.filter(([id]) => fullMatchMarks?.[id] === stamp)
   }
 
   // Find documents that have all keywords in at least one property
-  const fullMatches = results.filter(([id]) => {
-    const propertyMatches = keywordMatchesMap.get(id)
-    if (!propertyMatches) return false
-
-    // Check if any property has all keywords
-    return Array.from(propertyMatches.values()).some((matches) => matches === keywordsCount)
-  })
+  const fullMatches: TokenScore[] = []
+  const remainingResults: TokenScore[] = []
+  const resultsLength = results.length
+  for (let i = 0; i < resultsLength; i++) {
+    const result = results[i]
+    if (fullMatchMarks?.[result[0]] === stamp) {
+      fullMatches.push(result)
+    } else {
+      remainingResults.push(result)
+    }
+  }
 
   // If we have full matches and threshold < 1, return full matches plus a percentage of partial matches
   if (fullMatches.length > 0) {
-    const remainingResults = results.filter(([id]) => !fullMatches.some(([fid]) => fid === id))
     const additionalResults = Math.ceil(remainingResults.length * threshold)
     return [...fullMatches, ...remainingResults.slice(0, additionalResults)]
   }
@@ -946,36 +1249,43 @@ export function searchByWhereClause<T extends AnyZBSearch>(
       return new Set()
     }
 
-    const results = orFilters.map((filter) => searchByWhereClause(index, tokenizer, filter, language))
-    // Use reduce to union all sets
-    return results.reduce((acc, set) => setUnion(acc, set), new Set<InternalDocumentID>())
+    const union = searchByWhereClause(index, tokenizer, orFilters[0], language)
+    for (let i = 1; i < orFilters.length; i++) {
+      const result = searchByWhereClause(index, tokenizer, orFilters[i], language)
+      for (const id of result) {
+        union.add(id)
+      }
+    }
+    return union
   }
 
   if ('not' in filters && filters.not) {
-    const notFilter = filters.not
-    // Get all document IDs from the internal document store
-    const allDocs = new Set<InternalDocumentID>()
+    const notResult = searchByWhereClause(index, tokenizer, filters.not, language)
 
-    // Get all document IDs from the internal document store
-    const docsStore = index.sharedInternalDocumentStore
-    for (let i = 1; i <= docsStore.internalIdToId.length; i++) {
-      allDocs.add(i)
+    // All the internal document IDs that are not in the negated result
+    const result = new Set<InternalDocumentID>()
+    const docsCount = index.sharedInternalDocumentStore.internalIdToId.length
+    for (let i = 1; i <= docsCount; i++) {
+      if (!notResult.has(i)) {
+        result.add(i)
+      }
     }
-
-    const notResult = searchByWhereClause(index, tokenizer, notFilter, language)
-    return setDifference(allDocs, notResult)
+    return result
   }
 
   // Handle regular property filters (existing logic)
   const filterKeys = Object.keys(filters)
 
-  const filtersMap: Record<string, Set<InternalDocumentID>> = filterKeys.reduce(
-    (acc, key) => ({
-      [key]: new Set(),
-      ...acc
-    }),
-    {}
-  )
+  const filterKeysLength = filterKeys.length
+
+  // The intersection order (and so the resulting Set iteration order) follows the keys order of this map,
+  // which historically lists the filter keys in reverse order.
+  const filtersMap: Record<string, Set<InternalDocumentID> | undefined> = {}
+  for (let i = filterKeysLength - 1; i >= 0; i--) {
+    filtersMap[filterKeys[i]] = undefined
+  }
+  // Whether the last computed set is owned by an index structure (and so must be copied before being returned)
+  let isSharedSet = false
 
   for (const param of filterKeys) {
     const operation = filters[param]!
@@ -988,8 +1298,8 @@ export function searchByWhereClause<T extends AnyZBSearch>(
 
     if (type === 'Bool') {
       const idx = node
-      const filteredIDs = operation ? idx.true : idx.false
-      filtersMap[param] = setUnion(filtersMap[param], filteredIDs)
+      filtersMap[param] = operation ? idx.true : idx.false
+      isSharedSet = true
       continue
     }
 
@@ -1014,7 +1324,7 @@ export function searchByWhereClause<T extends AnyZBSearch>(
         } = operation[reqOperation] as GeosearchRadiusOperator['radius']
         const distanceInMeters = convertDistanceToMeters(value, unit)
         const ids = node.searchByRadius(coordinates as BKDGeoPoint, distanceInMeters, inside, undefined, highPrecision)
-        filtersMap[param] = addGeoResult(filtersMap[param], ids)
+        filtersMap[param] = addGeoResult(undefined, ids)
       } else {
         const {
           coordinates,
@@ -1022,20 +1332,24 @@ export function searchByWhereClause<T extends AnyZBSearch>(
           highPrecision = false
         } = operation[reqOperation] as GeosearchPolygonOperator['polygon']
         const ids = node.searchByPolygon(coordinates as BKDGeoPoint[], inside, undefined, highPrecision)
-        filtersMap[param] = addGeoResult(filtersMap[param], ids)
+        filtersMap[param] = addGeoResult(undefined, ids)
       }
+      isSharedSet = false
 
       continue
     }
 
     if (type === 'Radix' && (typeof operation === 'string' || Array.isArray(operation))) {
+      let filteredIDs: Set<InternalDocumentID> | undefined
       for (const raw of [operation].flat()) {
         const term = tokenizer.tokenize(raw, language, param)
         for (const t of term) {
           const filteredIDsResults = node.find({ term: t, exact: true })
-          filtersMap[param] = addFindResult(filtersMap[param], filteredIDsResults)
+          filteredIDs = addFindResult(filteredIDs, filteredIDsResults)
         }
       }
+      filtersMap[param] = filteredIDs
+      isSharedSet = false
 
       continue
     }
@@ -1047,13 +1361,10 @@ export function searchByWhereClause<T extends AnyZBSearch>(
     }
 
     if (type === 'Flat') {
-      const results = new Set(
-        isArray
-          ? node.filterArr(operation as EnumArrComparisonOperator)
-          : node.filter(operation as EnumComparisonOperator)
-      )
-
-      filtersMap[param] = setUnion(filtersMap[param], results)
+      filtersMap[param] = isArray
+        ? node.filterArrSet(operation as EnumArrComparisonOperator)
+        : node.filterSet(operation as EnumComparisonOperator)
+      isSharedSet = true
 
       continue
     }
@@ -1062,6 +1373,7 @@ export function searchByWhereClause<T extends AnyZBSearch>(
       const operationOpt = operationKeys[0] as keyof ComparisonOperator
       const operationValue = (operation as ComparisonOperator)[operationOpt]
       let filteredIDs: Set<InternalDocumentID>
+      isSharedSet = false
 
       switch (operationOpt) {
         case 'gt': {
@@ -1083,6 +1395,7 @@ export function searchByWhereClause<T extends AnyZBSearch>(
         case 'eq': {
           const ret = node.find(operationValue as number)
           filteredIDs = ret ?? new Set()
+          isSharedSet = true
           break
         }
         case 'between': {
@@ -1094,12 +1407,24 @@ export function searchByWhereClause<T extends AnyZBSearch>(
           throw createError('INVALID_FILTER_OPERATION', operationOpt)
       }
 
-      filtersMap[param] = setUnion(filtersMap[param], filteredIDs)
+      filtersMap[param] = filteredIDs
     }
   }
 
+  const sets = Object.values(filtersMap) as Array<Set<InternalDocumentID> | undefined>
+  for (let i = 0; i < sets.length; i++) {
+    if (sets[i] === undefined) {
+      sets[i] = new Set()
+    }
+  }
+
+  if (sets.length === 1) {
+    // Never hand out a Set owned by an index structure
+    return isSharedSet ? new Set(sets[0]) : sets[0]!
+  }
+
   // AND operation: calculate the intersection between all the IDs in filterMap
-  return setIntersection(...Object.values(filtersMap))
+  return setIntersection(...(sets as Set<InternalDocumentID>[]))
 }
 
 export function getSearchableProperties(index: Index): string[] {

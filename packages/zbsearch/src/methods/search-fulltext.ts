@@ -16,7 +16,7 @@ import type {
   TokenScore,
   TypedDocument
 } from '../types.js'
-import { getNanosecondsTime, removeVectorsFromHits, sortTokenScorePredicate } from '../utils.js'
+import { getNanosecondsTime, removeVectorsFromHits, sortTokenScores } from '../utils.js'
 import { count } from './docs.js'
 import { fetchDocuments, fetchDocumentsWithDistinct } from './fetch-documents.js'
 
@@ -191,7 +191,7 @@ export function fullTextSearch<T extends AnyZBSearch, ResultDocument = TypedDocu
           .map(([id, score]) => [getInternalDocumentId(zbsearch.internalDocumentIDStore, id), score])
       }
     } else {
-      uniqueDocsArray = uniqueDocsArray.sort(sortTokenScorePredicate)
+      uniqueDocsArray = sortTokenScores(uniqueDocsArray)
     }
 
     // Apply pinning rules after sorting but before pagination

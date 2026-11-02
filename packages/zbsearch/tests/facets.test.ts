@@ -2,6 +2,45 @@ import { describe, expect, it } from 'vitest'
 import { create, insert, insertMultiple, search } from '../src/index.js'
 
 describe('facets', () => {
+  it('should count array values and number[] ranges once per document', async () => {
+    const db = create({
+      schema: {
+        tags: 'string[]',
+        flags: 'boolean[]',
+        scores: 'number[]',
+        rating: 'number'
+      } as const
+    })
+
+    await insertMultiple(db, [
+      { tags: ['a', 'a', 'b'], flags: [true, true], scores: [1, 2, 8], rating: 1 },
+      { tags: ['b'], flags: [false, true], scores: [9, 9], rating: 3 },
+      { tags: [], flags: [], scores: [], rating: 5 }
+    ])
+
+    const ranges = [
+      { from: 0, to: 5 },
+      { from: 5, to: 10 },
+      { from: 0, to: 5 }
+    ]
+    const results = search(db, {
+      term: '',
+      facets: {
+        tags: {},
+        flags: {},
+        scores: { ranges },
+        rating: { ranges }
+      }
+    })
+
+    expect(results.facets).toEqual({
+      tags: { count: 2, values: { a: 1, b: 2 } },
+      flags: { count: 2, values: { true: 2, false: 1 } },
+      scores: { count: 2, values: { '0-5': 1, '5-10': 2 } },
+      rating: { count: 2, values: { '0-5': 6, '5-10': 1 } }
+    })
+  })
+
   it('should generate correct facets', async () => {
     const db = await create({
       schema: {

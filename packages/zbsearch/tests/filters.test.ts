@@ -2,6 +2,45 @@ import { describe, expect, it } from 'vitest'
 import { create, insert, search, remove, insertMultiple, AnyZBSearch } from '../src/index.js'
 
 describe('filters', () => {
+  it('should not mutate the index sets when combining filters', async () => {
+    const db = create({
+      schema: {
+        name: 'string',
+        rating: 'number',
+        available: 'boolean',
+        tags: 'enum[]',
+        category: 'enum'
+      } as const
+    })
+
+    await insertMultiple(db, [
+      { id: '1', name: 'a', rating: 1, available: true, tags: ['x'], category: 'c1' },
+      { id: '2', name: 'b', rating: 2, available: false, tags: ['x', 'y'], category: 'c2' },
+      { id: '3', name: 'c', rating: 2, available: true, tags: ['y'], category: 'c1' },
+      { id: '4', name: 'd', rating: 4, available: false, tags: ['z'], category: 'c3' }
+    ])
+
+    const ids = (where: any) =>
+      search(db, { where, limit: 10 })
+        .hits.map((h) => h.id)
+        .sort()
+
+    const shared = [{ available: true }, { rating: { eq: 2 } }, { tags: { containsAll: ['x'] } }, { category: { eq: 'c1' } }]
+
+    for (const filter of shared) {
+      const before = ids(filter)
+      expect(ids({ or: [filter, { rating: { eq: 4 } }] })).toEqual([...new Set([...before, '4'])].sort())
+      ids({ and: [filter, { rating: { lt: 2 } }, { name: 'a' }] })
+      ids({ not: filter })
+      expect(ids(filter)).toEqual(before)
+    }
+
+    expect(ids({ available: true, category: { eq: 'c1' }, tags: { containsAny: ['x', 'y'] } })).toEqual(['1', '3'])
+    expect(ids({ tags: { containsAll: ['x', 'y'] } })).toEqual(['2'])
+    expect(ids({ tags: { containsAll: ['x', 'nope'] } })).toEqual([])
+    expect(ids({ or: [{ available: true }, { available: false }] })).toEqual(['1', '2', '3', '4'])
+  })
+
   it('should throw on unknown field', async () => {
     const [db] = await createSimpleDB()
 

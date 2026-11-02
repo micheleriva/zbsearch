@@ -307,3 +307,132 @@ describe('find with tolerance on compressed edges', () => {
     }
   })
 })
+
+describe('find with tolerance on randomized vocabularies', () => {
+  // Small deterministic PRNG so failures are reproducible
+  function createRandom(seed: number) {
+    return () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff
+      return seed / 0x7fffffff
+    }
+  }
+
+  function randomWord(random: () => number, alphabet: string, maxLength: number) {
+    let word = ''
+    const length = 1 + Math.floor(random() * maxLength)
+    for (let i = 0; i < length; i++) {
+      word += alphabet[Math.floor(random() * alphabet.length)]
+    }
+    return word
+  }
+
+  function mutate(random: () => number, word: string, alphabet: string) {
+    let result = word
+    const edits = Math.floor(random() * 3)
+    for (let i = 0; i < edits; i++) {
+      const position = Math.floor(random() * (result.length + 1))
+      const character = alphabet[Math.floor(random() * alphabet.length)]
+      const operation = random()
+      if (operation < 0.33) {
+        result = result.slice(0, position) + character + result.slice(position)
+      } else if (operation < 0.66) {
+        result = result.slice(0, position) + result.slice(position + 1)
+      } else {
+        result = result.slice(0, position) + character + result.slice(position + 1)
+      }
+    }
+    return result
+  }
+
+  function bruteForce(words: string[], term: string, tolerance: number) {
+    const expected: Record<string, number[]> = {}
+    for (let id = 0; id < words.length; id++) {
+      const word = words[id]
+      if (levenshtein(term, word) <= tolerance || word.startsWith(term)) {
+        ;(expected[word] ??= []).push(id)
+      }
+    }
+    return expected
+  }
+
+  // The last case uses words and terms longer than 30 characters (the row-based fallback)
+  const cases: Array<[string, string, number]> = [
+    ['ascii', 'abcde', 8],
+    ['non-ascii', 'aéb日ç', 7],
+    ['long words', 'ab', 40]
+  ]
+
+  for (const [name, alphabet, maxLength] of cases) {
+    it(`should match brute-force Levenshtein distance plus the prefix rule (${name})`, () => {
+      const random = createRandom(maxLength * 31 + alphabet.length)
+      const words: string[] = []
+      for (let i = 0; i < 400; i++) {
+        words.push(randomWord(random, alphabet, maxLength))
+      }
+
+      const tree = new RadixTree()
+      for (let id = 0; id < words.length; id++) {
+        tree.insert(words[id], id)
+      }
+
+      for (let i = 0; i < 300; i++) {
+        const source = words[Math.floor(random() * words.length)]
+        const term =
+          random() < 0.2 ? source.slice(0, 1 + Math.floor(random() * source.length)) : mutate(random, source, alphabet)
+        if (!term) {
+          continue
+        }
+        const tolerance = 1 + Math.floor(random() * 4)
+        expect(tree.find({ term, tolerance }), `term "${term}" with tolerance ${tolerance}`).toStrictEqual(
+          bruteForce(words, term, tolerance)
+        )
+      }
+    })
+  }
+
+  it('should handle a tolerance as large as the term', () => {
+    const tree = new RadixTree()
+    const words = ['a', 'ab', 'abc', 'b', 'xyz', 'xyzw']
+    words.forEach((word, id) => tree.insert(word, id))
+
+    expect(tree.find({ term: 'ab', tolerance: 2 })).toStrictEqual({ a: [0], ab: [1], abc: [2], b: [3] })
+    expect(Object.keys(tree.find({ term: 'ab', tolerance: 10 })).sort()).toStrictEqual([...words].sort())
+  })
+})
+
+describe('postings fast paths', () => {
+  it('should keep exact lookups and re-insertions consistent with the tree', () => {
+    const tree = new RadixTree()
+    tree.insert('apple', 1)
+    tree.insert('apple', 2)
+    tree.insert('applet', 3)
+
+    const found = tree.find({ term: 'apple', exact: true })
+    expect(found).toStrictEqual({ apple: [1, 2] })
+
+    // The returned list is a copy: mutating it does not affect the tree
+    found.apple.push(99)
+    expect(tree.find({ term: 'apple', exact: true })).toStrictEqual({ apple: [1, 2] })
+
+    // An end node whose postings were all removed is still reported, with no documents
+    tree.removeDocumentByWord('apple', 1)
+    tree.removeDocumentByWord('apple', 2)
+    expect(tree.find({ term: 'apple', exact: true })).toStrictEqual({ apple: [] })
+    expect(tree.find({ term: 'appl', exact: true })).toStrictEqual({})
+
+    tree.insert('apple', 4)
+    expect(tree.find({ term: 'apple', exact: true })).toStrictEqual({ apple: [4] })
+    expect(tree.find({ term: 'app' })).toStrictEqual({ apple: [4], applet: [3] })
+
+    tree.removeWord('apple')
+    expect(tree.find({ term: 'apple', exact: true })).toStrictEqual({})
+    tree.insert('apple', 5)
+    expect(tree.find({ term: 'apple', exact: true })).toStrictEqual({ apple: [5] })
+
+    const restored = RadixTree.fromJSON(JSON.parse(JSON.stringify(tree.toJSON())))
+    restored.insert('apple', 6)
+    restored.insert('applet', 7)
+    expect(restored.find({ term: 'appl' })).toStrictEqual({ apple: [5, 6], applet: [3, 7] })
+    expect(restored.find({ term: 'apple', exact: true })).toStrictEqual({ apple: [5, 6] })
+  })
+})

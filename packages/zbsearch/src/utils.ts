@@ -203,6 +203,47 @@ export function sortTokenScorePredicate(a: TokenScore, b: TokenScore): number {
   return b[1] - a[1]
 }
 
+// Sorts `tokenScores` in place, with the same result as `tokenScores.sort(sortTokenScorePredicate)`. Scored results
+// usually arrive already ordered by score, or nearly so, and a stable insertion sort handles those faster than
+// Array.prototype.sort. Once the input proves too unordered, the array is handed to the native sort: the insertion
+// pass only moves elements past strictly greater ones, and without NaN scores the predicate is a consistent ordering,
+// so the final result is unchanged.
+export function sortTokenScores(tokenScores: TokenScore[]): TokenScore[] {
+  const length = tokenScores.length
+
+  for (let i = 0; i < length; i++) {
+    const score = tokenScores[i][1]
+    if (score !== score) {
+      return tokenScores.sort(sortTokenScorePredicate)
+    }
+  }
+
+  let movesLeft = length + 32
+
+  for (let i = 1; i < length; i++) {
+    const item = tokenScores[i]
+    let j = i - 1
+
+    if (!(sortTokenScorePredicate(tokenScores[j], item) > 0)) {
+      continue
+    }
+
+    do {
+      tokenScores[j + 1] = tokenScores[j]
+      j--
+      movesLeft--
+    } while (j >= 0 && sortTokenScorePredicate(tokenScores[j], item) > 0)
+
+    tokenScores[j + 1] = item
+
+    if (movesLeft < 0) {
+      return tokenScores.sort(sortTokenScorePredicate)
+    }
+  }
+
+  return tokenScores
+}
+
 // Intersection function taken from https://github.com/lovasoa/fast_array_intersect.
 // MIT Licensed at the time of writing.
 export function intersect<T>(arrays: Array<readonly T[]>): T[] {
@@ -425,8 +466,8 @@ export function setIntersection<V>(...sets: Set<V>[]): Set<V> {
   }
 
   // manual implementation:
-  // intersect all sets with the smallest set
-  const base = sets[min.index]
+  // intersect all sets with a copy of the smallest set (input sets might be owned by an index and must not be mutated)
+  const base = new Set(sets[min.index])
   for (let i = 0; i < sets.length; i++) {
     if (i === min.index) {
       continue

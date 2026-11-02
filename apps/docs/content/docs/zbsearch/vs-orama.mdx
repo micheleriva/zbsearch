@@ -6,49 +6,48 @@ description: Head-to-head performance and search-quality benchmarks comparing ZB
 ZBSearch is a fork of Orama maintained by the original engineering team. The API is compatible, but the internals have been optimized - including an explicit **postings list** inverted index that lowers memory use and serialized bundle size while keeping search fast, a faster full-text insert path, and an optional **IVF** vector index. This page summarizes benchmark results from the [`benchmarks/`](https://github.com/micheleriva/zbsearch/tree/main/benchmarks) suite in this repository.
 
 <Callout title="Test environment">
-Results below were collected using **Orama 3.1.18** and **ZBSearch 4.0.0** on **August 11, 2026** (Node v24.16.0, Apple Silicon), via [Benny](https://github.com/caderek/benny) for throughput, isolated Node.js processes (`--expose-gc`) for memory, and the BEIR harness for search quality. Higher **ops/s** is better. Percentages show how much slower the loser is relative to the winner in each suite.
+Results below were collected using **Orama 3.1.18** and **ZBSearch 4.0.1** (built from `main`) on **November 2, 2026** (Node v26.12.0, Apple Silicon), via [Benny](https://github.com/caderek/benny) for throughput, isolated Node.js processes (`--expose-gc`) for memory, and the BEIR harness for search quality. Higher **ops/s** is better. Percentages show how much slower the loser is relative to the winner in each suite.
 </Callout>
 
 ## Summary
 
 | Area | Verdict |
 | --- | --- |
-| Full-text search | ZBSearch is **7–56% faster** on search; indexing is **~42–43% faster** |
-| Search quality (BEIR) | ZBSearch scores **2× Orama's macro nDCG@10** (0.453 vs 0.222) at **3× lower query latency** |
-| Facets | ZBSearch is **27–57% faster** across all facet scenarios |
-| Vector search | ZBSearch is **13–33% faster** on flat indexes; **IVF** reaches **3.2–5.3×** Orama's throughput |
-| Geosearch (BKD) | ZBSearch is up to **~75× faster** on tight-radius queries |
-| Sorted indexes (AVL) | ZBSearch is **faster on every** AVL operation (2–54%) |
-| Memory footprint | ZBSearch uses **~20% less** heap and **~41% less** RSS for the same indexed dataset |
-| Persistence size | ZBSearch produces a **42% smaller** serialized index (**36%** smaller gzipped) |
-| JS bundle size | **Orama wins**: 22.20 KB vs 27.12 KB min+gzip |
+| Full-text search | ZBSearch is **46–76% faster** on search (1.9–4.2× Orama's throughput); indexing is **~60–62% faster** (~2.5×) |
+| Search quality (BEIR) | ZBSearch scores **2× Orama's macro nDCG@10** (0.437 vs 0.222) at **16× lower query latency** |
+| Facets | ZBSearch is **65–75% faster** across all facet scenarios (2.9–4.0× Orama's throughput) |
+| Vector search | ZBSearch is **11–32% faster** on flat indexes; **IVF** reaches **3.6–6.5×** Orama's throughput |
+| Geosearch (BKD) | ZBSearch is up to **~76× faster** on tight-radius queries |
+| Sorted indexes (AVL) | ZBSearch is **faster on every** AVL operation (2–56%) |
+| Memory footprint | ZBSearch uses **~22% less** heap for the same indexed dataset |
+| Persistence size | ZBSearch produces a **42% smaller** serialized index (**35%** smaller gzipped) |
+| JS bundle size | **Orama wins**: 22.20 KB vs 30.04 KB min+gzip |
 
-## Head-to-head: 20 metrics, one run
+## Head-to-head: 19 metrics, one run
 
-The `benchmark:compare` suite runs both engines through the same 20 workloads in a single process. ZBSearch 4.0.0 wins 18; Orama wins the two bundle-size metrics.
+The `benchmark:compare` suite runs both engines through the same workloads in a single process. ZBSearch wins 17 of the 19 metrics below; Orama wins the two bundle-size metrics.
 
-| Metric | Orama 3.1.18 | ZBSearch 4.0.0 | Δ (ZB / Orama) |
+| Metric | Orama 3.1.18 | ZBSearch 4.0.1 | Δ (ZB / Orama) |
 | --- | ---: | ---: | ---: |
-| Indexing (insert one-by-one) | 68.66 ms | 40.23 ms | -41.4% |
-| Indexing (insertMultiple) | 59.73 ms | 39.94 ms | -33.1% |
-| Prefix search (simple) | 130.84k/s | 165.13k/s | +26.2% |
-| Exact match search | 338.01k/s | 528.29k/s | +56.3% |
-| Plain full-text search | 33.51k/s | 83.98k/s | +150.6% |
-| Typo-tolerant search | 7.10k/s | 12.86k/s | +81.1% |
-| Search with filters | 23.99k/s | 28.82k/s | +20.1% |
-| Complex query + filters | 7.36k/s | 14.29k/s | +94.2% |
-| Search with facets | 8.61k/s | 11.87k/s | +37.9% |
-| Facets + filters | 4.29k/s | 7.15k/s | +66.7% |
-| Field boosting | 32.25k/s | 41.81k/s | +29.6% |
-| Search with results pinning | 32.71k/s | 35.19k/s | +7.6% |
-| Geosearch (radius) | 5.08k/s | 16.10k/s | +217.1% |
-| Geosearch + text + filters | 5.27k/s | 16.96k/s | +222.1% |
-| Remove 100 documents | 68.39 ms | 39.23 ms | -42.6% |
-| Memory footprint (heap delta) | 14.69 MB | 11.68 MB | -20.4% |
-| Memory footprint (RSS delta) | 22.27 MB | 12.20 MB | -45.2% |
-| Serialized index size (JSON) | 4.98 MB | 2.88 MB | -42.1% |
-| JS bundle size (minified) | 66.21 KB | 82.18 KB | +24.1% |
-| JS bundle size (min+gzip) | 22.20 KB | 27.12 KB | +22.2% |
+| Indexing (insert one-by-one) | 67.64 ms | 24.51 ms | -63.8% |
+| Indexing (insertMultiple) | 64.65 ms | 26.96 ms | -58.3% |
+| Prefix search (simple) | 134.41k/s | 537.15k/s | +299.6% |
+| Exact match search | 352.25k/s | 985.83k/s | +179.9% |
+| Plain full-text search | 33.87k/s | 149.95k/s | +342.7% |
+| Typo-tolerant search | 8.19k/s | 33.06k/s | +303.9% |
+| Search with filters | 24.56k/s | 52.79k/s | +115.0% |
+| Complex query + filters | 7.39k/s | 30.06k/s | +306.8% |
+| Search with facets | 9.00k/s | 23.91k/s | +165.7% |
+| Facets + filters | 4.51k/s | 15.79k/s | +250.2% |
+| Field boosting | 36.25k/s | 117.89k/s | +225.2% |
+| Search with results pinning | 31.96k/s | 80.48k/s | +151.8% |
+| Geosearch (radius) | 5.24k/s | 17.37k/s | +231.6% |
+| Geosearch + text + filters | 5.21k/s | 23.51k/s | +351.2% |
+| Remove 100 documents | 70.89 ms | 26.97 ms | -62.0% |
+| Memory footprint (heap delta) | 14.54 MB | 11.29 MB | -22.4% |
+| Serialized index size (JSON) | 4.94 MB | 2.87 MB | -41.9% |
+| JS bundle size (minified) | 66.21 KB | 89.47 KB | +35.1% |
+| JS bundle size (min+gzip) | 22.20 KB | 30.04 KB | +35.3% |
 
 Speed metrics are ops/sec (higher is better); indexing/remove are median latency and memory/bundle are bytes (lower is better).
 
@@ -56,15 +55,15 @@ Speed metrics are ops/sec (higher is better); indexing/remove are median latency
 
 Dataset: **1,512** video-game records with `title`, `description`, `rating`, and `genres` fields. Search benchmarks run against a database populated once before timing; insert benchmarks create a fresh database on each iteration.
 
-| Benchmark | Orama 3.1.18 | ZBSearch 4.0.0 | Difference |
+| Benchmark | Orama 3.1.18 | ZBSearch 4.0.1 | Difference |
 | --- | ---: | ---: | --- |
-| Insert | 15.2 ops/s | 26.1 ops/s | ZBSearch **41.8%** faster |
-| Insert multiple | 14.5 ops/s | 25.3 ops/s | ZBSearch **42.7%** faster |
-| Plain search | 31,928 ops/s | 73,090 ops/s | ZBSearch **56.3%** faster |
-| Search with filters | 24,649 ops/s | 26,575 ops/s | ZBSearch **7.2%** faster |
-| Long text + complex filters | 7,157 ops/s | 14,405 ops/s | ZBSearch **50.3%** faster |
+| Insert | 14.1 ops/s | 36.7 ops/s | ZBSearch **61.6%** faster |
+| Insert multiple | 14 ops/s | 35 ops/s | ZBSearch **60.0%** faster |
+| Plain search | 33,075 ops/s | 139,880 ops/s | ZBSearch **76.4%** faster |
+| Search with filters | 23,756 ops/s | 44,224 ops/s | ZBSearch **46.3%** faster |
+| Long text + complex filters | 7,046 ops/s | 27,758 ops/s | ZBSearch **74.6%** faster |
 
-ZBSearch is faster across all search scenarios tested here, with the largest gaps on plain search and long-text queries with complex filters. Indexing is also substantially faster (~**1.7×** Orama) thanks to node-local postings caches and a tighter tokenize/insert path.
+ZBSearch is faster across all search scenarios tested here, with the largest gaps on plain search and long-text queries with complex filters. Indexing is also substantially faster (~**2.5×** Orama) thanks to node-local postings caches and a tighter tokenize/insert path.
 
 ## Search quality (BEIR)
 
@@ -72,57 +71,57 @@ Throughput without relevance is meaningless, so ranking quality is measured on s
 
 | Dataset | Lucene ref | ZBSearch nDCG@10 | Orama nDCG@10 | ZBSearch ms/query | Orama ms/query |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| SciFact | 0.665 | **0.675** | 0.324 | 1.1 | 3.7 |
-| NFCorpus | 0.325 | **0.307** | 0.212 | 0.2 | 0.6 |
-| ArguAna | 0.414 | **0.378** | 0.130 | 12.4 | 39.2 |
-| **Macro average** | - | **0.453** | 0.222 | 8.8 | 27.8 |
+| SciFact | 0.665 | **0.675** | 0.324 | 0.5 | 4.9 |
+| NFCorpus | 0.325 | **0.309** | 0.212 | 0.1 | 0.6 |
+| ArguAna | 0.414 | **0.327** | 0.130 | 2.9 | 48.2 |
+| **Macro average** | - | **0.437** | 0.222 | 2.1 | 34.3 |
 
-ZBSearch's BM25 lands in the same band as the Lucene reference on every dataset (and above it on SciFact), while Orama scores less than half of ZBSearch's macro average - at roughly **3× the per-query latency**. Full per-engine tables (including MiniSearch, FlexSearch, Lunr, and Fuse.js) are on the [benchmarks page](/benchmarks).
+ZBSearch's BM25 lands close to the Lucene reference on SciFact (above it) and NFCorpus, while Orama scores about half of ZBSearch's macro average - at roughly **16× the per-query latency**. Full per-engine tables (including MiniSearch, FlexSearch, Lunr, and Fuse.js) are on the [benchmarks page](/benchmarks).
 
 ## Facets
 
-| Benchmark | Orama 3.1.18 | ZBSearch 4.0.0 | Difference |
+| Benchmark | Orama 3.1.18 | ZBSearch 4.0.1 | Difference |
 | --- | ---: | ---: | --- |
-| Search with facets | 8,600 ops/s | 11,782 ops/s | ZBSearch **27.0%** faster |
-| Facets (all documents) | 2,644 ops/s | 4,741 ops/s | ZBSearch **44.2%** faster |
-| Facets + filters | 4,471 ops/s | 7,869 ops/s | ZBSearch **43.2%** faster |
-| Facets + long text + filters | 4,558 ops/s | 10,662 ops/s | ZBSearch **57.2%** faster |
+| Search with facets | 8,958 ops/s | 25,611 ops/s | ZBSearch **65.0%** faster |
+| Facets (all documents) | 2,796 ops/s | 8,683 ops/s | ZBSearch **67.8%** faster |
+| Facets + filters | 4,530 ops/s | 16,081 ops/s | ZBSearch **71.8%** faster |
+| Facets + long text + filters | 4,533 ops/s | 18,347 ops/s | ZBSearch **75.3%** faster |
 
 ## Vector search
 
 Dataset: **2,000 documents**, **128-dimensional** vectors.
 
-| Benchmark | Orama 3.1.18 | ZBSearch 4.0.0 (flat) | Difference |
+| Benchmark | Orama 3.1.18 | ZBSearch 4.0.1 (flat) | Difference |
 | --- | ---: | ---: | --- |
-| Vector search | 2,185 ops/s | 2,639 ops/s | ZBSearch **17.2%** faster |
-| Strict similarity | 4,133 ops/s | 6,128 ops/s | ZBSearch **32.6%** faster |
-| Vector + filters | 5,071 ops/s | 5,860 ops/s | ZBSearch **13.5%** faster |
-| Vector + facets | 1,285 ops/s | 1,867 ops/s | ZBSearch **31.2%** faster |
+| Vector search | 2,247 ops/s | 2,639 ops/s | ZBSearch **14.9%** faster |
+| Strict similarity | 4,794 ops/s | 6,829 ops/s | ZBSearch **29.8%** faster |
+| Vector + filters | 5,401 ops/s | 6,090 ops/s | ZBSearch **11.3%** faster |
+| Vector + facets | 1,299 ops/s | 1,911 ops/s | ZBSearch **32.0%** faster |
 
 ### ZBSearch IVF vs Orama flat
 
 ZBSearch adds an optional [IVF index](/docs/zbsearch/usage/create#choosing-an-ivf-index) for approximate nearest-neighbor search. Orama does not ship an equivalent in the JS core.
 
-| Benchmark | Orama 3.1.18 (flat) | ZBSearch 4.0.0 (flat) | ZBSearch 4.0.0 (IVF) |
+| Benchmark | Orama 3.1.18 (flat) | ZBSearch 4.0.1 (flat) | ZBSearch 4.0.1 (IVF) |
 | --- | ---: | ---: | ---: |
-| Vector search | 2,215 ops/s | 2,674 ops/s | **11,810 ops/s** |
-| Strict similarity | 4,476 ops/s | 6,907 ops/s | **16,441 ops/s** |
-| Vector + filters | 5,216 ops/s | 5,935 ops/s | **16,621 ops/s** |
+| Vector search | 2,206 ops/s | 2,636 ops/s | **14,266 ops/s** |
+| Strict similarity | 4,120 ops/s | 6,563 ops/s | **17,377 ops/s** |
+| Vector + filters | 5,180 ops/s | 5,939 ops/s | **18,708 ops/s** |
 
-With IVF (`nlist=179`, `nprobe=16`), ZBSearch vector search runs at **3.2–5.3×** the throughput of Orama's flat index on this dataset.
+With IVF (`nlist=179`, `nprobe=16`), ZBSearch vector search runs at **3.6–6.5×** the throughput of Orama's flat index on this dataset.
 
 ## Geosearch (BKD tree)
 
 Dataset: **10,000 geopoints**.
 
-| Benchmark | Orama 3.1.18 | ZBSearch 4.0.0 | Difference |
+| Benchmark | Orama 3.1.18 | ZBSearch 4.0.1 | Difference |
 | --- | ---: | ---: | --- |
-| Insert | 258 ops/s | 264 ops/s | ~equal |
-| Search by radius (500m) | 3,702 ops/s | 275,793 ops/s | ZBSearch **98.7%** faster (~75×) |
-| Search by radius (5km) | 3,090 ops/s | 5,020 ops/s | ZBSearch **38.4%** faster |
-| Search by radius sorted (5km) | 582 ops/s | 1,640 ops/s | ZBSearch **64.5%** faster |
-| Search by polygon | 3,471 ops/s | 4,181 ops/s | ZBSearch **17.0%** faster |
-| Contains (10k lookups) | 921 ops/s | 922 ops/s | ~equal |
+| Insert | 292 ops/s | 269 ops/s | ~equal (±7% margin) |
+| Search by radius (500m) | 3,505 ops/s | 267,051 ops/s | ZBSearch **98.7%** faster (~76×) |
+| Search by radius (5km) | 3,061 ops/s | 4,440 ops/s | ZBSearch **31.1%** faster |
+| Search by radius sorted (5km) | 522 ops/s | 1,442 ops/s | ZBSearch **63.8%** faster |
+| Search by polygon | 3,107 ops/s | 3,394 ops/s | ZBSearch **8.5%** faster |
+| Contains (10k lookups) | 1,608 ops/s | 1,625 ops/s | ~equal |
 
 The largest geosearch gain is on tight-radius queries, where ZBSearch's BKD implementation avoids scanning the full point set.
 
@@ -130,17 +129,17 @@ The largest geosearch gain is on tight-radius queries, where ZBSearch's BKD impl
 
 Dataset: **10,000 numeric keys**.
 
-| Benchmark | Orama 3.1.18 | ZBSearch 4.0.0 | Difference |
+| Benchmark | Orama 3.1.18 | ZBSearch 4.0.1 | Difference |
 | --- | ---: | ---: | --- |
-| Insert | 458 ops/s | 567 ops/s | ZBSearch **19.2%** faster |
-| Insert batched (1k threshold) | 456 ops/s | 585 ops/s | ZBSearch **22.0%** faster |
-| Find (10k lookups) | 2,454 ops/s | 3,784 ops/s | ZBSearch **35.2%** faster |
-| Contains (10k lookups) | 2,503 ops/s | 3,361 ops/s | ZBSearch **25.5%** faster |
-| Range search (narrow) | 23,475 ops/s | 50,993 ops/s | ZBSearch **54.0%** faster |
-| Range search (wide) | 6,004 ops/s | 6,568 ops/s | ZBSearch **8.6%** faster |
-| Greater than | 7,280 ops/s | 7,714 ops/s | ZBSearch **5.6%** faster |
-| Less than | 7,454 ops/s | 7,579 ops/s | ZBSearch **1.7%** faster |
-| Remove (5k keys) | 450 ops/s | 518 ops/s | ZBSearch **13.1%** faster |
+| Insert | 374 ops/s | 498 ops/s | ZBSearch **24.9%** faster |
+| Insert batched (1k threshold) | 396 ops/s | 452 ops/s | ZBSearch **12.4%** faster |
+| Find (10k lookups) | 1,805 ops/s | 2,344 ops/s | ZBSearch **23.0%** faster |
+| Contains (10k lookups) | 1,450 ops/s | 2,857 ops/s | ZBSearch **49.2%** faster |
+| Range search (narrow) | 21,016 ops/s | 47,953 ops/s | ZBSearch **56.2%** faster |
+| Range search (wide) | 5,026 ops/s | 6,725 ops/s | ZBSearch **25.3%** faster |
+| Greater than | 6,583 ops/s | 7,511 ops/s | ZBSearch **12.4%** faster |
+| Less than | 7,082 ops/s | 7,224 ops/s | ZBSearch **2.0%** faster |
+| Remove (5k keys) | 357 ops/s | 402 ops/s | ZBSearch **11.2%** faster |
 
 ## Inverted index (postings)
 
@@ -154,23 +153,22 @@ At runtime, document frequency for BM25 is derived directly from posting list le
 
 Measured in isolated Node.js processes with `--expose-gc`, after indexing all **1,512** records and running **100** warmup searches. **Heap delta** is the increase over a GC'd baseline after the index is built - the most apples-to-apples comparison.
 
-| Metric | Orama 3.1.18 | ZBSearch 4.0.0 | Difference |
+| Metric | Orama 3.1.18 | ZBSearch 4.0.1 | Difference |
 | --- | ---: | ---: | --- |
-| Indexed heap delta | 14.69 MB | 11.68 MB | ZBSearch **20.4%** lower |
-| Indexed RSS delta | 21.88 MB | 12.81 MB | ZBSearch **41.4%** lower |
-| Search heap delta (100 queries) | 146 KB | 158 KB | ~equal |
+| Indexed heap delta | 14.54 MB | 11.28 MB | ZBSearch **22.4%** lower |
+| Search heap delta (100 queries) | 138 KB | 240 KB | Orama **42.5%** lower |
 
-Search working-set memory is effectively the same; the savings come from the index structure itself.
+The savings come from the index structure itself. ZBSearch's search working set is slightly larger because it keeps reusable typed-array scoring buffers (about 12 bytes per document) instead of allocating a new map on every query.
 
 ## Persistence size
 
-Serializing the same indexed dataset produces a much smaller bundle with ZBSearch 4.0.0:
+Serializing the same indexed dataset produces a much smaller bundle with ZBSearch 4.0.1:
 
 | Engine | JSON | GZIP |
 | --- | ---: | ---: |
-| Orama 3.1.18 | 5,226,285 bytes | 1,300,371 bytes |
-| ZBSearch 4.0.0 | 3,025,127 bytes | 835,855 bytes |
-| Difference | **42.1% smaller** | **35.7% smaller** |
+| Orama 3.1.18 | 5,180,851 bytes | 1,295,034 bytes |
+| ZBSearch 4.0.1 | 3,009,835 bytes | 838,890 bytes |
+| Difference | **41.9% smaller** | **35.2% smaller** |
 
 Delta-encoded postings and dropping redundant `tokenOccurrences` from the serialized snapshot account for most of the reduction. v4 also adds a [chunked persistence format](/docs/zbsearch/usage/serialization) for indexes that outgrow a single string.
 
@@ -182,7 +180,7 @@ From the repository root, build ZBSearch first, then run any suite in `benchmark
 cd packages/zbsearch && npm run build
 cd ../../benchmarks && npm install
 
-npm run benchmark:compare      # Orama vs ZBSearch, 20 metrics
+npm run benchmark:compare      # Orama vs ZBSearch head-to-head
 npm run benchmark              # core insert/search
 npm run benchmark:algorithms   # BM25 vs QPS vs PT15
 npm run benchmark:facets       # facet workloads
@@ -191,7 +189,7 @@ npm run benchmark:vector-ivf   # vector flat vs IVF
 npm run benchmark:bkd          # geosearch BKD tree
 npm run benchmark:avl          # sorted AVL tree
 npm run benchmark:bundle-size  # serialized DB size
-npm run benchmark:memory       # in-memory heap/RSS footprint
+npm run benchmark:memory       # in-memory heap footprint
 npm run benchmark:search-quality # BEIR ranking quality
 ```
 

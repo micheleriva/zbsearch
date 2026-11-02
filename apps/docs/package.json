@@ -6,7 +6,7 @@
     "predev": "node scripts/sync-downloads.mjs",
     "dev": "next dev --port 3000",
     "prebuild": "node scripts/sync-downloads.mjs",
-    "build": "next build",
+    "build": "NODE_ENV=production next build",
     "start": "next start",
     "postinstall": "fumadocs-mdx",
     "types:check": "fumadocs-mdx && next typegen && tsc --noEmit",

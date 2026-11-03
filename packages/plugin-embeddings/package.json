@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/plugin-embeddings",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "description": "ZBSearch plugin for generating embeddings locally",
   "keywords": [
     "embeddings",

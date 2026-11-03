@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/highlight",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "description": "Highlight and trim search matches inside a text",
   "keywords": [
     "excerpt",

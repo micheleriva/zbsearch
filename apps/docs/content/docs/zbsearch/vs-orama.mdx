@@ -6,7 +6,7 @@ description: Head-to-head performance and search-quality benchmarks comparing ZB
 ZBSearch is a fork of Orama maintained by the original engineering team. The API is compatible, but the internals have been optimized - including an explicit **postings list** inverted index that lowers memory use and serialized bundle size while keeping search fast, a faster full-text insert path, and an optional **IVF** vector index. This page summarizes benchmark results from the [`benchmarks/`](https://github.com/micheleriva/zbsearch/tree/main/benchmarks) suite in this repository.
 
 <Callout title="Test environment">
-Results below were collected using **Orama 3.1.18** and **ZBSearch 4.0.1** (built from `main`) on **November 2, 2026** (Node v26.12.0, Apple Silicon), via [Benny](https://github.com/caderek/benny) for throughput, isolated Node.js processes (`--expose-gc`) for memory, and the BEIR harness for search quality. Higher **ops/s** is better. Percentages show how much slower the loser is relative to the winner in each suite.
+Results below were collected using **Orama 3.1.18** and **ZBSearch 4.0.2** on **November 2, 2026** (Node v26.12.0, Apple Silicon), via [Benny](https://github.com/caderek/benny) for throughput, isolated Node.js processes (`--expose-gc`) for memory, and the BEIR harness for search quality. Higher **ops/s** is better. Percentages show how much slower the loser is relative to the winner in each suite.
 </Callout>
 
 ## Summary
@@ -27,7 +27,7 @@ Results below were collected using **Orama 3.1.18** and **ZBSearch 4.0.1** (buil
 
 The `benchmark:compare` suite runs both engines through the same workloads in a single process. ZBSearch wins 17 of the 19 metrics below; Orama wins the two bundle-size metrics.
 
-| Metric | Orama 3.1.18 | ZBSearch 4.0.1 | Δ (ZB / Orama) |
+| Metric | Orama 3.1.18 | ZBSearch 4.0.2 | Δ (ZB / Orama) |
 | --- | ---: | ---: | ---: |
 | Indexing (insert one-by-one) | 67.64 ms | 24.51 ms | -63.8% |
 | Indexing (insertMultiple) | 64.65 ms | 26.96 ms | -58.3% |
@@ -55,7 +55,7 @@ Speed metrics are ops/sec (higher is better); indexing/remove are median latency
 
 Dataset: **1,512** video-game records with `title`, `description`, `rating`, and `genres` fields. Search benchmarks run against a database populated once before timing; insert benchmarks create a fresh database on each iteration.
 
-| Benchmark | Orama 3.1.18 | ZBSearch 4.0.1 | Difference |
+| Benchmark | Orama 3.1.18 | ZBSearch 4.0.2 | Difference |
 | --- | ---: | ---: | --- |
 | Insert | 14.1 ops/s | 36.7 ops/s | ZBSearch **61.6%** faster |
 | Insert multiple | 14 ops/s | 35 ops/s | ZBSearch **60.0%** faster |
@@ -80,7 +80,7 @@ ZBSearch's BM25 lands close to the Lucene reference on SciFact (above it) and NF
 
 ## Facets
 
-| Benchmark | Orama 3.1.18 | ZBSearch 4.0.1 | Difference |
+| Benchmark | Orama 3.1.18 | ZBSearch 4.0.2 | Difference |
 | --- | ---: | ---: | --- |
 | Search with facets | 8,958 ops/s | 25,611 ops/s | ZBSearch **65.0%** faster |
 | Facets (all documents) | 2,796 ops/s | 8,683 ops/s | ZBSearch **67.8%** faster |
@@ -91,7 +91,7 @@ ZBSearch's BM25 lands close to the Lucene reference on SciFact (above it) and NF
 
 Dataset: **2,000 documents**, **128-dimensional** vectors.
 
-| Benchmark | Orama 3.1.18 | ZBSearch 4.0.1 (flat) | Difference |
+| Benchmark | Orama 3.1.18 | ZBSearch 4.0.2 (flat) | Difference |
 | --- | ---: | ---: | --- |
 | Vector search | 2,247 ops/s | 2,639 ops/s | ZBSearch **14.9%** faster |
 | Strict similarity | 4,794 ops/s | 6,829 ops/s | ZBSearch **29.8%** faster |
@@ -102,7 +102,7 @@ Dataset: **2,000 documents**, **128-dimensional** vectors.
 
 ZBSearch adds an optional [IVF index](/docs/zbsearch/usage/create#choosing-an-ivf-index) for approximate nearest-neighbor search. Orama does not ship an equivalent in the JS core.
 
-| Benchmark | Orama 3.1.18 (flat) | ZBSearch 4.0.1 (flat) | ZBSearch 4.0.1 (IVF) |
+| Benchmark | Orama 3.1.18 (flat) | ZBSearch 4.0.2 (flat) | ZBSearch 4.0.2 (IVF) |
 | --- | ---: | ---: | ---: |
 | Vector search | 2,206 ops/s | 2,636 ops/s | **14,266 ops/s** |
 | Strict similarity | 4,120 ops/s | 6,563 ops/s | **17,377 ops/s** |
@@ -114,7 +114,7 @@ With IVF (`nlist=179`, `nprobe=16`), ZBSearch vector search runs at **3.6–6.5�
 
 Dataset: **10,000 geopoints**.
 
-| Benchmark | Orama 3.1.18 | ZBSearch 4.0.1 | Difference |
+| Benchmark | Orama 3.1.18 | ZBSearch 4.0.2 | Difference |
 | --- | ---: | ---: | --- |
 | Insert | 292 ops/s | 269 ops/s | ~equal (±7% margin) |
 | Search by radius (500m) | 3,505 ops/s | 267,051 ops/s | ZBSearch **98.7%** faster (~76×) |
@@ -129,7 +129,7 @@ The largest geosearch gain is on tight-radius queries, where ZBSearch's BKD impl
 
 Dataset: **10,000 numeric keys**.
 
-| Benchmark | Orama 3.1.18 | ZBSearch 4.0.1 | Difference |
+| Benchmark | Orama 3.1.18 | ZBSearch 4.0.2 | Difference |
 | --- | ---: | ---: | --- |
 | Insert | 374 ops/s | 498 ops/s | ZBSearch **24.9%** faster |
 | Insert batched (1k threshold) | 396 ops/s | 452 ops/s | ZBSearch **12.4%** faster |
@@ -153,7 +153,7 @@ At runtime, document frequency for BM25 is derived directly from posting list le
 
 Measured in isolated Node.js processes with `--expose-gc`, after indexing all **1,512** records and running **100** warmup searches. **Heap delta** is the increase over a GC'd baseline after the index is built - the most apples-to-apples comparison.
 
-| Metric | Orama 3.1.18 | ZBSearch 4.0.1 | Difference |
+| Metric | Orama 3.1.18 | ZBSearch 4.0.2 | Difference |
 | --- | ---: | ---: | --- |
 | Indexed heap delta | 14.54 MB | 11.28 MB | ZBSearch **22.4%** lower |
 | Search heap delta (100 queries) | 138 KB | 240 KB | Orama **42.5%** lower |
@@ -162,12 +162,12 @@ The savings come from the index structure itself. ZBSearch's search working set 
 
 ## Persistence size
 
-Serializing the same indexed dataset produces a much smaller bundle with ZBSearch 4.0.1:
+Serializing the same indexed dataset produces a much smaller bundle with ZBSearch 4.0.2:
 
 | Engine | JSON | GZIP |
 | --- | ---: | ---: |
 | Orama 3.1.18 | 5,180,851 bytes | 1,295,034 bytes |
-| ZBSearch 4.0.1 | 3,009,835 bytes | 838,890 bytes |
+| ZBSearch 4.0.2 | 3,009,835 bytes | 838,890 bytes |
 | Difference | **41.9% smaller** | **35.2% smaller** |
 
 Delta-encoded postings and dropping redundant `tokenOccurrences` from the serialized snapshot account for most of the reduction. v4 also adds a [chunked persistence format](/docs/zbsearch/usage/serialization) for indexes that outgrow a single string.

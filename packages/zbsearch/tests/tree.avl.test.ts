@@ -90,4 +90,68 @@ describe('AVL Tree', () => {
 
     expect(tree.lessThan(10)).toStrictEqual(new Set(['foo', 'bar', 'quux']))
   })
+
+  it('remove keeps heights and balance correct when the successor is several levels deep', async () => {
+    const tree = new AVLTree<number, number>()
+    for (let key = 1; key <= 15; key++) {
+      tree.insert(key, key, 1)
+    }
+    // Perfect tree rooted at 8. Trimming the right side means unlinking the successor shrinks 12.
+    tree.remove(11)
+    tree.remove(13)
+    tree.remove(15)
+
+    // 8 has two children and its successor 9 sits three levels down (8 -> 12 -> 10 -> 9),
+    // so every node on that path must get its height updated and be rebalanced if needed.
+    tree.remove(8)
+
+    expect(checkTree(tree)).toStrictEqual([1, 2, 3, 4, 5, 6, 7, 9, 10, 12, 14])
+    expect(tree.root!.k).toBe(9)
+    expect(tree.root!.r!.k).toBe(12)
+    expect(tree.root!.r!.h).toBe(2)
+  })
+
+  it('remove keeps the tree valid while removing every key', async () => {
+    const tree = new AVLTree<number, number>()
+    const keys = Array.from({ length: 63 }, (_, i) => i + 1)
+    for (const key of keys) {
+      tree.insert(key, key, 1)
+    }
+
+    // A fixed scrambled order, so roots, inner nodes and leaves are all removed along the way.
+    const order = keys.map((key) => (key * 37) % 64)
+    const remaining = new Set(keys)
+    for (const key of order) {
+      tree.remove(key)
+      remaining.delete(key)
+
+      expect(checkTree(tree)).toStrictEqual([...remaining].sort((a, b) => a - b))
+      expect(tree.contains(key)).toBe(false)
+    }
+    expect(tree.root).toBe(null)
+  })
 })
+
+// Recomputes every node's height instead of trusting the stored one, checks it matches and that
+// the node is balanced, and returns the keys in order.
+function checkTree(tree: AVLTree<number, number>): number[] {
+  const keys: number[] = []
+
+  function visit(node: AVLTree<number, number>['root']): number {
+    if (!node) {
+      return 0
+    }
+    const leftHeight = visit(node.l)
+    keys.push(node.k)
+    const rightHeight = visit(node.r)
+    const height = Math.max(leftHeight, rightHeight) + 1
+
+    expect(node.h).toBe(height)
+    expect(Math.abs(leftHeight - rightHeight)).toBeLessThanOrEqual(1)
+    return height
+  }
+
+  visit(tree.root)
+  expect(keys).toStrictEqual([...keys].sort((a, b) => a - b))
+  return keys
+}

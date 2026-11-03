@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { GroupResult, create, insertMultiple, search } from '../src/index.js'
+import { GroupResult, create, insertMultiple, remove, search } from '../src/index.js'
 
 describe('search with groupBy', () => {
   const [db] = createDb()
@@ -258,6 +258,35 @@ describe('search with groupBy', () => {
         )
       })
     )
+  })
+
+  it('should not include removed documents matched by a number filter', async () => {
+    const db = create({
+      schema: {
+        category: 'string',
+        rating: 'number'
+      } as const
+    })
+
+    await insertMultiple(
+      db,
+      Array.from({ length: 10 }, (_, i) => ({ id: `${i}`, category: ['x', 'y'][i % 2], rating: i }))
+    )
+    await remove(db, '2')
+
+    const results = await search(db, {
+      where: { rating: { gte: 0 } },
+      groupBy: {
+        properties: ['category'],
+        maxResult: 3
+      }
+    })
+
+    expect(results.count).toBe(9)
+    compareGroupResults(results.groups!, [
+      { values: ['x'], result: ['0', '4', '6'] },
+      { values: ['y'], result: ['1', '3', '5'] }
+    ])
   })
 })
 

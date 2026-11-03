@@ -341,11 +341,15 @@ export class AVLTree<K, V> {
         }
       }
     } else {
+      // The path must include every node from `current` down to the successor's parent,
+      // since all of them may change height (and need rebalancing) once the successor is unlinked.
+      path.push(current)
       let successorParent = current
       let successor = current.r!
 
       while (successor.l !== null) {
         successorParent = successor
+        path.push(successor)
         successor = successor.l
       }
 
@@ -357,11 +361,10 @@ export class AVLTree<K, V> {
       } else {
         successorParent.r = successor.r
       }
-
-      current = successorParent
     }
 
-    path.push(current)
+    // `path` now holds only nodes still in the tree. The removed node must not be part of it,
+    // otherwise rebalancing it would re-attach it to its former parent.
     for (let i = path.length - 1; i >= 0; i--) {
       const currentNode = path[i]
       currentNode.updateHeight()

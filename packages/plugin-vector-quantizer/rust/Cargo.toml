@@ -1,0 +1,22 @@
+[package]
+name = "zbsearch_vector_quantizer_wasm"
+version = "0.0.0"
+edition = "2021"
+publish = false
+license = "GPL-3.0-only"
+description = "WebAssembly build of the vector_quantizer product quantizer for @zbsearch/plugin-vector-quantizer"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+ndarray = { version = "0.16.1", default-features = false, features = ["std"] }
+thiserror = "2.0.3"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

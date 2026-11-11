@@ -11,22 +11,20 @@ function initializeCentroids(vectors: Float32Array[], nlist: number, dim: number
   centroids[0] = new Float32Array(vectors[Math.floor(Math.random() * count)]!)
   normalizeVector(centroids[0]!, dim)
 
-  const distances = new Float32Array(count)
+  // distances[i] is the distance from vector i to its nearest chosen centroid. It is updated with the newest
+  // centroid only, so k-means++ seeding costs O(count * nlist) dot products instead of O(count * nlist²).
+  const distances = new Float32Array(count).fill(Infinity)
 
   for (let c = 1; c < nlist; c++) {
     let distanceSum = 0
+    const newest = centroids[c - 1]!
 
     for (let i = 0; i < count; i++) {
-      let minDistance = Infinity
-      for (let j = 0; j < c; j++) {
-        const similarity = dotProduct(vectors[i]!, centroids[j]!, dim)
-        const distance = 1 - similarity
-        if (distance < minDistance) {
-          minDistance = distance
-        }
+      const distance = 1 - dotProduct(vectors[i]!, newest, dim)
+      if (distance < distances[i]!) {
+        distances[i] = distance
       }
-      distances[i] = minDistance
-      distanceSum += minDistance
+      distanceSum += distances[i]!
     }
 
     let threshold = Math.random() * distanceSum

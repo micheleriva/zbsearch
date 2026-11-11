@@ -251,6 +251,9 @@ importers:
       '@zbsearch/plugin-qps':
         specifier: file:../packages/plugin-qps
         version: file:packages/plugin-qps
+      '@zbsearch/plugin-vector-quantizer':
+        specifier: file:../packages/plugin-vector-quantizer
+        version: file:packages/plugin-vector-quantizer
       '@zbsearch/static':
         specifier: file:../packages/static
         version: file:packages/static
@@ -707,6 +710,22 @@ importers:
       tsx:
         specifier: ^4.20.6
         version: 4.22.4
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/plugin-vector-quantizer:
+    dependencies:
+      zbsearch:
+        specifier: workspace:*
+        version: link:../zbsearch
+    devDependencies:
+      '@types/node':
+        specifier: ^20.9.0
+        version: 20.19.43
+      rolldown:
+        specifier: ^1.2.3
+        version: 1.2.3
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
@@ -4993,6 +5012,9 @@ packages:
   '@smithy/core@3.29.2':
     resolution: {integrity: sha512-DXUk6yU0C1Q1tYvJh1VCtl8QOBcSoZpKwjTPkxT6A4MUQYHvgeKGByL8mrEdxnvhdf9nq5GyzmRb5n/vPgu3Lw==}
     engines: {node: '>=18.0.0'}
+    deprecated: |-
+      Deprecated due to a bug in custom logger data redaction. Upgrade to the latest version. If you used a custom logger with this
+        version, review your logs and rotate any credentials or other secrets. See https://github.com/aws/aws-sdk-js-v3/issues/8393.
 
   '@smithy/credential-provider-imds@4.4.7':
     resolution: {integrity: sha512-UEMLOoA0Fl4uYBxh6l0uN0H6EJe/A89OGeDNTteQeXpJ20BcpfIr4wlCY9pel1jEAUHAxaYwuqrYlrKdXE1GKQ==}
@@ -6239,6 +6261,9 @@ packages:
 
   '@zbsearch/plugin-qps@file:packages/plugin-qps':
     resolution: {directory: packages/plugin-qps, type: directory}
+
+  '@zbsearch/plugin-vector-quantizer@file:packages/plugin-vector-quantizer':
+    resolution: {directory: packages/plugin-vector-quantizer, type: directory}
 
   '@zbsearch/static@file:packages/static':
     resolution: {directory: packages/static, type: directory}
@@ -8609,6 +8634,7 @@ packages:
   image-size@2.0.2:
     resolution: {integrity: sha512-IRqXKlaXwgSMAMtpNzZa1ZAe8m+Sa1770Dhk8VkSsP9LS+iHD62Zd8FQKs8fbPiagBE7BzoFX23cxFnwshpV6w==}
     engines: {node: '>=16.x'}
+    deprecated: Use latest 2.x please
     hasBin: true
 
   import-cwd@3.0.0:
@@ -19255,6 +19281,10 @@ snapshots:
       zbsearch: link:packages/zbsearch
 
   '@zbsearch/plugin-qps@file:packages/plugin-qps':
+    dependencies:
+      zbsearch: link:packages/zbsearch
+
+  '@zbsearch/plugin-vector-quantizer@file:packages/plugin-vector-quantizer':
     dependencies:
       zbsearch: link:packages/zbsearch
 

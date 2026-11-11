@@ -208,6 +208,15 @@
         "!dist/node_modules/**"
       ]
     },
+    "@zbsearch/plugin-vector-quantizer#build": {
+      "dependsOn": [
+        "zbsearch#build"
+      ],
+      "outputs": [
+        "dist/**",
+        "!dist/node_modules/**"
+      ]
+    },
     "@zbsearch/tokenizers#build": {
       "dependsOn": [
         "zbsearch#build"

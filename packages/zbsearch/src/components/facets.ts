@@ -10,6 +10,7 @@ import type {
   TokenScore
 } from '../types.js'
 import { createError } from '../errors.js'
+import { assertPropertyIsStored } from './store.js'
 
 type FacetValue = string | boolean | number
 
@@ -250,6 +251,8 @@ export function getFacets<T extends AnyZBSearch>(
     const facet = facetKeys[i]!
     const pathParts = facet.includes('.') ? facet.split('.') : null
     preparedFacets[i] = prepareFacet(facet, facetsConfig, properties[facet]!, pathParts)
+    // After the type check: vectors are never facets, stored or not
+    assertPropertyIsStored(zbsearch, facet, 'facets')
   }
 
   const resultsLength = results.length

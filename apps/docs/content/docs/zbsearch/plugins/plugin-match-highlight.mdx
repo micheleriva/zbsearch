@@ -76,6 +76,23 @@ This will add the `positions` property to each `hit`:
 }
 ```
 
+# Properties not kept in the documents store
+
+`afterInsert` records positions from the inserted document, so properties excluded with the [`store.exclude`](/docs/zbsearch/usage/create#indexed-but-not-stored-properties) option of `create` get positions too.
+
+To avoid keeping positions in memory, leave out the `afterInsert` hook: `searchWithHighlight` then computes the positions of each hit at search time, from the stored document and, for the properties the documents store does not have, from a `getSourceText(id, property)` callback (which may be async):
+
+```javascript copy
+const db = create({
+  schema: { title: "string", text: "string" },
+  store: { exclude: ["text"] },
+});
+
+const results = await searchWithHighlight(db, { term: "headphones" }, undefined, {
+  getSourceText: (id, property) => myTextStore.get(id),
+});
+```
+
 # Saving Database State with Highlights
 
 ZBSearch exposes a `save` method, which is used to persist its state either in-memory or on disk. \

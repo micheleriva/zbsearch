@@ -208,6 +208,15 @@
         "!dist/node_modules/**"
       ]
     },
+    "@zbsearch/plugin-vector-quantizer#build": {
+      "dependsOn": [
+        "zbsearch#build"
+      ],
+      "outputs": [
+        "dist/**",
+        "!dist/node_modules/**"
+      ]
+    },
     "@zbsearch/tokenizers#build": {
       "dependsOn": [
         "zbsearch#build"
@@ -221,6 +230,22 @@
       "outputs": [
         ".next/**",
         "!.next/cache/**"
+      ]
+    },
+    "@zbsearch/sharded#build": {
+      "dependsOn": [
+        "zbsearch#build",
+        "^build"
+      ],
+      "outputs": [
+        "dist/**",
+        "!dist/node_modules/**"
+      ]
+    },
+    "@zbsearch/sharded#test": {
+      "dependsOn": [
+        "@zbsearch/sharded#build",
+        "@zbsearch/edge-core#build"
       ]
     },
     "@zbsearch/edge-core#build": {

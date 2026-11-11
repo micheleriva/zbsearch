@@ -1,6 +1,7 @@
 import type { AnyZBSearch, Results, SearchParamsVector, TypedDocument, Result } from '../types.js'
 import type { InternalDocumentID } from '../components/internal-document-id-store.js'
-import { getNanosecondsTime, formatNanoseconds, sortTokenScorePredicate, removeVectorsFromHits } from '../utils.js'
+import { getNanosecondsTime, formatNanoseconds, sortTokenScorePredicate } from '../utils.js'
+import { setHitsVectors } from '../components/store.js'
 import { getFacets } from '../components/facets.js'
 import { createError } from '../errors.js'
 import { getGroups } from '../components/groups.js'
@@ -12,7 +13,7 @@ import { fetchDocuments } from './fetch-documents.js'
 
 export function innerVectorSearch<T extends AnyZBSearch, ResultDocument = TypedDocument<T>>(
   zbsearch: T,
-  params: Pick<SearchParamsVector<T, ResultDocument>, 'vector' | 'similarity' | 'where'>,
+  params: Pick<SearchParamsVector<T, ResultDocument>, 'vector' | 'similarity' | 'where' | 'limit' | 'offset'>,
   language: Language | undefined,
   precomputedWhereFiltersIDs?: Set<InternalDocumentID>
 ) {
@@ -44,7 +45,9 @@ export function innerVectorSearch<T extends AnyZBSearch, ResultDocument = TypedD
     whereFiltersIDs = zbsearch.index.searchByWhereClause(index, zbsearch.tokenizer, params.where!, language)
   }
 
-  return vectorIndex.node.find(vector.value as Float32Array, params.similarity ?? DEFAULT_SIMILARITY, whereFiltersIDs)
+  return vectorIndex.node.find(vector.value as Float32Array, params.similarity ?? DEFAULT_SIMILARITY, whereFiltersIDs, {
+    limit: (params.offset ?? 0) + (params.limit ?? 10)
+  })
 }
 
 export function searchVector<T extends AnyZBSearch, ResultDocument = TypedDocument<T>>(
@@ -94,9 +97,7 @@ export function searchVector<T extends AnyZBSearch, ResultDocument = TypedDocume
       ...(groups ? { groups } : {})
     }
 
-    if (!includeVectors) {
-      removeVectorsFromHits(searchResult, [vectorProperty])
-    }
+    setHitsVectors(zbsearch, searchResult.hits, includeVectors, [vectorProperty])
 
     return searchResult
   }

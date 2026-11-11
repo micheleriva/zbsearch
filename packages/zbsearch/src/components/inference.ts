@@ -1,8 +1,11 @@
 import { RESERVED_VECTOR_INDEX_KEY } from '../constants.js'
+import { createError } from '../errors.js'
 import type { AnyDocument, AnySchema, AnyZBSearch, SearchableType } from '../types.js'
 import { getNested } from '../utils.js'
+import { isVectorType } from './defaults.js'
 import { addSearchablePropertyToIndex, type Index } from './index.js'
 import { addSortablePropertyToSorter, type Sorter } from './sorter.js'
+import { isExcludedFromStore } from './store.js'
 
 function inferTypeFromValue(value: unknown): SearchableType | undefined {
   switch (typeof value) {
@@ -40,7 +43,9 @@ function inferTypeFromValue(value: unknown): SearchableType | undefined {
 
 function flattenDocument(doc: AnyDocument, prefix: string, leaves: Array<[string, unknown]>): void {
   for (const [key, value] of Object.entries(doc)) {
-    if (key === 'id' || key === RESERVED_VECTOR_INDEX_KEY) {
+    // An own `__proto__` (a document parsed from JSON can have one) is not inferred: its path would name the
+    // prototype of the objects that hold the properties of the schema and of the index.
+    if (key === 'id' || key === RESERVED_VECTOR_INDEX_KEY || key === '__proto__') {
       continue
     }
 
@@ -81,7 +86,8 @@ function setNestedSchemaProperty(schema: AnySchema, path: string, type: Searchab
   let current = schema
   for (let i = 0; i < tokens.length - 1; i++) {
     const token = tokens[i]!
-    const next = current[token]
+    // Only own properties: an inherited one (e.g. `constructor`) is not part of the schema
+    const next = Object.hasOwn(current, token) ? current[token] : undefined
     if (typeof next !== 'object' || next === null || Array.isArray(next)) {
       current[token] = {}
     }
@@ -101,9 +107,10 @@ export function inferSchemaFromDocument<T extends AnyZBSearch>(zbsearch: T, doc:
 
   const index = zbsearch.data.index as Index
   const sorter = zbsearch.data.sorting as Sorter
-  const knownProperties = zbsearch.index.getSearchablePropertiesWithTypes(index)
+  // A copy: the index's own map is updated when the inferred properties are registered.
+  const knownProperties = { ...zbsearch.index.getSearchablePropertiesWithTypes(index) }
 
-  let changed = false
+  const inferred: Array<[string, SearchableType]> = []
 
   for (const [path, value] of leaves) {
     const knownType = knownProperties[path]
@@ -126,17 +133,27 @@ export function inferSchemaFromDocument<T extends AnyZBSearch>(zbsearch: T, doc:
       continue
     }
 
-    addSearchablePropertyToIndex(zbsearch, index, path, type)
-    addSortablePropertyToSorter(sorter, path, type)
-    setNestedSchemaProperty(zbsearch.schema as AnySchema, path, type)
+    // Same check as create(): values left out of the documents store are removed through removeUnstored. Checked
+    // before registering anything, so a refused document leaves the schema as it was.
+    if (!zbsearch.index.removeUnstored && !isVectorType(type) && isExcludedFromStore(zbsearch.store, path)) {
+      throw createError('UNSTORED_PROPERTIES_NOT_SUPPORTED', path)
+    }
 
+    inferred.push([path, type])
     knownProperties[path] = type
-    changed = true
   }
 
-  if (changed) {
+  for (const [path, type] of inferred) {
+    addSearchablePropertyToIndex(zbsearch, index, path, type)
+    if (!(type === 'string' && isExcludedFromStore(zbsearch.store, path))) {
+      addSortablePropertyToSorter(sorter, path, type)
+    }
+    setNestedSchemaProperty(zbsearch.schema as AnySchema, path, type)
+  }
+
+  if (inferred.length > 0) {
     zbsearch.caches = {}
   }
 
-  return changed
+  return inferred.length > 0
 }

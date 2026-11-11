@@ -60,6 +60,18 @@ import { persist } from "@zbsearch/plugin-data-persistence";
 const JSONIndex = await persist(originalInstance, "json");
 ```
 
+### Formats
+
+| Format     | `persist` returns | Notes                                                                                     |
+| ---------- | ----------------- | ----------------------------------------------------------------------------------------- |
+| `snapshot` | `Uint8Array`      | The core [binary snapshot](/docs/zbsearch/usage/serialization#the-binary-snapshot-format). Smallest and fastest; use it for large indexes. |
+| `binary`   | `Uint8Array`      | msgpack bytes (the default). Versions before 4.1 returned a hex string; `restore` still accepts those. |
+| `json`     | `string`          | Human-readable. Hits JavaScript's maximum string length on large indexes.                 |
+| `dpack`    | `string`          | Node-oriented.                                                                            |
+| `seqproto` | `ArrayBuffer`     | Compact binary, limited to 4 GiB.                                                          |
+
+`restore("binary", ...)` also recognizes `snapshot` payloads.
+
 ## Restore the database from disk (in-memory usage)
 
 To restore the database from an in-memory snapshot (created via the `persist` function):
@@ -102,6 +114,19 @@ To restore the database from the disk:
 ```javascript copy
 import { restoreFromFile } from "@zbsearch/plugin-data-persistence/server";
 const db = await restoreFromFile("binary", filePath);
+```
+
+### Large indexes
+
+With the `snapshot` format, `persistToFile` writes the binary snapshot segment by
+segment and `restoreFromFile` streams the file back in, so neither holds the
+whole serialized index in memory:
+
+```javascript copy
+import { persistToFile, restoreFromFile } from "@zbsearch/plugin-data-persistence/server";
+
+await persistToFile(db, "snapshot", "./index.zbsb");
+const restored = await restoreFromFile("snapshot", "./index.zbsb");
 ```
 
 ## Persisting to a storage backend (IndexedDB, S3, …)

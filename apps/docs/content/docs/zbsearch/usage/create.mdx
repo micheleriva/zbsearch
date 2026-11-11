@@ -190,6 +190,147 @@ const db = create({
 
 **Cons:** results are approximate-you may miss the true nearest neighbor-centroids must be trained once enough vectors are inserted (`trainMin`), tuning `nlist` and `nprobe` takes experimentation, and persistence requires passing the same `indexes` config when loading a saved database. Start with flat search; reach for IVF when profiling shows vector queries are a bottleneck.
 
+The centroids are trained once, on the first `trainMin` vectors. The default (`min(nlist, 32)`) is enough for tests but gives poor clusters on real data: train on at least 20 × `nlist` vectors. IVF only helps when the embeddings are clustered, as real text embeddings are; on uniformly random vectors it cannot find the nearest neighbours.
+
+### Vector quantization
+
+By default every vector is stored as float32: 1,536 bytes for a 384-dimensional embedding, and about 20 characters per number once saved as JSON. Both `flat()` and `ivf()` accept a `quantization` option that stores compact codes instead:
+
+| `quantization`      | Bytes per 384-d vector | How it scores                                                                                                    |
+| ------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `'none'` (default)  | 1,536                  | Exact float32 dot product.                                                                                       |
+| `'int8'`            | 392                    | Per-vector scale and offset, one signed byte per dimension, dot product against the float32 query.               |
+| `'binary'`          | 48                     | One sign bit per dimension, Hamming distance. Coarse on its own: use it with `rescore`.                          |
+| a quantizer object  | depends                | For example product quantization from [`@zbsearch/plugin-vector-quantizer`](/docs/zbsearch/plugins/plugin-vector-quantizer). |
+
+```javascript copy
+import { create } from "zbsearch";
+import { flat } from "zbsearch/trees/vector-flat";
+import { ivf } from "zbsearch/trees/vector-ivf";
+
+const db = create({
+  schema: {
+    title: "string",
+    embedding: "vector[384]",
+  },
+  indexes: {
+    // About 4x less memory, near-exact results.
+    embedding: flat({ quantization: "int8" }),
+
+    // Hamming-distance candidates, rescored against int8 copies: fastest scan.
+    // embedding: flat({ quantization: "binary", rescore: "int8", oversample: 10 }),
+
+    // Quantization works the same way with IVF.
+    // embedding: ivf({ nlist: 256, nprobe: 16, trainMin: 8192, quantization: "int8" }),
+  },
+});
+```
+
+- `rescore: 'int8' | 'float32'` keeps a second, more precise copy of each vector. A search ranks every vector with the compact codes, keeps the best `limit × oversample` candidates (`oversample` defaults to 10) and rescores them with the precise copy. When the search has a `limit`, `count` is then at most `(offset + limit) × oversample`.
+- Similarity thresholds (`similarity`) apply to the quantized scores. `int8` scores are very close to the exact cosine; `binary` scores are the angle estimate `cos(π · hamming / dimensions)`.
+- Quantized indexes store their vectors in one contiguous buffer, so they also avoid the per-vector object overhead of the default index.
+- `save()` writes the codes as base64 typed arrays instead of arrays of JSON numbers, and the index exposes `toBinarySnapshot()` (typed arrays plus a small JSON `meta` object) for binary persistence formats. `int8` and `binary` indexes load without any `indexes` configuration; custom quantizers need the same configuration at load time.
+- With `includeVectors: true`, vectors are reconstructed from the codes (or from the `rescore` copy when there is one), so they are approximate.
+
+Measured with `benchmarks/vector-quantization.js` on 20,000 **synthetic** clustered 384-dimensional vectors (200 queries, recall@10 against exact float32 search, Node.js 22, one core). Numbers on a real embedding set are still to be published; the benchmark's header explains how to produce them for BEIR SciFact.
+
+| Index                          | Recall@10 | Vector memory | JSON size | Median query |
+| ------------------------------ | --------- | ------------- | --------- | ------------ |
+| flat, none                     | 1.000     | 35 MB         | 154 MB    | 7.6 ms       |
+| flat, int8                     | 0.983     | 8.6 MB        | 10.1 MB   | 9.4 ms       |
+| flat, binary                   | 0.310     | 1.9 MB        | 1.3 MB    | 1.2 ms       |
+| flat, binary + int8 rescore    | 0.898     | 9.5 MB        | 11.3 MB   | 1.2 ms       |
+| flat, PQ (m = 48) + int8       | 0.958     | 10 MB         | 11.9 MB   | 2.0 ms       |
+| IVF (nlist 141, nprobe 16)     | 0.995     | 35 MB         | 155 MB    | 4.0 ms       |
+| IVF, int8                      | 0.979     | 9.1 MB        | 10.4 MB   | 3.5 ms       |
+| IVF, binary + int8 rescore     | 0.891     | 10 MB         | 11.7 MB   | 0.6 ms       |
+
+`int8` is about memory and disk size, not speed: JavaScript has no SIMD, so an int8 dot product costs about as much as a float32 one. An int8 index of 160,000 × 384 vectors holds 63.4 MB (60.4 MiB) of codes and ids, about 70 MB including the id map (measured with `--memory-only=160000`). The code buffer grows in 12.5% steps; call `db.data.index.vectorIndexes.embedding.node.shrinkToFit()` after a bulk load to release the spare capacity.
+
+## Indexed but not stored properties
+
+By default, ZBSearch keeps every inserted document in its documents store and returns it in search results. When the original text already lives elsewhere (a file, a database, a cache) and you only need IDs and a few metadata fields back, use the `store` option to index properties without storing them:
+
+```javascript copy
+const db = create({
+  schema: {
+    title: "string",
+    text: "string",
+    year: "number",
+    embedding: "vector[384]",
+  },
+  store: {
+    // Indexed and searchable, but not kept in the documents store.
+    // Dot-separated paths exclude nested properties; a path also excludes everything nested under it.
+    exclude: ["text"],
+  },
+});
+
+insert(db, { id: "p1", title: "Introduction", text: "A long passage...", year: 2020, embedding: [/* ... */] });
+
+getByID(db, "p1"); // { id: "p1", title: "Introduction", year: 2020 }
+```
+
+Excluded properties are indexed exactly as before: full-text search, filters (`where`), `exact`, boosting and BM25 scoring all work on them. The inserted document is never modified: the documents store keeps a copy without the excluded properties. What changes:
+
+- Search results and `getByID` return the stored properties only.
+- `facets`, `groupBy` and `distinctOn` read the stored documents, so using them on an excluded property throws a `PROPERTY_NOT_STORED` error (also for an excluded property outside the schema with `distinctOn`). `distinctOn` on a vector property that is not stored throws `VECTOR_NOT_STORED`.
+- Excluded `string` properties are not sortable: the sorter keeps its own copy of every sortable value, which would keep the text in memory. Excluded numbers and booleans stay sortable.
+- `exact: true` cannot check the case of an excluded property's text: for those properties it keeps the documents the index matched exactly (case-insensitively).
+- Documents that are instances of a class with getters or methods (for example, getters that read `#private` fields) are stored as a view of the instance that hides the unstored properties, so that the class code keeps working. The view keeps the instance in memory, with all its data: for such documents, `exclude` (and leaving vectors out of the store) hides the properties but does not save memory. Plain objects, and instances of classes without getters or methods, are copied without the unstored properties. A `toJSON` method of the class runs on the instance, and its result is filtered by key, so that `JSON.stringify`, search hits and snapshots serialize what the view shows: keys the view hides (unstored properties) are dropped, and keys it changes (vectors set to `null` or rebuilt on search hits) take the view's value. Unstored values that `toJSON` returns under other keys are not filtered.
+
+### Vectors are not stored by default
+
+Vector properties are **not** kept in the documents store unless you opt in: the vector index already holds every vector. With `includeVectors: true`, search results rebuild them from the vector index, which holds a **normalized** (unit-length) `Float32` copy, so the returned vectors are normalized and may differ slightly from the inserted ones. To keep the original vectors in the documents (as ZBSearch did up to 4.0.x), set `store.vectors`:
+
+```javascript copy
+const db = create({
+  schema: { title: "string", embedding: "vector[384]" },
+  store: { vectors: true },
+});
+```
+
+Set it if you rebuild indexes from the stored documents (for example, by reading `getByID` or `db.data.docs`), or if you need the exact inserted values back.
+
+### Removing and updating documents
+
+`remove`, `update` and `upsert` keep working without the stored values. The index keeps what it needs to remove a document:
+
+| Property type | What is kept for removal |
+| --- | --- |
+| `string` | Nothing: the per-document term frequencies the index already keeps for BM25 list the terms to remove. |
+| `string[]` | The distinct terms of each document, as 32-bit IDs into a per-property term dictionary. |
+| `number`, `number[]`, `enum`, `enum[]`, `geopoint` | The value itself (it is small). |
+| `boolean`, `boolean[]`, vectors | Nothing: they are removed by document ID. |
+
+So excluding text costs nothing to keep removal correct, and removing a document whose text is excluded is faster, as it does not tokenize the text again. Excluding small scalar properties saves little memory, since their values are kept for removal anyway: exclude them only to keep them out of the results.
+
+### Highlighting excluded text
+
+`@zbsearch/highlight` takes the text to highlight as an argument, so pass your own copy: `new Highlight().highlight(await getMyText(hit.id), term)`. `@zbsearch/plugin-match-highlight` records the positions of excluded properties at insert time, and `searchWithHighlight` accepts a `getSourceText(id, property)` callback to compute them at search time instead:
+
+```javascript copy
+const results = await searchWithHighlight(db, { term: "passage" }, undefined, {
+  getSourceText: (id, property) => myTextStore.get(id),
+});
+```
+
+### Saving and loading
+
+`save` stores the `store` configuration and the removal data with the rest of the database, and `load` restores them, so documents inserted after loading are stored the same way. Snapshots saved by 4.0.x carry no configuration: the one given to `create` applies to new documents, while the documents already in the snapshot (vectors included) are kept and returned as they were.
+
+### Memory and snapshot size
+
+On a synthetic corpus of 10,000 passages (150-250 words from a Zipf-distributed 40k-word vocabulary, seven metadata fields and a `vector[384]` embedding), measured with `benchmarks/store-exclude.js` on Node 22:
+
+| Configuration | Heap | JSON snapshot |
+| --- | --- | --- |
+| Everything stored (`store: { vectors: true }`, the 4.0.x behavior) | 175 MB | 206 MB |
+| Default (vectors not stored) | 150 MB (-14%) | 130 MB (-37%) |
+| `store: { exclude: ['text'] }` | 138 MB (-22%) | 105 MB (-49%) |
+
+Without the embedding, excluding `text` takes the heap from 143 MB to 134 MB (-6%) and the snapshot from 53 MB to 29 MB (-46%): the snapshot saved the text twice, in the documents and in the sorter. Most of the remaining heap is the inverted index itself (the radix tree and the per-document term frequencies used for scoring), which excluding properties from the store does not change.
+
 ## Instance ID
 
 Every ZBSearch instance has a unique `id` property, which can be used to identify a given instance when working with multiple databases.

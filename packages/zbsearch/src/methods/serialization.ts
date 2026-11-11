@@ -1,6 +1,23 @@
 import { Language } from '../index.js'
-import { AnyZBSearch } from '../types.js'
+import { assertUnstoredPropertiesRemovable, resolveStoreConfig } from '../components/store.js'
+import { AnyZBSearch, StoreSettings } from '../types.js'
 import { yieldToEventLoop } from '../utils.js'
+import { estimateJsonLength } from './binary-codec.js'
+
+// The store configuration saved in a snapshot replaces the one given to `create`, so that the documents inserted
+// after loading are stored the same way as the ones in the snapshot. Snapshots saved before the option existed keep
+// the configuration of the database they are loaded into. Every cache derives from the loaded data, so it is cleared.
+function loadStoreSettings<T extends AnyZBSearch>(zbsearch: T, data: RawData): void {
+  if (data.store) {
+    zbsearch.store = resolveStoreConfig(data.store)
+  }
+  zbsearch.caches = {}
+}
+
+// The store settings the database will have once `data` is loaded (see loadStoreSettings).
+function loadedStoreSettings<T extends AnyZBSearch>(zbsearch: T, data: RawData): StoreSettings | undefined {
+  return data.store ? resolveStoreConfig(data.store) : zbsearch.store
+}
 
 export interface RawData {
   internalDocumentIDStore: unknown
@@ -9,6 +26,8 @@ export interface RawData {
   sorting: unknown
   pinning: unknown
   language: Language
+  // The store configuration (see StoreConfig). Absent in snapshots saved before it existed.
+  store?: StoreSettings
 }
 
 export const CHUNKED_FORMAT_VERSION = 2
@@ -64,9 +83,10 @@ function splitArray(value: unknown[], chunkSize: number, chunks: string[]): numb
     let length = 2
 
     while (end < value.length) {
-      const piece = JSON.stringify(value[end]) ?? 'null'
-      if (length + piece.length + 1 > chunkSize && end > start) break
-      length += piece.length + 1
+      // Measure without serializing: a single huge element must not be stringified just to learn its size.
+      const pieceLength = isOmitted(value[end]) ? 4 : estimateJsonLength(value[end], chunkSize)
+      if (length + pieceLength + 1 > chunkSize && end > start) break
+      length += pieceLength + 1
       end++
     }
 
@@ -90,12 +110,11 @@ function splitRecord(value: Record<string, unknown>, chunkSize: number, chunks: 
 
     while (end < keys.length) {
       const key = keys[end]
-      const piece = JSON.stringify(value[key])
-      if (piece === undefined) {
+      if (isOmitted(value[key])) {
         end++
         continue
       }
-      const cost = piece.length + key.length + 4
+      const cost = estimateJsonLength(value[key], chunkSize) + key.length + 4
       if (length + cost > chunkSize && end > start) break
       slice[key] = value[key]
       length += cost
@@ -112,11 +131,25 @@ function splitRecord(value: Record<string, unknown>, chunkSize: number, chunks: 
   return emitted
 }
 
-function splitValue(value: unknown, path: string[], chunkSize: number, chunks: string[], parts: ChunkPart[]): void {
-  const serialized = JSON.stringify(value)
-  if (serialized === undefined) return
+// Values JSON.stringify leaves out of objects (and turns into null in arrays).
+function isOmitted(value: unknown): boolean {
+  const type = typeof value
+  return type === 'undefined' || type === 'function' || type === 'symbol'
+}
 
-  if (serialized.length <= chunkSize) {
+function hasToJSON(value: unknown): boolean {
+  return typeof (value as { toJSON?: unknown } | null)?.toJSON === 'function'
+}
+
+function splitValue(value: unknown, path: string[], chunkSize: number, chunks: string[], parts: ChunkPart[]): void {
+  if (isOmitted(value)) return
+
+  // Estimate the size by walking the value (stopping once it passes chunkSize) and only stringify values that
+  // are known to be small, or that cannot be split. Stringifying a whole docs or vector subtree just to measure
+  // it is what used to hit V8's maximum string length on large indexes.
+  if (hasToJSON(value) || estimateJsonLength(value, chunkSize) <= chunkSize) {
+    const serialized = JSON.stringify(value)
+    if (serialized === undefined) return
     parts.push({ p: path, k: 'value', n: 1 })
     chunks.push(serialized)
     return
@@ -143,6 +176,8 @@ function splitValue(value: unknown, path: string[], chunkSize: number, chunks: s
     return
   }
 
+  const serialized = JSON.stringify(value)
+  if (serialized === undefined) return
   parts.push({ p: path, k: 'value', n: 1 })
   chunks.push(serialized)
 }
@@ -267,23 +302,30 @@ export async function fromChunkedRawDataAsync(data: ChunkedRawData): Promise<Raw
 export function load<T extends AnyZBSearch>(zbsearch: T, raw: RawData | ChunkedRawData): void {
   const data = isChunkedRawData(raw) ? fromChunkedRawData(raw) : raw
 
+  const previousIdStore = zbsearch.internalDocumentIDStore.save(zbsearch.internalDocumentIDStore)
   zbsearch.internalDocumentIDStore.load(zbsearch, data.internalDocumentIDStore)
-  zbsearch.data.index = zbsearch.index.load(zbsearch.internalDocumentIDStore, data.index, zbsearch.indexes)
+  const index = zbsearch.index.load(zbsearch.internalDocumentIDStore, data.index, zbsearch.indexes)
+  assertUnstoredPropertiesRemovable(zbsearch, index, loadedStoreSettings(zbsearch, data), previousIdStore)
+  zbsearch.data.index = index
   zbsearch.data.docs = zbsearch.documentsStore.load(zbsearch.internalDocumentIDStore, data.docs)
   zbsearch.data.sorting = zbsearch.sorter.load(zbsearch.internalDocumentIDStore, data.sorting)
   zbsearch.data.pinning = zbsearch.pinning.load(zbsearch.internalDocumentIDStore, data.pinning)
   zbsearch.tokenizer.language = data.language
+  loadStoreSettings(zbsearch, data)
 }
 
 export async function loadAsync<T extends AnyZBSearch>(zbsearch: T, raw: RawData | ChunkedRawData): Promise<void> {
   const data = isChunkedRawData(raw) ? await fromChunkedRawDataAsync(raw) : raw
 
+  const previousIdStore = zbsearch.internalDocumentIDStore.save(zbsearch.internalDocumentIDStore)
   zbsearch.internalDocumentIDStore.load(zbsearch, data.internalDocumentIDStore)
   await yieldToEventLoop()
 
-  zbsearch.data.index = zbsearch.index.loadAsync
+  const index = zbsearch.index.loadAsync
     ? await zbsearch.index.loadAsync(zbsearch.internalDocumentIDStore, data.index, zbsearch.indexes)
     : zbsearch.index.load(zbsearch.internalDocumentIDStore, data.index, zbsearch.indexes)
+  assertUnstoredPropertiesRemovable(zbsearch, index, loadedStoreSettings(zbsearch, data), previousIdStore)
+  zbsearch.data.index = index
   await yieldToEventLoop()
 
   zbsearch.data.docs = zbsearch.documentsStore.load(zbsearch.internalDocumentIDStore, data.docs)
@@ -296,6 +338,7 @@ export async function loadAsync<T extends AnyZBSearch>(zbsearch: T, raw: RawData
 
   zbsearch.data.pinning = zbsearch.pinning.load(zbsearch.internalDocumentIDStore, data.pinning)
   zbsearch.tokenizer.language = data.language
+  loadStoreSettings(zbsearch, data)
 }
 
 export function save<T extends AnyZBSearch>(zbsearch: T): RawData
@@ -308,7 +351,8 @@ export function save<T extends AnyZBSearch>(zbsearch: T, options?: SaveOptions):
     docs: zbsearch.documentsStore.save(zbsearch.data.docs),
     sorting: zbsearch.sorter.save(zbsearch.data.sorting),
     pinning: zbsearch.pinning.save(zbsearch.data.pinning),
-    language: zbsearch.tokenizer.language
+    language: zbsearch.tokenizer.language,
+    ...(zbsearch.store ? { store: zbsearch.store } : {})
   }
 
   if (options?.format !== 'chunked') return raw

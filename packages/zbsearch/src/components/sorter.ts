@@ -171,7 +171,7 @@ function insert(sorter: Sorter, prop: string, id: DocumentID, value: SortValue):
   s.orderedDocs.push([internalId, value])
 }
 
-function ensureIsSorted(sorter: Sorter): void {
+export function ensureIsSorted(sorter: Sorter): void {
   if (sorter.isSorted || !sorter.enabled) {
     return
   }
@@ -226,7 +226,7 @@ function ensurePropertyIsSorted(sorter: Sorter, prop: string): void {
   }
 }
 
-function ensureOrderedDocsAreDeleted(sorter: Sorter): void {
+export function ensureOrderedDocsAreDeleted(sorter: Sorter): void {
   const properties = Object.keys(sorter.sorts)
   for (const prop of properties) {
     ensureOrderedDocsAreDeletedByProperty(sorter, prop)

@@ -12,7 +12,16 @@ export {
 } from './utils.js'
 export { normalizeToken } from './components/tokenizer/index.js'
 export { BM25 } from './components/algorithms.js'
-export { bm25Idf, prefixExpansionDemotion, calculateResultScores } from './components/index.js'
+export {
+  bm25Idf,
+  prefixExpansionDemotion,
+  calculateResultScores,
+  setCorpusStatistics,
+  getCorpusStatistics
+} from './components/index.js'
+export type { CorpusStatistics } from './components/index.js'
+export { innerVectorSearch } from './methods/search-vector.js'
+export { setHitsVectors } from './components/store.js'
 export {
   innerFullTextSearch,
   getPropertiesToSearch,

@@ -29,6 +29,7 @@ After [Michele's departure](https://www.micheleriva.dev/writings/my-last-day-at-
 - [BM25](https://zbsearch.dev/docs/zbsearch/search/bm25)
 - [Stemming and tokenization in 32 languages](https://zbsearch.dev/docs/zbsearch/text-analysis/stemming)
 - [Plugin System](https://zbsearch.dev/docs/zbsearch/plugins)
+- [Streaming binary snapshots](https://zbsearch.dev/docs/zbsearch/usage/serialization#the-binary-snapshot-format)
 
 # Installation
 
@@ -153,6 +154,41 @@ const db = create({
 
 Passing a schema keeps the classic strict behavior (undeclared fields are stored but not indexed). See the [official docs](https://zbsearch.dev) for the full inference rules.
 
+## Indexed but not stored properties
+
+When the original text already lives elsewhere, index it without keeping a second copy in the documents store:
+
+```js
+const db = create({
+  schema: { title: 'string', text: 'string', embedding: 'vector[384]' },
+  store: { exclude: ['text'] } // indexed and searchable, but not returned in results
+})
+```
+
+`remove`, `update` and `upsert` keep working (the index keeps what it needs to remove a document: nothing extra for `string` properties), filters and full-text search work as before, and `facets`, `groupBy` and `distinctOn` on an excluded property throw `PROPERTY_NOT_STORED`.
+
+**Vectors are not stored in the documents by default**: the vector index already holds them. With `includeVectors: true`, results rebuild them from the vector index, which holds normalized (unit-length) copies. Pass `store: { vectors: true }` to keep the original vectors in the documents, as 4.0.x did.
+
+On 10,000 synthetic passages with a 384-dimension embedding, the default drops the JSON snapshot from 206 MB to 130 MB and the heap from 175 MB to 150 MB; also excluding `text` brings them to 105 MB (-49%) and 138 MB (-22%). See the [docs](https://zbsearch.dev/docs/zbsearch/usage/create#indexed-but-not-stored-properties) for the trade-offs.
+
+## Saving large indexes
+
+`save` / `load` serialize to JSON-compatible objects. For large indexes (and anything with vectors), `saveBinary` streams a compact, checksummed binary snapshot as `Uint8Array` segments, and `loadBinary` restores it without blocking the thread:
+
+```js
+import { saveBinary, loadBinary } from 'zbsearch'
+import { createWriteStream, createReadStream } from 'node:fs'
+import { pipeline } from 'node:stream/promises'
+import { Readable } from 'node:stream'
+
+await pipeline(Readable.from(saveBinary(db)), createWriteStream('./index.zbsb'))
+
+const restored = create({ schema })
+await loadBinary(restored, createReadStream('./index.zbsb'))
+```
+
+Postings and term frequencies are delta/varint-encoded and vectors are raw `Float32Array` data: on 10,000 passages with 384-dimension vectors the snapshot is 3.6x smaller than the chunked JSON format. See the [docs](https://zbsearch.dev/docs/zbsearch/usage/serialization#the-binary-snapshot-format).
+
 # Vector and Hybrid Search Support
 
 ZBSearch supports both vector and hybrid search by just setting `mode: 'vector'` when performing search.
@@ -187,7 +223,22 @@ const results = search(db, {
   // Minimum similarity to determine a match. Defaults to `0.8`
   similarity: 0.85,
   // Defaults to `false`. Setting to 'true' will return the embeddings in the response (which can be very large).
+  // They are rebuilt from the vector index, normalized, unless the database was created with `store: { vectors: true }`.
   includeVectors: true,
+})
+```
+
+Large vector indexes can be quantized to cut memory and on-disk size: `int8` stores a byte per dimension (about 4x smaller), `binary` a bit per dimension (32x smaller, best combined with `rescore`). Product quantization is available from `@zbsearch/plugin-vector-quantizer` (GPL-3.0).
+
+```js
+import { create } from 'zbsearch'
+import { flat } from 'zbsearch/trees/vector-flat'
+
+const db = create({
+  schema: { title: 'string', embedding: 'vector[384]' },
+  indexes: {
+    embedding: flat({ quantization: 'int8' }) // or { quantization: 'binary', rescore: 'int8' }
+  }
 })
 ```
 

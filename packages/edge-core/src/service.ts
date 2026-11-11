@@ -43,6 +43,8 @@ export interface SnapshotDbCacheOptions {
 const DEFAULT_SNAPSHOT_DB_CACHE_MAX_ENTRIES = 4
 const DEFAULT_SNAPSHOT_DB_CACHE_MAX_BYTES = 64 * 1024 * 1024
 const MAX_SHARD_COUNT = 64
+// Snapshots are rebuilt from the documents they store, so they must keep the vectors too
+const SNAPSHOT_STORE = { vectors: true }
 
 interface SnapshotDbCacheEntry {
   db: AnyZBSearch
@@ -287,7 +289,8 @@ export async function importDocuments(
   const db = create({
     schema: meta.schema,
     language: meta.settings.language as any,
-    inferSchema: meta.settings.inferSchema
+    inferSchema: meta.settings.inferSchema,
+    store: SNAPSHOT_STORE
   })
   const rows = documents.map(({ id, doc }) => ({ id, ...doc }))
   if (rows.length > 0) {
@@ -401,7 +404,8 @@ async function loadSnapshotDb(storage: ObjectStorage, meta: IndexMeta, cache: Sh
   const db = create({
     schema: meta.schema,
     language: meta.settings.language as any,
-    inferSchema: meta.settings.inferSchema
+    inferSchema: meta.settings.inferSchema,
+    store: SNAPSHOT_STORE
   })
   load(db, raw as any)
   setCachedSnapshotDb(key, db, bytes.byteLength)
@@ -469,7 +473,8 @@ async function loadSearchableDb(
   const db = create({
     schema: meta.schema,
     language: meta.settings.language as any,
-    inferSchema: meta.settings.inferSchema
+    inferSchema: meta.settings.inferSchema,
+    store: SNAPSHOT_STORE
   })
   const documents = [...merged.entries()].map(([id, doc]) => ({ id, ...doc }))
   if (documents.length > 0) {
@@ -600,7 +605,8 @@ async function runRebuild(
     const db = create({
       schema: meta.schema,
       language: meta.settings.language as any,
-      inferSchema: meta.settings.inferSchema
+      inferSchema: meta.settings.inferSchema,
+      store: SNAPSHOT_STORE
     })
     const documents = [...merged.entries()].map(([id, doc]) => ({ id, ...doc }))
     if (documents.length > 0) {

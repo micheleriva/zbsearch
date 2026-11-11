@@ -1,9 +1,23 @@
 import type { InternalDocumentID } from '../components/internal-document-id-store.js'
 import type { VectorIndexContext, VectorIndexFactory, VectorIndexLike } from '../types.js'
-import { dotProduct, nearestCentroidIndex, normalizeVector } from './vector-math.js'
-import { findSimilarVectors, type SimilarVector, type VectorType, type VectorTypeLike } from './vector.js'
+import { getProbeCentroids, trainCentroids } from './vector-kmeans.js'
+import { nearestCentroidIndex, normalizeVector } from './vector-math.js'
+import {
+  findSimilarVectors,
+  quantizerFactories,
+  type SimilarVector,
+  type VectorType,
+  type VectorTypeLike
+} from './vector.js'
+import { isQuantizedVectorIndexPayload, QuantizedVectorIndex } from './vector-quantized.js'
+import {
+  resolveQuantizer,
+  resolveRescore,
+  type QuantizationOptions,
+  type VectorBinarySnapshot
+} from './vector-quantization.js'
 
-export interface IvfOptions {
+export interface IvfOptions extends QuantizationOptions {
   dim?: number
   nlist?: number
   nprobe?: number
@@ -33,114 +47,6 @@ function removeFromList(list: InternalDocumentID[], id: InternalDocumentID) {
     list[index] = list[lastIndex]!
   }
   list.pop()
-}
-
-function initializeCentroids(vectors: Float32Array[], nlist: number, dim: number): Float32Array[] {
-  const centroids: Float32Array[] = Array.from({ length: nlist }, () => new Float32Array(dim))
-  const count = vectors.length
-
-  if (count === 0) {
-    return centroids
-  }
-
-  centroids[0] = new Float32Array(vectors[Math.floor(Math.random() * count)]!)
-  normalizeVector(centroids[0]!, dim)
-
-  const distances = new Float32Array(count)
-
-  for (let c = 1; c < nlist; c++) {
-    let distanceSum = 0
-
-    for (let i = 0; i < count; i++) {
-      let minDistance = Infinity
-      for (let j = 0; j < c; j++) {
-        const similarity = dotProduct(vectors[i]!, centroids[j]!, dim)
-        const distance = 1 - similarity
-        if (distance < minDistance) {
-          minDistance = distance
-        }
-      }
-      distances[i] = minDistance
-      distanceSum += minDistance
-    }
-
-    let threshold = Math.random() * distanceSum
-    let chosen = count - 1
-    for (let i = 0; i < count; i++) {
-      threshold -= distances[i]!
-      if (threshold <= 0) {
-        chosen = i
-        break
-      }
-    }
-
-    centroids[c] = new Float32Array(vectors[chosen]!)
-    normalizeVector(centroids[c]!, dim)
-  }
-
-  return centroids
-}
-
-function trainCentroids(vectors: Float32Array[], nlist: number, dim: number): Float32Array[] {
-  const count = vectors.length
-  const centroids = initializeCentroids(vectors, nlist, dim)
-  const assignments = new Uint32Array(count)
-
-  for (let iter = 0; iter < 20; iter++) {
-    let changed = false
-
-    for (let i = 0; i < count; i++) {
-      const cluster = nearestCentroidIndex(vectors[i]!, centroids, dim)
-      if (assignments[i] !== cluster) {
-        assignments[i] = cluster
-        changed = true
-      }
-    }
-
-    if (!changed) {
-      break
-    }
-
-    const counts = new Array<number>(nlist).fill(0)
-    const sums = Array.from({ length: nlist }, () => new Float32Array(dim))
-
-    for (let i = 0; i < count; i++) {
-      const cluster = assignments[i]!
-      counts[cluster]!++
-      const vector = vectors[i]!
-      const sum = sums[cluster]!
-      for (let d = 0; d < dim; d++) {
-        sum[d] += vector[d]!
-      }
-    }
-
-    for (let c = 0; c < nlist; c++) {
-      if (counts[c] === 0) {
-        continue
-      }
-
-      const inv = 1 / counts[c]!
-      const centroid = centroids[c]!
-      const sum = sums[c]!
-      for (let d = 0; d < dim; d++) {
-        centroid[d] = sum[d]! * inv
-      }
-      normalizeVector(centroid, dim)
-    }
-  }
-
-  return centroids
-}
-
-function getProbeCentroids(
-  queryVector: Float32Array,
-  centroids: Float32Array[],
-  nprobe: number,
-  dim: number
-): number[] {
-  const scores = centroids.map((centroid, index) => [index, dotProduct(queryVector, centroid, dim)] as const)
-  scores.sort((a, b) => b[1] - a[1])
-  return scores.slice(0, Math.min(nprobe, scores.length)).map(([index]) => index)
 }
 
 export class IVFVectorIndex implements VectorIndexLike {
@@ -190,6 +96,11 @@ export class IVFVectorIndex implements VectorIndexLike {
     }
 
     this.vectors.delete(internalDocumentId)
+  }
+
+  // The normalized copy of the vector, as the index searches on it
+  getVector(internalDocumentId: InternalDocumentID): VectorType | undefined {
+    return this.vectors.get(internalDocumentId)
   }
 
   find(
@@ -272,6 +183,61 @@ export class IVFVectorIndex implements VectorIndexLike {
     }
   }
 
+  toBinarySnapshot(): VectorBinarySnapshot {
+    const ids = new Uint32Array(this.vectors.size)
+    const vectors = new Float32Array(this.vectors.size * this.size)
+    const clusters = new Int32Array(this.vectors.size)
+    let i = 0
+    for (const [id, vector] of this.vectors) {
+      ids[i] = id
+      vectors.set(vector, i * this.size)
+      clusters[i] = this.idToCluster.get(id) ?? -1
+      i++
+    }
+
+    const centroids = new Float32Array(this.centroids.length * this.size)
+    this.centroids.forEach((centroid, index) => centroids.set(centroid, index * this.size))
+
+    return {
+      meta: {
+        kind: 'ivf',
+        size: this.size,
+        nlist: this.nlist,
+        nprobe: this.nprobe,
+        trainMin: this.trainMin,
+        trained: this.trained,
+        count: ids.length
+      },
+      arrays: { ids, vectors, clusters, centroids }
+    }
+  }
+
+  static fromBinarySnapshot(snapshot: VectorBinarySnapshot): IVFVectorIndex {
+    const meta = snapshot.meta as { size: number; nlist: number; nprobe: number; trainMin: number; trained: boolean }
+    const { ids, vectors, clusters, centroids } = snapshot.arrays as {
+      ids: Uint32Array
+      vectors: Float32Array
+      clusters: Int32Array
+      centroids: Float32Array
+    }
+    const size = meta.size
+    const index = new IVFVectorIndex(size, meta.nlist, meta.nprobe, meta.trainMin)
+    index.trained = meta.trained
+    for (let c = 0; c < centroids.length / size; c++) {
+      index.centroids.push(centroids.slice(c * size, (c + 1) * size))
+    }
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i]!
+      index.vectors.set(id, vectors.slice(i * size, (i + 1) * size))
+      const cluster = clusters[i]!
+      if (cluster >= 0) {
+        index.idToCluster.set(id, cluster)
+        index.lists[cluster]!.push(id)
+      }
+    }
+    return index
+  }
+
   static fromJSON(json: unknown): IVFVectorIndex {
     const raw = json as IvfJSON
     const index = new IVFVectorIndex(raw.size, raw.nlist, raw.nprobe, raw.trainMin)
@@ -297,18 +263,46 @@ export class IVFVectorIndex implements VectorIndexLike {
 }
 
 export function ivf(options: IvfOptions = {}): VectorIndexFactory {
+  const quantizer = resolveQuantizer(options.quantization)
+  const rescorer = resolveRescore(options.rescore)
+  const factories = quantizerFactories(quantizer)
+
+  if (rescorer && !quantizer) {
+    throw new Error('The rescore option requires a quantization other than "none".')
+  }
+
+  const fromJSON = (json: unknown): VectorIndexLike =>
+    isQuantizedVectorIndexPayload(json) ? QuantizedVectorIndex.fromJSON(json, factories) : IVFVectorIndex.fromJSON(json)
+
+  const fromBinarySnapshot = (snapshot: VectorBinarySnapshot): VectorIndexLike =>
+    isQuantizedVectorIndexPayload(snapshot)
+      ? QuantizedVectorIndex.fromBinarySnapshot(snapshot, factories)
+      : IVFVectorIndex.fromBinarySnapshot(snapshot)
+
   return Object.assign(
-    (ctx: VectorIndexContext) => {
+    (ctx: VectorIndexContext): VectorIndexLike => {
       const dim = options.dim ?? ctx.dim
       const nlist = options.nlist ?? 64
       const nprobe = options.nprobe ?? Math.max(1, Math.min(32, Math.floor(nlist / 4)))
       const trainMin = options.trainMin ?? Math.min(nlist, 32)
 
-      return new IVFVectorIndex(dim, nlist, nprobe, trainMin)
+      if (!quantizer) {
+        return new IVFVectorIndex(dim, nlist, nprobe, trainMin)
+      }
+
+      return new QuantizedVectorIndex({
+        dim,
+        quantizer: quantizer.create(dim),
+        rescorer: rescorer?.create(dim),
+        oversample: options.oversample,
+        rescoreMargin: options.rescoreMargin,
+        ivf: { nlist, nprobe, trainMin }
+      })
     },
     {
       kind: 'ivf' as const,
-      fromJSON: IVFVectorIndex.fromJSON
+      fromJSON,
+      fromBinarySnapshot
     }
   )
 }

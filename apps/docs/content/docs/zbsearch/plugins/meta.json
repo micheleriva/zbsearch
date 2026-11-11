@@ -6,6 +6,7 @@
     "plugin-data-persistence",
     "plugin-qps",
     "plugin-pt15",
+    "plugin-vector-quantizer",
     "plugin-parsedoc",
     "plugin-match-highlight"
   ]

@@ -59,7 +59,7 @@ const results = await search(db, { term: "brave" }); // still works
 
 ```ts
 interface PersistToStorageOptions {
-  format?: "json" | "dpack" | "binary" | "seqproto"; // defaults to "binary"
+  format?: "json" | "dpack" | "binary" | "seqproto" | "snapshot"; // defaults to "binary"
   contentType?: string; // passed through to storage.put (e.g. for S3/HTTP)
 }
 ```
@@ -71,7 +71,7 @@ backend.
 
 ```ts
 interface RestoreFromStorageOptions {
-  format?: "json" | "dpack" | "binary" | "seqproto"; // defaults to "binary"
+  format?: "json" | "dpack" | "binary" | "seqproto" | "snapshot"; // defaults to "binary"
 }
 ```
 
@@ -82,19 +82,21 @@ interface RestoreFromStorageOptions {
 
 ## Choosing a format
 
-All four formats from [`persist`](/docs/zbsearch/plugins/plugin-data-persistence)
-are supported. Unlike `persist("binary")`, which returns a hex string (two
-characters per byte), storage adapters keep `binary` as **raw msgpack bytes**, so
-persisted payloads are roughly half the size.
+All the formats from [`persist`](/docs/zbsearch/plugins/plugin-data-persistence)
+are supported, and all of them are stored as raw bytes.
 
-| Format     | Payload        | Notes                                             |
-| ---------- | -------------- | ------------------------------------------------- |
-| `binary`   | raw msgpack    | **Default.** Smallest, recommended for IndexedDB. |
-| `json`     | UTF-8 JSON     | Human-readable, portable, larger.                 |
-| `dpack`    | dpack bytes    | Node-oriented.                                     |
-| `seqproto` | seqproto bytes | Compact binary, Node-oriented.                    |
+| Format     | Payload                                                         | Notes                                                                    |
+| ---------- | --------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `snapshot` | [binary snapshot](/docs/zbsearch/usage/serialization#the-binary-snapshot-format) | **Recommended.** Smallest and fastest, checksummed; scales to large indexes. |
+| `binary`   | raw msgpack                                                     | **Default.** Also restores `snapshot` payloads.                          |
+| `json`     | UTF-8 JSON                                                      | Human-readable, portable, larger.                                        |
+| `dpack`    | dpack bytes                                                     | Node-oriented.                                                           |
+| `seqproto` | seqproto bytes                                                  | Compact binary. Limited to 4 GiB.                                        |
 
-For browsers and IndexedDB, prefer `binary` or `json`.
+For browsers and IndexedDB, prefer `snapshot`. A storage adapter receives the
+whole payload in one `put`; to write a large index segment by segment instead
+(one IndexedDB record or OPFS write per segment), use `saveBinary` from
+`zbsearch` directly.
 
 ## The `PersistenceStorage` contract
 

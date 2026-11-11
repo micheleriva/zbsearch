@@ -70,7 +70,10 @@ const chunked = save(db, { format: "chunked", chunkSize: 256 * 1024 });
 ```
 
 Smaller chunks shorten the longest block but produce more of them. A value that cannot be split -
-a single property's tree - is emitted whole even if it exceeds the target.
+a single property's tree - is emitted whole even if it exceeds the target. Sizes are estimated by
+walking the data, so large objects are split without ever being serialized whole; the chunks
+themselves are still strings, so do not join them back into one (use the
+[binary snapshot format](#the-binary-snapshot-format) for very large indexes).
 
 ### What it buys you
 
@@ -88,6 +91,107 @@ one indivisible `RadixTree.fromJSON` call for the largest text property (~33ms a
 
 Total time is around 25% higher, which is the cost of yielding. This trade favours responsiveness
 over throughput; if you only care about total time, keep using the default format.
+
+## The binary snapshot format
+
+Both JSON formats build the serialized index out of JavaScript strings. Past a few tens of thousands
+of passage-sized documents, that runs into V8's maximum string length, and the strings alone take
+several times the memory of the index. For large indexes - and for anything with vectors - use the
+binary snapshot format instead:
+
+```javascript copy
+import { saveBinary } from "zbsearch";
+
+for await (const segment of saveBinary(db)) {
+  // each segment is a Uint8Array: write it to a file, IndexedDB, OPFS, R2...
+}
+```
+
+`saveBinary` returns an async iterable of `Uint8Array` segments. Only about one segment is in memory
+at a time, and it yields to the event loop between segments, so you can write each one out as it
+arrives. Postings and term frequencies are delta- and varint-encoded, vectors are written as raw
+`Float32Array` data, and the documents are stored separately from the index. On a synthetic corpus of
+passages with 384-dimension vectors the snapshot is about 3.6x smaller than the chunked JSON format.
+
+Restore it with `loadBinary`, which accepts a `Uint8Array`, an `ArrayBuffer`, a `ReadableStream`, or
+any sync or async iterable of byte chunks - split anywhere, not necessarily on segment boundaries:
+
+```javascript copy
+import { create, loadBinary } from "zbsearch";
+import { createReadStream } from "node:fs";
+
+const db = create({ schema });
+await loadBinary(db, createReadStream("./index.zbsb"));
+```
+
+In the browser, `await loadBinary(db, (await fileHandle.getFile()).stream())` reads straight from
+OPFS, and `await loadBinary(db, response.body)` from a `fetch` response.
+
+`loadBinary` yields to the event loop as it goes, and only modifies the database once the whole
+snapshot has been read and verified, so a failed load leaves it untouched.
+
+### Segment size
+
+`segmentSize` sets the payload size of each segment in bytes, defaulting to `1048576` (1 MiB):
+
+```javascript copy
+for await (const segment of saveBinary(db, { segmentSize: 256 * 1024 })) {
+  // ...
+}
+```
+
+Every segment except the last carries exactly `segmentSize` payload bytes plus a 12-byte header (the
+first one also starts with the 16-byte file header). One exception to the memory bound: each vector
+index is copied into flat typed arrays (`n x dimensions x 4` bytes for float32 vectors) while it is
+being written.
+
+### Integrity and versioning
+
+The snapshot starts with a magic number and a format version, and every segment carries a sequence
+number and a CRC32 checksum. `loadBinary` rejects, with an error that has a `code`:
+
+- a corrupted segment or header: `BINARY_SNAPSHOT_CHECKSUM_MISMATCH`;
+- a snapshot written by an incompatible format version: `UNSUPPORTED_BINARY_SNAPSHOT_VERSION`;
+- data that is not a snapshot, or a truncated, reordered or otherwise malformed one:
+  `INVALID_BINARY_SNAPSHOT`.
+
+Checksums are verified by default; pass `{ verifyChecksums: false }` as the third argument to skip
+them. `isBinarySnapshot(bytes)` tells a snapshot apart from other payloads by its magic number.
+
+### Synchronous variants
+
+For small indexes, `saveBinarySync(db)` returns the whole snapshot as one `Uint8Array` and
+`loadBinarySync(db, bytes)` restores it synchronously. They block, and hold the whole snapshot in
+memory, so prefer the streaming functions for anything large.
+
+### Vector indexes
+
+Vector indexes are written through `toBinarySnapshot()`, which returns a small JSON-serializable
+`meta` (including the index `kind`) and a set of typed `arrays`. The factory restores them with
+`fromBinarySnapshot(snapshot)`. Every built-in index implements both - flat, IVF and their
+[quantized](/docs/zbsearch/search/vector-search) variants, whose int8 or binary codes are written as
+raw bytes - and a custom vector index without them is written through `toJSON` instead. When loading, the database must be created with a
+vector index factory of the same `kind` as the one that was saved (for example `ivf()` for an IVF
+index).
+
+### What it buys you
+
+Synthetic passages (150-250 words from a 40,000-word Zipf vocabulary, seven fields and a 384-dimension
+vector), Node 22, saved to and loaded from a file:
+
+| Passages | Chunked JSON | Binary snapshot | Save (JSON / binary) | Load (`loadAsync` / `loadBinary`) |
+| --- | --- | --- | --- | --- |
+| 10,000 | 130 MB | 36 MB | 1.5 s / 0.6 s | 1.2 s / 0.6 s |
+| 20,000 | 258 MB | 72 MB | 2.9 s / 1.4 s | 2.2 s / 1.2 s |
+| 50,000 | 639 MB | 178 MB | 8.5 s / 4.6 s | 6.9 s / 3.6 s |
+| 100,000 | - | 356 MB | - / 9.3 s | - / 6.9 s |
+
+At 50,000 passages the chunked JSON chunks alone held 1.3 GB of memory while saving; `saveBinary` held
+about 125 MB at its peak, most of it the flat copy of the vector index. With `store: { vectors: true }`
+(vectors also kept in the documents), the snapshot is 3.2x smaller than the chunked JSON.
+
+The custom components you pass to `create` are written through their own `save` output with a
+generic binary encoding, and restored through their `load`.
 
 ## Staying on the default format
 
@@ -115,7 +219,16 @@ This still yields between stores and index properties, but the `JSON.parse` rema
   are now trimmed, and letters from any script are kept), searches and removals on an old index use
   the new rules against the old tokens. Rebuild and re-save the index after upgrading.
 - `load` also accepts the chunked format, so you are not forced into the async API.
+- The [`store`](/docs/zbsearch/usage/create#indexed-but-not-stored-properties) configuration is saved
+  with the index (`store`, plus `index.unstoredValues` and `index.unstoredTerms` for removing values
+  that are not in the documents store), and `load` restores it in place of the one given to `create`.
+  Indexes saved by 4.0.x have none: the configuration given to `create` applies to new documents,
+  and the vectors those indexes stored in their documents are kept and returned as they were.
 - A chunked index **cannot** be read by a version of ZBSearch that predates the format. The
   envelope carries a `version` field and a mismatched reader throws rather than misbehaving, but
   older releases have no knowledge of it at all. Keep publishing the default format until every
   consumer is upgraded.
+- Binary snapshots carry the `store` configuration and the unstored index state too, and
+  `loadBinary` restores them the same way `load` does. They cannot be read by versions of ZBSearch
+  that predate `saveBinary`; a reader that does not know the snapshot's format version rejects it with
+  `UNSUPPORTED_BINARY_SNAPSHOT_VERSION`.

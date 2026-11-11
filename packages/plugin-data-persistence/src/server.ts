@@ -1,10 +1,11 @@
 import type { AnyZBSearch } from 'zbsearch'
-import { save, create, load } from 'zbsearch'
-import { encode, decode } from '@msgpack/msgpack'
+import { save, create, loadBinary, saveBinary } from 'zbsearch'
+import { encode } from '@msgpack/msgpack'
 import * as dpack from './dpack.js'
 import type { FileSystem, PersistenceFormat, Runtime } from './types.js'
 import { FILESYSTEM_NOT_SUPPORTED_ON_RUNTIME, UNSUPPORTED_FORMAT } from './errors.js'
 import { restore } from './index.js'
+import { snapshotToBytes } from './payload.js'
 import { detectRuntime } from './utils.js'
 import { serializeZBSearchInstance } from './seqproto.js'
 
@@ -53,14 +54,16 @@ export async function restoreFromFile<T extends AnyZBSearch>(
     path = await getDefaultOutputFilename(format, runtime)
   }
 
-  const data = await _fs.readFile(path)
-
-  // Handle new binary format that stores data as binary instead of hex
-  if (format === 'binary' && data instanceof Buffer) {
-    return restoreFromBinaryData(data, runtime)
+  if (format === 'snapshot' && runtime === 'node') {
+    // Stream the file into the database instead of reading it whole.
+    const { createReadStream } = await import('node:fs')
+    const db = create({ schema: { __placeholder: 'string' } })
+    await loadBinary(db, createReadStream(path, { highWaterMark: 1024 * 1024 }))
+    return db as unknown as T
   }
 
-  return restore(format, data, runtime)
+  const data = await _fs.readFile(path)
+  return restore(format, data as string | Uint8Array, runtime)
 }
 
 async function loadFileSystem(runtime: Runtime): Promise<FileSystem> {
@@ -124,6 +127,9 @@ export async function getDefaultFileName(format: PersistenceFormat, runtime?: Ru
     case 'seqproto':
       extension = 'seqp'
       break
+    case 'snapshot':
+      extension = 'zbsb'
+      break
     default:
       extension = 'dump'
   }
@@ -148,20 +154,19 @@ async function persistToFileStreaming<T extends AnyZBSearch>(
   filePath: string,
   runtime: Runtime
 ): Promise<void> {
-  const dbExport = await save(db)
-
   switch (format) {
+    case 'snapshot':
+      await streamSnapshotToFile(db, filePath, runtime)
+      break
     case 'json':
-      await streamJsonToFile(dbExport, filePath, runtime)
+      await streamJsonToFile(await save(db), filePath, runtime)
       break
     case 'binary':
-      await streamBinaryToFile(dbExport, filePath, runtime)
+      await streamBinaryToFile(await save(db), filePath, runtime)
       break
     case 'dpack':
       // dpack doesn't have streaming support, use regular approach
-      // but check size and warn if too large
-      const dpackSerialized = dpack.serialize(dbExport)
-      await _fs.writeFile(filePath, dpackSerialized)
+      await _fs.writeFile(filePath, dpack.serialize(await save(db)))
       break
     case 'seqproto':
       const seqprotoSerialized = serializeZBSearchInstance(db)
@@ -274,16 +279,21 @@ async function streamBinaryToFile(data: any, filePath: string, runtime: Runtime)
   }
 }
 
-// Helper function to restore from binary data directly
-async function restoreFromBinaryData<T extends AnyZBSearch>(data: Buffer, _runtime: Runtime): Promise<T> {
-  const db = create({
-    schema: {
-      __placeholder: 'string'
+// Writes the binary snapshot segment by segment, so only about one segment is in memory at a time.
+async function streamSnapshotToFile<T extends AnyZBSearch>(db: T, filePath: string, runtime: Runtime): Promise<void> {
+  if (runtime !== 'node') {
+    /* c8 ignore next 3 */
+    await _fs.writeFile(filePath, Buffer.from(await snapshotToBytes(db)))
+    return
+  }
+
+  const { open } = await import('node:fs/promises')
+  const file = await open(filePath, 'w')
+  try {
+    for await (const segment of saveBinary(db)) {
+      await file.write(segment)
     }
-  })
-
-  const deserialized = decode(data) as any
-  load(db, deserialized)
-
-  return db as unknown as T
+  } finally {
+    await file.close()
+  }
 }

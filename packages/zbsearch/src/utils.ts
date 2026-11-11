@@ -1,4 +1,4 @@
-import type { AnyDocument, GeosearchDistanceUnit, Optional, Results, SearchableValue, TokenScore } from './types.js'
+import type { AnyDocument, GeosearchDistanceUnit, Optional, SearchableValue, TokenScore } from './types.js'
 import { createError } from './errors.js'
 
 const baseId = Date.now().toString().slice(5)
@@ -368,44 +368,223 @@ export function convertDistanceToMeters(distance: number, unit: GeosearchDistanc
   return distance * ratio
 }
 
+// The instance behind each document view (see `copyDocument`)
+const viewInstances = new WeakMap<object, object>()
+
+// Whether the prototype chain below `Object.prototype` defines accessors or methods: class code, which may only work
+// on the instance itself (it can read `#private` fields, or the internal slots of a built-in, that a copy lacks).
+function hasClassCode(proto: object | null): boolean {
+  for (
+    let current = proto;
+    current !== null && current !== Object.prototype;
+    current = Object.getPrototypeOf(current)
+  ) {
+    for (const key of Reflect.ownKeys(current)) {
+      const descriptor = Reflect.getOwnPropertyDescriptor(current, key)!
+      if (key !== 'constructor' && (descriptor.get || descriptor.set || typeof descriptor.value === 'function')) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+function findClassProperty(proto: object | null, key: PropertyKey): PropertyDescriptor | undefined {
+  for (
+    let current = proto;
+    current !== null && current !== Object.prototype;
+    current = Object.getPrototypeOf(current)
+  ) {
+    const descriptor = Reflect.getOwnPropertyDescriptor(current, key)
+    if (descriptor) {
+      return descriptor
+    }
+  }
+  return undefined
+}
+
+// Whether `toJSON` may have returned something keyed like the document, whose keys `filterSerialized` can filter.
+// Arrays, maps, sets and typed arrays are left as they are.
+function isSerializedRecord(value: unknown): value is Record<string, unknown> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    !ArrayBuffer.isView(value) &&
+    !(value instanceof Map) &&
+    !(value instanceof Set)
+  )
+}
+
+// Applies to `serialized`, what the instance's `toJSON` returned, the differences between the view and the instance,
+// key by key: a key the view hides is dropped, and a key the view sets to another value (an unstored vector nulled or
+// rebuilt on a search hit, a nested object copied without its unstored paths) takes the view's value. Nested views
+// filter their own `toJSON` the same way. Values that `toJSON` returns under other keys are not seen.
+function filterSerialized(serialized: unknown, copy: object, instance: object): unknown {
+  if (!isSerializedRecord(serialized)) {
+    return serialized
+  }
+
+  // A copy, never the object `toJSON` returned: it may be the instance itself, or data it shares
+  const filtered: Record<string, unknown> = { ...serialized }
+  for (const key of Object.keys(filtered)) {
+    const descriptor = Reflect.getOwnPropertyDescriptor(copy, key)
+    if (descriptor === undefined) {
+      if (Object.hasOwn(instance, key)) {
+        delete filtered[key]
+      }
+      continue
+    }
+
+    if (isPlaceholder(descriptor)) {
+      const value = descriptor.get!()
+      if (value === undefined) {
+        delete filtered[key]
+      } else {
+        filtered[key] = value
+      }
+      continue
+    }
+
+    if ('value' in descriptor) {
+      const original = Reflect.getOwnPropertyDescriptor(instance, key)
+      if (original === undefined || !('value' in original) || original.value !== descriptor.value) {
+        filtered[key] = descriptor.value
+      }
+    }
+  }
+  return filtered
+}
+
+// Wraps `copy` so that what it inherits from its class is read from `instance`: getters run, and methods are bound,
+// with `this` set to the instance. Everything else (own properties, keys, prototype, writes) is the copy's.
+// An inherited `toJSON` also runs on the instance, but its result is filtered (see `filterSerialized`), so that
+// `JSON.stringify` and snapshots serialize what the view shows, not the instance's unstored values.
+function createDocumentView(copy: object, instance: object): object {
+  let boundMethods: WeakMap<Function, Function> | undefined
+
+  const view = new Proxy(copy, {
+    get(target, key, receiver) {
+      if (Object.hasOwn(target, key)) {
+        return Reflect.get(target, key, receiver)
+      }
+
+      const proto = Reflect.getPrototypeOf(target)
+      const descriptor = findClassProperty(proto, key)
+      if (descriptor === undefined) {
+        return proto === null ? undefined : Reflect.get(proto, key, receiver)
+      }
+      if (descriptor.get || descriptor.set) {
+        return descriptor.get ? Reflect.apply(descriptor.get, instance, []) : undefined
+      }
+
+      const value = descriptor.value
+      if (typeof value !== 'function' || key === 'constructor') {
+        return value
+      }
+      boundMethods ??= new WeakMap()
+      let method = boundMethods.get(value)
+      if (method === undefined) {
+        method =
+          key === 'toJSON'
+            ? (...args: unknown[]) => filterSerialized(Reflect.apply(value, instance, args), target, instance)
+            : (value.bind(instance) as Function)
+        boundMethods.set(value, method)
+      }
+      return method
+    }
+  })
+
+  viewInstances.set(view, instance)
+  return view
+}
+
+/**
+ * A copy of the document `obj` with the own properties `descriptors`, keeping the prototype of `obj`.
+ *
+ * When the class of `obj` has accessors or methods, a plain copy may break them: they can read `#private` fields
+ * (or internal slots) that only the instance has. The copy is then wrapped in a view that reads what it inherits
+ * from the instance (see `createDocumentView`), so its getters and methods keep working. The view keeps the instance
+ * referenced, with all its data, including the properties the copy leaves out: for such documents, leaving
+ * properties out of the documents store hides them but does not save memory. Plain objects, and instances of
+ * classes without accessors or methods, are copied without a view and do not keep the original referenced.
+ */
+export function copyDocument(obj: object, descriptors: PropertyDescriptorMap): any {
+  const proto = Object.getPrototypeOf(obj)
+  const copy = Object.create(proto, descriptors)
+  return hasClassCode(proto) ? createDocumentView(copy, viewInstances.get(obj) ?? obj) : copy
+}
+
 // Shallow clone of `obj` that keeps its prototype and every own property (including non-enumerable ones and
 // accessors), except `key`, which becomes a plain writable data property holding `value`. Defining `key` up front,
 // instead of assigning it on the clone, never invokes a copied setter (which could write to state shared with the
 // stored document) and works when the original property is read-only or getter-only.
-function cloneWithDataProperty(obj: object, key: string, value: unknown): any {
+// A property set over a placeholder (see `placeholderProperty`) is enumerable, as if the placeholder was not there.
+// The clone of a class instance reads its getters and methods from the instance (see `copyDocument`).
+export function cloneWithDataProperty(obj: object, key: string, value: unknown): any {
   const descriptors = Object.getOwnPropertyDescriptors(obj)
-  descriptors[key] = { value, writable: true, enumerable: descriptors[key]?.enumerable ?? true, configurable: true }
-  return Object.create(Object.getPrototypeOf(obj), descriptors)
+  const previous = getPathValue(descriptors, key) as PropertyDescriptor | undefined
+  const enumerable = previous === undefined || isPlaceholder(previous) ? true : previous.enumerable
+  setOwnValue(descriptors, key, { value, writable: true, enumerable, configurable: true })
+  return copyDocument(obj, descriptors)
+}
+
+/**
+ * Reads the property `key` of `obj` as a segment of a document path. `__proto__` is read only when it is an own
+ * property (a document parsed from JSON can have one): otherwise it is the prototype of `obj`, which walking a path
+ * must never reach.
+ */
+export function getPathValue(obj: object, key: string): unknown {
+  return key === '__proto__' && !Object.hasOwn(obj, key) ? undefined : (obj as Record<string, unknown>)[key]
+}
+
+/**
+ * Sets `obj[key]` to `value` as an own data property. Unlike an assignment, a `__proto__` key never sets the
+ * prototype of `obj`.
+ */
+export function setOwnValue(obj: object, key: string, value: unknown): void {
+  if (key === '__proto__') {
+    Object.defineProperty(obj, key, { value, writable: true, enumerable: true, configurable: true })
+  } else {
+    ;(obj as Record<string, unknown>)[key] = value
+  }
+}
+
+const placeholderGetters = new WeakSet<() => unknown>()
+
+function readsUndefined(): undefined {
+  return undefined
+}
+placeholderGetters.add(readsUndefined)
+
+/**
+ * The descriptor of an own property that a copy of a document defines in place of an inherited one, so that reading
+ * it gives `value` (`undefined` hides the inherited value). Like the inherited properties of a class, it is not
+ * enumerable: it stays out of `Object.keys`, JSON and snapshots, and `cloneWithDataProperty` treats it as absent.
+ */
+export function placeholderProperty(value: unknown): PropertyDescriptor {
+  let get: () => unknown = readsUndefined
+  if (value !== undefined) {
+    get = () => value
+    placeholderGetters.add(get)
+  }
+  return { get, enumerable: false, configurable: true }
+}
+
+function isPlaceholder(descriptor: PropertyDescriptor): boolean {
+  return descriptor.get !== undefined && placeholderGetters.has(descriptor.get)
 }
 
 // Returns a copy of `obj` with the value at `path` set to `value`, copying every object along the path.
 // `obj` itself, and the nested objects it references, are left untouched.
-function cloneWithValueAtPath(obj: object, path: string[], value: unknown): any {
+export function cloneWithValueAtPath(obj: object, path: string[], value: unknown): any {
   const [key, ...rest] = path
   if (rest.length === 0) {
     return cloneWithDataProperty(obj, key, value)
   }
-  const next = (obj as any)[key]
+  const next = getPathValue(obj, key)
   const child = next != null && typeof next === 'object' ? next : {}
   return cloneWithDataProperty(obj, key, cloneWithValueAtPath(child, rest, value))
-}
-
-export function removeVectorsFromHits(searchResult: Results<AnyDocument>, vectorProperties: string[]): void {
-  if (vectorProperties.length === 0) {
-    return
-  }
-
-  for (const result of searchResult.hits) {
-    // `result.document` is the object held by the documents store, so it must not be mutated.
-    if (result.document == null) {
-      continue
-    }
-    let document: AnyDocument = result.document
-    for (const prop of vectorProperties) {
-      document = cloneWithValueAtPath(document, prop.split('.'), null)
-    }
-    result.document = document
-  }
 }
 
 export function isPromise(obj: any): obj is Promise<unknown> {

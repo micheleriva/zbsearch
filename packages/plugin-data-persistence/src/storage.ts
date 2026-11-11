@@ -1,9 +1,10 @@
-import { decode, encode } from '@msgpack/msgpack'
+import { encode } from '@msgpack/msgpack'
 import type { AnyZBSearch } from 'zbsearch'
-import { create, load, save } from 'zbsearch'
+import { create, isBinarySnapshot, load, loadBinary, save } from 'zbsearch'
 import * as dpack from './dpack.js'
 import { STORAGE_KEY_NOT_FOUND, UNSUPPORTED_FORMAT } from './errors.js'
 import { serializeZBSearchInstance, deserializeZBSearchInstance } from './seqproto.js'
+import { decodeMsgpackPayload, snapshotToBytes } from './payload.js'
 import type { PersistenceFormat } from './types.js'
 
 /**
@@ -39,14 +40,6 @@ function toUint8Array(data: string | Uint8Array | ArrayBuffer): Uint8Array {
   return new TextEncoder().encode(data)
 }
 
-function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
-  // Copy into a standalone ArrayBuffer so we never hand out a view into a
-  // larger, pooled buffer (e.g. a Node Buffer backing store).
-  const copy = new Uint8Array(bytes.byteLength)
-  copy.set(bytes)
-  return copy.buffer
-}
-
 /**
  * Serialize a database into a compact byte payload. Unlike the string-returning
  * `persist`, the `binary` format here stays as raw msgpack bytes instead of hex,
@@ -62,6 +55,8 @@ async function serializeToBytes<T extends AnyZBSearch>(db: T, format: Persistenc
       return encode(await save(db))
     case 'seqproto':
       return toUint8Array(serializeZBSearchInstance(db) as unknown as ArrayBuffer)
+    case 'snapshot':
+      return snapshotToBytes(db)
     default:
       throw new Error(UNSUPPORTED_FORMAT(format))
   }
@@ -74,9 +69,9 @@ function deserializeFromBytes(format: PersistenceFormat, bytes: Uint8Array): any
     case 'dpack':
       return dpack.parse(typeof Buffer !== 'undefined' ? Buffer.from(bytes) : (bytes as any))
     case 'binary':
-      return decode(bytes)
+      return decodeMsgpackPayload(bytes)
     case 'seqproto':
-      return deserializeZBSearchInstance(toArrayBuffer(bytes))
+      return deserializeZBSearchInstance(bytes)
     default:
       throw new Error(UNSUPPORTED_FORMAT(format))
   }
@@ -118,14 +113,18 @@ export async function restoreFromStorage<T extends AnyZBSearch>(
     throw new Error(STORAGE_KEY_NOT_FOUND(key))
   }
 
-  const deserialized = deserializeFromBytes(format, toUint8Array(result.body))
-
   const db = create({
     schema: {
       __placeholder: 'string'
     }
   })
-  load(db, deserialized)
+
+  const bytes = toUint8Array(result.body)
+  if (format === 'snapshot' || (format === 'binary' && isBinarySnapshot(bytes))) {
+    await loadBinary(db, bytes)
+  } else {
+    load(db, deserializeFromBytes(format, bytes))
+  }
 
   return db as unknown as T
 }

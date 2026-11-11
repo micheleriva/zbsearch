@@ -1,155 +1,86 @@
-import { decode, encode } from '@msgpack/msgpack'
+import { encode } from '@msgpack/msgpack'
 import type { AnyZBSearch } from 'zbsearch'
-import { create, load, save } from 'zbsearch'
+import { create, isBinarySnapshot, load, loadBinary, save } from 'zbsearch'
 import type { PersistenceFormat, Runtime } from './types.js'
 import * as dpack from './dpack.js'
 import { METHOD_MOVED, UNSUPPORTED_FORMAT } from './errors.js'
-import { detectRuntime } from './utils.js'
+import { decodeMsgpackPayload, snapshotToBytes, toBytes } from './payload.js'
 import { serializeZBSearchInstance, deserializeZBSearchInstance } from './seqproto.js'
 
 export { persistToStorage, restoreFromStorage } from './storage.js'
+export { snapshotToBytes } from './payload.js'
 export type { PersistenceStorage, PersistToStorageOptions, RestoreFromStorageOptions } from './storage.js'
 
-const hexFromMap: Record<string, number> = {
-  0: 0,
-  1: 1,
-  2: 2,
-  3: 3,
-  4: 4,
-  5: 5,
-  6: 6,
-  7: 7,
-  8: 8,
-  9: 9,
-  a: 10,
-  b: 11,
-  c: 12,
-  d: 13,
-  e: 14,
-  f: 15
-}
-const hexToMap = Object.keys(hexFromMap)
-
-/* c8 ignore next 13 */
-function slowHexToBuffer(hex: string): Uint8Array {
-  const bytes = new Uint8Array(Math.floor(hex.length / 2))
-
-  hex = hex.toLowerCase()
-  for (let i = 0; i < hex.length; i++) {
-    const a = hexFromMap[hex[i * 2]]
-    const b = hexFromMap[hex[i * 2 + 1]]
-    if (a === undefined || b === undefined) {
-      break
-    }
-    bytes[i] = (a << 4) | b
-  }
-  return bytes
-}
-
-/* c8 ignore next 5 */
-function slowHexToString(bytes: Uint8Array): string {
-  return Array.from(bytes || [])
-    .map((b) => hexToMap[b >> 4] + hexToMap[b & 15])
-    .join('')
-}
-
-export async function persist<T extends AnyZBSearch>(
-  db: T,
-  format: PersistenceFormat = 'binary',
-  runtime?: Runtime
-): Promise<string | Buffer | ArrayBuffer> {
-  if (!runtime) {
-    runtime = detectRuntime()
-  }
-
-  const dbExport = await save(db)
-  let serialized: string | Buffer | ArrayBuffer
-
-  switch (format) {
-    case 'json':
-      serialized = JSON.stringify(dbExport)
-      break
-    case 'dpack':
-      serialized = dpack.serialize(dbExport)
-      break
-    case 'binary': {
-      const msgpack = encode(dbExport)
-      if (runtime === 'node') {
-        serialized = Buffer.from(msgpack.buffer, msgpack.byteOffset, msgpack.byteLength)
-        serialized = serialized.toString('hex')
-        /* c8 ignore next 3 */
-      } else {
-        serialized = slowHexToString(msgpack)
-      }
-      break
-    }
-    case 'seqproto':
-      serialized = serializeZBSearchInstance(db)
-      break
-    default:
-      throw new Error(UNSUPPORTED_FORMAT(format))
-  }
-
-  return serialized
-}
-
-export async function restore<T extends AnyZBSearch>(
-  format: PersistenceFormat,
-  data: string | Buffer | ArrayBuffer,
-  runtime?: Runtime
-): Promise<T> {
-  if (!runtime) {
-    runtime = detectRuntime()
-  }
-
-  const db = create({
+function createPlaceholderDB(): AnyZBSearch {
+  return create({
     schema: {
       __placeholder: 'string'
     }
-  })
+  }) as unknown as AnyZBSearch
+}
+
+/**
+ * Serializes a database in memory.
+ *
+ * - `'snapshot'`: the core binary snapshot format (`saveBinary` from `zbsearch`), as one `Uint8Array`. The most
+ *   compact and fastest format, and the only one that stays within memory limits on large indexes. To stream it
+ *   instead of holding it whole, use `saveBinary` directly or `persistToFile` from `/server`.
+ * - `'binary'`: msgpack bytes (a `Uint8Array`; previous versions returned them as a hex string).
+ * - `'json'`: a JSON string. `'dpack'`: a dpack string. `'seqproto'`: an `ArrayBuffer`.
+ */
+export async function persist<T extends AnyZBSearch>(
+  db: T,
+  format: PersistenceFormat = 'binary',
+  _runtime?: Runtime
+): Promise<string | Uint8Array | ArrayBuffer> {
+  switch (format) {
+    case 'json':
+      return JSON.stringify(await save(db))
+    case 'dpack':
+      return dpack.serialize(await save(db))
+    case 'binary':
+      return encode(await save(db))
+    case 'seqproto':
+      return serializeZBSearchInstance(db)
+    case 'snapshot':
+      return snapshotToBytes(db)
+    default:
+      throw new Error(UNSUPPORTED_FORMAT(format))
+  }
+}
+
+/**
+ * Restores a database serialized by {@link persist}. `'binary'` also accepts the hex strings returned by previous
+ * versions and binary snapshots.
+ */
+export async function restore<T extends AnyZBSearch>(
+  format: PersistenceFormat,
+  data: string | Uint8Array | ArrayBuffer,
+  _runtime?: Runtime
+): Promise<T> {
+  const db = createPlaceholderDB()
   let deserialized: any
 
   switch (format) {
     case 'json':
-      deserialized = JSON.parse((data as any).toString())
+      deserialized = JSON.parse(typeof data === 'string' ? data : new TextDecoder().decode(toBytes(data)))
       break
     case 'dpack':
       deserialized = dpack.parse(data)
       break
     case 'binary': {
-      if (runtime === 'node') {
-        data = Buffer.from((data as any).toString(), 'hex')
-        /* c8 ignore next 3 */
-      } else {
-        // @ts-ignore
-        data = slowHexToBuffer(data as string) as Buffer
+      if (typeof data !== 'string' && isBinarySnapshot(toBytes(data))) {
+        await loadBinary(db, toBytes(data))
+        return db as unknown as T
       }
-      deserialized = decode(data)
+      deserialized = decodeMsgpackPayload(data)
       break
     }
+    case 'snapshot':
+      await loadBinary(db, toBytes(data as Uint8Array | ArrayBuffer))
+      return db as unknown as T
     case 'seqproto':
-      {
-        let ab: ArrayBuffer
-        if (data instanceof ArrayBuffer) {
-          ab = data
-        } else if (ArrayBuffer.isView(data)) {
-          const view = data as unknown as Uint8Array
-          const slice = view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength)
-          const copy = new Uint8Array(view.byteLength)
-          copy.set(new Uint8Array(slice))
-          ab = copy.buffer
-        } else if (typeof (data as any) === 'string') {
-          // If somehow a base64 or hex string is passed (should not happen in current flow)
-          const buf = Buffer.from(data as string, 'binary')
-          const slice = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
-          const copy = new Uint8Array(buf.byteLength)
-          copy.set(new Uint8Array(slice))
-          ab = copy.buffer
-        } else {
-          throw new Error('Unsupported data type for seqproto restore')
-        }
-        deserialized = deserializeZBSearchInstance(ab)
-      }
+      deserialized = deserializeZBSearchInstance(data)
       break
     default:
       throw new Error(UNSUPPORTED_FORMAT(format))

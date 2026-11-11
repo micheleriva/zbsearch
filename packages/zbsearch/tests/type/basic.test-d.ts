@@ -19,6 +19,11 @@ const movieDBP = create({
 expectTypeOf(movieDBP).toEqualTypeOf<ZBSearch<typeof movieSchema>>()
 const movieDB = movieDBP
 
+// The store option does not change the database type
+const unstoredMovieDB = create({ schema: movieSchema, store: { exclude: ['actors'], vectors: false } })
+expectTypeOf(unstoredMovieDB).toEqualTypeOf<ZBSearch<typeof movieSchema>>()
+expectTypeOf(unstoredMovieDB.store).toEqualTypeOf<{ exclude: string[]; vectors: boolean } | undefined>()
+
 const idP = insert(movieDB, {
   title: 'The Godfather',
   year: 1972,

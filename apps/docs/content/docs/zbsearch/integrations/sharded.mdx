@@ -1,0 +1,134 @@
+---
+title: Sharded runtime databases
+description: Search corpora larger than the memory you want to spend, with rankings identical to a single instance.
+---
+
+`@zbsearch/sharded` splits a ZBSearch database into shards that live in storage (the file system, IndexedDB,
+memory or object storage) and are loaded only when a query or a write needs them. Loaded shards are evicted,
+least recently used first, to keep the database under a memory budget. Full-text, vector and hybrid results
+are the same as those of a single ZBSearch instance holding every document: shards score BM25 with corpus-wide
+statistics, and results are merged with core's own tie-breaking.
+
+Where [`@zbsearch/static`](/docs/zbsearch/integrations/static) serves a prebuilt, read-only index over the
+network, `@zbsearch/sharded` is a mutable runtime database: documents are inserted, updated and removed while
+it runs, and every write goes through a write-ahead log.
+
+## Installation
+
+```bash
+npm install @zbsearch/sharded
+```
+
+## Opening a database
+
+```typescript copy
+import { openShardedDatabase } from '@zbsearch/sharded';
+import { FileSystemStorage } from '@zbsearch/sharded/node';
+
+const db = await openShardedDatabase({
+  schema: {
+    text: 'string',
+    title: 'string',
+    itemKey: 'string',
+    year: 'number',
+    collection: 'enum',
+    embedding: 'vector[384]',
+  },
+  storage: new FileSystemStorage('./search-index'),
+  partitionBy: 'itemKey',
+  packPartitions: true,
+  maxDocsPerShard: 1000,
+  memoryBudget: 300 * 1024 * 1024,
+});
+```
+
+The first call creates the database; later calls reopen it from the same storage (schema and partitioning are
+read back) and replay the write-ahead log, so writes acknowledged before a crash are never lost.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `schema` | required when creating | Core schema of the documents |
+| `storage` | `new MemoryStorage()` | Where shards, the WAL and the global state are kept |
+| `partitionBy` | none | Property whose value keeps documents together, e.g. `itemKey` or `collection` |
+| `packPartitions` | `false` | Let several partitions share a shard, for many small partitions |
+| `maxDocsPerShard` | `5000` | Shard size |
+| `memoryBudget` | unlimited | Bytes for the resident global layer plus the loaded shards |
+| `estimateShardBytes` | from the snapshot size and the codec | Heap estimate of a loaded shard |
+| `compactEvery` | `64` | WAL records between automatic compactions (0 disables) |
+| `codec` | `binaryShardCodec` | Shard snapshot format (core binary snapshots; `jsonShardCodec` also available) |
+| `createOptions` | `{}` | Passed to `create()` for every shard: `language`, `components`, `plugins`, `indexes`, `store` |
+
+## Writing and searching
+
+```typescript copy
+await db.insertMultiple(passages);
+await db.update('p42', { ...passage, text: 'Revised text' });
+await db.upsert(otherPassage);
+await db.removeMultiple(['p43', 'p44']);
+
+const keyword = await db.search({ term: 'protein folding', where: { collection: { eq: 'biology' } } });
+const vector = await db.search({ mode: 'vector', vector: { value: embedding, property: 'embedding' } });
+const hybrid = await db.search({
+  mode: 'hybrid',
+  term: 'protein folding',
+  vector: { value: embedding, property: 'embedding' },
+  where: { itemKey: 'ABCD1234' },
+});
+
+console.log(keyword.shards); // { total, candidates, loaded }
+```
+
+Search parameters are core's (`term`, `properties`, `exact`, `prefix`, `tolerance`, `threshold`, `boost`,
+`relevance`, `where`, `mode`, `vector`, `similarity`, `hybridWeights`, `includeVectors`, `limit`, `offset`,
+`preflight`). `facets`, `groupBy`, `distinctOn` and `sortBy` are not supported yet.
+
+## How queries avoid loading shards
+
+A small global layer stays in memory: corpus-wide BM25 statistics, a dictionary of every indexed term, and a
+summary per shard - a Bloom filter of its terms, the range of its number fields, the values of its enum and
+boolean fields, and a cone that bounds the direction of its vectors. A query skips every shard that:
+
+- cannot satisfy its `where` filter (a filter on the partition property usually leaves a single shard);
+- holds none of its terms, after prefix and typo expansion against the resident dictionary;
+- cannot reach the vector `similarity` threshold (exact flat vector indexes only).
+
+`vectorProbe: n` restricts a vector query to the `n` shards whose centroid is closest to the query vector. It
+is approximate and off by default.
+
+## Durability
+
+Every write is appended to a write-ahead log before it is applied. Compaction (every `compactEvery` records,
+on `compact()` and on `close()`) writes modified shards as new snapshots and then commits the global state in a
+single write. Reopening after a crash drops snapshots the state does not reference and replays the log. Ops that
+failed when they were written (the write threw for them) are skipped; if any other op cannot be replayed, opening
+fails and the log is kept, so an acknowledged write is never dropped. Number properties accept `Infinity` and
+`-Infinity` as core does, but refuse `NaN`, which core's number index cannot order.
+
+## Storage adapters
+
+| Adapter | Import | Environment |
+| --- | --- | --- |
+| `MemoryStorage` | `@zbsearch/sharded` | anywhere |
+| `IndexedDBStorage` | `@zbsearch/sharded` | browsers, workers, Gecko |
+| `FileSystemStorage` | `@zbsearch/sharded/node` | Node.js, Electron, Bun |
+| edge-core `ObjectStorage` (e.g. `S3ObjectStorage`) | `@zbsearch/storage-s3` | servers, edge |
+
+Any object implementing `get`, `put`, `delete` and `list(prefix)` works.
+
+## Performance
+
+`benchmarks/sharded.js` builds a passage corpus after the test setup of the issue that motivated the package
+(150-250 words per passage from a Zipf-distributed 40,000-word vocabulary, 384-dimension vectors, 80 passages
+per item) and reports memory and cold/warm latencies:
+
+```bash
+pnpm --filter zbsearch build && pnpm --filter @zbsearch/sharded build
+cd benchmarks
+node --expose-gc --max-old-space-size=3072 sharded.js --docs=200000 --dims=384 --budget=300
+```
+
+With 200,000 such passages, 1,000-passage shards and a 300 MB budget, the live heap stayed under 270 MB, a
+query filtered to one item took about 95 ms with its shard cold and about 1 ms warm, and a query matching
+documents in every shard took 15-17 s, because it streams all 201 shards through the budget. Keep the partition
+property in your filters when you can, or give the database a budget that holds the shards your queries touch.
+The package README lists every measured number.

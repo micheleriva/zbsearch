@@ -65,6 +65,24 @@ export type Tree =
   | TTree<'Flat', FlatTree>
   | TTree<'BKD', BKDTree>
 
+/**
+ * The distinct terms of the `string[]` values that are not in the documents store, so that they can be removed from
+ * the radix tree. Terms are kept once per property, in `terms`, and each document lists the IDs of its terms.
+ */
+export interface UnstoredTerms {
+  // Term ID -> term
+  terms: string[]
+  // Term -> term ID, rebuilt from `terms` on load
+  termIds: Map<string, number>
+  // Internal document ID -> the IDs of the document's distinct terms
+  docs: Record<InternalDocumentID, Uint32Array>
+}
+
+export type SerializedUnstoredTerms = {
+  terms: string[]
+  docs: Record<InternalDocumentID, number[]>
+}
+
 export interface Index extends AnyIndexStore {
   sharedInternalDocumentStore: InternalDocumentIDStore
   indexes: Record<string, Tree>
@@ -75,6 +93,56 @@ export interface Index extends AnyIndexStore {
   tokenOccurrences: Record<string, Record<string, number>>
   avgFieldLength: Record<string, number>
   fieldLengths: Record<string, Record<InternalDocumentID, number | undefined>>
+  // What `removeUnstored` needs to remove values that are not in the documents store (see StoreConfig):
+  // - number, number[], enum, enum[] and geopoint values are kept as they are, in `unstoredValues`;
+  // - the terms of string[] values are kept in `unstoredTerms`;
+  // - string values need nothing: `frequencies[prop][id]` already lists the terms of the document;
+  // - booleans and vectors need nothing: they are removed by document ID.
+  unstoredValues: Record<string, Record<InternalDocumentID, SearchableValue>>
+  unstoredTerms: Record<string, UnstoredTerms>
+}
+
+/**
+ * Corpus statistics that BM25 scoring reads in place of the ones derived from the index itself. A database that holds
+ * only a part of a larger corpus (one shard of a sharded index) scores its documents exactly as the whole corpus would
+ * when it is given the whole corpus' statistics: the number of documents, the average length of each field and the
+ * document frequency of each term.
+ */
+export interface CorpusStatistics {
+  /** Number of documents in the whole corpus. */
+  docsCount: number
+  /** Average field length (in tokens) of each string property across the whole corpus. */
+  avgFieldLength: Record<string, number | undefined>
+  /** Number of documents of the whole corpus that contain `term` in `prop`. */
+  documentFrequency(prop: string, term: string): number
+}
+
+// Keyed by the database's internal document ID store, which (unlike the index) survives load() and loadAsync().
+const corpusStatistics = new WeakMap<InternalDocumentIDStore, CorpusStatistics>()
+
+/**
+ * Makes BM25 scoring of `zbsearch` use `stats` instead of the database's own statistics; `undefined` restores them.
+ * Only the default index component honours it. The object is read at search time, so it can be updated in place.
+ */
+export function setCorpusStatistics<T extends AnyZBSearch>(zbsearch: T, stats: CorpusStatistics | undefined): void {
+  if (stats) {
+    corpusStatistics.set(zbsearch.internalDocumentIDStore, stats)
+  } else {
+    corpusStatistics.delete(zbsearch.internalDocumentIDStore)
+  }
+}
+
+export function getCorpusStatistics<T extends AnyZBSearch>(zbsearch: T): CorpusStatistics | undefined {
+  return corpusStatistics.get(zbsearch.internalDocumentIDStore)
+}
+
+function getIndexCorpusStatistics(index: Index): CorpusStatistics | undefined {
+  return index.sharedInternalDocumentStore ? corpusStatistics.get(index.sharedInternalDocumentStore) : undefined
+}
+
+function getAvgFieldLength(index: Index, prop: string): number {
+  const stats = getIndexCorpusStatistics(index)
+  return (stats ? stats.avgFieldLength[prop] : index.avgFieldLength[prop]) as number
 }
 
 export function insertDocumentScoreParameters(
@@ -145,11 +213,14 @@ export function removeDocumentScoreParameters(index: Index, prop: string, id: Do
   const internalId = getInternalDocumentId(index.sharedInternalDocumentStore, id)
   const fieldLength = index.fieldLengths[prop][internalId]
 
-  // A document without a stored field length never contributed to the average (or was already removed from it)
+  if (fieldLength === undefined) {
+    // A document without a stored field length never contributed to the average (or was already removed from it)
+    index.frequencies[prop][internalId] = undefined
+    return
+  }
+
   if (docsCount > 1) {
-    if (fieldLength !== undefined) {
-      index.avgFieldLength[prop] = (index.avgFieldLength[prop] * docsCount - fieldLength) / (docsCount - 1)
-    }
+    index.avgFieldLength[prop] = (index.avgFieldLength[prop] * docsCount - fieldLength) / (docsCount - 1)
   } else {
     index.avgFieldLength[prop] = undefined as unknown as number
   }
@@ -178,7 +249,9 @@ export function create<T extends AnyZBSearch, TSchema extends T['schema']>(
       frequencies: {},
       tokenOccurrences: {},
       avgFieldLength: {},
-      fieldLengths: {}
+      fieldLengths: {},
+      unstoredValues: {},
+      unstoredTerms: {}
     }
   }
 
@@ -304,19 +377,14 @@ export function insert(
     return insertVector(index, prop, value as number[] | Float32Array, id, internalId)
   }
 
+  const unstored = options?.unstored === true
+
   if (!isArrayType(schemaType)) {
-    return insertScalarValue(
-      implementation,
-      index,
-      prop,
-      id,
-      internalId,
-      value,
-      language,
-      tokenizer,
-      docsCount,
-      options
-    )
+    insertScalarValue(implementation, index, prop, id, internalId, value, language, tokenizer, docsCount, options)
+    if (unstored) {
+      keepUnstoredValue(index, prop, internalId, value)
+    }
+    return
   }
 
   const elements = value as Array<string | number | boolean>
@@ -328,6 +396,9 @@ export function insert(
   if (type === 'Radix') {
     const tokens = tokenizeArrayElements(elements, language, prop, tokenizer)
     insertRadixTokens(index, prop, node as RadixTree, id, internalId, tokens, docsCount)
+    if (unstored) {
+      keepUnstoredTerms(index, prop, internalId, new Set(tokens))
+    }
     return
   }
 
@@ -344,6 +415,110 @@ export function insert(
       docsCount,
       options
     )
+  }
+
+  if (unstored) {
+    keepUnstoredValue(index, prop, internalId, value)
+  }
+}
+
+// Keeps a value that is not in the documents store, when removing it from its tree needs it
+function keepUnstoredValue(index: Index, prop: string, internalId: InternalDocumentID, value: SearchableValue): void {
+  const type = index.indexes[prop].type
+  if (type === 'AVL' || type === 'Flat' || type === 'BKD') {
+    index.unstoredValues ??= {}
+    const values = (index.unstoredValues[prop] ??= {})
+    values[internalId] = value
+  }
+}
+
+function keepUnstoredTerms(index: Index, prop: string, internalId: InternalDocumentID, terms: Set<string>): void {
+  if (terms.size === 0) {
+    return
+  }
+
+  index.unstoredTerms ??= {}
+  const dictionary = (index.unstoredTerms[prop] ??= { terms: [], termIds: new Map(), docs: {} })
+  const ids = new Uint32Array(terms.size)
+  let i = 0
+  for (const term of terms) {
+    let termId = dictionary.termIds.get(term)
+    if (termId === undefined) {
+      termId = dictionary.terms.length
+      dictionary.terms.push(term)
+      dictionary.termIds.set(term, termId)
+    }
+    ids[i++] = termId
+  }
+  dictionary.docs[internalId] = ids
+}
+
+/**
+ * Removes a document from the index of `prop` when its value is not in the documents store, using what `insert`
+ * kept for it (see `Index.unstoredValues` and `Index.unstoredTerms`). Does nothing, and returns false, if the
+ * document has no value for the property.
+ */
+export function removeUnstored(
+  implementation: IIndex<Index>,
+  index: Index,
+  prop: string,
+  id: DocumentID,
+  internalId: InternalDocumentID,
+  schemaType: SearchableType,
+  language: string | undefined,
+  tokenizer: Tokenizer,
+  docsCount: number
+): boolean {
+  if (isVectorType(schemaType)) {
+    index.vectorIndexes[prop]?.node.remove(internalId)
+    return true
+  }
+
+  const tree = index.indexes[prop]
+  if (!tree) {
+    return false
+  }
+
+  switch (tree.type) {
+    case 'Bool': {
+      tree.node.true.delete(internalId)
+      tree.node.false.delete(internalId)
+      return true
+    }
+    case 'Radix': {
+      const frequencies = index.frequencies[prop]?.[internalId]
+      const dictionary = index.unstoredTerms?.[prop]
+      const termIds = dictionary?.docs[internalId]
+      if (!frequencies && !termIds) {
+        return false
+      }
+
+      const terms = new Set<string>(frequencies ? Object.keys(frequencies) : [])
+      if (termIds) {
+        for (let i = 0; i < termIds.length; i++) {
+          terms.add(dictionary!.terms[termIds[i]])
+        }
+        delete dictionary!.docs[internalId]
+      }
+
+      implementation.removeDocumentScoreParameters(index, prop, id, docsCount)
+      for (const term of terms) {
+        implementation.removeTokenScoreParameters(index, prop, term)
+        tree.node.removeDocumentByWord(term, internalId)
+      }
+      return true
+    }
+    default: {
+      const values = index.unstoredValues?.[prop]
+      const value = values?.[internalId]
+      if (value === undefined) {
+        return false
+      }
+
+      delete values![internalId]
+      remove(implementation, index, prop, id, internalId, value, schemaType, language, tokenizer, docsCount)
+      return true
+    }
   }
 }
 
@@ -506,7 +681,12 @@ export function calculateResultScores(
   whereFiltersIDs: Set<InternalDocumentID> | undefined,
   keywordMatchesMap?: Map<InternalDocumentID, Map<string, number>>
 ) {
-  const avgFieldLength = index.avgFieldLength[prop]
+  const stats = getIndexCorpusStatistics(index)
+  if (stats) {
+    docsCount = stats.docsCount
+  }
+
+  const avgFieldLength = getAvgFieldLength(index, prop)
   const fieldLengths = index.fieldLengths[prop]
   const zbsearchFrequencies = index.frequencies[prop]
   const termOccurrences = getTermDocumentFrequency(index, prop, term)
@@ -724,7 +904,7 @@ function scoreTermIds(
   whereFiltersIDs: Set<InternalDocumentID> | undefined,
   trackMatches = false
 ): void {
-  const avgFieldLength = index.avgFieldLength[prop]
+  const avgFieldLength = getAvgFieldLength(index, prop)
   const fieldLengths = index.fieldLengths[prop]
   const zbsearchFrequencies = index.frequencies[prop]
   const matchingCount = getTermDocumentFrequency(index, prop, term)
@@ -889,6 +1069,24 @@ export function prefixExpansionDemotion(tokenDf: number | undefined, wordDf: num
   return PREFIX_EXPANSION_SCORE_DEMOTION * Math.min(1, bm25Idf(tokenDf, docsCount) / wordIdf)
 }
 
+// Demotion of a prefix-expanded `word` of `token`: the document frequencies come from the corpus statistics when the
+// index has them, and from the radix search result (which holds the postings of each matched word) otherwise.
+function expansionDemotion(
+  stats: CorpusStatistics | undefined,
+  prop: string,
+  token: string,
+  word: string,
+  searchResult: FindResult,
+  docsCount: number
+): number {
+  if (stats) {
+    const tokenDf = stats.documentFrequency(prop, token)
+    return prefixExpansionDemotion(tokenDf > 0 ? tokenDf : undefined, stats.documentFrequency(prop, word), docsCount)
+  }
+
+  return prefixExpansionDemotion(searchResult[token]?.length, searchResult[word]!.length, docsCount)
+}
+
 function searchThresholdZero(
   index: Index,
   tokens: string[],
@@ -900,6 +1098,7 @@ function searchThresholdZero(
   docsCount: number,
   whereFiltersIDs: Set<InternalDocumentID> | undefined
 ): TokenScore[] {
+  const stats = getIndexCorpusStatistics(index)
   const candidateIds = new Set<InternalDocumentID>()
   const matchingProperties: string[] = []
   // The radix search results of each matching property, one per token
@@ -1001,9 +1200,7 @@ function searchThresholdZero(
           relevance,
           accumulator,
           boostPerProperty *
-            (word === token
-              ? 1
-              : prefixExpansionDemotion(searchResult[token]?.length, searchResult[word]!.length, docsCount)),
+            (word === token ? 1 : expansionDemotion(stats, prop, token, word, searchResult, docsCount)),
           candidateIds
         )
       }
@@ -1028,6 +1225,11 @@ export function search(
   threshold = 0,
   prefix = true
 ): TokenScore[] {
+  const stats = getIndexCorpusStatistics(index)
+  if (stats) {
+    docsCount = stats.docsCount
+  }
+
   const tokens = uniqueTokens(tokenizer.tokenize(term, language))
   const keywordsCount = tokens.length || 1
 
@@ -1104,7 +1306,7 @@ export function search(
           relevance,
           accumulator,
           boostPerProperty *
-            (word === token ? 1 : prefixExpansionDemotion(searchResult[token]?.length, ids!.length, docsCount)),
+            (word === token ? 1 : expansionDemotion(stats, prop, token, word, searchResult, docsCount)),
           whereFiltersIDs,
           trackKeywordMatches
         )
@@ -1181,6 +1383,11 @@ export function searchSuggestions(
   docsCount: number,
   whereFiltersIDs: Set<InternalDocumentID> | undefined
 ): Map<InternalDocumentID, SuggestionDocumentMatch> {
+  const stats = getIndexCorpusStatistics(index)
+  if (stats) {
+    docsCount = stats.docsCount
+  }
+
   const matches = new Map<InternalDocumentID, SuggestionDocumentMatch>()
   const tokenCount = queryTokens.length
 
@@ -1199,7 +1406,7 @@ export function searchSuggestions(
       throw createError('INVALID_BOOST_VALUE', boostPerProperty)
     }
 
-    const avgFieldLength = index.avgFieldLength[prop]
+    const avgFieldLength = getAvgFieldLength(index, prop)
     const fieldLengths = index.fieldLengths[prop]
     const frequencies = index.frequencies[prop]
 
@@ -1212,7 +1419,9 @@ export function searchSuggestions(
         tolerance
       })
       const words = Object.keys(searchResult)
-      const tokenDocumentFrequency = searchResult[token]?.length
+      const tokenDocumentFrequency = stats
+        ? stats.documentFrequency(prop, token) || undefined
+        : searchResult[token]?.length
 
       for (let j = 0; j < words.length; j++) {
         const word = words[j]
@@ -1231,7 +1440,13 @@ export function searchSuggestions(
 
         const wordBoost =
           boostPerProperty *
-          (word === token ? 1 : prefixExpansionDemotion(tokenDocumentFrequency, ids.length, docsCount))
+          (word === token
+            ? 1
+            : prefixExpansionDemotion(
+                tokenDocumentFrequency,
+                stats ? stats.documentFrequency(prop, word) : ids.length,
+                docsCount
+              ))
         const termOccurrences = getTermDocumentFrequency(index, prop, word)
 
         for (let k = 0; k < ids.length; k++) {
@@ -1486,7 +1701,7 @@ export function getSearchablePropertiesWithTypes(index: Index): Record<string, S
   return index.searchablePropertiesWithTypes
 }
 
-function deserializeIndexEntry(rawIndex: Index['indexes'][string]): Index['indexes'][string] {
+export function deserializeIndexEntry(rawIndex: Index['indexes'][string]): Index['indexes'][string] {
   const { node, type, isArray } = rawIndex
 
   switch (type) {
@@ -1520,6 +1735,7 @@ export function load<R = unknown>(
     avgFieldLength,
     fieldLengths
   } = raw as Index
+  const { unstoredValues, unstoredTerms } = deserializeUnstored(raw)
 
   const indexes: Index['indexes'] = {}
   const vectorIndexes: Index['vectorIndexes'] = {}
@@ -1545,7 +1761,9 @@ export function load<R = unknown>(
     frequencies,
     tokenOccurrences,
     avgFieldLength,
-    fieldLengths
+    fieldLengths,
+    unstoredValues,
+    unstoredTerms
   }
 }
 
@@ -1564,6 +1782,7 @@ export async function loadAsync<R = unknown>(
     avgFieldLength,
     fieldLengths
   } = raw as Index
+  const { unstoredValues, unstoredTerms } = deserializeUnstored(raw)
 
   const indexes: Index['indexes'] = {}
   const vectorIndexes: Index['vectorIndexes'] = {}
@@ -1602,7 +1821,9 @@ export async function loadAsync<R = unknown>(
     frequencies,
     tokenOccurrences,
     avgFieldLength,
-    fieldLengths
+    fieldLengths,
+    unstoredValues,
+    unstoredTerms
   }
 }
 
@@ -1615,7 +1836,9 @@ export function save<R = unknown>(index: Index): R {
     frequencies,
     tokenOccurrences: _tokenOccurrences,
     avgFieldLength,
-    fieldLengths
+    fieldLengths,
+    unstoredValues,
+    unstoredTerms
   } = index
 
   const dumpVectorIndexes: Record<string, unknown> = {}
@@ -1647,11 +1870,55 @@ export function save<R = unknown>(index: Index): R {
     frequencies,
     tokenOccurrences: {},
     avgFieldLength,
-    fieldLengths
+    fieldLengths,
+    unstoredValues: unstoredValues ?? {},
+    unstoredTerms: serializeUnstoredTerms(unstoredTerms ?? {})
   } as R
 }
 
+function serializeUnstoredTerms(unstoredTerms: Index['unstoredTerms']): Record<string, SerializedUnstoredTerms> {
+  const serialized: Record<string, SerializedUnstoredTerms> = {}
+  for (const prop of Object.keys(unstoredTerms)) {
+    const { terms, docs } = unstoredTerms[prop]
+    const serializedDocs: Record<InternalDocumentID, number[]> = {}
+    for (const internalId of Object.keys(docs)) {
+      serializedDocs[internalId] = Array.from(docs[internalId])
+    }
+    serialized[prop] = { terms, docs: serializedDocs }
+  }
+  return serialized
+}
+
+// Indexes saved before `store.exclude` existed have no unstored values
+function deserializeUnstored(raw: unknown): Pick<Index, 'unstoredValues' | 'unstoredTerms'> {
+  const { unstoredValues, unstoredTerms: rawUnstoredTerms } = raw as {
+    unstoredValues?: Index['unstoredValues']
+    unstoredTerms?: Record<string, SerializedUnstoredTerms>
+  }
+
+  const unstoredTerms: Index['unstoredTerms'] = {}
+  for (const prop of Object.keys(rawUnstoredTerms ?? {})) {
+    const { terms, docs: rawDocs } = rawUnstoredTerms![prop]
+    const termIds = new Map<string, number>()
+    for (let i = 0; i < terms.length; i++) {
+      termIds.set(terms[i], i)
+    }
+    const docs: Record<InternalDocumentID, Uint32Array> = {}
+    for (const internalId of Object.keys(rawDocs)) {
+      docs[internalId] = Uint32Array.from(rawDocs[internalId])
+    }
+    unstoredTerms[prop] = { terms, termIds, docs }
+  }
+
+  return { unstoredValues: unstoredValues ?? {}, unstoredTerms }
+}
+
 function getTermDocumentFrequency(index: Index, prop: string, term: string): number {
+  const stats = getIndexCorpusStatistics(index)
+  if (stats) {
+    return stats.documentFrequency(prop, term)
+  }
+
   const treeIndex = index.indexes[prop]
   if (treeIndex?.type === 'Radix') {
     return (treeIndex.node as RadixTree).getDocumentFrequency(term)
@@ -1666,6 +1933,7 @@ export function createIndex(): IIndex<Index> {
     create,
     insert,
     remove,
+    removeUnstored,
     insertDocumentScoreParameters,
     insertTokenScoreParameters,
     removeDocumentScoreParameters,

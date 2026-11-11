@@ -34,9 +34,21 @@ const db = await restoreFromStorage(storage, 'my-index')
 
 `persistToStorage(db, storage, key, { format })` and
 `restoreFromStorage(storage, key, { format })` accept the same formats as
-`persist` (`json` | `dpack` | `binary` | `seqproto`); the `format` used to
-restore must match the one used to persist. For IndexedDB, `binary` (raw
-msgpack, no hex doubling) or `json` are recommended.
+`persist` (`json` | `dpack` | `binary` | `seqproto` | `snapshot`); the `format`
+used to restore must match the one used to persist (a `binary` restore also
+recognizes `snapshot` payloads). For IndexedDB, `snapshot` is recommended.
+
+## Formats
+
+- `snapshot`: the core binary snapshot (`saveBinary` / `loadBinary` from
+  `zbsearch`). Smallest and fastest, checksummed, and the only format that scales
+  to very large indexes. `persistToFile(db, 'snapshot', path)` streams it to disk
+  segment by segment and `restoreFromFile('snapshot', path)` streams it back.
+- `binary`: msgpack bytes, returned as a `Uint8Array` (versions before 4.1
+  returned a hex string, which `restore` still accepts).
+- `json`, `dpack`: strings.
+- `seqproto`: an `ArrayBuffer` (format v3; v1 and v2 payloads still restore).
+  Limited to 4 GiB.
 
 # License
 

@@ -29,6 +29,7 @@ After [Michele's departure](https://www.micheleriva.dev/writings/my-last-day-at-
 - [BM25](https://zbsearch.dev/docs/zbsearch/search/bm25)
 - [Stemming and tokenization in 32 languages](https://zbsearch.dev/docs/zbsearch/text-analysis/stemming)
 - [Plugin System](https://zbsearch.dev/docs/zbsearch/plugins)
+- [Streaming binary snapshots](https://zbsearch.dev/docs/zbsearch/usage/serialization#the-binary-snapshot-format)
 
 # Installation
 
@@ -169,6 +170,24 @@ const db = create({
 **Vectors are not stored in the documents by default**: the vector index already holds them. With `includeVectors: true`, results rebuild them from the vector index, which holds normalized (unit-length) copies. Pass `store: { vectors: true }` to keep the original vectors in the documents, as 4.0.x did.
 
 On 10,000 synthetic passages with a 384-dimension embedding, the default drops the JSON snapshot from 206 MB to 130 MB and the heap from 175 MB to 150 MB; also excluding `text` brings them to 105 MB (-49%) and 138 MB (-22%). See the [docs](https://zbsearch.dev/docs/zbsearch/usage/create#indexed-but-not-stored-properties) for the trade-offs.
+
+## Saving large indexes
+
+`save` / `load` serialize to JSON-compatible objects. For large indexes (and anything with vectors), `saveBinary` streams a compact, checksummed binary snapshot as `Uint8Array` segments, and `loadBinary` restores it without blocking the thread:
+
+```js
+import { saveBinary, loadBinary } from 'zbsearch'
+import { createWriteStream, createReadStream } from 'node:fs'
+import { pipeline } from 'node:stream/promises'
+import { Readable } from 'node:stream'
+
+await pipeline(Readable.from(saveBinary(db)), createWriteStream('./index.zbsb'))
+
+const restored = create({ schema })
+await loadBinary(restored, createReadStream('./index.zbsb'))
+```
+
+Postings and term frequencies are delta/varint-encoded and vectors are raw `Float32Array` data: on 10,000 passages with 384-dimension vectors the snapshot is 3.6x smaller than the chunked JSON format. See the [docs](https://zbsearch.dev/docs/zbsearch/usage/serialization#the-binary-snapshot-format).
 
 # Vector and Hybrid Search Support
 

@@ -6,7 +6,7 @@
 //
 // Usage (build zbsearch first: pnpm --filter zbsearch build):
 //   node --expose-gc --max-old-space-size=3072 benchmarks/binary-snapshot.js [docs...] [--dims=384] [--no-json]
-//        [--out=/path/to/dir] [--segment=1048576]
+//        [--out=/path/to/dir] [--segment=1048576] [--store-vectors]
 //
 // --no-json skips the chunked JSON baseline (which needs the whole JSON in memory) for the largest sizes.
 
@@ -39,6 +39,7 @@ const DIMS = Number(flags.dims ?? 384)
 const SEGMENT = Number(flags.segment ?? 1024 * 1024)
 const OUT = flags.out ?? join(tmpdir(), 'zbsearch-binary-snapshot-bench')
 const RUN_JSON = !flags['no-json']
+const STORE_VECTORS = Boolean(flags['store-vectors'])
 const gc = globalThis.gc ?? (() => {})
 
 mkdirSync(OUT, { recursive: true })
@@ -150,7 +151,7 @@ const secs = (ms) => `${(ms / 1000).toFixed(2)} s`
 // includeVectors: true everywhere, because searches without it currently overwrite the vectors of the stored
 // documents they return with null.
 function probe(db) {
-  const query = Array.from(db.data.docs.docs[1].embedding)
+  const query = Array.from(db.data.index.vectorIndexes.embedding.node.getVector(1))
   return {
     count: count(db),
     text: search(db, { term: `${vocabulary[3]} ${vocabulary[50]}`, limit: 5, includeVectors: true }).hits.map(
@@ -173,7 +174,9 @@ function probe(db) {
 async function run(n) {
   console.log(`\n=== ${n.toLocaleString()} passages, ${DIMS}-dim vectors ===`)
   let t = performance.now()
-  const db = create({ schema })
+  // store.vectors: true keeps the vectors in the documents too (the only behaviour before indexed-but-not-stored
+  // fields), like the setup the issue was measured with.
+  const db = create({ schema, store: { vectors: STORE_VECTORS } })
   const BATCH = 1000
   for (let i = 0; i < n; i += BATCH) {
     const docs = []
@@ -182,7 +185,7 @@ async function run(n) {
   }
   console.log(`build: ${secs(performance.now() - t)}`)
   const expected = probe(db)
-  const result = { docs: n, dims: DIMS, segmentSize: SEGMENT }
+  const result = { docs: n, dims: DIMS, segmentSize: SEGMENT, storeVectors: STORE_VECTORS }
 
   if (RUN_JSON) {
     gc()
@@ -282,4 +285,5 @@ for (const n of sizes) {
   results.push(await run(n))
   gc()
 }
+console.log(`\nmax RSS of the process: ${fmt(process.resourceUsage().maxRSS * 1024)}`)
 console.log('\nJSON:', JSON.stringify(results, null, 2))

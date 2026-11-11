@@ -498,7 +498,7 @@ function printTable(runs) {
   for (const run of runs) {
     const s = run.search ?? {}
     console.log(
-      `| ${run.docs.toLocaleString('en-US')} | ${run.label} | ${run.status} | ${fmt(run.indexMs == null ? null : run.indexMs / 1000, 2)} | ${run.docsPerSecond?.toLocaleString('en-US') ?? '-'} | ${fmt(run.freezeMs == null ? null : run.freezeMs / 1000, 2)} | ${fmt(run.heapMB)} | ${fmt(run.rssMB)} | ${s.queries ?? '-'} | ${fmt(s.meanMs, 2)} | ${fmt(s.p50Ms, 2)} | ${fmt(s.p95Ms, 2)} | ${fmt(s.p99Ms, 2)} | ${s.qps == null ? '-' : Math.round(s.qps).toLocaleString('en-US')} |`
+      `| ${run.docs.toLocaleString('en-US')} | ${run.label} | ${run.status} | ${fmt(run.indexMs == null ? null : run.indexMs / 1000, 2)} | ${run.docsPerSecond?.toLocaleString('en-US') ?? '-'} | ${fmt(run.freezeMs == null ? null : run.freezeMs / 1000, 2)} | ${fmt(run.heapMB)} | ${fmt(run.rssMB)} | ${s.queries ?? '-'} | ${fmt(s.meanMs, 2)} | ${fmt(s.p50Ms, 2)} | ${fmt(s.p95Ms, 2)} | ${fmt(s.p99Ms, 2)} | ${s.qps == null ? '-' : s.qps < 10 ? s.qps.toFixed(1) : Math.round(s.qps).toLocaleString('en-US')} |`
     )
   }
   const failed = runs.filter((run) => run.error)

@@ -319,8 +319,9 @@ enforces the timeouts by killing it:
 - A child that exits on its own (an exception, or out of memory under `--max-old-space-size`) is `crashed`.
 
 Per engine × size it records indexing time and docs/s, freeze time (frozen only), heap (`heapUsed + arrayBuffers`
-after two full GCs, minus the baseline before the corpus was generated), RSS, search mean / p50 / p95 / p99 / max
-and QPS (1 / mean latency), the number of queries completed, the status, and the hit counts of the first 5 queries.
+after two full GCs, minus the baseline before the corpus was generated), RSS (which still includes memory the process
+has not returned to the OS, such as the generated corpus), search mean / p50 / p95 / p99 / max and QPS (1 / mean
+latency), the number of queries completed, the status, and the hit counts of the first 5 queries.
 Results go to `benchmark/results/large-index-engines.json` (written after every run, with the date, Node version,
 CPU, memory, engine versions, sizes and timeouts) and a markdown table is printed at the end. The docs page
 `/benchmarks/large-indexes` reads a copy of that file in `apps/docs/lib/benchmarks/results/large-index-engines.json`.

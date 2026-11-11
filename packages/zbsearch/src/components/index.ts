@@ -318,6 +318,29 @@ export function insert(
 
   const elements = value as Array<string | number | boolean>
   const elementsLength = elements.length
+
+  const tree = index.indexes[prop]
+  if (tree?.type === 'Radix') {
+    // A string[] value is one field of the document for scoring: its length is the total number of tokens across
+    // the elements, its term frequencies are accumulated across them, the average field length is updated once and
+    // the document is posted once per word.
+    if (elementsLength === 0) {
+      return
+    }
+
+    const tokens: string[] = []
+    for (let i = 0; i < elementsLength; i++) {
+      const elementTokens = tokenizer.tokenize(elements[i] as string, language, prop)
+      const elementTokensLength = elementTokens.length
+      for (let j = 0; j < elementTokensLength; j++) {
+        tokens.push(elementTokens[j]!)
+      }
+    }
+
+    insertRadixTokens(index, prop, tree.node, id, internalId, tokens, docsCount)
+    return
+  }
+
   for (let i = 0; i < elementsLength; i++) {
     insertScalarValue(
       implementation,
@@ -425,6 +448,28 @@ export function remove(
 
   const elements = value as Array<string | number | boolean>
   const elementsLength = elements.length
+
+  const tree = index.indexes[prop]
+  if (tree?.type === 'Radix') {
+    // Mirrors `insert`: the score parameters of a string[] value are those of a single field, so they are removed
+    // once, and then the document is removed from the postings of every word of every element.
+    if (elementsLength === 0) {
+      return true
+    }
+
+    implementation.removeDocumentScoreParameters(index, prop, id, docsCount)
+
+    for (let i = 0; i < elementsLength; i++) {
+      const tokens = tokenizer.tokenize(elements[i] as string, language, prop)
+      for (const token of tokens) {
+        implementation.removeTokenScoreParameters(index, prop, token)
+        tree.node.removeDocumentByWord(token, internalId)
+      }
+    }
+
+    return true
+  }
+
   for (let i = 0; i < elementsLength; i++) {
     removeScalar(
       implementation,

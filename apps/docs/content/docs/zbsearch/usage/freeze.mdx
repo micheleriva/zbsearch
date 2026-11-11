@@ -43,7 +43,7 @@ The database stays writable:
   field length, document frequency) are updated at once, exactly as for a mutable index.
 - The next `freeze(db)` merges the segments, the tail and the tombstones into one new segment per property.
 
-`freeze` takes time proportional to the size of the index (about 0.8 s for 20,000 passages and 8 s for
+`freeze` takes time proportional to the size of the index (about 0.8 s for 20,000 passages and 6 to 8 s for
 160,000 on the benchmark below) and blocks while it runs. Call it once a bulk load is done, or after
 [loading a snapshot](/docs/zbsearch/usage/serialization) of an unfrozen database.
 
@@ -76,12 +76,19 @@ before. Both versions are read.
 
 Synthetic passages (150-250 words from a Zipf-distributed 40,000-word vocabulary, string fields `text`, `section`,
 `title`, `itemKey`, numbers `page`, `year`, enum `collection`) with `store: { exclude: ["text"] }`, Node 22, 4
-vCPUs, measured with `benchmarks/large-index.js` and `benchmarks/memory-breakdown.js`:
+vCPUs, 200 queries of 1-3 words per mode, measured with `benchmarks/large-index.js` and
+`benchmarks/memory-breakdown.js`:
 
-| 20,000 passages | Mutable | Frozen |
+| 160,000 passages | 4.0.3 | Frozen |
 | --- | --- | --- |
-| Heap | 233.6 MB | 32.3 MB |
-| Search p50 / p95 | 9.8 / 19.7 ms | 4.9 / 7.4 ms |
-| Search with `tolerance: 1`, p50 / p95 | 18.7 / 37.8 ms | 7.2 / 11.7 ms |
-| Binary snapshot | 17.5 MB | 11.2 MB |
-| `loadBinary` | 1.10 s | 0.17 s |
+| Heap | 1,634 MB | 220 MB |
+| Search p50 / p95 | 110.6 / 212.5 ms | 8.2 / 16.5 ms |
+| Search with `tolerance: 1`, p50 / p95 | 205.0 / 411.3 ms | 19.1 / 36.0 ms |
+| Update p50 | 106.2 ms | 0.16 ms |
+| Binary snapshot (`saveBinary`) | 138.7 MB, 8.6 s | 80.0 MB, 0.86 s |
+| `loadBinary` | 10.9 s | 0.82 s |
+
+Most of the remaining heap is not the full-text index: of the 220 MB, the frozen segments take 62 MB, the sorter
+90 MB and the documents store 38 MB. The sorter keeps every sortable value (`string`, `number` and `boolean`
+properties) of every document; leave out the properties you never sort by with
+`sort: { unsortableProperties: [...] }`, or disable sorting with `sort: { enabled: false }`.

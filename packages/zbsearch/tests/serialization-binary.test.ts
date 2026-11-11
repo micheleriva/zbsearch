@@ -352,6 +352,105 @@ describe('binary snapshot round trip', () => {
     expect(normalized(restored)).toEqual(normalized(db))
   })
 
+  it('stores sort values explicitly when the saved documents do not have them', async () => {
+    class Getter {
+      constructor(
+        public id: string,
+        public title: string,
+        private readonly raw: number
+      ) {}
+      get rank() {
+        return this.raw
+      }
+    }
+    class Hidden {
+      declare rank: number
+      constructor(
+        public id: string,
+        public title: string,
+        rank: number
+      ) {
+        Object.defineProperty(this, 'rank', { value: rank, enumerable: false })
+      }
+    }
+    class Serialized {
+      constructor(
+        public id: string,
+        public title: string,
+        public rank: number
+      ) {}
+      toJSON() {
+        return { id: this.id, title: this.title }
+      }
+    }
+    class Excluded {
+      #raw: number
+      constructor(
+        public id: string,
+        public title: string,
+        public secret: string,
+        raw: number
+      ) {
+        this.#raw = raw
+      }
+      get rank() {
+        return this.#raw
+      }
+    }
+
+    const cases: [string, (id: string, title: string, rank: number) => object, object?][] = [
+      ['inherited getter', (id, title, rank) => new Getter(id, title, rank)],
+      ['non-enumerable property', (id, title, rank) => new Hidden(id, title, rank)],
+      ['toJSON without the value', (id, title, rank) => new Serialized(id, title, rank)],
+      [
+        'getter of a stored view',
+        (id, title, rank) => new Excluded(id, title, 'hidden', rank),
+        { store: { exclude: ['secret'] } }
+      ]
+    ]
+
+    for (const [label, make, options] of cases) {
+      const create_ = () => create({ schema: { title: 'string', rank: 'number' } as const, ...options })
+      const db = create_()
+      for (const [i, rank] of [5, 1, 4, 2].entries()) {
+        await insert(db, make(`d${i}`, `doc ${i}`, rank) as any)
+      }
+
+      for (const load of [loadBinarySync, loadBinary] as const) {
+        const restored = create_()
+        await load(restored, saveBinarySync(db))
+        expect(
+          (restored.data.sorting as any).sorts.rank.orderedDocs.map(([, v]: [number, number]) => v),
+          label
+        ).toEqual([1, 2, 4, 5])
+        await insert(restored, make('d4', 'doc 4', 3) as any)
+        const sorted = await search(restored, { term: 'doc', sortBy: { property: 'rank', order: 'ASC' } })
+        expect(
+          sorted.hits.map((hit) => hit.id),
+          label
+        ).toEqual(['d1', 'd3', 'd4', 'd2', 'd0'])
+      }
+    }
+
+    // Plain documents still reference their sort values
+    const plain = create({ schema: { title: 'string', rank: 'number' } as const })
+    await insertMultiple(
+      plain,
+      Array.from({ length: 200 }, (_, i) => ({ id: `p${i}`, title: `plain ${i}`, rank: 1_000_000.5 + i }))
+    )
+    // A documents store with its own save: the sorter cannot reference its documents
+    const documentsStore = createDocumentsStore()
+    const withoutRefs = create({
+      schema: { title: 'string', rank: 'number' } as const,
+      components: { documentsStore: { ...documentsStore, save: (store: any) => documentsStore.save(store) } as any }
+    })
+    await insertMultiple(
+      withoutRefs,
+      Array.from({ length: 200 }, (_, i) => ({ id: `p${i}`, title: `plain ${i}`, rank: 1_000_000.5 + i }))
+    )
+    expect(saveBinarySync(plain).byteLength).toBeLessThan(saveBinarySync(withoutRefs).byteLength)
+  })
+
   it('preserves unusual index content', () => {
     const db = populated(40)
     const index = db.data.index as any

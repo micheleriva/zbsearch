@@ -672,6 +672,27 @@ function sortValueFromDocument(doc: unknown, prop: string): unknown {
   return prop.includes('.') ? getNested(doc, prop) : (doc as Record<string, unknown>)[prop]
 }
 
+/**
+ * The value at `keys` that `doc` is known to have once its snapshot is loaded, or undefined. The snapshot keeps the
+ * own enumerable properties of plain objects, and what `toJSON` returns for the others: a value read through a
+ * getter, from a non-enumerable or inherited property, or from an object with a `toJSON` (class instances may have
+ * one, and so do the stored views of class documents, see `copyDocument`) is not known to be in the snapshot.
+ */
+function savedDocumentValue(doc: unknown, keys: string[]): unknown {
+  let value = doc
+  for (const key of keys) {
+    if (!isPlainContainer(value) || Array.isArray(value)) {
+      return undefined
+    }
+    const descriptor = Reflect.getOwnPropertyDescriptor(value, key)
+    if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor)) {
+      return undefined
+    }
+    value = descriptor.value
+  }
+  return value
+}
+
 function* writeBuiltinSorter(
   w: SnapshotWriter,
   sorter: Sorter,
@@ -714,6 +735,7 @@ function* writeBuiltinSorter(
   for (let p = 0; p < props.length; p++) {
     const prop = props[p]
     const { orderedDocs, docs: positions } = sorter.sorts[prop]
+    const keys = prop.split('.')
     let rec = w.begin(S_ORDERED)
     let previous = 0
 
@@ -722,7 +744,9 @@ function* writeBuiltinSorter(
       rec.svar(id - previous)
       previous = id
 
-      if (docs && value !== undefined && sortValueFromDocument(docs[id], prop) === value) {
+      // A reference to the document is only written for a value the loaded document has (see `savedDocumentValue`):
+      // it is read back from there (see `sortValueFromDocument`)
+      if (docs && value !== undefined && savedDocumentValue(docs[id], keys) === value) {
         rec.u8(0)
       } else {
         rec.u8(1)

@@ -167,9 +167,17 @@ describe('memory budget', () => {
   })
 })
 
-/** Storage that fails every put of `key` while armed: a crash at that point. */
+/** Storage that fails every put (`failOn`) or get (`failGet`) of matching keys while armed. */
 class FailingStorage extends MemoryStorage {
   failOn: ((key: string) => boolean) | undefined
+  failGet: ((key: string) => boolean) | undefined
+
+  async get(key: string): ReturnType<MemoryStorage['get']> {
+    if (this.failGet?.(key)) {
+      throw new Error(`simulated read failure of ${key}`)
+    }
+    return super.get(key)
+  }
 
   async put(key: string, body: Uint8Array): Promise<void> {
     if (this.failOn?.(key)) {
@@ -260,6 +268,30 @@ describe('write-ahead log and compaction', () => {
     const reopened = await openShardedDatabase({ storage, memoryBudget: 2_000_000 })
     await expectParity(reopened, single, queries())
     await expect(openShardedDatabase({ storage, schema: { other: 'string' } })).rejects.toThrow(/schema/)
+  })
+
+  it('fails to open, keeping the WAL, when a shard cannot be read while replaying it', async () => {
+    const storage = new FailingStorage()
+    const sharded = await openShardedDatabase({ schema: SCHEMA, storage, maxDocsPerShard: 50, compactEvery: 0 })
+    await sharded.insertMultiple(docs().slice(0, 120))
+    await sharded.compact()
+    await sharded.remove('p3')
+    await sharded.insert(structuredClone(EXTRA[0]))
+    const wal = [...storage.entries.keys()].filter((key) => key.startsWith('wal/'))
+    expect(wal.length).toBe(2)
+
+    // Crash, then the shard snapshots cannot be read while recovering.
+    storage.failGet = (key) => key.startsWith('shards/')
+    await expect(openShardedDatabase({ storage })).rejects.toThrow(/simulated read failure/)
+    expect([...storage.entries.keys()].filter((key) => key.startsWith('wal/'))).toEqual(wal)
+
+    storage.failGet = undefined
+    const recovered = await openShardedDatabase({ storage })
+    await recovered.compact()
+    const reopened = await openShardedDatabase({ storage })
+    expect(reopened.count()).toBe(120)
+    expect(await reopened.getByID('p3')).toBeUndefined()
+    expect(await reopened.getByID(EXTRA[0].id)).toMatchObject({ text: EXTRA[0].text })
   })
 
   it('a WAL record whose write failed replays to the same state', async () => {

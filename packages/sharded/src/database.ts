@@ -317,6 +317,13 @@ function shardedError(message: string): Error {
   return new Error(`[zbsearch-sharded] ${message}`)
 }
 
+/** Errors thrown while loading a shard (unreadable or corrupt snapshot), as opposed to errors of the write itself. */
+const loadFailures = new WeakSet<object>()
+
+function isLoadFailure(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && loadFailures.has(error)
+}
+
 /**
  * A ZBSearch database split into shards that are loaded on demand and evicted
  * under a memory budget. Full-text, vector and hybrid rankings are identical
@@ -632,7 +639,13 @@ export class ShardedDatabase {
     const shard = this.shards[ordinal]
     shard.lastUsed = ++this.clock
     if (!shard.db) {
-      await this.load(shard)
+      try {
+        await this.load(shard)
+      } catch (error) {
+        const failure = typeof error === 'object' && error !== null ? error : new Error(String(error))
+        loadFailures.add(failure)
+        throw failure
+      }
     }
     shard.pins++
     return shard
@@ -880,7 +893,9 @@ export class ShardedDatabase {
       const stored = await this.storage.get(key)
       if (!stored) continue
       const record = decodeJSON<WalRecord>(stored.body)
-      await this.applyOps(record.ops)
+      // A write that failed when it was made fails the same way here and is skipped, as it was
+      // then. A shard that cannot be read is not that: opening fails and the record stays in the log.
+      await this.applyOps(record.ops, true)
       this.walSeq = Math.max(this.walSeq, seq)
       this.walKeys.push(key)
       await this.makeRoom(0)
@@ -938,9 +953,10 @@ export class ShardedDatabase {
   /**
    * Applies every op, also after one fails (WAL replay does the same, so a
    * failed write leaves the same state live and after recovery). Returns the
-   * first error.
+   * first error. With `throwOnLoadFailure`, a shard that cannot be loaded
+   * throws at once instead.
    */
-  private async applyOps(ops: WalOp[]): Promise<unknown> {
+  private async applyOps(ops: WalOp[], throwOnLoadFailure = false): Promise<unknown> {
     let first: unknown
     for (const op of ops) {
       try {
@@ -950,6 +966,7 @@ export class ShardedDatabase {
           await this.applyRemove(op.id)
         }
       } catch (error) {
+        if (throwOnLoadFailure && isLoadFailure(error)) throw error
         first ??= error
       }
     }

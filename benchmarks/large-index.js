@@ -16,7 +16,7 @@
 //   pnpm --filter zbsearch build
 //   node --expose-gc --max-old-space-size=8192 benchmarks/large-index.js [--docs=160000] [--freeze]
 //        [--queries=200] [--dims=384] [--zbsearch=/path/to/zbsearch/dist/esm/index.js] [--json]
-import { createReadStream, createWriteStream, mkdirSync, rmSync, statSync } from 'node:fs'
+import { createReadStream, createWriteStream, mkdtempSync, rmSync, statSync } from 'node:fs'
 import { once } from 'node:events'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -70,6 +70,9 @@ async function withEventLoopMonitor(fn) {
   }, 1)
   try {
     await fn()
+    // Let the pending tick run, so a pause at the very end of `fn` is counted
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    longest = Math.max(longest, performance.now() - last)
   } finally {
     clearInterval(timer)
   }
@@ -163,7 +166,9 @@ function runQueries(target) {
       const start = performance.now()
       const r = zb.search(target, params(terms[i], i))
       samples.push(performance.now() - start)
-      if (i < 20) signature.push(r.count, ...r.hits.map((h) => `${h.id}:${h.score.toFixed(9)}`))
+      if (i < 20) {
+        signature.push(r.count, ...r.hits.map((h) => `${h.id}:${h.score.toFixed(9)}`), JSON.stringify(r.facets ?? null))
+      }
     }
     latency[mode] = percentiles(samples)
   }
@@ -178,9 +183,8 @@ for (const [mode, { p50, p95, max }] of Object.entries(searched.latency)) {
 }
 
 // Save and load
-const dir = join(tmpdir(), 'zbsearch-large-index-bench')
-mkdirSync(dir, { recursive: true })
-const file = join(dir, `snapshot-${process.pid}.zbsb`)
+const dir = mkdtempSync(join(tmpdir(), 'zbsearch-large-index-bench-'))
+const file = join(dir, 'snapshot.zbsb')
 let start = performance.now()
 const out = createWriteStream(file)
 for await (const segment of zb.saveBinary(db)) {
@@ -239,12 +243,12 @@ console.log(
 
 const loadBaseline = memory()
 const loaded = zb.create({ schema })
-start = performance.now()
-result.loadLongestBlockMs = await withEventLoopMonitor(() =>
-  zb.loadBinary(loaded, createReadStream(file, { highWaterMark: MB }))
-)
-result.loadBinaryMs = performance.now() - start
-rmSync(file)
+result.loadLongestBlockMs = await withEventLoopMonitor(async () => {
+  start = performance.now()
+  await zb.loadBinary(loaded, createReadStream(file, { highWaterMark: MB }))
+  result.loadBinaryMs = performance.now() - start
+})
+rmSync(dir, { recursive: true, force: true })
 result.loadedHeap = memory() - loadBaseline
 console.log(
   `loadBinary: ${(result.loadBinaryMs / 1000).toFixed(2)} s (longest event-loop block ${result.loadLongestBlockMs.toFixed(0)} ms), loaded database heap ${fmt(result.loadedHeap)}`

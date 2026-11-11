@@ -581,6 +581,10 @@ function findWithinTolerance(terms: string[], term: string, tolerance: number, o
 
   const width = termLength + 1
   let rows = levenshteinRows
+  if (width > rows.length) {
+    // Grow before the first row is filled: writes past the end of a typed array are silently dropped
+    rows = levenshteinRows = new Int32Array(Math.max(rows.length * 2, width * 8))
+  }
   for (let i = 0; i <= termLength; i++) {
     rows[i] = i
   }

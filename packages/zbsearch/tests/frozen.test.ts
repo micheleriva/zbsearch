@@ -464,3 +464,101 @@ describe('frozen segments', () => {
     expect(search(db, { term: 'hello' }).hits.map((h) => h.id)).toStrictEqual(['a'])
   })
 })
+
+describe('frozen segments: edge cases', () => {
+  it('matches no unrelated word with a fuzzy term longer than the Levenshtein buffer', () => {
+    const db = create({ schema: { text: 'string' } as const })
+    const reference = create({ schema: { text: 'string' } as const })
+    for (const target of [db, reference]) {
+      insertMultiple(target, [
+        { id: 'a', text: 'cat' },
+        { id: 'b', text: 'dog' }
+      ])
+    }
+    freeze(db)
+    // The first query grows the buffer: its first row must not be lost
+    for (const term of ['x'.repeat(1024) + 'cat', 'x'.repeat(50_000) + 'cat']) {
+      expect(search(db, { term, tolerance: 1 }).count).toBe(0)
+      expectParity(db, reference, { term, tolerance: 1 })
+    }
+    expect(search(db, { term: 'cot', tolerance: 1 }).hits.map((h) => h.id)).toStrictEqual(['a'])
+  })
+
+  it('round-trips binary snapshots of a segment without terms', () => {
+    const db = create({ schema: { text: 'string' } as const })
+    insertMultiple(db, [{ id: 'a', text: '' }])
+    freeze(db)
+    const [segment] = (db.data.index as Index).frozen!.text
+    expect(segment.terms.length).toBe(0)
+    expect(segment.docCount).toBe(1)
+
+    const loaded = create({ schema: { text: 'string' } as const })
+    loadBinarySync(loaded, saveBinarySync(db))
+    expect(frozenSegments(loaded)).toBe(1)
+    expect(search(loaded, { term: '' }).hits.map((h) => h.id)).toStrictEqual(['a'])
+    insertMultiple(loaded, [{ id: 'b', text: 'hello' }])
+    expect(search(loaded, { term: 'hello' }).hits.map((h) => h.id)).toStrictEqual(['b'])
+  })
+
+  it('round-trips binary snapshots whose last term fills a batch of terms', () => {
+    // With 1 KiB segments, a terms record is committed once it reaches 1024 bytes: its tag byte, then each term as a
+    // one-byte length and 10 letters, so 93 terms fill it exactly (and so do 186)
+    const word = (i: number) => {
+      let s = ''
+      for (let k = 0; k < 10; k++, i = Math.floor(i / 26)) s = String.fromCharCode(97 + (i % 26)) + s
+      return s
+    }
+    for (const count of [92, 93, 94, 186]) {
+      const db = create({ schema: { text: 'string' } as const })
+      const reference = create({ schema: { text: 'string' } as const })
+      const docs = Array.from({ length: count }, (_, i) => ({ id: `${i}`, text: word(i * 7919 + 12345) }))
+      insertMultiple(db, docs)
+      insertMultiple(reference, docs)
+      freeze(db)
+      expect((db.data.index as Index).frozen!.text[0].terms.length).toBe(count)
+
+      const loaded = create({ schema: { text: 'string' } as const })
+      loadBinarySync(loaded, saveBinarySync(db, { segmentSize: 1024 }))
+      expect((loaded.data.index as Index).frozen!.text[0].terms).toStrictEqual(
+        (db.data.index as Index).frozen!.text[0].terms
+      )
+      for (const term of [docs[0].text, docs[count - 1].text, word(12345).slice(0, 4)]) {
+        expectParity(loaded, reference, { term })
+      }
+    }
+  })
+
+  it('finds the mutable tail without scanning every document ever inserted', () => {
+    const db = create({ schema: { text: 'string' } as const })
+    const reference = create({ schema: { text: 'string' } as const })
+    const docs = Array.from({ length: 5000 }, (_, i) => ({ id: `${i}`, text: `common word${i % 50}` }))
+    for (const target of [db, reference]) insertMultiple(target, docs)
+    freeze(db)
+
+    const tail = [
+      { id: 'new1', text: 'common fresh' },
+      { id: 'new2', text: 'fresh tail' }
+    ]
+    for (const target of [db, reference]) {
+      insertMultiple(target, tail)
+      remove(target, 'new2')
+      remove(target, '7')
+    }
+
+    const index = db.data.index as Index
+    let reads = 0
+    index.frequencies.text = new Proxy(index.frequencies.text, {
+      get(target, key, receiver) {
+        reads++
+        return Reflect.get(target, key, receiver)
+      }
+    })
+    freeze(db)
+    // A scan of every document id would read `frequencies` 5000 times
+    expect(reads).toBeLessThan(50)
+    expect(frozenSegments(db)).toBe(1)
+    for (const term of ['common', 'fresh', 'tail', 'word7']) {
+      expectParity(db, reference, { term })
+    }
+  })
+})

@@ -19,6 +19,8 @@ const packages = [
   'edge-index-builder',
   'runtime-cloudflare',
   'storage-s3',
+  'static',
+  'sharded',
   'plugin-data-persistence',
   'plugin-parsedoc',
   'plugin-embeddings',

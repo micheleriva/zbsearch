@@ -15,6 +15,7 @@
     "benchmark:avl": "node avl.js",
     "benchmark:facets": "node facets.js",
     "benchmark:vector": "node vector.js",
+    "benchmark:sharded": "node --expose-gc --max-old-space-size=3072 sharded.js",
     "benchmark:vector-ivf": "node vector-ivf.js",
     "benchmark:vector-quantization": "node --expose-gc --max-old-space-size=3072 vector-quantization.js",
     "benchmark:bundle-size": "node bundle-size.js",

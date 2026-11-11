@@ -120,6 +120,41 @@ load. A database must keep the codec it was created with.
 database is opened. With a quantized vector index, scores are approximate and similarity-bound pruning is
 disabled; the exact flat index keeps vector results identical to a single instance.
 
+## Performance
+
+Measured with `benchmarks/sharded.js` (ZBSearch 4.0.2 workspace build, Node 22.23.4, a 4-vCPU machine shared with
+other jobs): 200,000 passages of 150-250 words from a Zipf-distributed 40,000-word vocabulary, 80 passages per
+item, random 384-dimension unit vectors; `partitionBy: 'itemKey'`, `packPartitions: true`,
+`maxDocsPerShard: 1000` (201 shards), `memoryBudget: 300 MB`, file system storage, binary codec. Memory figures
+are V8 heap after a forced GC, in a process that only opened the existing database and ran the queries.
+
+|                                            |                                                                                 |
+| ------------------------------------------ | ------------------------------------------------------------------------------- |
+| Build (insert 200k + compactions)          | 97 s, 2,070 docs/s                                                              |
+| On disk                                    | 901 MB (2,927 MB with `jsonShardCodec`)                                         |
+| Open (global state, 118k dictionary terms) | 0.4 s                                                                           |
+| Global layer, resident                     | 73 MB                                                                           |
+| Live heap, highest after any query         | 267 MB above the process baseline (budget 300 MB)                               |
+| Peak `heapUsed` before GC / peak RSS       | 608 MB / 904 MB; with `--max-old-space-size=400`: 383 MB / 580 MB, same results |
+
+| Query                                 | Shards loaded | Cold (median) | Warm (median)                   |
+| ------------------------------------- | ------------- | ------------- | ------------------------------- |
+| BM25, `where: { itemKey }`            | 1             | 95 ms         | 0.9 ms                          |
+| BM25, two terms, `where: { itemKey }` | 1             | 103 ms        | 0.9 ms                          |
+| vector, `where: { itemKey }`          | 1             | 92 ms         | 0.7 ms                          |
+| hybrid, `where: { itemKey }`          | 1             | 90 ms         | 1.1 ms                          |
+| BM25, rare term, whole corpus         | 74            | 6.3 s         | 6.2 s (does not fit the budget) |
+| BM25, common term, whole corpus       | 193 of 201    | 17 s          | -                               |
+| vector, whole corpus                  | 193 of 201    | 15 s          | -                               |
+| `upsert`, one document                | -             | 6 ms          | -                               |
+
+A cold query costs about 90-100 ms per shard it loads with the binary codec (190-330 ms with the JSON codec).
+Queries that match documents in more shards than the budget holds stream them all on every run: give such
+workloads a larger budget, smaller vectors (quantized indexes) or filters on the partition key. Rankings were
+compared with a single instance in the same benchmark at 20,000 passages (`--parity`): identical top 10 and
+counts for every full-text, vector and hybrid query; a 200,000-passage single instance does not fit in the
+benchmark's 3 GB heap.
+
 ## Ranking parity
 
 The test suite compares every result list against a single ZBSearch instance built from the same documents:

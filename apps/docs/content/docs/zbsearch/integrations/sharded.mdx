@@ -124,7 +124,8 @@ cd benchmarks
 node --expose-gc --max-old-space-size=3072 sharded.js --docs=200000 --dims=384 --budget=300
 ```
 
-A query whose filters leave one shard costs one shard load when cold and well under a millisecond when warm.
-A query that matches documents in every shard has to stream every shard through the budget, so its latency
-grows with the corpus: keep the partition property in your filters when you can, or give the database a budget
-that holds the shards your queries touch. See the package README for measured numbers.
+With 200,000 such passages, 1,000-passage shards and a 300 MB budget, the live heap stayed under 270 MB, a
+query filtered to one item took about 95 ms with its shard cold and about 1 ms warm, and a query matching
+documents in every shard took 15-17 s, because it streams all 201 shards through the budget. Keep the partition
+property in your filters when you can, or give the database a budget that holds the shards your queries touch.
+The package README lists every measured number.

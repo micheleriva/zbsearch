@@ -188,3 +188,20 @@ How to read it:
 - **multilingual ≫ english-default** on Russian and Arabic: the default English splitter discards non-Latin characters entirely, so recall collapses there. The runner prints a loud warning if multilingual ever scores *below* english-default on those two languages, which would indicate a tokenizer bug rather than a trade-off.
 - Diacritic folding covers Latin scripts plus Cyrillic `ё`->`е` and Arabic alef variants (`آ`/`أ`/`إ`/`ٱ`->`ا`, `ى`->`ي`), and folding runs *before* stemming so accented and unaccented surface forms of a word share a stem (e.g. Portuguese `pão`/`pao`). The residual Arabic gap vs per-language comes from the Arabic stemmer itself (weak on bare forms and verb prefixes), not from tokenization.
 
+## Sharded runtime database (`@zbsearch/sharded`)
+
+Memory under a budget and cold/warm query latency of a sharded database on a large passage corpus with
+vectors (issue #82). Builds the database into a directory, then reopens it and runs filtered and whole-corpus
+full-text, vector and hybrid queries.
+
+```sh
+pnpm --filter zbsearch build && pnpm --filter @zbsearch/sharded build
+cd benchmarks
+node --expose-gc --max-old-space-size=3072 sharded.js --docs=200000 --dims=384 --budget=300
+node --expose-gc --max-old-space-size=3072 sharded.js --docs=200000 --dims=384 --budget=300 --reuse  # clean-process memory
+node --expose-gc --max-old-space-size=3072 sharded.js --docs=20000 --dims=384 --budget=100 --parity  # top-10 vs a single instance
+```
+
+Options: `--docs`, `--dims`, `--budget` (MB), `--shard-docs`, `--samples`, `--dir`, `--reuse`, `--parity`,
+`--json=<file>`. Results are in `packages/sharded/README.md`.
+

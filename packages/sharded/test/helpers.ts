@@ -4,9 +4,9 @@ import { expect } from 'vitest'
 import type { ShardedDatabase, ShardedSearchParams } from '../src/index.js'
 import { SCHEMA, type Passage } from './corpus.js'
 
-export async function singleInstance(docs: Passage[]): Promise<AnyZBSearch> {
-  const db = create({ schema: SCHEMA }) as AnyZBSearch
-  // Cloned: core search nulls the vectors of the stored documents it returns.
+export async function singleInstance(docs: Passage[], options: Record<string, unknown> = {}): Promise<AnyZBSearch> {
+  const db = create({ schema: SCHEMA, ...options } as never) as AnyZBSearch
+  // Cloned: the single instance and the sharded database must not share document objects.
   await insertMultiple(db, structuredClone(docs) as never)
   return db
 }

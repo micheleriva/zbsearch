@@ -6,9 +6,12 @@ import type {
   BM25Params,
   ElapsedTime,
   HybridWeights,
+  IndexesConfig,
   Result,
+  StoreConfig,
   TokenScore
 } from 'zbsearch'
+import { VectorIndex } from 'zbsearch/trees/vector-flat'
 import { collectBytes, defaultShardCodec, type ShardCodec } from './codec.js'
 import { GlobalStatistics, type GlobalStatisticsJSON } from './statistics.js'
 import { MemoryStorage, type ShardStorage } from './storage.js'
@@ -39,7 +42,10 @@ export interface ShardCreateOptions {
   components?: Record<string, unknown>
   plugins?: unknown[]
   sort?: { enabled?: boolean; unsortableProperties?: string[] }
-  indexes?: Record<string, unknown>
+  /** Vector index per property, e.g. `{ embedding: flat({ quantization: 'int8' }) }`. */
+  indexes?: IndexesConfig
+  /** What the documents store keeps: `{ exclude: [...] }`, `{ vectors: true }`. */
+  store?: StoreConfig
 }
 
 export interface ShardedDatabaseOptions {
@@ -143,9 +149,14 @@ export interface ShardedDatabaseStats {
 
 interface IndexShape {
   indexes: Record<string, { type: string; node: { postings: Map<string, number[]> } }>
+  unstoredTerms?: Record<string, { terms: string[]; docs: Record<number, Iterable<number> | undefined> }>
   frequencies: Record<string, Record<number, Record<string, number> | undefined>>
   fieldLengths: Record<string, Record<number, number | undefined>>
   searchablePropertiesWithTypes: Record<string, string>
+}
+
+interface VectorNode {
+  getVector?(internalId: number): ArrayLike<number> | undefined
 }
 
 interface Shard {
@@ -199,7 +210,7 @@ interface Entry {
 
 interface PrefetchedDoc {
   id: string
-  doc: AnyDocument
+  doc: AnyDocument | undefined
 }
 
 const STATE_VERSION = 1
@@ -280,24 +291,6 @@ function normalizeVector(vector: ArrayLike<number>): Float64Array | undefined {
   return out
 }
 
-/** Copies `doc` with the vector properties set to null, as core does to search hits (without touching the stored document). */
-function withoutVectors(doc: AnyDocument, vectorProps: string[]): AnyDocument {
-  if (!doc || vectorProps.length === 0) return doc
-  const copy: Record<string, unknown> = { ...doc }
-  for (const prop of vectorProps) {
-    const path = prop.split('.')
-    const last = path.pop()!
-    let obj: Record<string, unknown> = copy
-    for (const key of path) {
-      const next = obj[key]
-      obj[key] = next && typeof next === 'object' ? { ...(next as object) } : {}
-      obj = obj[key] as Record<string, unknown>
-    }
-    obj[last] = null
-  }
-  return copy as AnyDocument
-}
-
 function shardedError(message: string): Error {
   return new Error(`[zbsearch-sharded] ${message}`)
 }
@@ -350,6 +343,8 @@ export class ShardedDatabase {
   private queue: Promise<unknown> = Promise.resolve()
   private closed = false
   private counters = { loads: 0, evictions: 0, flushes: 0, compactions: 0 }
+  /** How the current search returns vectors in its hits (core's includeVectors rules). */
+  private hitVectors: { include: boolean; props: string[] } = { include: false, props: [] }
 
   private constructor(options: ShardedDatabaseOptions, state: StateJSON | undefined) {
     this.storage = options.storage ?? new MemoryStorage()
@@ -677,6 +672,10 @@ export class ShardedDatabase {
     shard.bytes = estimate
   }
 
+  /**
+   * Rebuilds a tight summary of a loaded shard from its index structures, not
+   * from the stored documents: those may lack vectors and excluded fields.
+   */
   private rebuildSummary(shard: Shard): void {
     const db = shard.db!
     const index = db.data.index as unknown as IndexShape
@@ -692,21 +691,61 @@ export class ShardedDatabase {
       if (postings) summary.addTerms(prop, postings.keys())
     }
 
-    const props = [...this.valueProps, ...this.vectorProps]
-    const vectors: Record<string, ArrayLike<number>[]> = {}
-    for (const prop of this.vectorProps) vectors[prop] = []
-
-    const docs = db.documentsStore.getAll(db.data.docs) as Record<string, AnyDocument>
-    for (const doc of Object.values(docs)) {
-      if (!doc) continue
-      const values = db.getDocumentProperties(doc, props) as Record<string, unknown>
-      for (const prop of this.valueProps) summary.addValue(prop, this.fields[prop], values[prop])
-      for (const prop of this.vectorProps) {
-        const value = values[prop]
-        if (value) vectors[prop].push(value as ArrayLike<number>)
+    for (const prop of this.valueProps) {
+      const info = this.fields[prop]
+      const tree = index.indexes[prop] as unknown as { type: string; node: unknown } | undefined
+      if (!tree) continue
+      switch (tree.type) {
+        case 'Bool': {
+          const node = tree.node as { true: Set<number>; false: Set<number> }
+          if (node.true.size) summary.addValue(prop, info, true)
+          if (node.false.size) summary.addValue(prop, info, false)
+          break
+        }
+        case 'Flat': {
+          const node = tree.node as { numberToDocumentId: Map<string | number, Set<number>> }
+          for (const [value, ids] of node.numberToDocumentId) {
+            if (ids.size) summary.addValue(prop, { kind: info.kind, isArray: false }, value)
+          }
+          break
+        }
+        case 'AVL': {
+          type AvlNode = { k: number; v: Set<number>; l: AvlNode | null; r: AvlNode | null }
+          const visit = (node: AvlNode | null): void => {
+            if (!node) return
+            if (node.v.size) summary.addValue(prop, { kind: 'number', isArray: false }, node.k)
+            visit(node.l)
+            visit(node.r)
+          }
+          visit((tree.node as { root: AvlNode | null }).root)
+          break
+        }
       }
     }
-    for (const prop of this.vectorProps) summary.setVectors(prop, vectors[prop])
+
+    const ids = db.internalDocumentIDStore.internalIdToId
+    const docs = db.documentsStore.getAll(db.data.docs) as Record<number, AnyDocument | undefined>
+    for (const prop of this.vectorProps) {
+      const node = (db.data.index.vectorIndexes as Record<string, { node: VectorNode }>)[prop]?.node
+      const vectors: ArrayLike<number>[] = []
+      let complete = true
+      for (let local = 1; local <= ids.length; local++) {
+        if (!docs[local]) continue
+        const vector =
+          node?.getVector?.(local) ??
+          ((db.getDocumentProperties(docs[local]!, [prop]) as Record<string, unknown>)[prop] as
+            | ArrayLike<number>
+            | undefined)
+        if (vector) vectors.push(vector)
+        else if (!node?.getVector) complete = false
+      }
+      if (complete) {
+        summary.setVectors(prop, vectors)
+      } else if (shard.summary.vectors[prop]) {
+        // Vectors cannot be read back: keep the incremental cone.
+        summary.vectors[prop] = shard.summary.vectors[prop]
+      }
+    }
 
     shard.summary = summary
   }
@@ -1018,28 +1057,45 @@ export class ShardedDatabase {
 
       for (const prop of this.stringProps) {
         const value = values[prop]
-        if (value === undefined) continue
+        const isArray = this.fields[prop].isArray
+        const frequencies = index.frequencies[prop]?.[local]
 
-        let fieldLength = index.fieldLengths[prop][local]
-        const elements = this.fields[prop].isArray ? (value as string[]) : [value]
-        let terms: Iterable<string>
-        if (this.fields[prop].isArray) {
-          // Removing a document drops every posting it has, one per element holding the term (see applyInsert).
-          const posted: string[] = []
-          for (const element of value as string[]) {
-            posted.push(...new Set(db.tokenizer.tokenize(element, undefined, prop)))
+        if (value === undefined) {
+          // Indexed but not stored (store.exclude): core's removeUnstored updates the
+          // average once and drops every posting of the terms it kept for the document.
+          const termIds = index.unstoredTerms?.[prop]?.docs[local]
+          if (!frequencies && !termIds) continue
+          const terms = new Set<string>(frequencies ? Object.keys(frequencies) : [])
+          if (termIds) {
+            for (const termId of termIds) terms.add(index.unstoredTerms![prop].terms[termId])
           }
-          terms = posted
-        } else {
-          terms = Object.keys(index.frequencies[prop][local] ?? {})
+          stats.avgFieldLength[prop] =
+            n > 1
+              ? ((stats.avgFieldLength[prop] as number) * n - (index.fieldLengths[prop][local] as number)) / (n - 1)
+              : undefined
+          removedTerms.push([prop, isArray ? postedTerms(index, prop, local, terms) : terms])
+          continue
         }
 
+        // Mirrors core's remove(): one score-parameters update per element, the
+        // stored field length being cleared after the first.
+        let fieldLength = index.fieldLengths[prop][local]
+        const elements = isArray ? (value as string[]) : [value]
         for (let i = 0; i < elements.length; i++) {
           stats.avgFieldLength[prop] =
             n > 1 ? ((stats.avgFieldLength[prop] as number) * n - (fieldLength as number)) / (n - 1) : undefined
           fieldLength = undefined
         }
-        removedTerms.push([prop, terms])
+
+        if (isArray) {
+          const terms = new Set<string>()
+          for (const element of value as string[]) {
+            for (const token of db.tokenizer.tokenize(element, undefined, prop)) terms.add(token)
+          }
+          removedTerms.push([prop, postedTerms(index, prop, local, terms)])
+        } else {
+          removedTerms.push([prop, Object.keys(frequencies ?? {})])
+        }
       }
 
       await coreRemove(db, id)
@@ -1080,16 +1136,22 @@ export class ShardedDatabase {
     return entries
   }
 
+  /** Reads the hit documents of `entries` while their shard is loaded, with vectors set as core sets them. */
   private prefetch(shard: Shard, entries: Entry[], into: Map<string, PrefetchedDoc>): void {
     const db = shard.db!
     for (const entry of entries) {
       const key = `${entry.ordinal}:${entry.local}`
-      if (!into.has(key)) {
-        into.set(key, {
-          id: db.internalDocumentIDStore.internalIdToId[entry.local - 1],
-          doc: db.documentsStore.get(db.data.docs, entry.local) as AnyDocument
-        })
+      if (into.has(key)) continue
+      const id = db.internalDocumentIDStore.internalIdToId[entry.local - 1]
+      const doc = db.documentsStore.get(db.data.docs, entry.local) as AnyDocument | undefined
+      if (!doc) {
+        into.set(key, { id, doc: undefined })
+        continue
       }
+      // Rebuilds unstored vectors from the shard's vector index, or nulls them; never touches the stored document.
+      const hit = { id, score: 0, document: doc }
+      internals.setHitsVectors(db, [hit], this.hitVectors.include, this.hitVectors.props)
+      into.set(key, { id, doc: hit.document as AnyDocument })
     }
   }
 
@@ -1104,6 +1166,11 @@ export class ShardedDatabase {
     }
 
     const mode = params.mode ?? 'fulltext'
+    // Vector searches null only the queried property, full-text and hybrid ones every vector property (as core).
+    this.hitVectors = {
+      include: Boolean(params.includeVectors),
+      props: mode === 'vector' && params.vector ? [params.vector.property] : this.vectorProps
+    }
     const limit = params.limit ?? 10
     const offset = params.offset ?? 0
     const k = offset + limit
@@ -1186,12 +1253,20 @@ export class ShardedDatabase {
       query = normalizeVector(params.vector!.value)
       const similarity = params.similarity ?? DEFAULT_SIMILARITY
       const prop = params.vector!.property
+      // Similarity bounds are exact for the exact flat index only: quantized indexes score approximately.
+      const exactIndex = template.data.index.vectorIndexes[prop]?.node instanceof VectorIndex
+      const bound = (shard: Shard, q: Float64Array) =>
+        exactIndex
+          ? shard.summary.vectorUpperBound(prop, q)
+          : shard.summary.vectorUpperBound(prop, q) > -Infinity
+            ? 1
+            : -Infinity
       let allowed: Set<Shard> | undefined
       if (query && params.vectorProbe !== undefined) {
         const q = query
         allowed = new Set(
           candidates
-            .filter((shard) => shard.summary.vectorUpperBound(prop, q) >= similarity - VECTOR_BOUND_EPSILON)
+            .filter((shard) => bound(shard, q) >= similarity - VECTOR_BOUND_EPSILON)
             .sort((a, b) => b.summary.centroidSimilarity(prop, q) - a.summary.centroidSimilarity(prop, q))
             .slice(0, Math.max(1, params.vectorProbe))
         )
@@ -1199,7 +1274,7 @@ export class ShardedDatabase {
       vectorMay = (shard) =>
         query !== undefined &&
         (!allowed || allowed.has(shard)) &&
-        shard.summary.vectorUpperBound(prop, query) >= similarity - VECTOR_BOUND_EPSILON
+        bound(shard, query) >= similarity - VECTOR_BOUND_EPSILON
     }
 
     const plan = (zeroMode ? nonEmpty : candidates)
@@ -1230,7 +1305,8 @@ export class ShardedDatabase {
       where,
       threshold: fractional ? 1 : threshold
     }
-    const vectorParams = { vector: params.vector, similarity: params.similarity, where }
+    // Indexes that rescore a candidate set size it from limit + offset, as in a single instance.
+    const vectorParams = { vector: params.vector, similarity: params.similarity, where, limit, offset }
     const prefetched = new Map<string, PrefetchedDoc>()
 
     // fulltext / vector: running top-k (per threshold group) and counts.
@@ -1371,8 +1447,7 @@ export class ShardedDatabase {
     }
 
     const page = params.preflight ? [] : ranked.slice(offset, k)
-    const stripProps = mode === 'vector' ? [params.vector!.property] : this.vectorProps
-    const hits = await this.fetchHits(page, prefetched, params.includeVectors ? [] : stripProps)
+    const hits = await this.fetchHits(page, prefetched)
 
     return this.results(count, hits, start, loadsBefore, plan.length)
   }
@@ -1463,11 +1538,7 @@ export class ShardedDatabase {
     }))
   }
 
-  private async fetchHits(
-    page: Entry[],
-    prefetched: Map<string, PrefetchedDoc>,
-    stripProps: string[]
-  ): Promise<Result<AnyDocument>[]> {
+  private async fetchHits(page: Entry[], prefetched: Map<string, PrefetchedDoc>): Promise<Result<AnyDocument>[]> {
     const hits: Result<AnyDocument>[] = []
     for (const entry of page) {
       let found = prefetched.get(`${entry.ordinal}:${entry.local}`)
@@ -1481,7 +1552,7 @@ export class ShardedDatabase {
         }
       }
       if (found.doc) {
-        hits.push({ id: found.id, score: entry.score, document: withoutVectors(found.doc, stripProps) })
+        hits.push({ id: found.id, score: entry.score, document: found.doc })
       }
     }
     return hits
@@ -1509,7 +1580,8 @@ export class ShardedDatabase {
       }
     }
     const prefetched = new Map<string, PrefetchedDoc>()
-    const hits = await this.fetchHits(page, prefetched, params.includeVectors ? [] : this.vectorProps)
+    this.hitVectors = { include: Boolean(params.includeVectors), props: this.vectorProps }
+    const hits = await this.fetchHits(page, prefetched)
     return this.results(this.stats.docsCount, hits, start, loadsBefore, this.shards.length)
   }
 
@@ -1579,6 +1651,24 @@ function fullMatchIds(
   return full
 }
 
+/**
+ * Each term of `terms` once per posting of document `local` (a string[] value
+ * posts a term once per element holding it): removing the document lowers the
+ * term's document frequency by as much.
+ */
+function postedTerms(index: IndexShape, prop: string, local: number, terms: Iterable<string>): string[] {
+  const postings = index.indexes[prop]?.node.postings
+  const out: string[] = []
+  for (const term of terms) {
+    const list = postings?.get(term)
+    if (!list) continue
+    for (const id of list) {
+      if (id === local) out.push(term)
+    }
+  }
+  return out
+}
+
 function sum(values: Float64Array): number {
   let total = 0
   for (const value of values) total += value
@@ -1626,11 +1716,17 @@ function exactMatch(db: AnyZBSearch, local: number, props: string[], term: strin
     .trim()
     .split(/\s+/)
     .map((word) => new RegExp(`\\b${escapeRegex(word)}\\b`))
-  const values = db.getDocumentProperties(doc, props) as Record<string, unknown>
-  return props.some((prop) => {
-    const value = values[prop]
-    return typeof value === 'string' && regexes.every((regex) => regex.test(value))
-  })
+  // As core: properties excluded from the documents store cannot be checked, and keep the document.
+  const excluded = (db as { store?: { exclude: string[] } }).store?.exclude ?? []
+  const isExcluded = (prop: string) => excluded.some((path) => prop === path || prop.startsWith(`${path}.`))
+  const verifiable = props.filter((prop) => !isExcluded(prop))
+  const values = db.getDocumentProperties(doc, verifiable) as Record<string, unknown>
+  return (
+    verifiable.some((prop) => {
+      const value = values[prop]
+      return typeof value === 'string' && regexes.every((regex) => regex.test(value))
+    }) || verifiable.length < props.length
+  )
 }
 
 /** Core's threshold rule: every full match plus the best ceil(partials × threshold) partial matches, or everything when nothing fully matches. */

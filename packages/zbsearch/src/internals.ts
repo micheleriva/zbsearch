@@ -21,6 +21,7 @@ export {
 } from './components/index.js'
 export type { CorpusStatistics } from './components/index.js'
 export { innerVectorSearch } from './methods/search-vector.js'
+export { setHitsVectors } from './components/store.js'
 export {
   innerFullTextSearch,
   getPropertiesToSearch,

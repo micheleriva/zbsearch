@@ -1,15 +1,6 @@
-# 😈 ZBSearch
+# ZBSearch
 
 ZBSearch (_zee bee search_) is a zero-bs fork of Orama maintained by **the original Orama team**.
-
-- [Michele Riva](https://www.linkedin.com/in/micheleriva95/) (ex Co-Founder, CTO)
-- [Angela Angelini](https://www.linkedin.com/in/angeliningl/) (ex Co-Founder, CDO)
-- [Tommaso Allevi](https://www.linkedin.com/in/tommaso-allevi-a9979045/) (ex Sr. Engineer)
-- [Francesca Giannino](https://www.linkedin.com/in/francesca-giannino-293ba819/) (ex Sr. Engineer)
-- [Alberto Moretti](https://www.linkedin.com/in/alberto-moretti-95b23b1a9/) (ex Sr. Engineer)
-- [Aileen Villanueva Lecuona](https://www.linkedin.com/in/aileen-villanueva-31155666) (ex Sr. Engineer)
-- [Fausto Quaggia](https://www.linkedin.com/in/faustoquaggia/) (ex Eng. Manager)
-- [Davide Spaziani Testa](https://www.linkedin.com/in/davidespazianitesta) (ex Sr. Designer)
 
 After [Michele's departure](https://www.micheleriva.dev/writings/my-last-day-at-orama), the entire engineering team left Orama and reassembled to maintain this popular project with no external influence. No VC, no business incentives, no bs. Just open source software. Help us get 10.5k stars back!
 
@@ -30,6 +21,10 @@ After [Michele's departure](https://www.micheleriva.dev/writings/my-last-day-at-
 - [Stemming and tokenization in 32 languages](https://zbsearch.dev/docs/zbsearch/text-analysis/stemming)
 - [Plugin System](https://zbsearch.dev/docs/zbsearch/plugins)
 - [Streaming binary snapshots](https://zbsearch.dev/docs/zbsearch/usage/serialization#the-binary-snapshot-format)
+- [Vector Quantization (int8 / binary)](https://zbsearch.dev/docs/zbsearch/usage/create#vector-quantization)
+- [Product Quantization via WebAssembly](https://zbsearch.dev/docs/zbsearch/plugins/plugin-vector-quantizer)
+- [Indexed-but-not-stored fields](https://zbsearch.dev/docs/zbsearch/usage/create#indexed-but-not-stored-properties)
+- [Sharded, lazily-loaded databases](https://zbsearch.dev/docs/zbsearch/integrations/sharded)
 
 # Installation
 

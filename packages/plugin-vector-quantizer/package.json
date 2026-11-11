@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/plugin-vector-quantizer",
-  "version": "4.0.2",
+  "version": "4.0.3",
   "description": "Product quantization (PQ) for zbsearch vector indexes, powered by a WebAssembly build of vector_quantizer",
   "keywords": [
     "embeddings",

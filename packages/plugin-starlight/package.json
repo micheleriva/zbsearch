@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/plugin-starlight",
-  "version": "4.0.2",
+  "version": "4.0.3",
   "description": "Make ZBSearch the search engine of your Astro Starlight site",
   "keywords": [
     "astro",

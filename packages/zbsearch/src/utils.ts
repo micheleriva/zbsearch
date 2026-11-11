@@ -368,21 +368,31 @@ export function convertDistanceToMeters(distance: number, unit: GeosearchDistanc
   return distance * ratio
 }
 
+// Shallow clone that keeps the prototype and every own property (including non-enumerable ones and accessors),
+// so a hit document reads exactly like the stored one apart from the nulled vectors.
+function cloneKeepingShape<T extends object>(obj: T): T {
+  return Object.create(Object.getPrototypeOf(obj), Object.getOwnPropertyDescriptors(obj))
+}
+
 export function removeVectorsFromHits(searchResult: Results<AnyDocument>, vectorProperties: string[]): void {
+  if (vectorProperties.length === 0) {
+    return
+  }
+
   for (const result of searchResult.hits) {
     // `result.document` is the object held by the documents store, so it must not be mutated.
     // Copy the document, and every nested object along each vector property's path, before nulling.
     if (result.document == null) {
       continue
     }
-    const document: any = { ...result.document }
+    const document: any = cloneKeepingShape(result.document)
     for (const prop of vectorProperties) {
       const path = prop.split('.')
       const lastKey = path.pop()!
       let obj: any = document
       for (const key of path) {
         const next = obj[key]
-        obj[key] = next != null && typeof next === 'object' ? { ...next } : {}
+        obj[key] = next != null && typeof next === 'object' ? cloneKeepingShape(next) : {}
         obj = obj[key]
       }
       obj[lastKey] = null

@@ -51,3 +51,43 @@ describe('search with includeVectors: false', () => {
     expect(withVectors.hits[0].document.nested.w).toEqual([0, 1])
   })
 })
+
+describe('search hits keep the shape of stored documents', () => {
+  class Doc {
+    constructor(
+      public id: string,
+      private _title: string,
+      public v?: number[]
+    ) {}
+
+    get title() {
+      return this._title
+    }
+  }
+
+  it('returns the stored document untouched when the schema has no vectors', async () => {
+    const db = create({ schema: { title: 'string' } as const })
+    const doc = new Doc('a', 'hello')
+    await insert(db, doc as any)
+
+    const results = await search(db, { term: 'hello' })
+    expect(results.hits.length).toBe(1)
+    expect(results.hits[0].document).toBe(doc)
+    expect(results.hits[0].document.title).toBe('hello')
+  })
+
+  it('keeps inherited fields readable when nulling vectors', async () => {
+    const db = create({ schema: { title: 'string', v: 'vector[2]' } as const })
+    const doc = new Doc('a', 'hello', [1, 0])
+    await insert(db, doc as any)
+
+    const results = await search(db, { term: 'hello' })
+    expect(results.hits.length).toBe(1)
+    const hit = results.hits[0].document as any
+    expect(hit).not.toBe(doc)
+    expect(hit).toBeInstanceOf(Doc)
+    expect(hit.title).toBe('hello')
+    expect(hit.v).toBeNull()
+    expect(doc.v).toEqual([1, 0])
+  })
+})

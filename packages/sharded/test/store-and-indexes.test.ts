@@ -1,5 +1,5 @@
 import { insert, remove, search } from 'zbsearch'
-import { flat } from 'zbsearch/trees/vector-flat'
+import { flat, int8Quantizer, type VectorQuantizer, type VectorQuantizerFactory } from 'zbsearch/trees/vector-flat'
 import { describe, expect, it } from 'vitest'
 import { MemoryStorage, openShardedDatabase, type ShardCreateOptions, type ShardedSearchParams } from '../src/index.js'
 import { DIMS, SCHEMA, corpusWords, makeCorpus } from './corpus.js'
@@ -140,6 +140,33 @@ describe('vector index configuration', () => {
       expect(result.shards.candidates).toBe(reopened.getStats().shards)
       expect(result.hits[0].id).toBe(`p${i}`)
       expect(result.hits[0].score).toBeGreaterThan(0.95)
+    }
+  })
+
+  it('a quantizer without decode keeps the shard vector bounds through compaction', async () => {
+    // A custom quantizer that cannot reconstruct vectors: the index has getVector() but returns undefined.
+    const withoutDecode = (quantizer: VectorQuantizer): VectorQuantizer =>
+      Object.create(quantizer, { kind: { value: 'int8-no-decode' }, decode: { value: undefined } }) as VectorQuantizer
+    const noDecode: VectorQuantizerFactory = {
+      kind: 'int8-no-decode',
+      create: (dim) => withoutDecode(int8Quantizer.create(dim)),
+      fromSnapshot: (snapshot) => withoutDecode(int8Quantizer.fromSnapshot(snapshot))
+    }
+    const createOptions = { indexes: { embedding: flat({ quantization: noDecode }) } }
+    const storage = new MemoryStorage()
+    const sharded = await openShardedDatabase({ schema: SCHEMA, storage, partitionBy: 'collection', createOptions })
+    await sharded.insertMultiple(docs())
+    await sharded.compact()
+    const reopened = await openShardedDatabase({ storage, createOptions })
+
+    for (const i of [3, 120, 333]) {
+      const result = await reopened.search({
+        mode: 'vector',
+        vector: { value: DOCS[i].embedding, property: 'embedding' },
+        similarity: 0.5
+      })
+      expect(result.shards.candidates).toBeGreaterThan(0)
+      expect(result.hits[0]?.id).toBe(`p${i}`)
     }
   })
 })

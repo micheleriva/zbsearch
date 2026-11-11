@@ -789,13 +789,15 @@ export class ShardedDatabase {
           ((db.getDocumentProperties(docs[local]!, [prop]) as Record<string, unknown>)[prop] as
             | ArrayLike<number>
             | undefined)
+        // A document without a readable vector may have none, or may be held by an index that
+        // cannot give it back (a quantizer without decode): the cone cannot be rebuilt.
         if (vector) vectors.push(vector)
-        else if (!node?.getVector) complete = false
+        else complete = false
       }
       if (complete) {
         summary.setVectors(prop, vectors)
       } else if (shard.summary.vectors[prop]) {
-        // Vectors cannot be read back: keep the incremental cone.
+        // Keep the incremental cone, which covers every vector ever inserted into the shard.
         summary.vectors[prop] = shard.summary.vectors[prop]
       }
     }

@@ -40,9 +40,10 @@ import type {
   SuggestionQueryToken,
   Tokenizer,
   TokenScore,
+  TopKRequest,
   WhereCondition
 } from '../types.js'
-import { convertDistanceToMeters, setIntersection, yieldToEventLoop, uniqueTokens } from '../utils.js'
+import { convertDistanceToMeters, setIntersection, sortTokenScores, yieldToEventLoop, uniqueTokens } from '../utils.js'
 import { BM25 } from './algorithms.js'
 import { getInnerType, getVectorSize, isArrayType, isVectorType } from './defaults.js'
 import { levenshtein } from './levenshtein.js'
@@ -1233,6 +1234,90 @@ function sortByScoreDescending(results: TokenScore[]): TokenScore[] {
   return sorted
 }
 
+// Whether `a` ranks before `b`: higher score first, then lower internal id
+function ranksBefore(scores: Float64Array, a: InternalDocumentID, b: InternalDocumentID): boolean {
+  const sa = scores[a]
+  const sb = scores[b]
+  return sa > sb || (sa === sb && a < b)
+}
+
+// Below this many results, a top-k request is declined: sorting them all is as fast
+const TOP_K_MIN_RESULTS = 256
+
+// The `k` best accumulated results (see TopKRequest), without building and sorting a result for every document
+function selectTopK(accumulator: ScoreAccumulator, request: TopKRequest): TokenScore[] {
+  const { ids, scores } = accumulator
+  const n = ids.length
+  const k = request.k
+
+  if (n <= TOP_K_MIN_RESULTS || k * 2 >= n) {
+    // Few results, or most of them on the page: sorting them all costs no more than selecting the page, so the
+    // request is declined and the usual results returned
+    return sortByScoreDescending(getAccumulatedScores(accumulator))
+  }
+
+  request.selected = true
+  request.count = n
+
+  if (k <= 0) {
+    return []
+  }
+
+  for (let i = 0; i < n; i++) {
+    const score = scores[ids[i]]
+    if (score !== score) {
+      // NaN scores have no consistent order: the page is cut from the same sorts as without a request
+      return sortTokenScores(sortByScoreDescending(getAccumulatedScores(accumulator))).slice(0, k)
+    }
+  }
+
+  // Binary heap of the best `k` ids so far, the one ranking last at the root
+  const heap = new Int32Array(k)
+  let size = 0
+  for (let i = 0; i < n; i++) {
+    const id = ids[i]
+    if (size < k) {
+      // Sift up
+      let child = size++
+      while (child > 0) {
+        const parent = (child - 1) >> 1
+        if (!ranksBefore(scores, heap[parent], id)) {
+          break
+        }
+        heap[child] = heap[parent]
+        child = parent
+      }
+      heap[child] = id
+    } else if (ranksBefore(scores, id, heap[0])) {
+      // Replace the root and sift down
+      let parent = 0
+      for (;;) {
+        let child = 2 * parent + 1
+        if (child >= k) {
+          break
+        }
+        if (child + 1 < k && ranksBefore(scores, heap[child], heap[child + 1])) {
+          child++
+        }
+        if (!ranksBefore(scores, id, heap[child])) {
+          break
+        }
+        heap[parent] = heap[child]
+        parent = child
+      }
+      heap[parent] = id
+    }
+  }
+
+  const best = Array.from(heap)
+  best.sort((a, b) => (ranksBefore(scores, a, b) ? -1 : 1))
+  const results: TokenScore[] = new Array(k)
+  for (let i = 0; i < k; i++) {
+    results[i] = [best[i], scores[best[i]]]
+  }
+  return results
+}
+
 // Prefix-expanded words (the query token is a strict prefix of the indexed word) score at a demoted weight so that documents matching the full query token always outrank partial, prefix-only matches.
 const PREFIX_EXPANSION_SCORE_DEMOTION = 0.5
 
@@ -1282,7 +1367,8 @@ function searchThresholdZero(
   boost: Record<string, number>,
   relevance: Required<BM25Params>,
   docsCount: number,
-  whereFiltersIDs: Set<InternalDocumentID> | undefined
+  whereFiltersIDs: Set<InternalDocumentID> | undefined,
+  topK?: TopKRequest
 ): TokenScore[] {
   const stats = getIndexCorpusStatistics(index)
   const candidateIds = new Set<InternalDocumentID>()
@@ -1403,6 +1489,10 @@ function searchThresholdZero(
     }
   }
 
+  if (topK) {
+    return selectTopK(accumulator, topK)
+  }
+
   return sortByScoreDescending(getAccumulatedScores(accumulator))
 }
 
@@ -1419,7 +1509,8 @@ export function search(
   docsCount: number,
   whereFiltersIDs: Set<InternalDocumentID> | undefined,
   threshold = 0,
-  prefix = true
+  prefix = true,
+  topK?: TopKRequest
 ): TokenScore[] {
   const stats = getIndexCorpusStatistics(index)
   if (stats) {
@@ -1445,7 +1536,8 @@ export function search(
       boost,
       relevance,
       docsCount,
-      whereFiltersIDs
+      whereFiltersIDs,
+      topK
     )
   }
 
@@ -1515,6 +1607,11 @@ export function search(
     if (trackKeywordMatches) {
       markFullMatches(accumulator, keywordsCount)
     }
+  }
+
+  // Every result is returned: only the best ones are needed
+  if (topK && (threshold === 1 || (threshold === 0 && keywordsCount === 1))) {
+    return selectTopK(accumulator, topK)
   }
 
   // Convert to array and sort by score

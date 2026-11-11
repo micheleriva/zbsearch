@@ -262,15 +262,19 @@ Insert (`insertMultipleAsync`, `batchSize: 50`): 5,649 passages/s, longest event
 With `freeze(db)` after inserting (`--freeze`), the term frequencies, postings and radix trees of the four string
 properties become frozen segments (measured on the same machine and settings):
 
-| 160k passages            | 4.0.3              | frozen                                                               |
-| ------------------------ | ------------------ | -------------------------------------------------------------------- |
-| heap                     | 1,634.1 MB         | 220.4 MB (`text` segment 53.7 MB, sorter 90.4 MB, documents 37.6 MB) |
-| `freeze(db)`             | -                  | 5.8-7.8 s                                                            |
-| search p50 / p95         | 110.6 / 212.5 ms   | 47.1 / 69.6 ms                                                       |
-| `tolerance: 1` p50 / p95 | 205.0 / 411.3 ms   | 63.2 / 81.3 ms                                                       |
-| `where` p50 / p95        | 45.2 / 80.9 ms     | 22.2 / 30.8 ms                                                       |
-| facets p50 / p95         | 224.8 / 350.5 ms   | 160.2 / 205.2 ms                                                     |
-| `sortBy` p50 / p95       | 163.6 / 286.3 ms   | 76.7 / 113.5 ms                                                      |
-| remove p50               | 6.6 ms             | 0.01 ms                                                              |
-| `saveBinary`             | 138.7 MB, 8.6 s    | 80.0 MB, 0.83 s                                                      |
-| `loadBinary`             | 10.9 s, 1,552.5 MB | 0.78 s, 249.2 MB                                                     |
+| 160k passages            | 4.0.3              | frozen                                                               | frozen, top-k page selection |
+| ------------------------ | ------------------ | -------------------------------------------------------------------- | ---------------------------- |
+| heap                     | 1,634.1 MB         | 220.4 MB (`text` segment 53.7 MB, sorter 90.4 MB, documents 37.6 MB) | 219.9 MB                     |
+| `freeze(db)`             | -                  | 5.8-7.8 s                                                            | 8.2 s                        |
+| search p50 / p95         | 110.6 / 212.5 ms   | 47.1 / 69.6 ms                                                       | 8.2 / 17.3 ms                |
+| `tolerance: 1` p50 / p95 | 205.0 / 411.3 ms   | 63.2 / 81.3 ms                                                       | 17.3 / 32.5 ms               |
+| `where` p50 / p95        | 45.2 / 80.9 ms     | 22.2 / 30.8 ms                                                       | 19.3 / 28.2 ms               |
+| facets p50 / p95         | 224.8 / 350.5 ms   | 160.2 / 205.2 ms                                                     | 163.4 / 243.0 ms             |
+| `sortBy` p50 / p95       | 163.6 / 286.3 ms   | 76.7 / 113.5 ms                                                      | 92.7 / 150.5 ms              |
+| remove p50               | 6.6 ms             | 0.01 ms                                                              | 0.01 ms                      |
+| `saveBinary`             | 138.7 MB, 8.6 s    | 80.0 MB, 0.83 s                                                      | 80.0 MB, 1.00 s              |
+| `loadBinary`             | 10.9 s, 1,552.5 MB | 0.78 s, 249.2 MB                                                     | 0.89 s, 249.2 MB             |
+
+Top-k page selection: a search ranked by score alone (no `sortBy`, facets, `groupBy`, `distinctOn`, `exact` or
+matching pinning rule) keeps the best `offset + limit` results in a heap instead of sorting every match. Facets and
+`sortBy` still rank every match, so they only move with run-to-run noise.

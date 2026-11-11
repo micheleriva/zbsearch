@@ -522,6 +522,13 @@ async function parent() {
   const unknown = selected.filter((key) => !ENGINES.some((engine) => engine.key === key))
   if (unknown.length) throw new Error(`Unknown engines: ${unknown.join(', ')}`)
   const engines = ENGINES.filter((engine) => selected.includes(engine.key))
+  // zbsearch resolves to packages/zbsearch/dist, which can predate the checked-out branch: fail before any run
+  // starts instead of crashing every frozen run
+  if (selected.includes('zbsearch-bm25-frozen') && typeof (await import('zbsearch')).freeze !== 'function') {
+    throw new Error(
+      'The built zbsearch has no freeze(): rebuild it with `pnpm --filter zbsearch build` (packages/zbsearch/dist is stale)'
+    )
+  }
 
   const options = {
     indexTimeoutMs: parseDuration(args['index-timeout'], 10 * 60_000),

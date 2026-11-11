@@ -175,6 +175,86 @@ describe('vector quantization: memory', () => {
   })
 })
 
+describe('vector quantization: getVector', () => {
+  function cosine(a: ArrayLike<number>, b: ArrayLike<number>) {
+    let dot = 0
+    let na = 0
+    let nb = 0
+    for (let i = 0; i < a.length; i++) {
+      dot += a[i]! * b[i]!
+      na += a[i]! * a[i]!
+      nb += b[i]! * b[i]!
+    }
+    return dot / Math.sqrt(na * nb)
+  }
+
+  async function vectorOf(index: ReturnType<typeof flat>, docIndex: number) {
+    const db = makeDb(index)
+    await populate(db)
+    const internalId = db.internalDocumentIDStore.idToInternalId.get(String(docIndex))!
+    return {
+      node: vectorNode(db) as QuantizedVectorIndex,
+      vector: (vectorNode(db) as QuantizedVectorIndex).getVector(internalId)!
+    }
+  }
+
+  it('returns normalized, dequantized vectors', async () => {
+    const original = DATA.vectors[12]!
+
+    const int8 = await vectorOf(flat({ quantization: 'int8' }), 12)
+    expect(int8.vector.length).toBe(DIM)
+    expect(cosine(int8.vector, original)).toBeGreaterThan(0.999)
+    expect(cosine(int8.vector, int8.vector)).toBeCloseTo(1, 5)
+    let norm = 0
+    for (const value of int8.vector) norm += value * value
+    expect(norm).toBeCloseTo(1, 4)
+
+    const binary = await vectorOf(flat({ quantization: 'binary' }), 12)
+    for (let i = 0; i < DIM; i++) {
+      if (Math.abs(original[i]!) > 1e-6) expect(Math.sign(binary.vector[i]!)).toBe(Math.sign(original[i]!))
+    }
+
+    // With a full-precision rescoring copy the exact normalized vector comes back.
+    const kept = await vectorOf(flat({ quantization: 'binary', rescore: 'float32' }), 12)
+    expect(cosine(kept.vector, original)).toBeCloseTo(1, 6)
+
+    expect(int8.node.getVector(999_999)).toBeUndefined()
+  })
+
+  it('returns buffered vectors before training and undefined when the quantizer cannot decode', async () => {
+    const db = makeDb(flat({ quantization: centered }))
+    await insertMultiple(db, [{ id: 'p', name: 'p', group: 0, embedding: DATA.vectors[0]! }])
+    const node = vectorNode(db) as QuantizedVectorIndex
+    const id = db.internalDocumentIDStore.idToInternalId.get('p')!
+    expect(cosine(node.getVector(id)!, DATA.vectors[0]!)).toBeCloseTo(1, 6)
+
+    const noDecode: VectorQuantizerFactory = {
+      kind: 'no-decode',
+      create: (dim) => {
+        const inner = new Int8Quantizer(dim)
+        return {
+          kind: 'no-decode',
+          dim,
+          ready: true,
+          codeSize: inner.codeSize,
+          encode: inner.encode.bind(inner),
+          prepareQuery: inner.prepareQuery.bind(inner),
+          score: inner.score.bind(inner),
+          toSnapshot: () => ({ meta: { dim }, arrays: {} })
+        }
+      },
+      fromSnapshot: () => {
+        throw new Error('unused')
+      }
+    }
+    const other = makeDb(flat({ quantization: noDecode }))
+    await insertMultiple(other, [{ id: 'q', name: 'q', group: 0, embedding: DATA.vectors[0]! }])
+    const otherId = other.internalDocumentIDStore.idToInternalId.get('q')!
+    expect((vectorNode(other) as QuantizedVectorIndex).getVector(otherId)).toBeUndefined()
+    expect((await topK(other, DATA.vectors[0]!, 1))[0]).toBe('q')
+  })
+})
+
 describe('vector quantization: insert, remove, update', () => {
   for (const quantization of ['int8', 'binary'] as const) {
     it(`supports remove and update with ${quantization}`, async () => {

@@ -357,6 +357,33 @@ export class QuantizedVectorIndex implements VectorIndexLike {
     this.train()
   }
 
+  /**
+   * The normalized vector stored for a document, at the best precision available: the buffered float32 vector
+   * before training, else the rescoring copy when one is kept, else the decoded code. Returns `undefined` for
+   * unknown ids or quantizers that cannot decode. Used to rebuild vectors for `includeVectors`.
+   */
+  getVector(internalDocumentId: InternalDocumentID): Float32Array | undefined {
+    const pending = this.pending.get(internalDocumentId)
+    if (pending) {
+      return pending.slice()
+    }
+
+    const slot = this.idToSlot.get(internalDocumentId)
+    if (slot === undefined) {
+      return undefined
+    }
+
+    const lane = this.lanes[1] ?? this.lanes[0]!
+    if (!lane.quantizer.decode) {
+      return undefined
+    }
+
+    const vector = new Float32Array(this.size)
+    lane.quantizer.decode(lane.codes, slot * lane.stride, vector)
+    normalizeVector(vector, this.size)
+    return vector
+  }
+
   /** Returns every stored vector at the best precision available. */
   private collectVectors(): [InternalDocumentID, Float32Array][] {
     const out: [InternalDocumentID, Float32Array][] = Array.from(this.pending.entries())

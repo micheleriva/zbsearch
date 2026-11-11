@@ -217,7 +217,8 @@ export function invalid(reason: string) {
 // ---------------------------------------------------------------------------------------------------------------
 
 const textEncoder = new TextEncoder()
-const textDecoder = new TextDecoder()
+// `ignoreBOM`: a string may start with U+FEFF, which the default decoder would drop as a byte order mark
+const textDecoder = new TextDecoder('utf-8', { ignoreBOM: true })
 
 // A surrogate code unit that is not part of a pair. With the `u` flag, a well-formed pair is one astral code point
 // and only lone surrogates are in the Cs category.

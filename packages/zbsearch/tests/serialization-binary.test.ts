@@ -427,6 +427,25 @@ describe('binary snapshot strings', () => {
       })
     }
   })
+
+  it('keeps a leading U+FEFF in UTF-8 and UTF-16 strings', () => {
+    const values = ['﻿document-id', '﻿' + 'long '.repeat(10) + 'é', '﻿﻿twice-é', '﻿lone-\uD801', '﻿']
+    for (const value of values) {
+      const writer = new ByteWriter()
+      writer.str(value)
+      expect(new ByteReader(writer.bytes()).str(), JSON.stringify(value)).toBe(value)
+    }
+
+    const db = create({ schema: { title: 'string' } as const }) as unknown as DB
+    values.forEach((value) => insert(db as any, { id: value, title: value, [value]: value }))
+
+    const restored = empty()
+    loadBinarySync(restored as any, saveBinarySync(db as any))
+    expect(normalized(restored)).toEqual(normalized(db))
+    for (const value of values) {
+      expect(getByID(restored as any, value)).toEqual({ id: value, title: value, [value]: value })
+    }
+  })
 })
 
 describe('binary snapshot store settings', () => {

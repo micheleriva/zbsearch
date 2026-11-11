@@ -72,6 +72,8 @@ Fork PRs are supported: benchmarks run on `pull_request` (read-only token), and 
 | `npm run benchmark:vector-quantization` | Recall@10, memory, serialized size and latency for none / int8 / binary / PQ, flat vs IVF (see below) |
 | `npm run benchmark:memory` | Memory footprint |
 | `npm run benchmark:store-exclude` | Heap and snapshot size with indexed-but-not-stored fields (`store` option), on 10k synthetic passages (`--docs=N`, `--no-vectors`) |
+| `npm run benchmark:memory-breakdown` | Heap held by each structure of a text-only passage index (`store.exclude: ['text']`): radix nodes, postings, term frequencies, field lengths, sorter, filter trees, documents and id stores (`--docs=20000,160000`, `--zbsearch=<dist/esm/index.js>`) |
+| `npm run benchmark:large-index` | Heap, insert throughput and event-loop blocking, search p50/p95 (plain, `tolerance`, `where`, facets, `sortBy`, hybrid with `--dims`), update/remove latency and `saveBinary`/`loadBinary` of a large passage index (`--docs=160000`, `--zbsearch=<dist/esm/index.js>`) |
 | `npm run benchmark:binary-snapshot` | Binary snapshot (`saveBinary` / `loadBinary`) vs chunked JSON: size, save/load time, segment size and extra memory, on synthetic passages with 384-dim vectors (`node --expose-gc --max-old-space-size=3072 binary-snapshot.js 10000 50000 [--no-json] [--store-vectors]`) |
 | `npm run benchmark:responsiveness` | Main-thread blocking during sync vs async indexing and loading |
 | `npm run benchmark:bundle-size` | Serialized index size |
@@ -205,3 +207,52 @@ node --expose-gc --max-old-space-size=3072 sharded.js --docs=20000 --dims=384 --
 Options: `--docs`, `--dims`, `--budget` (MB), `--shard-docs`, `--samples`, `--dir`, `--reuse`, `--parity`,
 `--json=<file>`. Results are in `packages/sharded/README.md`.
 
+
+## Large full-text indexes (issue #87)
+
+Resident memory and latency of a large passage index: 150-250 word passages drawn from a Zipf-distributed 40k-word
+vocabulary (`src/passages-corpus.js`, the corpus of `store-exclude.js`), string fields `text` / `section` / `title`
+/ `itemKey`, numbers `page` / `year`, enum `collection`, with `store: { exclude: ['text'] }`.
+
+```sh
+pnpm --filter zbsearch build
+cd benchmarks
+node memory-breakdown.js --docs=20000,160000 --max-old-space-size=8192     # bytes per structure
+node --expose-gc --max-old-space-size=8192 large-index.js --docs=160000   # heap, latency, save/load
+# The same scripts against another build, e.g. a worktree of the base branch:
+node memory-breakdown.js --docs=20000 --zbsearch=../../base/packages/zbsearch/dist/esm/index.js
+```
+
+`memory-breakdown.js` builds the index, then drops its structures one at a time; the heap (plus array buffers)
+freed by each drop, after two full GCs, is what it held. `large-index.js` runs 200 queries of 1-3 Zipf-sampled
+words (so most queries contain a word that is in most passages) per search mode.
+
+Measured on zbsearch 4.0.3 (4 vCPU, Node 22.23.4, `--max-old-space-size=8192`):
+
+| Structure | 20k passages | 160k passages |
+|---|---|---|
+| `text` term frequencies (`{ term: frequency }` per document) | 131.0 MB | 1,046.1 MB |
+| `text` postings (one array per term) | 32.9 MB | 223.7 MB |
+| sorter | 11.3 MB | 90.4 MB |
+| `title` / `section` / `itemKey` term frequencies | 19.1 MB | 141.5 MB |
+| documents store | 4.7 MB | 37.6 MB |
+| radix tree nodes (all properties) | 23.4 MB | 36.6 MB |
+| `title` / `section` / `itemKey` postings | 6.3 MB | 27.3 MB |
+| internal id store | 1.5 MB | 12.0 MB |
+| number AVL trees (`page`, `year`) | 1.1 MB | 8.6 MB |
+| enum flat tree (`collection`) | 0.5 MB | 3.8 MB |
+| field lengths (4 properties) | 0.8 MB | 5.6 MB |
+| **Total** | **233.6 MB** | **1,634.1 MB** |
+
+| 160k passages, 4.0.3 | p50 | p95 |
+|---|---|---|
+| search | 110.6 ms | 212.5 ms |
+| search, `tolerance: 1` | 205.0 ms | 411.3 ms |
+| search, `where` | 45.2 ms | 80.9 ms |
+| search, facets | 224.8 ms | 350.5 ms |
+| search, `sortBy` | 163.6 ms | 286.3 ms |
+| update | 106.2 ms | 125.6 ms |
+| remove | 6.6 ms | 7.9 ms |
+
+Insert (`insertMultipleAsync`, `batchSize: 50`): 5,649 passages/s, longest event-loop block 429 ms.
+`saveBinary`: 138.7 MB in 8.6 s; `loadBinary`: 10.9 s, 1,552.5 MB of heap once loaded.

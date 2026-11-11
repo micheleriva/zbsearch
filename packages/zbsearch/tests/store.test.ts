@@ -366,6 +366,21 @@ describe('store.exclude', () => {
     remove(db, '1')
     expectIndexIsEmpty(db)
   })
+
+  it('refuses inferring an excluded searchable property with an index component that cannot remove it', () => {
+    const { removeUnstored: _, ...legacyIndex } = defaultIndex.createIndex()
+    const db = create({ store: { exclude: ['secret'] }, components: { index: legacyIndex as any } })
+    insert(db, { id: '1', title: 'one' })
+
+    expect(() => insert(db, { id: '2', title: 'two', extra: 'more', secret: 'hidden words' })).toThrow(
+      /cannot name the searchable property "secret"/
+    )
+    // Nothing of the rejected document was registered.
+    expect(db.index.getSearchableProperties(db.data.index)).toEqual(['title'])
+    expect(db.index.getSearchablePropertiesWithTypes(db.data.index)).toEqual({ title: 'string' })
+    expect(db.schema).toEqual({ title: 'string' })
+    expect(count(db)).toBe(1)
+  })
 })
 
 describe('vectors in the documents store', () => {

@@ -71,7 +71,7 @@ function zipfPicker(words: string[], random: () => number): () => string {
 
 export const COLLECTIONS = ['physics', 'biology', 'history', 'law', 'art']
 
-/** `tagsPerDoc` > 1 exercises core's per-element indexing of string[] values. */
+/** `tagsPerDoc` > 1 exercises core's scoring of a multi-element string[] value as one field. */
 export function makeCorpus(count: number, seed = 42, vocabSize = 800, tagsPerDoc = 2): Passage[] {
   const random = rng(seed)
   const words = vocabulary(vocabSize, random)

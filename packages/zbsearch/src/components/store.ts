@@ -2,6 +2,7 @@ import { createError } from '../errors.js'
 import type { AnyDocument, AnySchema, AnyZBSearch, Result, StoreConfig, StoreSettings } from '../types.js'
 import { isVectorType } from './defaults.js'
 import { getInternalDocumentId } from './internal-document-id-store.js'
+import { cloneWithValueAtPath } from '../utils.js'
 
 // The settings of a database that was not built by `create` (or that predates `store`): everything is stored.
 const LEGACY_STORE_SETTINGS: StoreSettings = { exclude: [], vectors: true }
@@ -226,30 +227,11 @@ function getAtPath(doc: AnyDocument, keys: string[]): unknown {
   return value
 }
 
-// Returns a copy of `doc` with `value` at `keys`, copying the objects on the way and creating the missing ones.
-function withValueAtPath(doc: AnyDocument, keys: string[], value: unknown): AnyDocument {
-  const root: AnyDocument = { ...doc }
-  let target = root
-
-  for (let i = 0; i < keys.length - 1; i++) {
-    const child = target[keys[i]]
-    if (child === undefined || child === null) {
-      target = target[keys[i]] = {}
-    } else if (isPlainObject(child)) {
-      target = target[keys[i]] = { ...child }
-    } else {
-      return doc
-    }
-  }
-
-  target[keys[keys.length - 1]] = value
-  return root
-}
-
 /**
  * Sets the vectors of the search hits: with `includeVectors`, the vectors that are not in the documents store are
  * rebuilt from the vector index (normalized, as the index holds them); otherwise the vector properties in
- * `vectorProperties` are set to `null`. The stored documents are never modified: hits that change get a copy.
+ * `vectorProperties` are set to `null`. The stored documents are never modified: hits that change get a copy that
+ * keeps the document's prototype and own properties (see `cloneWithValueAtPath`).
  */
 export function setHitsVectors<T extends AnyZBSearch>(
   zbsearch: T,
@@ -269,6 +251,9 @@ export function setHitsVectors<T extends AnyZBSearch>(
     const paths = properties.map((prop) => prop.split('.'))
     for (const hit of hits) {
       let doc = hit.document as AnyDocument
+      if (doc == null) {
+        continue
+      }
       let internalId: number | undefined
 
       for (let i = 0; i < properties.length; i++) {
@@ -279,7 +264,7 @@ export function setHitsVectors<T extends AnyZBSearch>(
         internalId ??= getInternalDocumentId(zbsearch.internalDocumentIDStore, hit.id)
         const vector = vectorIndexes[properties[i]].node.getVector?.(internalId)
         if (vector) {
-          doc = withValueAtPath(doc, paths[i], Array.from(vector))
+          doc = cloneWithValueAtPath(doc, paths[i], Array.from(vector))
         }
       }
 
@@ -295,8 +280,11 @@ export function setHitsVectors<T extends AnyZBSearch>(
   const paths = vectorProperties.map((prop) => prop.split('.'))
   for (const hit of hits) {
     let doc = hit.document as AnyDocument
+    if (doc == null) {
+      continue
+    }
     for (const keys of paths) {
-      doc = withValueAtPath(doc, keys, null)
+      doc = cloneWithValueAtPath(doc, keys, null)
     }
     hit.document = doc
   }

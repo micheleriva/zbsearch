@@ -262,6 +262,40 @@ describe('store.exclude', () => {
     expect(search(db, { term: 'red' }).count).toBe(1)
   })
 
+  it('scores excluded string[] values as one field, and removes them as if they were stored', async () => {
+    const stored = create({ schema: { tags: 'string[]' } as const })
+    const unstored = create({ schema: { tags: 'string[]' } as const, store: { exclude: ['tags'] } })
+
+    for (const db of [stored, unstored]) {
+      insert(db, { id: '1', tags: ['red apple', 'green apple', 'red'] })
+      insert(db, { id: '2', tags: ['red cherry', 'cherry'] })
+      insert(db, { id: '3', tags: [] })
+      insert(db, { id: '4', tags: ['apple'] })
+    }
+
+    const internalId = unstored.internalDocumentIDStore.idToInternalId.get('1')!
+    expect(indexOf(unstored).fieldLengths.tags[internalId]).toBe(5)
+    expect(indexOf(unstored).frequencies.tags[internalId]).toEqual({ red: 2, apple: 2, green: 1 })
+    expect(comparableIndex(unstored)).toEqual(comparableIndex(stored))
+    expect(search(unstored, { term: 'red apple' }).hits).toEqual(
+      search(stored, { term: 'red apple' }).hits.map((hit) => ({ ...hit, document: { id: hit.id } }))
+    )
+
+    for (const db of [stored, unstored]) {
+      update(db, '1', { id: '1', tags: ['apple pie', 'apple'] })
+      remove(db, '2')
+      remove(db, '3')
+    }
+    expect(comparableIndex(unstored)).toEqual(comparableIndex(stored))
+    expect(indexOf(unstored).avgFieldLength.tags).toBeCloseTo(2, 10)
+
+    for (const db of [stored, unstored]) {
+      removeMultiple(db, ['1', '4'])
+    }
+    expectIndexIsEmpty(unstored)
+    expect(comparableIndex(unstored)).toEqual(comparableIndex(stored))
+  })
+
   it('supports filters on excluded properties', () => {
     const db = createFullDb({ exclude: allSearchablePaths })
     insertMultiple(

@@ -211,16 +211,16 @@ export function insertRadixTokens(
 
 export function removeDocumentScoreParameters(index: Index, prop: string, id: DocumentID, docsCount: number): void {
   const internalId = getInternalDocumentId(index.sharedInternalDocumentStore, id)
+  const fieldLength = index.fieldLengths[prop][internalId]
 
-  if (index.fieldLengths[prop][internalId] === undefined) {
-    // Already removed: the elements of a string[] value share the score parameters of the document
+  if (fieldLength === undefined) {
+    // A document without a stored field length never contributed to the average (or was already removed from it)
     index.frequencies[prop][internalId] = undefined
     return
   }
 
   if (docsCount > 1) {
-    index.avgFieldLength[prop] =
-      (index.avgFieldLength[prop] * docsCount - index.fieldLengths[prop][internalId]!) / (docsCount - 1)
+    index.avgFieldLength[prop] = (index.avgFieldLength[prop] * docsCount - fieldLength) / (docsCount - 1)
   } else {
     index.avgFieldLength[prop] = undefined as unknown as number
   }
@@ -331,8 +331,7 @@ function insertScalarValue(
   language: string | undefined,
   tokenizer: Tokenizer,
   docsCount: number,
-  options?: InsertOptions,
-  terms?: Set<string>
+  options?: InsertOptions
 ): void {
   const { type, node } = index.indexes[prop]
   switch (type) {
@@ -348,11 +347,6 @@ function insertScalarValue(
     case 'Radix': {
       const tokens = tokenizer.tokenize(value as string, language, prop)
       insertRadixTokens(index, prop, node as RadixTree, id, internalId, tokens, docsCount)
-      if (terms) {
-        for (let i = 0; i < tokens.length; i++) {
-          terms.add(tokens[i])
-        }
-      }
       break
     }
     case 'Flat': {
@@ -393,9 +387,21 @@ export function insert(
     return
   }
 
-  const terms = unstored && index.indexes[prop].type === 'Radix' ? new Set<string>() : undefined
   const elements = value as Array<string | number | boolean>
   const elementsLength = elements.length
+
+  // A string[] value is one field of the document for scoring: its field length is the total number of tokens across
+  // all of its elements, the average field length is updated once, and the term frequencies add up across elements.
+  const { type, node } = index.indexes[prop]
+  if (type === 'Radix') {
+    const tokens = tokenizeArrayElements(elements, language, prop, tokenizer)
+    insertRadixTokens(index, prop, node as RadixTree, id, internalId, tokens, docsCount)
+    if (unstored) {
+      keepUnstoredTerms(index, prop, internalId, new Set(tokens))
+    }
+    return
+  }
+
   for (let i = 0; i < elementsLength; i++) {
     insertScalarValue(
       implementation,
@@ -407,14 +413,11 @@ export function insert(
       language,
       tokenizer,
       docsCount,
-      options,
-      terms
+      options
     )
   }
 
-  if (terms) {
-    keepUnstoredTerms(index, prop, internalId, terms)
-  } else if (unstored) {
+  if (unstored) {
     keepUnstoredValue(index, prop, internalId, value)
   }
 }
@@ -529,6 +532,42 @@ export function insertVector(
   index.vectorIndexes[prop].node.add(internalDocumentId, value)
 }
 
+function tokenizeArrayElements(
+  elements: Array<string | number | boolean>,
+  language: string | undefined,
+  prop: string,
+  tokenizer: Tokenizer
+): string[] {
+  const tokens: string[] = []
+  const elementsLength = elements.length
+  for (let i = 0; i < elementsLength; i++) {
+    const elementTokens = tokenizer.tokenize(elements[i] as string, language, prop)
+    const elementTokensLength = elementTokens.length
+    for (let j = 0; j < elementTokensLength; j++) {
+      tokens.push(elementTokens[j]!)
+    }
+  }
+  return tokens
+}
+
+function removeRadixTokens(
+  implementation: IIndex<Index>,
+  index: Index,
+  prop: string,
+  node: RadixTree,
+  id: DocumentID,
+  internalId: InternalDocumentID,
+  tokens: string[],
+  docsCount: number
+): void {
+  implementation.removeDocumentScoreParameters(index, prop, id, docsCount)
+
+  for (const token of tokens) {
+    implementation.removeTokenScoreParameters(index, prop, token)
+    node.removeDocumentByWord(token, internalId)
+  }
+}
+
 function removeScalar(
   implementation: IIndex<Index>,
   index: Index,
@@ -558,14 +597,7 @@ function removeScalar(
     }
     case 'Radix': {
       const tokens = tokenizer.tokenize(value as string, language, prop)
-
-      implementation.removeDocumentScoreParameters(index, prop, id, docsCount)
-
-      for (const token of tokens) {
-        implementation.removeTokenScoreParameters(index, prop, token)
-        node.removeDocumentByWord(token, internalId)
-      }
-
+      removeRadixTokens(implementation, index, prop, node as RadixTree, id, internalId, tokens, docsCount)
       return true
     }
     case 'Flat': {
@@ -610,6 +642,15 @@ export function remove(
 
   const elements = value as Array<string | number | boolean>
   const elementsLength = elements.length
+
+  // Mirrors `insert`: the score parameters of a string[] value are removed once, for the field as a whole
+  const { type, node } = index.indexes[prop]
+  if (type === 'Radix') {
+    const tokens = tokenizeArrayElements(elements, language, prop, tokenizer)
+    removeRadixTokens(implementation, index, prop, node as RadixTree, id, internalId, tokens, docsCount)
+    return true
+  }
+
   for (let i = 0; i < elementsLength; i++) {
     removeScalar(
       implementation,

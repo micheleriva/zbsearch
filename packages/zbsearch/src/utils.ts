@@ -368,6 +368,28 @@ export function convertDistanceToMeters(distance: number, unit: GeosearchDistanc
   return distance * ratio
 }
 
+// Shallow clone of `obj` that keeps its prototype and every own property (including non-enumerable ones and
+// accessors), except `key`, which becomes a plain writable data property holding `value`. Defining `key` up front,
+// instead of assigning it on the clone, never invokes a copied setter (which could write to state shared with the
+// stored document) and works when the original property is read-only or getter-only.
+export function cloneWithDataProperty(obj: object, key: string, value: unknown): any {
+  const descriptors = Object.getOwnPropertyDescriptors(obj)
+  descriptors[key] = { value, writable: true, enumerable: descriptors[key]?.enumerable ?? true, configurable: true }
+  return Object.create(Object.getPrototypeOf(obj), descriptors)
+}
+
+// Returns a copy of `obj` with the value at `path` set to `value`, copying every object along the path.
+// `obj` itself, and the nested objects it references, are left untouched.
+export function cloneWithValueAtPath(obj: object, path: string[], value: unknown): any {
+  const [key, ...rest] = path
+  if (rest.length === 0) {
+    return cloneWithDataProperty(obj, key, value)
+  }
+  const next = (obj as any)[key]
+  const child = next != null && typeof next === 'object' ? next : {}
+  return cloneWithDataProperty(obj, key, cloneWithValueAtPath(child, rest, value))
+}
+
 export function isPromise(obj: any): obj is Promise<unknown> {
   return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function'
 }

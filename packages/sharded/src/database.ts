@@ -1065,23 +1065,11 @@ export class ShardedDatabase {
         const value = values[prop]
         if (value === undefined) continue
 
-        let terms: Iterable<string>
-        if (this.fields[prop].isArray) {
-          // Core indexes each element on its own: the average is updated once
-          // per element, and a term found in several elements is posted (and
-          // so counted in the document frequency) once per element.
-          const posted: string[] = []
-          for (const element of value as string[]) {
-            const tokens = db.tokenizer.tokenize(element, undefined, prop)
-            stats.avgFieldLength[prop] = ((stats.avgFieldLength[prop] ?? 0) * (n - 1) + tokens.length) / n
-            posted.push(...new Set(tokens))
-          }
-          terms = posted
-        } else {
-          const length = index.fieldLengths[prop][local]!
-          stats.avgFieldLength[prop] = ((stats.avgFieldLength[prop] ?? 0) * (n - 1) + length) / n
-          terms = Object.keys(index.frequencies[prop][local] ?? {})
-        }
+        // A string[] value is one field for scoring, as in core: its length is the total number of tokens across
+        // its elements and each of its terms is posted once, so both are read from the index as for a string.
+        const length = index.fieldLengths[prop][local]!
+        stats.avgFieldLength[prop] = ((stats.avgFieldLength[prop] ?? 0) * (n - 1) + length) / n
+        const terms = Object.keys(index.frequencies[prop][local] ?? {})
 
         stats.addTerms(prop, terms)
         shard.summary.addTerms(prop, terms)
@@ -1112,8 +1100,8 @@ export class ShardedDatabase {
         throw shardedError(`document "${id}" is missing from shard ${shard.ordinal}`)
       }
 
-      // Mirrors core's removeDocumentScoreParameters with the corpus-wide count,
-      // including its per-element updates of array properties.
+      // Mirrors core's removeDocumentScoreParameters with the corpus-wide count:
+      // a string[] value is one field, so the average is updated once per document.
       const stats = this.stats
       const n = stats.docsCount
       const index = db.data.index as unknown as IndexShape
@@ -1122,43 +1110,25 @@ export class ShardedDatabase {
 
       for (const prop of this.stringProps) {
         const value = values[prop]
-        const isArray = this.fields[prop].isArray
         const frequencies = index.frequencies[prop]?.[local]
+        const terms = new Set<string>(frequencies ? Object.keys(frequencies) : [])
 
         if (value === undefined) {
-          // Indexed but not stored (store.exclude): core's removeUnstored updates the
-          // average once and drops every posting of the terms it kept for the document.
+          // Indexed but not stored (store.exclude): core's removeUnstored drops every
+          // posting of the terms it kept for the document.
           const termIds = index.unstoredTerms?.[prop]?.docs[local]
           if (!frequencies && !termIds) continue
-          const terms = new Set<string>(frequencies ? Object.keys(frequencies) : [])
           if (termIds) {
             for (const termId of termIds) terms.add(index.unstoredTerms![prop].terms[termId])
           }
-          stats.avgFieldLength[prop] =
-            n > 1
-              ? ((stats.avgFieldLength[prop] as number) * n - (index.fieldLengths[prop][local] as number)) / (n - 1)
-              : undefined
-          removedTerms.push([prop, isArray ? postedTerms(index, prop, local, terms) : terms])
-          continue
         }
 
-        // Mirrors core's removeDocumentScoreParameters: the elements of a string[]
-        // value share the document's score parameters, so the average is updated once.
         const fieldLength = index.fieldLengths[prop][local]
         if (fieldLength !== undefined) {
           stats.avgFieldLength[prop] =
             n > 1 ? ((stats.avgFieldLength[prop] as number) * n - fieldLength) / (n - 1) : undefined
         }
-
-        if (isArray) {
-          const terms = new Set<string>()
-          for (const element of value as string[]) {
-            for (const token of db.tokenizer.tokenize(element, undefined, prop)) terms.add(token)
-          }
-          removedTerms.push([prop, postedTerms(index, prop, local, terms)])
-        } else {
-          removedTerms.push([prop, Object.keys(frequencies ?? {})])
-        }
+        removedTerms.push([prop, terms])
       }
 
       await coreRemove(db, id)
@@ -1712,24 +1682,6 @@ function fullMatchIds(
     }
   }
   return full
-}
-
-/**
- * Each term of `terms` once per posting of document `local` (a string[] value
- * posts a term once per element holding it): removing the document lowers the
- * term's document frequency by as much.
- */
-function postedTerms(index: IndexShape, prop: string, local: number, terms: Iterable<string>): string[] {
-  const postings = index.indexes[prop]?.node.postings
-  const out: string[] = []
-  for (const term of terms) {
-    const list = postings?.get(term)
-    if (!list) continue
-    for (const id of list) {
-      if (id === local) out.push(term)
-    }
-  }
-  return out
 }
 
 function sum(values: Float64Array): number {

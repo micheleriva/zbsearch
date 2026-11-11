@@ -114,18 +114,18 @@ const results = search(db, {
 
 ZBSearch currently supports 10 different data types:
 
-| Type             | Description                                                                 | Example                                                                     |
-| ---------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `string`         | A string of characters.                                                     | `'Hello world'`                                                             |
-| `number`         | A numeric value, either float or integer.                                   | `42`                                                                        |
-| `boolean`        | A boolean value.                                                            | `true`                                                                      |
-| `enum`           | An enum value.                                                              | `'drama'`                                                                   |
-| `geopoint`       | A geopoint value.                                                           | `{ lat: 40.7128, lon: 74.0060 }`                                            |
-| `string[]`       | An array of strings.                                                        | `['red', 'green', 'blue']`                                                  |
-| `number[]`       | An array of numbers.                                                        | `[42, 91, 28.5]`                                                            |
-| `boolean[]`      | An array of booleans.                                                       | `[true, false, false]`                                                      |
-| `enum[]`         | An array of enums.                                                          | `['comedy', 'action', 'romance']`                                           |
-| `vector[<size>]` | A vector of numbers to perform vector search on.                            | `[0.403, 0.192, 0.830]`                                                     |
+| Type             | Description                                      | Example                           |
+| ---------------- | ------------------------------------------------ | --------------------------------- |
+| `string`         | A string of characters.                          | `'Hello world'`                   |
+| `number`         | A numeric value, either float or integer.        | `42`                              |
+| `boolean`        | A boolean value.                                 | `true`                            |
+| `enum`           | An enum value.                                   | `'drama'`                         |
+| `geopoint`       | A geopoint value.                                | `{ lat: 40.7128, lon: 74.0060 }`  |
+| `string[]`       | An array of strings.                             | `['red', 'green', 'blue']`        |
+| `number[]`       | An array of numbers.                             | `[42, 91, 28.5]`                  |
+| `boolean[]`      | An array of booleans.                            | `[true, false, false]`            |
+| `enum[]`         | An array of enums.                               | `['comedy', 'action', 'romance']` |
+| `vector[<size>]` | A vector of numbers to perform vector search on. | `[0.403, 0.192, 0.830]`           |
 
 ## Schema inference (optional schema)
 
@@ -143,7 +143,7 @@ Types lock on first sight (a later conflicting value is rejected with `SCHEMA_VA
 ```js
 const db = create({
   schema: { embedding: 'vector[1536]' },
-  inferSchema: true, // a provided schema is strict by default; this opts undeclared fields into inference
+  inferSchema: true // a provided schema is strict by default; this opts undeclared fields into inference
 })
 ```
 
@@ -165,6 +165,20 @@ const db = create({
 **Vectors are not stored in the documents by default**: the vector index already holds them. With `includeVectors: true`, results rebuild them from the vector index, which holds normalized (unit-length) copies. Pass `store: { vectors: true }` to keep the original vectors in the documents, as 4.0.x did.
 
 On 10,000 synthetic passages with a 384-dimension embedding, the default drops the JSON snapshot from 206 MB to 130 MB and the heap from 175 MB to 150 MB; also excluding `text` brings them to 105 MB (-49%) and 138 MB (-22%). See the [docs](https://zbsearch.dev/docs/zbsearch/usage/create#indexed-but-not-stored-properties) for the trade-offs.
+
+## Freezing large indexes
+
+The full-text index is built for fast inserts and removals, which costs memory: on 160,000 text passages it takes 1.6 GB of heap, most of it per-document term frequencies. `freeze(db)` moves it into immutable, compact segments (a sorted term dictionary and delta-encoded postings in typed arrays) with the same search results and scores:
+
+```js
+import { create, insertMultiple, freeze } from 'zbsearch'
+
+const db = create({ schema, store: { exclude: ['text'] } })
+await insertMultiple(db, passages)
+freeze(db) // 1.6 GB -> 220 MB of heap on 160,000 passages; searches get faster too
+```
+
+Documents inserted afterwards go to a small mutable tail, removed or updated frozen documents are tombstoned, and the next `freeze` merges everything back. `create({ freeze: { threshold: 10_000 } })` freezes the tail automatically. Snapshots keep the frozen segments, and loading them is a copy of a few typed arrays. See the [docs](https://zbsearch.dev/docs/zbsearch/usage/freeze).
 
 ## Saving large indexes
 
@@ -196,14 +210,14 @@ import { create, insertMultiple, search } from 'zbsearch'
 const db = create({
   schema: {
     title: 'string',
-    embedding: 'vector[5]', // we are using a 5-dimensional vector.
-  },
-});
+    embedding: 'vector[5]' // we are using a 5-dimensional vector.
+  }
+})
 
 insertMultiple(db, [
   { title: 'The Prestige', embedding: [0.938293, 0.284951, 0.348264, 0.948276, 0.56472] },
   { title: 'Barbie', embedding: [0.192839, 0.028471, 0.284738, 0.937463, 0.092827] },
-  { title: 'Oppenheimer', embedding: [0.827391, 0.927381, 0.001982, 0.983821, 0.294841] },
+  { title: 'Oppenheimer', embedding: [0.827391, 0.927381, 0.001982, 0.983821, 0.294841] }
 ])
 
 const results = search(db, {
@@ -213,13 +227,13 @@ const results = search(db, {
     // The vector (text embedding) to use for search
     value: [0.938292, 0.284961, 0.248264, 0.748276, 0.26472],
     // The schema property where ZBSearch should compare embeddings
-    property: 'embedding',
+    property: 'embedding'
   },
   // Minimum similarity to determine a match. Defaults to `0.8`
   similarity: 0.85,
   // Defaults to `false`. Setting to 'true' will return the embeddings in the response (which can be very large).
   // They are rebuilt from the vector index, normalized, unless the database was created with `store: { vectors: true }`.
-  includeVectors: true,
+  includeVectors: true
 })
 ```
 
@@ -254,7 +268,7 @@ const plugin = await pluginEmbeddings({
       // properties to use for generating embeddings at insert time.
       // Will be concatenated to generate a unique embedding.
       properties: ['description'],
-      verbose: true,
+      verbose: true
     }
   }
 })
@@ -279,7 +293,7 @@ await insert(db, { description: 'Bose QuietComfort Bluetooth Headphones' })
 const searchResults = await search(db, {
   term: 'Headphones for 12th grade students',
   mode: 'vector',
-  similarity: 0.75,
+  similarity: 0.75
 })
 ```
 

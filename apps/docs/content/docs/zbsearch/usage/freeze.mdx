@@ -1,0 +1,87 @@
+---
+title: Freezing large indexes
+description: Compact the full-text index of a large database into immutable segments that take several times less memory.
+---
+
+The full-text index of a database is built for fast inserts and removals: a radix tree of terms per string
+property, an array of document IDs per term and, per document, an object with the frequency of each of its terms.
+On large corpora those objects dominate memory: a 160,000-passage index takes 1.6 GB of heap, about 1 GB of it in
+per-document term frequencies, while its binary snapshot is 139 MB.
+
+`freeze(db)` moves the full-text index into **frozen segments**: one immutable, columnar structure per string
+property, with a sorted term dictionary and the document IDs and term frequencies of each term delta-encoded in
+typed arrays.
+
+```javascript copy
+import { create, insertMultiple, freeze, search } from "zbsearch";
+
+const db = create({
+  schema: { title: "string", text: "string", year: "number" },
+  store: { exclude: ["text"] },
+});
+
+await insertMultiple(db, passages);
+freeze(db);
+
+search(db, { term: "brown fox", tolerance: 1 }); // same results, same scores
+```
+
+## What changes, and what does not
+
+Search results and scores do not change. Every search option works on frozen segments: prefix and `exact`
+matching, `tolerance`, `threshold`, `boost`, `properties`, `relevance`, `where` filters (including filters on
+string properties), facets, `groupBy`, `sortBy`, `distinctOn`, pinning rules, `suggest`, hybrid search, and the
+corpus statistics of [`@zbsearch/sharded`](/docs/zbsearch/integrations/sharded). Only the default index component
+can be frozen: `freeze` throws `FREEZE_NOT_SUPPORTED` with a custom one (for example the QPS or PT15 plugins).
+
+The database stays writable:
+
+- Documents inserted after `freeze` go to the regular, mutable index (the **tail**), and searches read the frozen
+  segments and the tail together.
+- Removing or updating a frozen document marks it as removed in its segment (a **tombstone**): its postings stay
+  in the segment, skipped by every search, until the next `freeze`. BM25 statistics (document count, average
+  field length, document frequency) are updated at once, exactly as for a mutable index.
+- The next `freeze(db)` merges the segments, the tail and the tombstones into one new segment per property.
+
+`freeze` takes time proportional to the size of the index (about 0.8 s for 20,000 passages and 8 s for
+160,000 on the benchmark below) and blocks while it runs. Call it once a bulk load is done, or after
+[loading a snapshot](/docs/zbsearch/usage/serialization) of an unfrozen database.
+
+## Freezing automatically
+
+To keep the tail small while documents keep coming in, give `create` a threshold:
+
+```javascript copy
+const db = create({
+  schema,
+  freeze: { threshold: 10_000 },
+});
+```
+
+Once `threshold` documents have been inserted or removed since the last freeze (an update counts as one removal
+and one insertion), the tail is frozen into a new segment, at the end of the `insert`, `update` or `remove` call
+that reached it. Each automatic freeze only encodes the tail, so it costs time proportional to the tail, not to
+the index; once there would be more than 8 segments per property, they are merged into one. Without `freeze` in
+`create`, nothing is frozen unless you call `freeze(db)`.
+
+## Saving and loading
+
+`save` and `saveBinary` store the frozen segments, and `load` and `loadBinary` restore them as they are: loading a
+frozen snapshot copies each typed array instead of rebuilding a radix tree and an object per document, so it is
+much faster and the loaded database is frozen. A binary snapshot with frozen segments is written as format
+version 2, which ZBSearch 4.0.x cannot read; a database without frozen segments is still written as version 1, as
+before. Both versions are read.
+
+## Memory and speed
+
+Synthetic passages (150-250 words from a Zipf-distributed 40,000-word vocabulary, string fields `text`, `section`,
+`title`, `itemKey`, numbers `page`, `year`, enum `collection`) with `store: { exclude: ["text"] }`, Node 22, 4
+vCPUs, measured with `benchmarks/large-index.js` and `benchmarks/memory-breakdown.js`:
+
+| 20,000 passages | Mutable | Frozen |
+| --- | --- | --- |
+| Heap | 233.6 MB | 32.3 MB |
+| Search p50 / p95 | 9.8 / 19.7 ms | 4.9 / 7.4 ms |
+| Search with `tolerance: 1`, p50 / p95 | 18.7 / 37.8 ms | 7.2 / 11.7 ms |
+| Binary snapshot | 17.5 MB | 11.2 MB |
+| `loadBinary` | 1.10 s | 0.17 s |

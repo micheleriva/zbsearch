@@ -342,8 +342,8 @@ function SizeTable({ docs }: { docs: number }) {
 }
 
 export function LargeIndexCharts() {
-  const [docs, setDocs] = useState(largeIndexSizes[0])
-  const [metricKey, setMetricKey] = useState<MetricKey>('index')
+  const [docs, setDocs] = useState(largeIndexSizes[largeIndexSizes.length - 1])
+  const [metricKey, setMetricKey] = useState<MetricKey>('p50')
 
   return (
     <section id="results" className="scroll-mt-24 rounded-2xl border border-fd-border bg-fd-card p-4 sm:p-6">

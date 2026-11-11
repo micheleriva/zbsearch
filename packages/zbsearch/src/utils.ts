@@ -372,10 +372,38 @@ export function convertDistanceToMeters(distance: number, unit: GeosearchDistanc
 // accessors), except `key`, which becomes a plain writable data property holding `value`. Defining `key` up front,
 // instead of assigning it on the clone, never invokes a copied setter (which could write to state shared with the
 // stored document) and works when the original property is read-only or getter-only.
+// A property set over a placeholder (see `placeholderProperty`) is enumerable, as if the placeholder was not there.
 export function cloneWithDataProperty(obj: object, key: string, value: unknown): any {
   const descriptors = Object.getOwnPropertyDescriptors(obj)
-  descriptors[key] = { value, writable: true, enumerable: descriptors[key]?.enumerable ?? true, configurable: true }
+  const previous = descriptors[key]
+  const enumerable = previous === undefined || isPlaceholder(previous) ? true : previous.enumerable
+  descriptors[key] = { value, writable: true, enumerable, configurable: true }
   return Object.create(Object.getPrototypeOf(obj), descriptors)
+}
+
+const placeholderGetters = new WeakSet<() => unknown>()
+
+function readsUndefined(): undefined {
+  return undefined
+}
+placeholderGetters.add(readsUndefined)
+
+/**
+ * The descriptor of an own property that a copy of a document defines in place of an inherited one, so that reading
+ * it gives `value` (`undefined` hides the inherited value). Like the inherited properties of a class, it is not
+ * enumerable: it stays out of `Object.keys`, JSON and snapshots, and `cloneWithDataProperty` treats it as absent.
+ */
+export function placeholderProperty(value: unknown): PropertyDescriptor {
+  let get: () => unknown = readsUndefined
+  if (value !== undefined) {
+    get = () => value
+    placeholderGetters.add(get)
+  }
+  return { get, enumerable: false, configurable: true }
+}
+
+function isPlaceholder(descriptor: PropertyDescriptor): boolean {
+  return descriptor.get !== undefined && placeholderGetters.has(descriptor.get)
 }
 
 // Returns a copy of `obj` with the value at `path` set to `value`, copying every object along the path.

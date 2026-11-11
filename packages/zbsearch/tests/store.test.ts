@@ -193,6 +193,80 @@ describe('store.exclude', () => {
     expect(search(db2, { where: { 'meta.rating': { eq: 3 } } }).count).toBe(1)
   })
 
+  it('hides excluded properties that the document inherits, keeping its prototype and other properties', async () => {
+    class Meta {
+      constructor(private readonly n: number) {}
+      get rating() {
+        return this.n
+      }
+      get abstract() {
+        return `nested secret ${this.n}`
+      }
+    }
+    class Note {
+      constructor(
+        readonly id: string,
+        private readonly n: number
+      ) {}
+      get title() {
+        return `title ${this.n}`
+      }
+      get text() {
+        return `hidden words ${this.n}`
+      }
+      get raw() {
+        return 'raw secret'
+      }
+      get meta() {
+        return new Meta(this.n)
+      }
+    }
+
+    const db = create({
+      schema: { title: 'string', text: 'string', meta: { abstract: 'string', rating: 'number' } } as const,
+      store: { exclude: ['text', 'raw', 'meta.abstract'] }
+    })
+    const doc = new Note('1', 7)
+    insert(db, doc as any)
+
+    const check = (stored: any) => {
+      expect(stored).toBeInstanceOf(Note)
+      expect(stored.title).toBe('title 7')
+      expect(stored.text).toBeUndefined()
+      expect(stored.raw).toBeUndefined()
+      expect(stored.meta).toBeInstanceOf(Meta)
+      expect(stored.meta.rating).toBe(7)
+      expect(stored.meta.abstract).toBeUndefined()
+      expect(JSON.stringify(stored)).not.toMatch(/secret|hidden/)
+    }
+
+    check(getByID(db, '1'))
+    check(search(db, { term: 'hidden' }).hits[0].document)
+    check(search(db, { term: 'secret' }).hits[0].document)
+    // The inserted document is not modified
+    expect(doc.text).toBe('hidden words 7')
+    expect(doc.raw).toBe('raw secret')
+    expect(doc.meta.abstract).toBe('nested secret 7')
+
+    // Snapshots never held inherited values, and the index still finds the excluded text
+    for (const restore of [
+      async () => {
+        const restored = create({ schema: { title: 'string' } as const })
+        load(restored, JSON.parse(JSON.stringify(save(db))) as RawData)
+        return restored
+      },
+      async () => {
+        const restored = create({ schema: { title: 'string' } as const })
+        loadBinarySync(restored, saveBinarySync(db))
+        return restored
+      }
+    ]) {
+      const restored = await restore()
+      expect(getByID(restored, '1')).toEqual({ id: '1', n: 7 })
+      expect(search(restored, { term: 'hidden' }).count).toBe(1)
+    }
+  })
+
   it('keeps the index identical to a fully stored one through insert, remove, update and upsert', async () => {
     const stored = createFullDb({ vectors: true })
     const unstored = createFullDb({ exclude: allSearchablePaths })
@@ -492,6 +566,56 @@ describe('vectors in the documents store', () => {
 
     remove(db, '1')
     expectIndexIsEmpty(db)
+  })
+
+  it('does not store vectors the document inherits, and rebuilds them in results', () => {
+    class Doc {
+      constructor(
+        readonly id: string,
+        readonly title: string
+      ) {}
+      get embedding() {
+        return [3, 4]
+      }
+      get nested() {
+        return { embedding: [0, 2], label: 'n' }
+      }
+    }
+
+    const db = create({ schema })
+    insert(db, new Doc('1', 'one') as any)
+
+    const stored = getByID(db, '1') as any
+    expect(stored).toBeInstanceOf(Doc)
+    expect(stored.embedding).toBeUndefined()
+    expect(stored.nested).toEqual({ label: 'n' })
+
+    const rebuilt = search(db, { term: 'one', includeVectors: true }).hits[0].document as any
+    expect(rebuilt).toBeInstanceOf(Doc)
+    expect(rebuilt).toEqual({
+      id: '1',
+      title: 'one',
+      embedding: [Math.fround(0.6), Math.fround(0.8)],
+      nested: { embedding: [0, 1], label: 'n' }
+    })
+
+    const nulled = search(db, { term: 'one' }).hits[0].document as any
+    expect(nulled).toBeInstanceOf(Doc)
+    expect(nulled).toEqual({ id: '1', title: 'one', embedding: null, nested: { embedding: null, label: 'n' } })
+
+    // Searching never modifies the stored document
+    expect(getByID(db, '1')).toBe(stored)
+    expect(stored.embedding).toBeUndefined()
+
+    // Snapshots keep the own enumerable properties: the inherited `nested` (and its label) is not saved
+    const restored = create({ schema })
+    loadBinarySync(restored, saveBinarySync(db))
+    expect(search(restored, { term: 'one', includeVectors: true }).hits[0].document).toEqual({
+      id: '1',
+      title: 'one',
+      embedding: [Math.fround(0.6), Math.fround(0.8)],
+      nested: { embedding: [0, 1] }
+    })
   })
 
   it('stores vectors with store.vectors', () => {

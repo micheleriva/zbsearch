@@ -2,7 +2,7 @@ import { createError } from '../errors.js'
 import type { AnyDocument, AnySchema, AnyZBSearch, Result, StoreConfig, StoreSettings } from '../types.js'
 import { isVectorType } from './defaults.js'
 import { getInternalDocumentId } from './internal-document-id-store.js'
-import { cloneWithValueAtPath } from '../utils.js'
+import { cloneWithValueAtPath, placeholderProperty } from '../utils.js'
 
 // The settings of a database that was not built by `create` (or that predates `store`): everything is stored.
 const LEGACY_STORE_SETTINGS: StoreSettings = { exclude: [], vectors: true }
@@ -169,18 +169,24 @@ function isPlainObject(value: unknown): value is AnyDocument {
 
 // Returns `doc` without the paths of `tree`. A document that changes is copied as `cloneWithDataProperty` copies it:
 // its prototype and the own properties that are kept (non-enumerable ones and accessors included) are preserved.
+// A path the document inherits (e.g. a getter of its class) is hidden on the copy by a placeholder own property.
 function omitTree(doc: AnyDocument, tree: PathTree): AnyDocument {
   let descriptors: PropertyDescriptorMap | undefined
 
   for (const key of Object.keys(tree)) {
-    if (!Object.hasOwn(doc, key)) {
+    const own = Object.hasOwn(doc, key)
+    if (!own && !(key in doc)) {
       continue
     }
 
     const subtree = tree[key]
     if (subtree === true) {
       descriptors ??= Object.getOwnPropertyDescriptors(doc)
-      delete descriptors[key]
+      if (own) {
+        delete descriptors[key]
+      } else {
+        descriptors[key] = placeholderProperty(undefined)
+      }
       continue
     }
 
@@ -192,12 +198,14 @@ function omitTree(doc: AnyDocument, tree: PathTree): AnyDocument {
     const omittedChild = omitTree(child, subtree)
     if (omittedChild !== child) {
       descriptors ??= Object.getOwnPropertyDescriptors(doc)
-      descriptors[key] = {
-        value: omittedChild,
-        writable: true,
-        enumerable: descriptors[key]?.enumerable ?? true,
-        configurable: true
-      }
+      descriptors[key] = own
+        ? {
+            value: omittedChild,
+            writable: true,
+            enumerable: descriptors[key]?.enumerable ?? true,
+            configurable: true
+          }
+        : placeholderProperty(omittedChild)
     }
   }
 

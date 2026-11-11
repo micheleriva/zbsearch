@@ -23,6 +23,7 @@ import {
   remove,
   removeMultiple,
   save,
+  saveBinary,
   saveBinarySync,
   search,
   update,
@@ -870,6 +871,174 @@ describe('stored documents of classes with private fields', () => {
       expect(remove(db, '1')).toBe(true)
       expectIndexIsEmpty(db)
     }
+  })
+
+  describe('with a toJSON reading the unstored values', () => {
+    class Source {
+      #rating: number
+      #abstract: string
+      constructor(rating: number, abstract: string) {
+        this.#rating = rating
+        this.#abstract = abstract
+      }
+      get rating() {
+        return this.#rating
+      }
+      get abstract() {
+        return this.#abstract
+      }
+      toJSON() {
+        return { rating: this.#rating, abstract: this.#abstract }
+      }
+    }
+
+    class Note {
+      #id: string
+      #text: string
+      #embedding: number[]
+      #source: Source
+      // Own properties: `vector` is a vector kept as an own property, `draft` is excluded
+      tag: string
+      vector: number[]
+      draft: string
+      constructor(id: string, text: string, embedding: number[]) {
+        this.#id = id
+        this.#text = text
+        this.#embedding = embedding
+        this.#source = new Source(text.length, `abstract of ${text}`)
+        this.tag = 'memo'
+        this.vector = [6, 8]
+        this.draft = `draft of ${text}`
+      }
+      get id() {
+        return this.#id
+      }
+      get text() {
+        return this.#text
+      }
+      get embedding() {
+        return this.#embedding
+      }
+      get source() {
+        return this.#source
+      }
+      toJSON() {
+        return {
+          id: this.#id,
+          text: this.#text,
+          embedding: this.#embedding,
+          source: this.#source,
+          tag: this.tag,
+          vector: this.vector,
+          draft: this.draft
+        }
+      }
+    }
+
+    const noteSchema = {
+      text: 'string',
+      tag: 'string',
+      draft: 'string',
+      embedding: 'vector[2]',
+      vector: 'vector[2]',
+      source: { rating: 'number', abstract: 'string' }
+    } as const
+
+    function createNotes() {
+      return create({ schema: noteSchema, store: { exclude: ['text', 'draft', 'source.abstract'] } })
+    }
+
+    const stored = { id: '1', source: { rating: 12 }, tag: 'memo' }
+    const unit = [Math.fround(0.6), Math.fround(0.8)]
+
+    function serialized(doc: unknown) {
+      const json = JSON.stringify(doc)
+      expect(json).not.toMatch(/secret/)
+      return JSON.parse(json)
+    }
+
+    it('serializes the documents and the hits without the unstored values', () => {
+      const db = createNotes()
+      const doc = new Note('1', 'secret words', [3, 4])
+      insert(db, doc as any)
+
+      const storedDoc = getByID(db, '1') as any
+      expect(storedDoc.text).toBeUndefined()
+      expect(storedDoc.source.abstract).toBeUndefined()
+      expect(serialized(storedDoc)).toEqual(stored)
+      expect(serialized(storedDoc.toJSON())).toEqual(stored)
+
+      const hit = search(db, { term: 'secret' }).hits[0].document as any
+      expect(hit.embedding).toBeNull()
+      expect(hit.vector).toBeNull()
+      expect(serialized(hit)).toEqual({ ...stored, embedding: null, vector: null })
+
+      const rebuilt = search(db, { term: 'secret', includeVectors: true }).hits[0].document as any
+      expect(rebuilt.embedding).toEqual(unit)
+      expect(rebuilt.vector).toEqual(unit)
+      expect(serialized(rebuilt)).toEqual({ ...stored, embedding: unit, vector: unit })
+
+      // The inserted document is not modified, and still serializes everything
+      expect(JSON.parse(JSON.stringify(doc))).toEqual({
+        id: '1',
+        text: 'secret words',
+        embedding: [3, 4],
+        source: { rating: 12, abstract: 'abstract of secret words' },
+        tag: 'memo',
+        vector: [6, 8],
+        draft: 'draft of secret words'
+      })
+    })
+
+    it('keeps the stored vectors of the toJSON on hits when the store keeps vectors', () => {
+      const db = create({ schema: noteSchema, store: { exclude: ['text', 'draft', 'source.abstract'], vectors: true } })
+      insert(db, new Note('1', 'secret words', [3, 4]) as any)
+
+      const all = { ...stored, embedding: [3, 4], vector: [6, 8] }
+      expect(serialized(getByID(db, '1'))).toEqual(all)
+      expect(serialized(search(db, { term: 'secret', includeVectors: true }).hits[0].document)).toEqual(all)
+      expect(serialized(search(db, { term: 'secret' }).hits[0].document)).toEqual({
+        ...stored,
+        embedding: null,
+        vector: null
+      })
+    })
+
+    it('saves the documents without the unstored values', async () => {
+      const db = createNotes()
+      insert(db, new Note('1', 'secret words', [3, 4]) as any)
+
+      const raw = JSON.parse(JSON.stringify(save(db))) as RawData
+      expect(Object.values((raw.docs as any).docs)).toEqual([stored])
+
+      const binary = saveBinarySync(db)
+      const segments: Uint8Array[] = []
+      for await (const segment of saveBinary(db)) {
+        segments.push(segment)
+      }
+
+      for (const restore of [
+        async (restored: AnyZBSearch) => load(restored, raw),
+        async (restored: AnyZBSearch) => loadBinarySync(restored, binary),
+        async (restored: AnyZBSearch) => loadBinary(restored, segments)
+      ]) {
+        const restored = createNotes()
+        await restore(restored)
+        expect(serialized(getByID(restored, '1'))).toEqual(stored)
+        expect(serialized(search(restored, { term: 'secret' }).hits[0].document)).toEqual({
+          ...stored,
+          embedding: null,
+          vector: null
+        })
+        expect(serialized(search(restored, { term: 'secret', includeVectors: true }).hits[0].document)).toEqual({
+          ...stored,
+          embedding: unit,
+          vector: unit
+        })
+        expect(remove(restored, '1')).toBe(true)
+        expectIndexIsEmpty(restored)
+      }
+    })
   })
 })
 

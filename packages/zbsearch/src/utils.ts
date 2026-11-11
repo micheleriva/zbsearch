@@ -403,8 +403,63 @@ function findClassProperty(proto: object | null, key: PropertyKey): PropertyDesc
   return undefined
 }
 
+// Whether `toJSON` may have returned something keyed like the document, whose keys `filterSerialized` can filter.
+// Arrays, maps, sets and typed arrays are left as they are.
+function isSerializedRecord(value: unknown): value is Record<string, unknown> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    !ArrayBuffer.isView(value) &&
+    !(value instanceof Map) &&
+    !(value instanceof Set)
+  )
+}
+
+// Applies to `serialized`, what the instance's `toJSON` returned, the differences between the view and the instance,
+// key by key: a key the view hides is dropped, and a key the view sets to another value (an unstored vector nulled or
+// rebuilt on a search hit, a nested object copied without its unstored paths) takes the view's value. Nested views
+// filter their own `toJSON` the same way. Values that `toJSON` returns under other keys are not seen.
+function filterSerialized(serialized: unknown, copy: object, instance: object): unknown {
+  if (!isSerializedRecord(serialized)) {
+    return serialized
+  }
+
+  // A copy, never the object `toJSON` returned: it may be the instance itself, or data it shares
+  const filtered: Record<string, unknown> = { ...serialized }
+  for (const key of Object.keys(filtered)) {
+    const descriptor = Reflect.getOwnPropertyDescriptor(copy, key)
+    if (descriptor === undefined) {
+      if (Object.hasOwn(instance, key)) {
+        delete filtered[key]
+      }
+      continue
+    }
+
+    if (isPlaceholder(descriptor)) {
+      const value = descriptor.get!()
+      if (value === undefined) {
+        delete filtered[key]
+      } else {
+        filtered[key] = value
+      }
+      continue
+    }
+
+    if ('value' in descriptor) {
+      const original = Reflect.getOwnPropertyDescriptor(instance, key)
+      if (original === undefined || !('value' in original) || original.value !== descriptor.value) {
+        filtered[key] = descriptor.value
+      }
+    }
+  }
+  return filtered
+}
+
 // Wraps `copy` so that what it inherits from its class is read from `instance`: getters run, and methods are bound,
 // with `this` set to the instance. Everything else (own properties, keys, prototype, writes) is the copy's.
+// An inherited `toJSON` also runs on the instance, but its result is filtered (see `filterSerialized`), so that
+// `JSON.stringify` and snapshots serialize what the view shows, not the instance's unstored values.
 function createDocumentView(copy: object, instance: object): object {
   let boundMethods: WeakMap<Function, Function> | undefined
 
@@ -430,7 +485,10 @@ function createDocumentView(copy: object, instance: object): object {
       boundMethods ??= new WeakMap()
       let method = boundMethods.get(value)
       if (method === undefined) {
-        method = value.bind(instance) as Function
+        method =
+          key === 'toJSON'
+            ? (...args: unknown[]) => filterSerialized(Reflect.apply(value, instance, args), target, instance)
+            : (value.bind(instance) as Function)
         boundMethods.set(value, method)
       }
       return method

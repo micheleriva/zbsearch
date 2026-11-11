@@ -102,6 +102,49 @@ export interface Index extends AnyIndexStore {
   unstoredTerms: Record<string, UnstoredTerms>
 }
 
+/**
+ * Corpus statistics that BM25 scoring reads in place of the ones derived from the index itself. A database that holds
+ * only a part of a larger corpus (one shard of a sharded index) scores its documents exactly as the whole corpus would
+ * when it is given the whole corpus' statistics: the number of documents, the average length of each field and the
+ * document frequency of each term.
+ */
+export interface CorpusStatistics {
+  /** Number of documents in the whole corpus. */
+  docsCount: number
+  /** Average field length (in tokens) of each string property across the whole corpus. */
+  avgFieldLength: Record<string, number | undefined>
+  /** Number of documents of the whole corpus that contain `term` in `prop`. */
+  documentFrequency(prop: string, term: string): number
+}
+
+// Keyed by the database's internal document ID store, which (unlike the index) survives load() and loadAsync().
+const corpusStatistics = new WeakMap<InternalDocumentIDStore, CorpusStatistics>()
+
+/**
+ * Makes BM25 scoring of `zbsearch` use `stats` instead of the database's own statistics; `undefined` restores them.
+ * Only the default index component honours it. The object is read at search time, so it can be updated in place.
+ */
+export function setCorpusStatistics<T extends AnyZBSearch>(zbsearch: T, stats: CorpusStatistics | undefined): void {
+  if (stats) {
+    corpusStatistics.set(zbsearch.internalDocumentIDStore, stats)
+  } else {
+    corpusStatistics.delete(zbsearch.internalDocumentIDStore)
+  }
+}
+
+export function getCorpusStatistics<T extends AnyZBSearch>(zbsearch: T): CorpusStatistics | undefined {
+  return corpusStatistics.get(zbsearch.internalDocumentIDStore)
+}
+
+function getIndexCorpusStatistics(index: Index): CorpusStatistics | undefined {
+  return index.sharedInternalDocumentStore ? corpusStatistics.get(index.sharedInternalDocumentStore) : undefined
+}
+
+function getAvgFieldLength(index: Index, prop: string): number {
+  const stats = getIndexCorpusStatistics(index)
+  return (stats ? stats.avgFieldLength[prop] : index.avgFieldLength[prop]) as number
+}
+
 export function insertDocumentScoreParameters(
   index: Index,
   prop: string,
@@ -597,7 +640,12 @@ export function calculateResultScores(
   whereFiltersIDs: Set<InternalDocumentID> | undefined,
   keywordMatchesMap?: Map<InternalDocumentID, Map<string, number>>
 ) {
-  const avgFieldLength = index.avgFieldLength[prop]
+  const stats = getIndexCorpusStatistics(index)
+  if (stats) {
+    docsCount = stats.docsCount
+  }
+
+  const avgFieldLength = getAvgFieldLength(index, prop)
   const fieldLengths = index.fieldLengths[prop]
   const zbsearchFrequencies = index.frequencies[prop]
   const termOccurrences = getTermDocumentFrequency(index, prop, term)
@@ -815,7 +863,7 @@ function scoreTermIds(
   whereFiltersIDs: Set<InternalDocumentID> | undefined,
   trackMatches = false
 ): void {
-  const avgFieldLength = index.avgFieldLength[prop]
+  const avgFieldLength = getAvgFieldLength(index, prop)
   const fieldLengths = index.fieldLengths[prop]
   const zbsearchFrequencies = index.frequencies[prop]
   const matchingCount = getTermDocumentFrequency(index, prop, term)
@@ -980,6 +1028,24 @@ export function prefixExpansionDemotion(tokenDf: number | undefined, wordDf: num
   return PREFIX_EXPANSION_SCORE_DEMOTION * Math.min(1, bm25Idf(tokenDf, docsCount) / wordIdf)
 }
 
+// Demotion of a prefix-expanded `word` of `token`: the document frequencies come from the corpus statistics when the
+// index has them, and from the radix search result (which holds the postings of each matched word) otherwise.
+function expansionDemotion(
+  stats: CorpusStatistics | undefined,
+  prop: string,
+  token: string,
+  word: string,
+  searchResult: FindResult,
+  docsCount: number
+): number {
+  if (stats) {
+    const tokenDf = stats.documentFrequency(prop, token)
+    return prefixExpansionDemotion(tokenDf > 0 ? tokenDf : undefined, stats.documentFrequency(prop, word), docsCount)
+  }
+
+  return prefixExpansionDemotion(searchResult[token]?.length, searchResult[word]!.length, docsCount)
+}
+
 function searchThresholdZero(
   index: Index,
   tokens: string[],
@@ -991,6 +1057,7 @@ function searchThresholdZero(
   docsCount: number,
   whereFiltersIDs: Set<InternalDocumentID> | undefined
 ): TokenScore[] {
+  const stats = getIndexCorpusStatistics(index)
   const candidateIds = new Set<InternalDocumentID>()
   const matchingProperties: string[] = []
   // The radix search results of each matching property, one per token
@@ -1092,9 +1159,7 @@ function searchThresholdZero(
           relevance,
           accumulator,
           boostPerProperty *
-            (word === token
-              ? 1
-              : prefixExpansionDemotion(searchResult[token]?.length, searchResult[word]!.length, docsCount)),
+            (word === token ? 1 : expansionDemotion(stats, prop, token, word, searchResult, docsCount)),
           candidateIds
         )
       }
@@ -1119,6 +1184,11 @@ export function search(
   threshold = 0,
   prefix = true
 ): TokenScore[] {
+  const stats = getIndexCorpusStatistics(index)
+  if (stats) {
+    docsCount = stats.docsCount
+  }
+
   const tokens = uniqueTokens(tokenizer.tokenize(term, language))
   const keywordsCount = tokens.length || 1
 
@@ -1195,7 +1265,7 @@ export function search(
           relevance,
           accumulator,
           boostPerProperty *
-            (word === token ? 1 : prefixExpansionDemotion(searchResult[token]?.length, ids!.length, docsCount)),
+            (word === token ? 1 : expansionDemotion(stats, prop, token, word, searchResult, docsCount)),
           whereFiltersIDs,
           trackKeywordMatches
         )
@@ -1272,6 +1342,11 @@ export function searchSuggestions(
   docsCount: number,
   whereFiltersIDs: Set<InternalDocumentID> | undefined
 ): Map<InternalDocumentID, SuggestionDocumentMatch> {
+  const stats = getIndexCorpusStatistics(index)
+  if (stats) {
+    docsCount = stats.docsCount
+  }
+
   const matches = new Map<InternalDocumentID, SuggestionDocumentMatch>()
   const tokenCount = queryTokens.length
 
@@ -1290,7 +1365,7 @@ export function searchSuggestions(
       throw createError('INVALID_BOOST_VALUE', boostPerProperty)
     }
 
-    const avgFieldLength = index.avgFieldLength[prop]
+    const avgFieldLength = getAvgFieldLength(index, prop)
     const fieldLengths = index.fieldLengths[prop]
     const frequencies = index.frequencies[prop]
 
@@ -1303,7 +1378,9 @@ export function searchSuggestions(
         tolerance
       })
       const words = Object.keys(searchResult)
-      const tokenDocumentFrequency = searchResult[token]?.length
+      const tokenDocumentFrequency = stats
+        ? stats.documentFrequency(prop, token) || undefined
+        : searchResult[token]?.length
 
       for (let j = 0; j < words.length; j++) {
         const word = words[j]
@@ -1322,7 +1399,13 @@ export function searchSuggestions(
 
         const wordBoost =
           boostPerProperty *
-          (word === token ? 1 : prefixExpansionDemotion(tokenDocumentFrequency, ids.length, docsCount))
+          (word === token
+            ? 1
+            : prefixExpansionDemotion(
+                tokenDocumentFrequency,
+                stats ? stats.documentFrequency(prop, word) : ids.length,
+                docsCount
+              ))
         const termOccurrences = getTermDocumentFrequency(index, prop, word)
 
         for (let k = 0; k < ids.length; k++) {
@@ -1790,6 +1873,11 @@ function deserializeUnstored(raw: unknown): Pick<Index, 'unstoredValues' | 'unst
 }
 
 function getTermDocumentFrequency(index: Index, prop: string, term: string): number {
+  const stats = getIndexCorpusStatistics(index)
+  if (stats) {
+    return stats.documentFrequency(prop, term)
+  }
+
   const treeIndex = index.indexes[prop]
   if (treeIndex?.type === 'Radix') {
     return (treeIndex.node as RadixTree).getDocumentFrequency(term)

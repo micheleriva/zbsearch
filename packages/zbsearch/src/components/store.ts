@@ -223,11 +223,16 @@ export function getStoredDocument<T extends AnyZBSearch>(zbsearch: T, doc: AnyDo
 }
 
 /**
- * Throws if `prop` is excluded from the documents store: facets, groups and `distinctOn` read the stored documents.
+ * Throws if the documents store does not keep `prop`: facets, groups and `distinctOn` read the stored documents.
+ * That is the case of any path `store.exclude` covers, searchable or not (`distinctOn` takes any path), and of vector
+ * properties unless `store.vectors` is set.
  */
 export function assertPropertyIsStored<T extends AnyZBSearch>(zbsearch: T, prop: string, usage: string): void {
-  if (getStoreLayout(zbsearch).excluded.has(prop)) {
+  if (isExcludedFromStore(getStoreSettings(zbsearch), prop)) {
     throw createError('PROPERTY_NOT_STORED', prop, usage)
+  }
+  if (getStoreLayout(zbsearch).unstored.has(prop)) {
+    throw createError('VECTOR_NOT_STORED', prop, usage)
   }
 }
 

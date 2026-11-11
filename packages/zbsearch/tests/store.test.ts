@@ -429,6 +429,38 @@ describe('store.exclude', () => {
     expect(search(db, { term: 'one', facets: { title: {} } }).facets?.title.count).toBe(1)
   })
 
+  it('throws for distinctOn on excluded properties outside the schema', () => {
+    const db = create({
+      schema: { title: 'string' } as const,
+      store: { exclude: ['raw', 'meta'] }
+    })
+    insert(db, { title: 'one', raw: 'a', meta: { kind: 'x' }, kept: 'b' } as any)
+    insert(db, { title: 'one more', raw: 'a', meta: { kind: 'x' }, kept: 'b' } as any)
+
+    expect(() => search(db, { term: 'one', distinctOn: 'raw' } as any)).toThrow(
+      'Property "raw" is excluded from the documents store (store.exclude), so it cannot be used for distinctOn.'
+    )
+    expect(() => search(db, { term: 'one', distinctOn: 'meta.kind' } as any)).toThrow(/"meta.kind" .* distinctOn/)
+
+    // Stored properties outside the schema keep working
+    expect(search(db, { term: 'one', distinctOn: 'kept' } as any).hits).toHaveLength(1)
+  })
+
+  it('throws for distinctOn on vector properties the documents store does not keep', () => {
+    const schema = { title: 'string', embedding: 'vector[2]' } as const
+    const doc = { title: 'one', embedding: [1, 0] }
+
+    const db = create({ schema })
+    insert(db, doc)
+    expect(() => search(db, { term: 'one', distinctOn: 'embedding' })).toThrow(
+      'Vector property "embedding" is not in the documents store (store.vectors is off), so it cannot be used for distinctOn.'
+    )
+
+    const stored = create({ schema, store: { vectors: true } })
+    insert(stored, doc)
+    expect(search(stored, { term: 'one', distinctOn: 'embedding' }).hits).toHaveLength(1)
+  })
+
   it('treats exact matches on excluded text as the index exact match', () => {
     const db = create({
       schema: { title: 'string', text: 'string' } as const,

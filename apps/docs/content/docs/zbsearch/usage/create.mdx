@@ -274,7 +274,7 @@ getByID(db, "p1"); // { id: "p1", title: "Introduction", year: 2020 }
 Excluded properties are indexed exactly as before: full-text search, filters (`where`), `exact`, boosting and BM25 scoring all work on them. The inserted document is never modified: the documents store keeps a copy without the excluded properties. What changes:
 
 - Search results and `getByID` return the stored properties only.
-- `facets`, `groupBy` and `distinctOn` read the stored documents, so using them on an excluded property throws a `PROPERTY_NOT_STORED` error.
+- `facets`, `groupBy` and `distinctOn` read the stored documents, so using them on an excluded property throws a `PROPERTY_NOT_STORED` error (also for an excluded property outside the schema with `distinctOn`). `distinctOn` on a vector property that is not stored throws `VECTOR_NOT_STORED`.
 - Excluded `string` properties are not sortable: the sorter keeps its own copy of every sortable value, which would keep the text in memory. Excluded numbers and booleans stay sortable.
 - `exact: true` cannot check the case of an excluded property's text: for those properties it keeps the documents the index matched exactly (case-insensitively).
 

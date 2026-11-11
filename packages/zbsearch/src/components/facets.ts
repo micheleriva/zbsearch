@@ -249,9 +249,10 @@ export function getFacets<T extends AnyZBSearch>(
   const preparedFacets: PreparedFacet[] = Array.from({ length: facetKeys.length })
   for (let i = 0; i < facetKeys.length; i++) {
     const facet = facetKeys[i]!
-    assertPropertyIsStored(zbsearch, facet, 'facets')
     const pathParts = facet.includes('.') ? facet.split('.') : null
     preparedFacets[i] = prepareFacet(facet, facetsConfig, properties[facet]!, pathParts)
+    // After the type check: vectors are never facets, stored or not
+    assertPropertyIsStored(zbsearch, facet, 'facets')
   }
 
   const resultsLength = results.length

@@ -368,10 +368,26 @@ export function convertDistanceToMeters(distance: number, unit: GeosearchDistanc
   return distance * ratio
 }
 
-// Shallow clone that keeps the prototype and every own property (including non-enumerable ones and accessors),
-// so a hit document reads exactly like the stored one apart from the nulled vectors.
-function cloneKeepingShape<T extends object>(obj: T): T {
-  return Object.create(Object.getPrototypeOf(obj), Object.getOwnPropertyDescriptors(obj))
+// Shallow clone of `obj` that keeps its prototype and every own property (including non-enumerable ones and
+// accessors), except `key`, which becomes a plain writable data property holding `value`. Defining `key` up front,
+// instead of assigning it on the clone, never invokes a copied setter (which could write to state shared with the
+// stored document) and works when the original property is read-only or getter-only.
+function cloneWithDataProperty(obj: object, key: string, value: unknown): any {
+  const descriptors = Object.getOwnPropertyDescriptors(obj)
+  descriptors[key] = { value, writable: true, enumerable: descriptors[key]?.enumerable ?? true, configurable: true }
+  return Object.create(Object.getPrototypeOf(obj), descriptors)
+}
+
+// Returns a copy of `obj` with the value at `path` set to `value`, copying every object along the path.
+// `obj` itself, and the nested objects it references, are left untouched.
+function cloneWithValueAtPath(obj: object, path: string[], value: unknown): any {
+  const [key, ...rest] = path
+  if (rest.length === 0) {
+    return cloneWithDataProperty(obj, key, value)
+  }
+  const next = (obj as any)[key]
+  const child = next != null && typeof next === 'object' ? next : {}
+  return cloneWithDataProperty(obj, key, cloneWithValueAtPath(child, rest, value))
 }
 
 export function removeVectorsFromHits(searchResult: Results<AnyDocument>, vectorProperties: string[]): void {
@@ -381,21 +397,12 @@ export function removeVectorsFromHits(searchResult: Results<AnyDocument>, vector
 
   for (const result of searchResult.hits) {
     // `result.document` is the object held by the documents store, so it must not be mutated.
-    // Copy the document, and every nested object along each vector property's path, before nulling.
     if (result.document == null) {
       continue
     }
-    const document: any = cloneKeepingShape(result.document)
+    let document: AnyDocument = result.document
     for (const prop of vectorProperties) {
-      const path = prop.split('.')
-      const lastKey = path.pop()!
-      let obj: any = document
-      for (const key of path) {
-        const next = obj[key]
-        obj[key] = next != null && typeof next === 'object' ? cloneKeepingShape(next) : {}
-        obj = obj[key]
-      }
-      obj[lastKey] = null
+      document = cloneWithValueAtPath(document, prop.split('.'), null)
     }
     result.document = document
   }

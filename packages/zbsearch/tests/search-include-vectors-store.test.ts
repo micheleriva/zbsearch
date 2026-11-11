@@ -91,3 +91,46 @@ describe('search hits keep the shape of stored documents', () => {
     expect(doc.v).toEqual([1, 0])
   })
 })
+
+describe('stripping vectors from documents with accessors or write restrictions', () => {
+  it('strips a getter-only vector without throwing', async () => {
+    const db = create({ schema: { t: 'string', v: 'vector[2]' } as const })
+    const doc = { id: 'a', t: 'x' }
+    Object.defineProperty(doc, 'v', { get: () => [1, 0], enumerable: true })
+    await insert(db, doc as any)
+
+    const results = await search(db, { term: 'x' })
+    expect(results.hits.length).toBe(1)
+    expect(results.hits[0].document.v).toBeNull()
+    expect((doc as any).v).toEqual([1, 0])
+  })
+
+  it('does not call a setter that shares state with the stored document', async () => {
+    const db = create({ schema: { t: 'string', v: 'vector[2]' } as const })
+    const backing = { v: [1, 0] as number[] | null }
+    const doc = { id: 'a', t: 'x' }
+    Object.defineProperty(doc, 'v', {
+      get: () => backing.v,
+      set: (value) => {
+        backing.v = value
+      },
+      enumerable: true
+    })
+    await insert(db, doc as any)
+
+    const results = await search(db, { term: 'x' })
+    expect(results.hits[0].document.v).toBeNull()
+    expect(backing.v).toEqual([1, 0])
+    expect(getByID(db, 'a')!.v).toEqual([1, 0])
+  })
+
+  it('strips vectors from frozen documents, including nested ones', async () => {
+    const db = create({ schema: { t: 'string', v: 'vector[2]', nested: { w: 'vector[2]' } } as const })
+    const doc = Object.freeze({ id: 'a', t: 'x', v: [1, 0], nested: Object.freeze({ w: [0, 1] }) })
+    await insert(db, doc as any)
+
+    const results = await search(db, { term: 'x' })
+    expect(results.hits[0].document).toEqual({ id: 'a', t: 'x', v: null, nested: { w: null } })
+    expect(getByID(db, 'a')).toEqual({ id: 'a', t: 'x', v: [1, 0], nested: { w: [0, 1] } })
+  })
+})

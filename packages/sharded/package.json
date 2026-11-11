@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/sharded",
-  "version": "4.0.3",
+  "version": "4.0.4",
   "description": "Sharded, lazily-loaded runtime ZBSearch databases with full-text, vector and hybrid search under a memory budget",
   "keywords": [
     "full-text search",

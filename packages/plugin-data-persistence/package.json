@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/plugin-data-persistence",
-  "version": "4.0.3",
+  "version": "4.0.4",
   "description": "Data persistence plugin for ZBSearch",
   "keywords": [
     "disk persistence",

@@ -1,6 +1,6 @@
 {
   "name": "@zbsearch/searchbox-core",
-  "version": "4.0.3",
+  "version": "4.0.4",
   "description": "Framework-neutral primitives behind the ZBSearch search boxes",
   "keywords": [
     "headless",

@@ -1577,7 +1577,7 @@ export function getSearchablePropertiesWithTypes(index: Index): Record<string, S
   return index.searchablePropertiesWithTypes
 }
 
-function deserializeIndexEntry(rawIndex: Index['indexes'][string]): Index['indexes'][string] {
+export function deserializeIndexEntry(rawIndex: Index['indexes'][string]): Index['indexes'][string] {
   const { node, type, isArray } = rawIndex
 
   switch (type) {

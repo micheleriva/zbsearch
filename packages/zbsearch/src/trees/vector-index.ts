@@ -71,3 +71,29 @@ export function deserializeVectorIndex(
 
   return factory.fromJSON(raw)
 }
+
+/**
+ * Restores a vector index from the binary snapshot written by `saveBinary`, through the factory configured for
+ * `property`. The snapshot `meta.kind` must match the factory kind.
+ */
+export function deserializeVectorIndexBinary(
+  property: string,
+  snapshot: VectorBinarySnapshot,
+  indexes?: IndexesConfig
+): ReturnType<VectorIndexFactory> {
+  const kind = typeof snapshot.meta.kind === 'string' ? snapshot.meta.kind : 'flat'
+  const factory = resolveVectorIndexFactory(property, indexes)
+
+  if (kind !== factory.kind) {
+    if (kind === 'ivf') {
+      throw createError('IVF_INDEX_REQUIRES_FACTORY', property, property)
+    }
+    throw createError('VECTOR_INDEX_KIND_MISMATCH', property, kind, factory.kind, property)
+  }
+
+  if (typeof factory.fromBinarySnapshot !== 'function') {
+    throw createError('VECTOR_INDEX_BINARY_UNSUPPORTED', property, factory.kind)
+  }
+
+  return factory.fromBinarySnapshot(snapshot)
+}

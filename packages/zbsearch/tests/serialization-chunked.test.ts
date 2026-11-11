@@ -91,6 +91,31 @@ describe('chunked serialization format', () => {
     expect(oversized.length).toBeLessThanOrEqual(2)
   })
 
+  it('should never stringify a whole large subtree just to measure it', () => {
+    const db = populated(400)
+    const total = JSON.stringify(save(db)).length
+    const chunkSize = 4096
+    const original = JSON.stringify
+    let longest = 0
+
+    JSON.stringify = function (this: unknown, ...args: Parameters<typeof JSON.stringify>) {
+      const out = original.apply(this, args)
+      longest = Math.max(longest, out?.length ?? 0)
+      return out
+    } as typeof JSON.stringify
+
+    let chunked: ChunkedRawData
+    try {
+      chunked = save(db, { format: 'chunked', chunkSize })
+    } finally {
+      JSON.stringify = original
+    }
+
+    // Before the fix the docs, index and root objects were each stringified whole (longest === total).
+    expect(longest).toBeLessThan(total / 10)
+    expect(JSON.stringify(fromChunkedRawData(chunked))).toBe(JSON.stringify(roundTripped(save(db))))
+  })
+
   it('should stamp the format version', () => {
     const chunked = save(populated(20), { format: 'chunked' })
     expect(chunked.version).toBe(CHUNKED_FORMAT_VERSION)

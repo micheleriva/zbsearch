@@ -8,7 +8,8 @@ import type {
   HybridWeights
 } from '../types.js'
 import type { InternalDocumentID } from '../components/internal-document-id-store.js'
-import { getNanosecondsTime, formatNanoseconds, removeVectorsFromHits, sortTokenScorePredicate } from '../utils.js'
+import { getNanosecondsTime, formatNanoseconds, sortTokenScorePredicate } from '../utils.js'
+import { setHitsVectors } from '../components/store.js'
 import { getFacets } from '../components/facets.js'
 import { getGroups } from '../components/groups.js'
 import { fetchDocuments } from './fetch-documents.js'
@@ -85,10 +86,8 @@ export function hybridSearch<T extends AnyZBSearch, ResultDocument = TypedDocume
     }
 
     const includeVectors = params.includeVectors ?? false
-    if (!includeVectors) {
-      const vectorProperties = Object.keys(zbsearch.data.index.vectorIndexes)
-      removeVectorsFromHits(returningResults, vectorProperties)
-    }
+    const vectorProperties = Object.keys(zbsearch.data.index.vectorIndexes)
+    setHitsVectors(zbsearch, returningResults.hits, includeVectors, vectorProperties)
 
     return returningResults
   }

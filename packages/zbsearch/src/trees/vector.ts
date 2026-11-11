@@ -27,6 +27,11 @@ export class VectorIndex implements VectorIndexLike {
     this.vectors.delete(internalDocumentId)
   }
 
+  // The normalized copy of the vector, as the index searches on it
+  getVector(internalDocumentId: InternalDocumentID): VectorType | undefined {
+    return this.vectors.get(internalDocumentId)?.[1]
+  }
+
   find(
     vector: VectorTypeLike,
     similarity: number,

@@ -1,4 +1,4 @@
-import type { AnyDocument, GeosearchDistanceUnit, Optional, Results, SearchableValue, TokenScore } from './types.js'
+import type { AnyDocument, GeosearchDistanceUnit, Optional, SearchableValue, TokenScore } from './types.js'
 import { createError } from './errors.js'
 
 const baseId = Date.now().toString().slice(5)
@@ -366,27 +366,6 @@ export function convertDistanceToMeters(distance: number, unit: GeosearchDistanc
   }
 
   return distance * ratio
-}
-
-export function removeVectorsFromHits(searchResult: Results<AnyDocument>, vectorProperties: string[]): void {
-  for (const result of searchResult.hits) {
-    const document = result.document
-    for (const prop of vectorProperties) {
-      const path = prop.split('.')
-      const lastKey = path.pop()!
-      let obj: any = document
-      for (const key of path) {
-        if (obj == null) {
-          break
-        }
-        obj[key] = obj[key] ?? {}
-        obj = obj[key]
-      }
-      if (obj != null) {
-        obj[lastKey!] = null
-      }
-    }
-  }
 }
 
 export function isPromise(obj: any): obj is Promise<unknown> {

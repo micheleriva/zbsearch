@@ -3,6 +3,7 @@ import {
   formatElapsedTime,
   getDocumentIndexId,
   getDocumentProperties,
+  isVectorType,
   validateSchema
 } from '../components/defaults.js'
 import { createDocumentsStore, DocumentsStore } from '../components/documents-store.js'
@@ -12,6 +13,7 @@ import { createInternalDocumentIDStore } from '../components/internal-document-i
 import { createPinning } from '../components/pinning.js'
 import { AVAILABLE_PLUGIN_HOOKS, getAllPluginsByHook } from '../components/plugins.js'
 import { createSorter, Sorter } from '../components/sorter.js'
+import { getExcludedStringProperties, getStoreLayout, resolveStoreConfig } from '../components/store.js'
 import { createTokenizer } from '../components/tokenizer/index.js'
 import { createError } from '../errors.js'
 import {
@@ -24,6 +26,7 @@ import {
   ISorter,
   ObjectComponents,
   SorterConfig,
+  StoreConfig,
   Tokenizer,
   ZBSearch,
   ZBSearchPlugin
@@ -35,6 +38,7 @@ interface CreateArguments<ZBSearchSchema, TIndex, TDocumentStore, TSorter, TPinn
   inferSchema?: boolean
   indexes?: IndexesConfig
   sort?: SorterConfig
+  store?: StoreConfig
   language?: string
   components?: Components<
     ZBSearch<ZBSearchSchema, TIndex, TDocumentStore, TSorter, TPinning>,
@@ -94,7 +98,8 @@ export function create<
 >(
   args: CreateArguments<ZBSearchSchema, TIndex, TDocumentStore, TSorter, TPinning> = {}
 ): ZBSearch<ZBSearchSchema, TIndex, TDocumentStore, TSorter, TPinning> {
-  const { indexes, sort, language, plugins } = args
+  const { indexes, language, plugins } = args
+  const store = resolveStoreConfig(args.store)
   let { id } = args
   const schema = (args.schema ?? {}) as ZBSearchSchema
   // When no schema is provided, schema inference defaults to on.
@@ -135,6 +140,13 @@ export function create<
   }
 
   assertSchemaHasNoReservedKeys(schema)
+
+  // Excluded text is not sortable: the sorter would keep a copy of it (see getExcludedStringProperties)
+  let sort = args.sort
+  const excludedStrings = getExcludedStringProperties(store, schema)
+  if (excludedStrings.length > 0 && sort?.enabled !== false) {
+    sort = { ...sort, unsortableProperties: [...(sort?.unsortableProperties ?? []), ...excludedStrings] }
+  }
 
   let tokenizer = components.tokenizer
   let index: TIndex | undefined = components.index
@@ -207,6 +219,7 @@ export function create<
     formatElapsedTime,
     id,
     indexes,
+    store,
     plugins,
     version: getVersion()
   } as unknown as ZBSearch<ZBSearchSchema, TIndex, TDocumentStore, TSorter, TPinning>
@@ -216,6 +229,15 @@ export function create<
     docs: zbsearch.documentsStore.create(zbsearch, internalDocumentStore),
     sorting: zbsearch.sorter.create(zbsearch, internalDocumentStore, schema, sort),
     pinning: zbsearch.pinning.create(internalDocumentStore)
+  }
+
+  if (!zbsearch.index.removeUnstored && store.exclude.length > 0) {
+    const types = zbsearch.index.getSearchablePropertiesWithTypes(zbsearch.data.index)
+    for (const prop of getStoreLayout(zbsearch).excluded) {
+      if (!isVectorType(types[prop])) {
+        throw createError('UNSTORED_PROPERTIES_NOT_SUPPORTED', prop)
+      }
+    }
   }
 
   for (const hook of AVAILABLE_PLUGIN_HOOKS) {

@@ -65,6 +65,24 @@ export type Tree =
   | TTree<'Flat', FlatTree>
   | TTree<'BKD', BKDTree>
 
+/**
+ * The distinct terms of the `string[]` values that are not in the documents store, so that they can be removed from
+ * the radix tree. Terms are kept once per property, in `terms`, and each document lists the IDs of its terms.
+ */
+export interface UnstoredTerms {
+  // Term ID -> term
+  terms: string[]
+  // Term -> term ID, rebuilt from `terms` on load
+  termIds: Map<string, number>
+  // Internal document ID -> the IDs of the document's distinct terms
+  docs: Record<InternalDocumentID, Uint32Array>
+}
+
+export type SerializedUnstoredTerms = {
+  terms: string[]
+  docs: Record<InternalDocumentID, number[]>
+}
+
 export interface Index extends AnyIndexStore {
   sharedInternalDocumentStore: InternalDocumentIDStore
   indexes: Record<string, Tree>
@@ -75,6 +93,13 @@ export interface Index extends AnyIndexStore {
   tokenOccurrences: Record<string, Record<string, number>>
   avgFieldLength: Record<string, number>
   fieldLengths: Record<string, Record<InternalDocumentID, number | undefined>>
+  // What `removeUnstored` needs to remove values that are not in the documents store (see StoreConfig):
+  // - number, number[], enum, enum[] and geopoint values are kept as they are, in `unstoredValues`;
+  // - the terms of string[] values are kept in `unstoredTerms`;
+  // - string values need nothing: `frequencies[prop][id]` already lists the terms of the document;
+  // - booleans and vectors need nothing: they are removed by document ID.
+  unstoredValues: Record<string, Record<InternalDocumentID, SearchableValue>>
+  unstoredTerms: Record<string, UnstoredTerms>
 }
 
 export function insertDocumentScoreParameters(
@@ -144,6 +169,12 @@ export function insertRadixTokens(
 export function removeDocumentScoreParameters(index: Index, prop: string, id: DocumentID, docsCount: number): void {
   const internalId = getInternalDocumentId(index.sharedInternalDocumentStore, id)
 
+  if (index.fieldLengths[prop][internalId] === undefined) {
+    // Already removed: the elements of a string[] value share the score parameters of the document
+    index.frequencies[prop][internalId] = undefined
+    return
+  }
+
   if (docsCount > 1) {
     index.avgFieldLength[prop] =
       (index.avgFieldLength[prop] * docsCount - index.fieldLengths[prop][internalId]!) / (docsCount - 1)
@@ -175,7 +206,9 @@ export function create<T extends AnyZBSearch, TSchema extends T['schema']>(
       frequencies: {},
       tokenOccurrences: {},
       avgFieldLength: {},
-      fieldLengths: {}
+      fieldLengths: {},
+      unstoredValues: {},
+      unstoredTerms: {}
     }
   }
 
@@ -255,7 +288,8 @@ function insertScalarValue(
   language: string | undefined,
   tokenizer: Tokenizer,
   docsCount: number,
-  options?: InsertOptions
+  options?: InsertOptions,
+  terms?: Set<string>
 ): void {
   const { type, node } = index.indexes[prop]
   switch (type) {
@@ -271,6 +305,11 @@ function insertScalarValue(
     case 'Radix': {
       const tokens = tokenizer.tokenize(value as string, language, prop)
       insertRadixTokens(index, prop, node as RadixTree, id, internalId, tokens, docsCount)
+      if (terms) {
+        for (let i = 0; i < tokens.length; i++) {
+          terms.add(tokens[i])
+        }
+      }
       break
     }
     case 'Flat': {
@@ -301,21 +340,17 @@ export function insert(
     return insertVector(index, prop, value as number[] | Float32Array, id, internalId)
   }
 
+  const unstored = options?.unstored === true
+
   if (!isArrayType(schemaType)) {
-    return insertScalarValue(
-      implementation,
-      index,
-      prop,
-      id,
-      internalId,
-      value,
-      language,
-      tokenizer,
-      docsCount,
-      options
-    )
+    insertScalarValue(implementation, index, prop, id, internalId, value, language, tokenizer, docsCount, options)
+    if (unstored) {
+      keepUnstoredValue(index, prop, internalId, value)
+    }
+    return
   }
 
+  const terms = unstored && index.indexes[prop].type === 'Radix' ? new Set<string>() : undefined
   const elements = value as Array<string | number | boolean>
   const elementsLength = elements.length
   for (let i = 0; i < elementsLength; i++) {
@@ -329,8 +364,115 @@ export function insert(
       language,
       tokenizer,
       docsCount,
-      options
+      options,
+      terms
     )
+  }
+
+  if (terms) {
+    keepUnstoredTerms(index, prop, internalId, terms)
+  } else if (unstored) {
+    keepUnstoredValue(index, prop, internalId, value)
+  }
+}
+
+// Keeps a value that is not in the documents store, when removing it from its tree needs it
+function keepUnstoredValue(index: Index, prop: string, internalId: InternalDocumentID, value: SearchableValue): void {
+  const type = index.indexes[prop].type
+  if (type === 'AVL' || type === 'Flat' || type === 'BKD') {
+    index.unstoredValues ??= {}
+    const values = (index.unstoredValues[prop] ??= {})
+    values[internalId] = value
+  }
+}
+
+function keepUnstoredTerms(index: Index, prop: string, internalId: InternalDocumentID, terms: Set<string>): void {
+  if (terms.size === 0) {
+    return
+  }
+
+  index.unstoredTerms ??= {}
+  const dictionary = (index.unstoredTerms[prop] ??= { terms: [], termIds: new Map(), docs: {} })
+  const ids = new Uint32Array(terms.size)
+  let i = 0
+  for (const term of terms) {
+    let termId = dictionary.termIds.get(term)
+    if (termId === undefined) {
+      termId = dictionary.terms.length
+      dictionary.terms.push(term)
+      dictionary.termIds.set(term, termId)
+    }
+    ids[i++] = termId
+  }
+  dictionary.docs[internalId] = ids
+}
+
+/**
+ * Removes a document from the index of `prop` when its value is not in the documents store, using what `insert`
+ * kept for it (see `Index.unstoredValues` and `Index.unstoredTerms`). Does nothing, and returns false, if the
+ * document has no value for the property.
+ */
+export function removeUnstored(
+  implementation: IIndex<Index>,
+  index: Index,
+  prop: string,
+  id: DocumentID,
+  internalId: InternalDocumentID,
+  schemaType: SearchableType,
+  language: string | undefined,
+  tokenizer: Tokenizer,
+  docsCount: number
+): boolean {
+  if (isVectorType(schemaType)) {
+    index.vectorIndexes[prop]?.node.remove(internalId)
+    return true
+  }
+
+  const tree = index.indexes[prop]
+  if (!tree) {
+    return false
+  }
+
+  switch (tree.type) {
+    case 'Bool': {
+      tree.node.true.delete(internalId)
+      tree.node.false.delete(internalId)
+      return true
+    }
+    case 'Radix': {
+      const frequencies = index.frequencies[prop]?.[internalId]
+      const dictionary = index.unstoredTerms?.[prop]
+      const termIds = dictionary?.docs[internalId]
+      if (!frequencies && !termIds) {
+        return false
+      }
+
+      const terms = new Set<string>(frequencies ? Object.keys(frequencies) : [])
+      if (termIds) {
+        for (let i = 0; i < termIds.length; i++) {
+          terms.add(dictionary!.terms[termIds[i]])
+        }
+        delete dictionary!.docs[internalId]
+      }
+
+      implementation.removeDocumentScoreParameters(index, prop, id, docsCount)
+      for (const term of terms) {
+        implementation.removeTokenScoreParameters(index, prop, term)
+        tree.node.removeDocumentByWord(term, internalId)
+      }
+      return true
+    }
+    default: {
+      const values = index.unstoredValues?.[prop]
+      const value = values?.[internalId]
+      if (value === undefined) {
+        return false
+      }
+
+      delete values![internalId]
+      remove(implementation, index, prop, id, internalId, value, schemaType, language, tokenizer, docsCount)
+      return true
+    }
   }
 }
 
@@ -1469,6 +1611,7 @@ export function load<R = unknown>(
     avgFieldLength,
     fieldLengths
   } = raw as Index
+  const { unstoredValues, unstoredTerms } = deserializeUnstored(raw)
 
   const indexes: Index['indexes'] = {}
   const vectorIndexes: Index['vectorIndexes'] = {}
@@ -1494,7 +1637,9 @@ export function load<R = unknown>(
     frequencies,
     tokenOccurrences,
     avgFieldLength,
-    fieldLengths
+    fieldLengths,
+    unstoredValues,
+    unstoredTerms
   }
 }
 
@@ -1513,6 +1658,7 @@ export async function loadAsync<R = unknown>(
     avgFieldLength,
     fieldLengths
   } = raw as Index
+  const { unstoredValues, unstoredTerms } = deserializeUnstored(raw)
 
   const indexes: Index['indexes'] = {}
   const vectorIndexes: Index['vectorIndexes'] = {}
@@ -1551,7 +1697,9 @@ export async function loadAsync<R = unknown>(
     frequencies,
     tokenOccurrences,
     avgFieldLength,
-    fieldLengths
+    fieldLengths,
+    unstoredValues,
+    unstoredTerms
   }
 }
 
@@ -1564,7 +1712,9 @@ export function save<R = unknown>(index: Index): R {
     frequencies,
     tokenOccurrences: _tokenOccurrences,
     avgFieldLength,
-    fieldLengths
+    fieldLengths,
+    unstoredValues,
+    unstoredTerms
   } = index
 
   const dumpVectorIndexes: Record<string, unknown> = {}
@@ -1596,8 +1746,47 @@ export function save<R = unknown>(index: Index): R {
     frequencies,
     tokenOccurrences: {},
     avgFieldLength,
-    fieldLengths
+    fieldLengths,
+    unstoredValues: unstoredValues ?? {},
+    unstoredTerms: serializeUnstoredTerms(unstoredTerms ?? {})
   } as R
+}
+
+function serializeUnstoredTerms(unstoredTerms: Index['unstoredTerms']): Record<string, SerializedUnstoredTerms> {
+  const serialized: Record<string, SerializedUnstoredTerms> = {}
+  for (const prop of Object.keys(unstoredTerms)) {
+    const { terms, docs } = unstoredTerms[prop]
+    const serializedDocs: Record<InternalDocumentID, number[]> = {}
+    for (const internalId of Object.keys(docs)) {
+      serializedDocs[internalId] = Array.from(docs[internalId])
+    }
+    serialized[prop] = { terms, docs: serializedDocs }
+  }
+  return serialized
+}
+
+// Indexes saved before `store.exclude` existed have no unstored values
+function deserializeUnstored(raw: unknown): Pick<Index, 'unstoredValues' | 'unstoredTerms'> {
+  const { unstoredValues, unstoredTerms: rawUnstoredTerms } = raw as {
+    unstoredValues?: Index['unstoredValues']
+    unstoredTerms?: Record<string, SerializedUnstoredTerms>
+  }
+
+  const unstoredTerms: Index['unstoredTerms'] = {}
+  for (const prop of Object.keys(rawUnstoredTerms ?? {})) {
+    const { terms, docs: rawDocs } = rawUnstoredTerms![prop]
+    const termIds = new Map<string, number>()
+    for (let i = 0; i < terms.length; i++) {
+      termIds.set(terms[i], i)
+    }
+    const docs: Record<InternalDocumentID, Uint32Array> = {}
+    for (const internalId of Object.keys(rawDocs)) {
+      docs[internalId] = Uint32Array.from(rawDocs[internalId])
+    }
+    unstoredTerms[prop] = { terms, termIds, docs }
+  }
+
+  return { unstoredValues: unstoredValues ?? {}, unstoredTerms }
 }
 
 function getTermDocumentFrequency(index: Index, prop: string, term: string): number {
@@ -1615,6 +1804,7 @@ export function createIndex(): IIndex<Index> {
     create,
     insert,
     remove,
+    removeUnstored,
     insertDocumentScoreParameters,
     insertTokenScoreParameters,
     removeDocumentScoreParameters,

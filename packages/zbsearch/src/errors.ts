@@ -49,6 +49,9 @@ const errors = {
   PLUGIN_COMPONENT_CONFLICT: `The component "%s" is already defined. The plugin "%s" is trying to redefine it.`,
   IVF_INDEX_REQUIRES_FACTORY: `Vector index "%s" was serialized as IVF. Import ivf from "zbsearch/trees/vector-ivf" and pass indexes.%s at create().`,
   RESERVED_SCHEMA_PROPERTY: `"%s" is a reserved property name and cannot be used in the schema.`,
+  INVALID_STORE_CONFIG: `Invalid "store" option: %s.`,
+  PROPERTY_NOT_STORED: `Property "%s" is excluded from the documents store (store.exclude), so it cannot be used for %s.`,
+  UNSTORED_PROPERTIES_NOT_SUPPORTED: `The configured index component cannot remove values that are not in the documents store, so "store.exclude" cannot name the searchable property "%s". Keep it stored, or use an index component that implements "removeUnstored".`,
   SUGGEST_NOT_SUPPORTED: `The configured index component does not support "suggest", as it cannot expand a query token into the indexed words it matches.`
 }
 

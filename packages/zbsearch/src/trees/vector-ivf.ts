@@ -192,6 +192,11 @@ export class IVFVectorIndex implements VectorIndexLike {
     this.vectors.delete(internalDocumentId)
   }
 
+  // The normalized copy of the vector, as the index searches on it
+  getVector(internalDocumentId: InternalDocumentID): VectorType | undefined {
+    return this.vectors.get(internalDocumentId)
+  }
+
   find(
     vector: VectorTypeLike,
     similarity: number,

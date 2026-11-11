@@ -36,6 +36,12 @@ export interface VectorIndexLike {
     whereFiltersIDs: Set<InternalDocumentID> | undefined
   ): SimilarVector[]
   toJSON(): unknown
+  /**
+   * Returns the vector the index holds for a document, or `undefined` if it holds none. Used to return vectors in
+   * search results (`includeVectors`) when they are not kept in the documents store. The default indexes return the
+   * normalized (unit-length) copy they search on, not the original values.
+   */
+  getVector?(internalDocumentId: InternalDocumentID): ArrayLike<number> | undefined
 }
 
 export interface VectorIndexFactory {
@@ -49,6 +55,33 @@ export type VectorIndexConfig = 'flat' | VectorIndexFactory
 export type IndexesConfig = {
   [RESERVED_VECTOR_INDEX_KEY]?: VectorIndexConfig
 } & Record<string, VectorIndexConfig | undefined>
+
+/**
+ * Which document properties the documents store keeps. Properties left out are still indexed (and searchable,
+ * filterable and, for numbers and booleans, sortable) but are not returned in search results or by `getByID`.
+ */
+export type StoreConfig = {
+  /**
+   * Properties (dot-separated paths for nested ones) that are indexed but not kept in the documents store.
+   * A path also excludes everything nested under it. Paths that are not in the schema are simply dropped from the
+   * stored document.
+   */
+  exclude?: string[]
+  /**
+   * Keep vector properties in the documents store too. Defaults to `false`: the vector index already holds every
+   * vector, and search results rebuild them from it when `includeVectors` is set.
+   */
+  vectors?: boolean
+}
+
+/**
+ * The store configuration of a database, as `create` resolved it from {@link StoreConfig}. Saved with the database
+ * and restored by `load`.
+ */
+export type StoreSettings = {
+  exclude: string[]
+  vectors: boolean
+}
 
 export type HybridWeights = {
   text: number
@@ -1186,6 +1219,23 @@ export interface IIndex<I extends AnyIndexStore> {
   ) => SyncOrAsyncValue<boolean>
   afterRemove?: IIndexInsertOrRemoveHookFunction
 
+  /**
+   * Removes a document from the index of a property whose value is not in the documents store (see
+   * {@link StoreConfig}). `insert` is called with `options.unstored` set for such values, so that the index can keep
+   * what it needs to remove them later. An index without this method cannot be used with `store.exclude`.
+   */
+  removeUnstored?: <T extends I>(
+    implementation: IIndex<T>,
+    index: T,
+    prop: string,
+    id: DocumentID,
+    internalId: InternalDocumentID,
+    schemaType: SearchableType,
+    language: string | undefined,
+    tokenizer: Tokenizer,
+    docsCount: number
+  ) => SyncOrAsyncValue<boolean>
+
   insertDocumentScoreParameters(index: I, prop: string, id: DocumentID, tokens: string[], docsCount: number): void
   insertTokenScoreParameters(index: I, prop: string, id: DocumentID, tokens: string[], token: string): void
   removeDocumentScoreParameters(index: I, prop: string, id: DocumentID, docsCount: number): SyncOrAsyncValue
@@ -1585,6 +1635,7 @@ type Internals<
 type ZBSearchID = {
   id: string
   indexes?: IndexesConfig
+  store?: StoreSettings
 }
 
 export type ExtractSchema<T> = T extends { schema: infer RawSchema } ? Schema<RawSchema> : never

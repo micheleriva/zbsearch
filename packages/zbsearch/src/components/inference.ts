@@ -3,6 +3,7 @@ import type { AnyDocument, AnySchema, AnyZBSearch, SearchableType } from '../typ
 import { getNested } from '../utils.js'
 import { addSearchablePropertyToIndex, type Index } from './index.js'
 import { addSortablePropertyToSorter, type Sorter } from './sorter.js'
+import { isExcludedFromStore } from './store.js'
 
 function inferTypeFromValue(value: unknown): SearchableType | undefined {
   switch (typeof value) {
@@ -127,7 +128,9 @@ export function inferSchemaFromDocument<T extends AnyZBSearch>(zbsearch: T, doc:
     }
 
     addSearchablePropertyToIndex(zbsearch, index, path, type)
-    addSortablePropertyToSorter(sorter, path, type)
+    if (!(type === 'string' && isExcludedFromStore(zbsearch.store, path))) {
+      addSortablePropertyToSorter(sorter, path, type)
+    }
     setNestedSchemaProperty(zbsearch.schema as AnySchema, path, type)
 
     knownProperties[path] = type

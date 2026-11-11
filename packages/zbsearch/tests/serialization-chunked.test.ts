@@ -179,7 +179,7 @@ describe('save format is opt-in', () => {
 
     expect(isChunkedRawData(raw)).toBe(false)
     expect(Object.keys(raw).sort()).toEqual(
-      ['docs', 'index', 'internalDocumentIDStore', 'language', 'pinning', 'sorting'].sort()
+      ['docs', 'index', 'internalDocumentIDStore', 'language', 'pinning', 'sorting', 'store'].sort()
     )
   })
 

@@ -45,10 +45,12 @@ describe('create', () => {
 
 describe('search', () => {
   it('should return the most similar vectors', async () => {
+    // Keep the vectors in the documents store, so that the results return them as they were inserted
     const db = await create({
       schema: {
         vector: 'vector[5]'
-      } as const
+      } as const,
+      store: { vectors: true }
     })
 
     await insertMultiple(db, [{ vector: [1, 1, 1, 1, 1] }, { vector: [0, 1, 1, 1, 1] }, { vector: [0, 0, 1, 1, 1] }])
@@ -74,7 +76,8 @@ describe('search', () => {
         vectors: {
           embedding: 'vector[5]'
         }
-      } as const
+      } as const,
+      store: { vectors: true }
     })
 
     await insertMultiple(db, [
@@ -106,7 +109,8 @@ describe('search', () => {
             vectors: 'vector[5]'
           }
         }
-      } as const
+      } as const,
+      store: { vectors: true }
     })
 
     await insertMultiple(db, [
@@ -137,7 +141,8 @@ describe('search', () => {
           embedding: 'vector[5]',
           embedding_2: 'vector[6]'
         }
-      } as const
+      } as const,
+      store: { vectors: true }
     })
 
     await insertMultiple(db, [

@@ -1,6 +1,7 @@
 import type { AnyZBSearch, Results, SearchParamsVector, TypedDocument, Result } from '../types.js'
 import type { InternalDocumentID } from '../components/internal-document-id-store.js'
-import { getNanosecondsTime, formatNanoseconds, sortTokenScorePredicate, removeVectorsFromHits } from '../utils.js'
+import { getNanosecondsTime, formatNanoseconds, sortTokenScorePredicate } from '../utils.js'
+import { setHitsVectors } from '../components/store.js'
 import { getFacets } from '../components/facets.js'
 import { createError } from '../errors.js'
 import { getGroups } from '../components/groups.js'
@@ -94,9 +95,7 @@ export function searchVector<T extends AnyZBSearch, ResultDocument = TypedDocume
       ...(groups ? { groups } : {})
     }
 
-    if (!includeVectors) {
-      removeVectorsFromHits(searchResult, [vectorProperty])
-    }
+    setHitsVectors(zbsearch, searchResult.hits, includeVectors, [vectorProperty])
 
     return searchResult
   }

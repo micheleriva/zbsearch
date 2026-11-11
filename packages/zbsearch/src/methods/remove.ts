@@ -1,11 +1,43 @@
-import type { AnyZBSearch } from '../types.js'
+import type { AnyZBSearch, SearchableType, SyncOrAsyncValue } from '../types.js'
+import { isVectorType } from '../components/defaults.js'
+import { getStoreLayout } from '../components/store.js'
 import { runMultipleHook, runSingleHook } from '../components/hooks.js'
 import {
   DocumentID,
   getDocumentIdFromInternalId,
-  getInternalDocumentId
+  getInternalDocumentId,
+  InternalDocumentID
 } from '../components/internal-document-id-store.js'
 import { isAsyncFunction } from '../utils.js'
+
+// Removes from the index a value the documents store does not have. The vector index and the default index remove
+// by document ID, using what they kept at insert time; a document that never had the property is left untouched.
+function removeUnstoredValue<T extends AnyZBSearch>(
+  zbsearch: T,
+  prop: string,
+  id: DocumentID,
+  internalId: InternalDocumentID,
+  schemaType: SearchableType,
+  language: string | undefined,
+  docsCount: number
+): SyncOrAsyncValue<unknown> {
+  if (isVectorType(schemaType)) {
+    zbsearch.data.index.vectorIndexes[prop]?.node.remove(internalId)
+    return
+  }
+
+  return zbsearch.index.removeUnstored?.(
+    zbsearch.index,
+    zbsearch.data.index,
+    prop,
+    id,
+    internalId,
+    schemaType,
+    language,
+    zbsearch.tokenizer,
+    docsCount
+  )
+}
 
 export function remove<T extends AnyZBSearch>(
   zbsearch: T,
@@ -16,6 +48,7 @@ export function remove<T extends AnyZBSearch>(
   const asyncNeeded =
     isAsyncFunction(zbsearch.index.beforeRemove) ||
     isAsyncFunction(zbsearch.index.remove) ||
+    isAsyncFunction(zbsearch.index.removeUnstored) ||
     isAsyncFunction(zbsearch.index.afterRemove)
 
   if (asyncNeeded) {
@@ -53,11 +86,13 @@ async function removeAsync<T extends AnyZBSearch>(
 
   for (const prop of indexableProperties) {
     const value = values[prop]
+    const schemaType = indexablePropertiesWithTypes[prop]
+
     if (typeof value === 'undefined') {
+      // The value may be indexed but not stored (store.exclude, or vectors)
+      await removeUnstoredValue(zbsearch, prop, id, internalId, schemaType, language, docsCount)
       continue
     }
-
-    const schemaType = indexablePropertiesWithTypes[prop]
 
     await zbsearch.index.beforeRemove?.(
       zbsearch.data.index,
@@ -101,8 +136,9 @@ async function removeAsync<T extends AnyZBSearch>(
 
   const sortableProperties = await zbsearch.sorter.getSortableProperties(zbsearch.data.sorting)
   const sortableValues = await zbsearch.getDocumentProperties(doc, sortableProperties)
+  const { unstored } = getStoreLayout(zbsearch)
   for (const prop of sortableProperties) {
-    if (typeof sortableValues[prop] === 'undefined') {
+    if (typeof sortableValues[prop] === 'undefined' && !unstored.has(prop)) {
       continue
     }
 
@@ -146,11 +182,13 @@ function removeSync<T extends AnyZBSearch>(
 
   for (const prop of indexableProperties) {
     const value = values[prop]
+    const schemaType = indexablePropertiesWithTypes[prop]
+
     if (typeof value === 'undefined') {
+      // The value may be indexed but not stored (store.exclude, or vectors)
+      removeUnstoredValue(zbsearch, prop, id, internalId, schemaType, language, docsCount)
       continue
     }
-
-    const schemaType = indexablePropertiesWithTypes[prop]
 
     zbsearch.index.beforeRemove?.(
       zbsearch.data.index,
@@ -194,8 +232,9 @@ function removeSync<T extends AnyZBSearch>(
 
   const sortableProperties = zbsearch.sorter.getSortableProperties(zbsearch.data.sorting)
   const sortableValues = zbsearch.getDocumentProperties(doc, sortableProperties)
+  const { unstored } = getStoreLayout(zbsearch)
   for (const prop of sortableProperties) {
-    if (typeof sortableValues[prop] === 'undefined') {
+    if (typeof sortableValues[prop] === 'undefined' && !unstored.has(prop)) {
       continue
     }
 
@@ -221,6 +260,7 @@ export function removeMultiple<T extends AnyZBSearch>(
   const asyncNeeded =
     isAsyncFunction(zbsearch.index.beforeRemove) ||
     isAsyncFunction(zbsearch.index.remove) ||
+    isAsyncFunction(zbsearch.index.removeUnstored) ||
     isAsyncFunction(zbsearch.index.afterRemove) ||
     isAsyncFunction(zbsearch.beforeRemoveMultiple) ||
     isAsyncFunction(zbsearch.afterRemoveMultiple)

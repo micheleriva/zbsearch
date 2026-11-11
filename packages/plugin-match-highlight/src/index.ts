@@ -34,19 +34,87 @@ export type RawDataWithPositions = RawData & {
   positions: Record<string, Record<string, Record<string, Position[]>>>
 }
 
-export async function afterInsert<T extends AnyZBSearch>(zbsearch: T, id: string): Promise<void> {
+export type SourceTextGetter = (id: string, property: string) => string | undefined | Promise<string | undefined>
+
+export interface HighlightOptions {
+  /**
+   * Returns the text of a property that is not in the documents store (see the `store.exclude` option of
+   * `create`), so that its positions can be computed when searching. Called once per hit and property.
+   */
+  getSourceText?: SourceTextGetter
+}
+
+export async function afterInsert<T extends AnyZBSearch>(zbsearch: T, id: string, doc?: AnyDocument): Promise<void> {
   if (!('positions' in zbsearch.data)) {
     Object.assign(zbsearch.data, { positions: {} })
   }
 
+  // The inserted document, rather than the stored one, also has the properties excluded from the documents store
   await recursivePositionInsertion(
     zbsearch as ZBSearchWithHighlight<T>,
-    (await zbsearch.documentsStore.get(zbsearch.data.docs, id))!,
+    doc ?? (await zbsearch.documentsStore.get(zbsearch.data.docs, id))!,
     id
   )
 }
 
 const wordRegEx = /[\p{L}0-9_'-]+/gimu
+
+function getTextPositions<T extends AnyZBSearch>(zbsearch: T, text: string): Record<string, Position[]> {
+  const positions: Record<string, Position[]> = Object.create(null)
+  let regExResult: RegExpExecArray | null
+  while ((regExResult = wordRegEx.exec(text)) !== null) {
+    const word = regExResult[0].toLowerCase()
+    const start = regExResult.index
+    const length = regExResult[0].length
+    for (const token of zbsearch.tokenizer.tokenize(word)) {
+      if (!token) continue
+      if (!Array.isArray(positions[token])) {
+        positions[token] = []
+      }
+      positions[token].push({ start, length })
+    }
+  }
+  return positions
+}
+
+function getNestedValue(doc: unknown, path: string): unknown {
+  let value = doc
+  for (const key of path.split('.')) {
+    if (value === null || typeof value !== 'object') {
+      return undefined
+    }
+    value = (value as Record<string, unknown>)[key]
+  }
+  return value
+}
+
+// Computes the positions of a hit when searching, from its stored document and, for the properties the documents
+// store does not have, from `getSourceText`
+async function computeHitPositions<T extends AnyZBSearch>(
+  zbsearch: T,
+  id: string,
+  doc: unknown,
+  getSourceText: SourceTextGetter | undefined
+): Promise<Record<string, Record<string, Position[]>>> {
+  const types = zbsearch.index.getSearchablePropertiesWithTypes(zbsearch.data.index)
+  const positions: Record<string, Record<string, Position[]>> = Object.create(null)
+
+  for (const [property, type] of Object.entries(types)) {
+    if (type !== 'string') {
+      continue
+    }
+
+    let text = getNestedValue(doc, property)
+    if (typeof text !== 'string' && getSourceText) {
+      text = await getSourceText(id, property)
+    }
+    if (typeof text === 'string') {
+      positions[property] = getTextPositions(zbsearch, text)
+    }
+  }
+
+  return positions
+}
 
 async function recursivePositionInsertion<T extends AnyZBSearch, ResultDocument = TypedDocument<T>>(
   zbsearch: ZBSearchWithHighlight<T>,
@@ -66,42 +134,35 @@ async function recursivePositionInsertion<T extends AnyZBSearch, ResultDocument 
     if (!(typeof doc[key] === 'string' && key in schema && !isSchemaNested)) {
       continue
     }
-    zbsearch.data.positions[id][propName] = Object.create(null)
-    const text = doc[key] as string
-    let regExResult: RegExpExecArray | null
-    while ((regExResult = wordRegEx.exec(text)) !== null) {
-      const word = regExResult[0].toLowerCase()
-      const start = regExResult.index
-      const length = regExResult[0].length
-      // A matched word can yield more than one token: CJK text has no word
-      // spaces, so a whole run is one word here that the tokenizer splits into
-      // many. Record every token instead of only the first one, otherwise the
-      // other tokens have no position and cannot be highlighted even though
-      // search matches them. This mirrors searchWithHighlight, which already
-      // iterates the full token array.
-      const tokens = zbsearch.tokenizer.tokenize(word)
-      for (const token of tokens) {
-        if (!token) continue
-        if (!Array.isArray(zbsearch.data.positions[id][propName][token])) {
-          zbsearch.data.positions[id][propName][token] = []
-        }
-        zbsearch.data.positions[id][propName][token].push({ start, length })
-      }
-    }
+    // A matched word can yield more than one token: CJK text has no word
+    // spaces, so a whole run is one word here that the tokenizer splits into
+    // many. getTextPositions records every token instead of only the first one,
+    // otherwise the other tokens have no position and cannot be highlighted
+    // even though search matches them.
+    zbsearch.data.positions[id][propName] = getTextPositions(zbsearch, doc[key] as string)
   }
 }
 
+/**
+ * Searches and returns the positions of the matched tokens in each hit. The positions recorded by `afterInsert` are
+ * used when there are some; otherwise they are computed from the stored document, and from `options.getSourceText`
+ * for the properties that are not in the documents store.
+ */
 export async function searchWithHighlight<T extends AnyZBSearch, ResultDocument = TypedDocument<T>>(
   zbsearch: T,
   params: SearchParamsFullText<T, ResultDocument>,
-  language?: Language
+  language?: Language,
+  options: HighlightOptions = {}
 ): Promise<SearchResultWithHighlight<ResultDocument>> {
   const result = await search(zbsearch, params, language)
   const queryTokens: string[] = zbsearch.tokenizer.tokenize(params.term ?? '', language)
+  const recordedPositions = (zbsearch as unknown as Partial<ZBSearchWithHighlight<T>>).data?.positions
 
   const hitsWithPosition: ResultWithPositions<ResultDocument>[] = []
   for (const hit of result.hits) {
-    const hitPositions = Object.entries<any>((zbsearch as ZBSearchWithHighlight<T>).data.positions[hit.id])
+    const hitPositions = Object.entries<any>(
+      recordedPositions?.[hit.id] ?? (await computeHitPositions(zbsearch, hit.id, hit.document, options.getSourceText))
+    )
 
     const hits: AnyDocument[] = []
     for (const [propName, tokens] of hitPositions) {

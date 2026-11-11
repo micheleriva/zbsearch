@@ -1,6 +1,17 @@
 import { Language } from '../index.js'
-import { AnyZBSearch } from '../types.js'
+import { resolveStoreConfig } from '../components/store.js'
+import { AnyZBSearch, StoreSettings } from '../types.js'
 import { yieldToEventLoop } from '../utils.js'
+
+// The store configuration saved in a snapshot replaces the one given to `create`, so that the documents inserted
+// after loading are stored the same way as the ones in the snapshot. Snapshots saved before the option existed keep
+// the configuration of the database they are loaded into. Every cache derives from the loaded data, so it is cleared.
+function loadStoreSettings<T extends AnyZBSearch>(zbsearch: T, data: RawData): void {
+  if (data.store) {
+    zbsearch.store = resolveStoreConfig(data.store)
+  }
+  zbsearch.caches = {}
+}
 
 export interface RawData {
   internalDocumentIDStore: unknown
@@ -9,6 +20,8 @@ export interface RawData {
   sorting: unknown
   pinning: unknown
   language: Language
+  // The store configuration (see StoreConfig). Absent in snapshots saved before it existed.
+  store?: StoreSettings
 }
 
 export const CHUNKED_FORMAT_VERSION = 2
@@ -273,6 +286,7 @@ export function load<T extends AnyZBSearch>(zbsearch: T, raw: RawData | ChunkedR
   zbsearch.data.sorting = zbsearch.sorter.load(zbsearch.internalDocumentIDStore, data.sorting)
   zbsearch.data.pinning = zbsearch.pinning.load(zbsearch.internalDocumentIDStore, data.pinning)
   zbsearch.tokenizer.language = data.language
+  loadStoreSettings(zbsearch, data)
 }
 
 export async function loadAsync<T extends AnyZBSearch>(zbsearch: T, raw: RawData | ChunkedRawData): Promise<void> {
@@ -296,6 +310,7 @@ export async function loadAsync<T extends AnyZBSearch>(zbsearch: T, raw: RawData
 
   zbsearch.data.pinning = zbsearch.pinning.load(zbsearch.internalDocumentIDStore, data.pinning)
   zbsearch.tokenizer.language = data.language
+  loadStoreSettings(zbsearch, data)
 }
 
 export function save<T extends AnyZBSearch>(zbsearch: T): RawData
@@ -308,7 +323,8 @@ export function save<T extends AnyZBSearch>(zbsearch: T, options?: SaveOptions):
     docs: zbsearch.documentsStore.save(zbsearch.data.docs),
     sorting: zbsearch.sorter.save(zbsearch.data.sorting),
     pinning: zbsearch.pinning.save(zbsearch.data.pinning),
-    language: zbsearch.tokenizer.language
+    language: zbsearch.tokenizer.language,
+    ...(zbsearch.store ? { store: zbsearch.store } : {})
   }
 
   if (options?.format !== 'chunked') return raw

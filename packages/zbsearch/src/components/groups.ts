@@ -13,6 +13,7 @@ import type {
   TypedDocument
 } from '../types.js'
 import { getDocumentIdFromInternalId } from './internal-document-id-store.js'
+import { assertPropertyIsStored } from './store.js'
 import { Point } from '../trees/bkd.js'
 
 interface PropertyGroup {
@@ -57,6 +58,7 @@ export function getGroups<T extends AnyZBSearch, ResultDocument = TypedDocument<
     if (typeof schemaProperties[property] === 'undefined') {
       throw createError('UNKNOWN_GROUP_BY_PROPERTY', property)
     }
+    assertPropertyIsStored(zbsearch, property, 'groupBy')
     if (!ALLOWED_TYPES.includes(schemaProperties[property])) {
       throw createError('INVALID_GROUP_BY_PROPERTY', property, ALLOWED_TYPES.join(', '), schemaProperties[property])
     }

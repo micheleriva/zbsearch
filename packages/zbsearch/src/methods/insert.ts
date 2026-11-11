@@ -1,6 +1,7 @@
 import { runMultipleHook, runSingleHook } from '../components/hooks.js'
 import { inferSchemaFromDocument } from '../components/inference.js'
 import { getInternalDocumentId } from '../components/internal-document-id-store.js'
+import { getStoredDocument, getStoreLayout } from '../components/store.js'
 import { isArrayType, isGeoPointType, isVectorType } from '../components.js'
 import { createError } from '../errors.js'
 import { Point } from '../trees/bkd.js'
@@ -17,6 +18,11 @@ import { isAsyncFunction, sleep, yieldToEventLoop } from '../utils.js'
 
 export type InsertOptions = {
   avlRebalanceThreshold?: number
+  /**
+   * Set when the value is not kept in the documents store (see `StoreConfig`): the index must keep whatever it needs
+   * to remove the document later without being given the value.
+   */
+  unstored?: boolean
 }
 
 export function insert<T extends AnyZBSearch>(
@@ -70,7 +76,7 @@ async function innerInsertAsync<T extends AnyZBSearch>(
     await runSingleHook(zbsearch.beforeInsert, zbsearch, id, doc as TypedDocument<T>)
   }
 
-  if (!zbsearch.documentsStore.store(docs, id, internalId, doc)) {
+  if (!zbsearch.documentsStore.store(docs, id, internalId, getStoredDocument(zbsearch, doc as AnyDocument))) {
     throw createError('DOCUMENT_ALREADY_EXISTS', id)
   }
 
@@ -148,7 +154,7 @@ function innerInsertSync<T extends AnyZBSearch>(
     runSingleHook(zbsearch.beforeInsert, zbsearch, id, doc as TypedDocument<T>)
   }
 
-  if (!zbsearch.documentsStore.store(docs, id, internalId, doc)) {
+  if (!zbsearch.documentsStore.store(docs, id, internalId, getStoredDocument(zbsearch, doc as AnyDocument))) {
     throw createError('DOCUMENT_ALREADY_EXISTS', id)
   }
 
@@ -217,11 +223,15 @@ async function indexAndSortDocument<T extends AnyZBSearch>(
   doc: PartialSchemaDeep<TypedDocument<T>>,
   options?: InsertOptions
 ) {
+  const { unstored } = getStoreLayout(zbsearch)
+  let unstoredOptions: InsertOptions | undefined
+
   for (const prop of indexableProperties) {
     const value = indexableValues[prop]
     if (typeof value === 'undefined') continue
 
     const expectedType = zbsearch.index.getSearchablePropertiesWithTypes(zbsearch.data.index)[prop]
+    const propOptions = unstored.has(prop) ? (unstoredOptions ??= { ...options, unstored: true }) : options
 
     await zbsearch.index.beforeInsert?.(
       zbsearch.data.index,
@@ -245,7 +255,7 @@ async function indexAndSortDocument<T extends AnyZBSearch>(
       language,
       zbsearch.tokenizer,
       docsCount,
-      options
+      propOptions
     )
     await zbsearch.index.afterInsert?.(
       zbsearch.data.index,
@@ -287,12 +297,15 @@ function indexAndSortDocumentSync<T extends AnyZBSearch>(
 ) {
   const indexTypes = cachedIndexTypes ?? zbsearch.index.getSearchablePropertiesWithTypes(zbsearch.data.index)
   const internalDocumentId = getInternalDocumentId(zbsearch.internalDocumentIDStore, id)
+  const { unstored } = getStoreLayout(zbsearch)
+  let unstoredOptions: InsertOptions | undefined
 
   for (const prop of indexableProperties) {
     const value = indexableValues[prop]
     if (typeof value === 'undefined') continue
 
     const expectedType = indexTypes[prop]
+    const propOptions = unstored.has(prop) ? (unstoredOptions ??= { ...options, unstored: true }) : options
 
     zbsearch.index.beforeInsert?.(
       zbsearch.data.index,
@@ -315,7 +328,7 @@ function indexAndSortDocumentSync<T extends AnyZBSearch>(
       language,
       zbsearch.tokenizer,
       docsCount,
-      options
+      propOptions
     )
     zbsearch.index.afterInsert?.(
       zbsearch.data.index,
@@ -450,7 +463,7 @@ function insertBatchSync<T extends AnyZBSearch>(
       runSingleHook(zbsearch.beforeInsert, zbsearch, id, doc as TypedDocument<T>)
     }
 
-    if (!zbsearch.documentsStore.store(docsStore, id, internalId, doc)) {
+    if (!zbsearch.documentsStore.store(docsStore, id, internalId, getStoredDocument(zbsearch, doc as AnyDocument))) {
       throw createError('DOCUMENT_ALREADY_EXISTS', id)
     }
 

@@ -186,3 +186,48 @@ it('it should record a position for every token of a multi-token word (CJK)', as
   expect(results.hits.length > 0, 'search finds the document').toBeTruthy()
   expect(Array.isArray(results.hits[0].positions.text[lastToken]), 'a non-leading token is highlightable').toBeTruthy()
 })
+
+it('records the positions of properties excluded from the documents store', async () => {
+  const db = create({
+    schema: { title: 'string', text: 'string' } as const,
+    store: { exclude: ['text'] },
+    plugins: [{ name: 'highlight', afterInsert }]
+  })
+
+  const id = await insert(db, { title: 'greeting', text: 'hello world' })
+
+  const results = await searchWithHighlight(db, { term: 'hello' })
+  expect(results.hits[0].id).toBe(id)
+  expect(results.hits[0].document).not.toHaveProperty('text')
+  expect(results.hits[0].positions).toEqual({ title: {}, text: { hello: [{ start: 0, length: 5 }] } })
+})
+
+it('computes positions when searching, reading excluded properties with getSourceText', async () => {
+  const sources: Record<string, string> = { a: 'say hello to the world', b: 'hello again' }
+  const db = create({
+    schema: { title: 'string', body: { text: 'string' } } as const,
+    store: { exclude: ['body.text'] }
+  })
+
+  await insert(db, { id: 'a', title: 'First hello', body: { text: sources.a } })
+  await insert(db, { id: 'b', title: 'Second', body: { text: sources.b } })
+
+  const requested: string[] = []
+  const results = await searchWithHighlight(db, { term: 'hello' }, undefined, {
+    getSourceText: async (id, property) => {
+      requested.push(`${id}:${property}`)
+      return property === 'body.text' ? sources[id] : undefined
+    }
+  })
+
+  const positions = Object.fromEntries(results.hits.map((hit) => [hit.id, hit.positions]))
+  expect(positions).toEqual({
+    a: { title: { hello: [{ start: 6, length: 5 }] }, 'body.text': { hello: [{ start: 4, length: 5 }] } },
+    b: { title: {}, 'body.text': { hello: [{ start: 0, length: 5 }] } }
+  })
+  expect(requested.sort()).toEqual(['a:body.text', 'b:body.text'])
+
+  // Without getSourceText, only the stored properties have positions
+  const storedOnly = await searchWithHighlight(db, { term: 'hello' })
+  expect(storedOnly.hits.find((hit) => hit.id === 'b')!.positions).toEqual({ title: {} })
+})

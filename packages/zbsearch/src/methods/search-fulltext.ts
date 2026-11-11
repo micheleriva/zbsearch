@@ -4,6 +4,7 @@ import { runAfterSearch, runBeforeSearch } from '../components/hooks.js'
 import { getInternalDocumentId } from '../components/internal-document-id-store.js'
 import { searchByGeoWhereClause } from '../components/index.js'
 import { applyPinningRules } from '../components/pinning-manager.js'
+import { assertPropertyIsStored, getStoreLayout, setHitsVectors } from '../components/store.js'
 import { Language } from '../components/tokenizer/languages.js'
 import { createError } from '../errors.js'
 import type {
@@ -16,7 +17,7 @@ import type {
   TokenScore,
   TypedDocument
 } from '../types.js'
-import { getNanosecondsTime, removeVectorsFromHits, sortTokenScores } from '../utils.js'
+import { getNanosecondsTime, sortTokenScores } from '../utils.js'
 import { count } from './docs.js'
 import { fetchDocuments, fetchDocumentsWithDistinct } from './fetch-documents.js'
 
@@ -99,14 +100,19 @@ export function innerFullTextSearch<T extends AnyZBSearch>(
     // where the original text contains the exact search term (case-sensitive).
     // This is a highly requested feature and although ZBSearch is not case-sensitive by design,
     // this is a reasonable compromise.
+    // The text of the properties excluded from the documents store cannot be checked: for them, exact keeps the
+    // documents the index matched exactly (case-insensitively).
     if (params.exact && term) {
       const searchTerms = term.trim().split(/\s+/)
       const exactRegexes = searchTerms.map((searchTerm) => new RegExp(`\\b${escapeRegex(searchTerm)}\\b`))
+      const { excluded } = getStoreLayout(zbsearch)
+      const verifiableProperties = propertiesToSearch.filter((prop) => !excluded.has(prop))
+      const hasUnverifiableProperties = verifiableProperties.length < propertiesToSearch.length
       uniqueDocsIDs = uniqueDocsIDs.filter(([docId]) => {
         const doc = zbsearch.documentsStore.get(zbsearch.data.docs, docId)
         if (!doc) return false
 
-        for (const prop of propertiesToSearch) {
+        for (const prop of verifiableProperties) {
           const propValue = getPropValue(doc, prop)
           if (typeof propValue === 'string') {
             const hasAllTerms = exactRegexes.every((regex) => regex.test(propValue))
@@ -115,7 +121,7 @@ export function innerFullTextSearch<T extends AnyZBSearch>(
             }
           }
         }
-        return false
+        return hasUnverifiableProperties
       })
     }
   } else {
@@ -172,6 +178,10 @@ export function fullTextSearch<T extends AnyZBSearch, ResultDocument = TypedDocu
     const { limit = 10, offset = 0, distinctOn, includeVectors = false } = params
     const isPreflight = params.preflight === true
 
+    if (distinctOn) {
+      assertPropertyIsStored(zbsearch, distinctOn as string, 'distinctOn')
+    }
+
     let uniqueDocsArray = innerFullTextSearch(zbsearch, params, language)
 
     if (params.sortBy) {
@@ -215,9 +225,7 @@ export function fullTextSearch<T extends AnyZBSearch, ResultDocument = TypedDocu
 
     if (typeof results !== 'undefined') {
       searchResult.hits = results.filter(Boolean)
-      if (!includeVectors) {
-        removeVectorsFromHits(searchResult, vectorProperties)
-      }
+      setHitsVectors(zbsearch, searchResult.hits, includeVectors, vectorProperties)
     }
 
     if (shouldCalculateFacets) {

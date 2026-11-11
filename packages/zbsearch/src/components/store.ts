@@ -1,0 +1,277 @@
+import { createError } from '../errors.js'
+import type { AnyDocument, AnySchema, AnyZBSearch, Result, StoreConfig, StoreSettings } from '../types.js'
+import { isVectorType } from './defaults.js'
+import { getInternalDocumentId } from './internal-document-id-store.js'
+
+// The settings of a database that was not built by `create` (or that predates `store`): everything is stored.
+const LEGACY_STORE_SETTINGS: StoreSettings = { exclude: [], vectors: true }
+
+const STORE_CACHE_KEY = 'store'
+
+type PathTree = { [key: string]: PathTree | true }
+
+/**
+ * What the store settings mean for the current schema, computed once and kept in `zbsearch.caches` (which schema
+ * inference and `load` clear).
+ */
+export interface StoreLayout {
+  // Searchable properties left out of the documents store because `store.exclude` names them
+  excluded: Set<string>
+  // Searchable properties whose values the documents store does not keep: `excluded` plus, unless
+  // `store.vectors` is set, every vector property
+  unstored: Set<string>
+  // The paths to drop from a document before storing it, as a tree of keys, or undefined if there are none
+  omit: PathTree | undefined
+}
+
+export function resolveStoreConfig(config: StoreConfig | undefined): StoreSettings {
+  if (config === undefined || config === null) {
+    return { exclude: [], vectors: false }
+  }
+
+  if (typeof config !== 'object' || Array.isArray(config)) {
+    throw createError('INVALID_STORE_CONFIG', 'expected an object')
+  }
+
+  const { exclude = [], vectors = false } = config
+
+  if (!Array.isArray(exclude) || exclude.some((path) => typeof path !== 'string' || path.length === 0)) {
+    throw createError('INVALID_STORE_CONFIG', '"exclude" must be an array of non-empty property paths')
+  }
+
+  if (typeof vectors !== 'boolean') {
+    throw createError('INVALID_STORE_CONFIG', '"vectors" must be a boolean')
+  }
+
+  return { exclude: Array.from(new Set(exclude)), vectors }
+}
+
+export function getStoreSettings<T extends AnyZBSearch>(zbsearch: T): StoreSettings {
+  return zbsearch.store ?? LEGACY_STORE_SETTINGS
+}
+
+function isUnderPath(prop: string, path: string): boolean {
+  return prop === path || prop.startsWith(`${path}.`)
+}
+
+/**
+ * Whether `store.exclude` leaves `prop` out of the documents store.
+ */
+export function isExcludedFromStore(settings: StoreSettings | undefined, prop: string): boolean {
+  return settings !== undefined && settings.exclude.some((path) => isUnderPath(prop, path))
+}
+
+/**
+ * The `string` properties of `schema` that `store.exclude` leaves out of the documents store. They are not sortable:
+ * the sorter keeps its own copy of every sortable value, which would keep the excluded text in memory.
+ */
+export function getExcludedStringProperties(settings: StoreSettings, schema: AnySchema, prefix = ''): string[] {
+  const properties: string[] = []
+  if (settings.exclude.length === 0) {
+    return properties
+  }
+
+  for (const [key, type] of Object.entries(schema)) {
+    const path = prefix ? `${prefix}.${key}` : key
+    if (typeof type === 'object' && type !== null && !Array.isArray(type)) {
+      properties.push(...getExcludedStringProperties(settings, type as AnySchema, path))
+    } else if (type === 'string' && isExcludedFromStore(settings, path)) {
+      properties.push(path)
+    }
+  }
+
+  return properties
+}
+
+function addPath(tree: PathTree, path: string): void {
+  const keys = path.split('.')
+  let node = tree
+  for (let i = 0; i < keys.length - 1; i++) {
+    const child = node[keys[i]]
+    if (child === true) {
+      // An ancestor is already omitted
+      return
+    }
+    node = node[keys[i]] = child ?? {}
+  }
+  node[keys[keys.length - 1]] = true
+}
+
+export function getStoreLayout<T extends AnyZBSearch>(zbsearch: T): StoreLayout {
+  const cached = zbsearch.caches[STORE_CACHE_KEY] as StoreLayout | undefined
+  if (cached) {
+    return cached
+  }
+
+  const settings = getStoreSettings(zbsearch)
+  const properties = zbsearch.index.getSearchableProperties(zbsearch.data.index)
+  const types = zbsearch.index.getSearchablePropertiesWithTypes(zbsearch.data.index)
+
+  const excluded = new Set<string>()
+  const unstored = new Set<string>()
+  const omitted: string[] = [...settings.exclude]
+
+  for (const prop of properties) {
+    if (isExcludedFromStore(settings, prop)) {
+      excluded.add(prop)
+      unstored.add(prop)
+    } else if (!settings.vectors && isVectorType(types[prop])) {
+      unstored.add(prop)
+      omitted.push(prop)
+    }
+  }
+
+  let omit: PathTree | undefined
+  if (omitted.length > 0) {
+    omit = {}
+    // Shorter paths first, so that a path also omitted by one of its ancestors is skipped
+    for (const path of omitted.sort((a, b) => a.length - b.length)) {
+      addPath(omit, path)
+    }
+  }
+
+  const layout: StoreLayout = { excluded, unstored, omit }
+  zbsearch.caches[STORE_CACHE_KEY] = layout
+
+  return layout
+}
+
+function isPlainObject(value: unknown): value is AnyDocument {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function omitTree(doc: AnyDocument, tree: PathTree): AnyDocument {
+  let copy: AnyDocument | undefined
+
+  for (const key of Object.keys(tree)) {
+    if (!Object.hasOwn(doc, key)) {
+      continue
+    }
+
+    const subtree = tree[key]
+    if (subtree === true) {
+      copy ??= { ...doc }
+      delete copy[key]
+      continue
+    }
+
+    const child = doc[key]
+    if (!isPlainObject(child)) {
+      continue
+    }
+
+    const omittedChild = omitTree(child, subtree)
+    if (omittedChild !== child) {
+      copy ??= { ...doc }
+      copy[key] = omittedChild
+    }
+  }
+
+  return copy ?? doc
+}
+
+/**
+ * Returns the document the documents store keeps: the document itself when nothing has to be left out, otherwise a
+ * copy without the unstored properties (the objects on the way to them are copied, the inserted document is never
+ * modified).
+ */
+export function getStoredDocument<T extends AnyZBSearch>(zbsearch: T, doc: AnyDocument): AnyDocument {
+  const { omit } = getStoreLayout(zbsearch)
+  return omit ? omitTree(doc, omit) : doc
+}
+
+/**
+ * Throws if `prop` is excluded from the documents store: facets, groups and `distinctOn` read the stored documents.
+ */
+export function assertPropertyIsStored<T extends AnyZBSearch>(zbsearch: T, prop: string, usage: string): void {
+  if (getStoreLayout(zbsearch).excluded.has(prop)) {
+    throw createError('PROPERTY_NOT_STORED', prop, usage)
+  }
+}
+
+function getAtPath(doc: AnyDocument, keys: string[]): unknown {
+  let value: unknown = doc
+  for (const key of keys) {
+    if (!isPlainObject(value)) {
+      return undefined
+    }
+    value = value[key]
+  }
+  return value
+}
+
+// Returns a copy of `doc` with `value` at `keys`, copying the objects on the way and creating the missing ones.
+function withValueAtPath(doc: AnyDocument, keys: string[], value: unknown): AnyDocument {
+  const root: AnyDocument = { ...doc }
+  let target = root
+
+  for (let i = 0; i < keys.length - 1; i++) {
+    const child = target[keys[i]]
+    if (child === undefined || child === null) {
+      target = target[keys[i]] = {}
+    } else if (isPlainObject(child)) {
+      target = target[keys[i]] = { ...child }
+    } else {
+      return doc
+    }
+  }
+
+  target[keys[keys.length - 1]] = value
+  return root
+}
+
+/**
+ * Sets the vectors of the search hits: with `includeVectors`, the vectors that are not in the documents store are
+ * rebuilt from the vector index (normalized, as the index holds them); otherwise the vector properties in
+ * `vectorProperties` are set to `null`. The stored documents are never modified: hits that change get a copy.
+ */
+export function setHitsVectors<T extends AnyZBSearch>(
+  zbsearch: T,
+  hits: Result<unknown>[],
+  includeVectors: boolean,
+  vectorProperties: string[]
+): void {
+  const vectorIndexes = zbsearch.data.index.vectorIndexes
+
+  if (includeVectors) {
+    const { unstored } = getStoreLayout(zbsearch)
+    const properties = Object.keys(vectorIndexes).filter((prop) => unstored.has(prop))
+    if (properties.length === 0) {
+      return
+    }
+
+    const paths = properties.map((prop) => prop.split('.'))
+    for (const hit of hits) {
+      let doc = hit.document as AnyDocument
+      let internalId: number | undefined
+
+      for (let i = 0; i < properties.length; i++) {
+        if (getAtPath(doc, paths[i]) !== undefined) {
+          // Stored before the property was unstored, e.g. in a snapshot of an older version
+          continue
+        }
+        internalId ??= getInternalDocumentId(zbsearch.internalDocumentIDStore, hit.id)
+        const vector = vectorIndexes[properties[i]].node.getVector?.(internalId)
+        if (vector) {
+          doc = withValueAtPath(doc, paths[i], Array.from(vector))
+        }
+      }
+
+      hit.document = doc
+    }
+    return
+  }
+
+  if (vectorProperties.length === 0) {
+    return
+  }
+
+  const paths = vectorProperties.map((prop) => prop.split('.'))
+  for (const hit of hits) {
+    let doc = hit.document as AnyDocument
+    for (const keys of paths) {
+      doc = withValueAtPath(doc, keys, null)
+    }
+    hit.document = doc
+  }
+}

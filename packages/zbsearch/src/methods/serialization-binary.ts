@@ -16,7 +16,7 @@
 // their `save()` output with a generic tagged encoding that splits large objects and arrays into records.
 
 import type { AnyZBSearch, SnapshotTypedArray, SortType, StoreSettings, VectorBinarySnapshot } from '../types.js'
-import { resolveStoreConfig } from '../components/store.js'
+import { assertUnstoredPropertiesRemovable, resolveStoreConfig } from '../components/store.js'
 import { createError } from '../errors.js'
 import { getNested, yieldToEventLoop } from '../utils.js'
 import {
@@ -1565,15 +1565,17 @@ function trailing() {
 
 async function applySnapshotAsync(db: AnyZBSearch, loaded: LoadedSnapshot): Promise<void> {
   const store = db.internalDocumentIDStore
+  const previousIdStore = store.save(store)
   store.load(db, loaded.idStore)
 
-  if (loaded.meta.index === 'builtin') {
-    db.data.index = loaded.index as Index
-  } else {
-    db.data.index = db.index.loadAsync
-      ? await db.index.loadAsync(store, loaded.index, db.indexes)
-      : db.index.load(store, loaded.index, db.indexes)
-  }
+  const index =
+    loaded.meta.index === 'builtin'
+      ? (loaded.index as Index)
+      : db.index.loadAsync
+        ? await db.index.loadAsync(store, loaded.index, db.indexes)
+        : db.index.load(store, loaded.index, db.indexes)
+  assertUnstoredPropertiesRemovable(db, index, loadedStoreSettings(db, loaded.meta), previousIdStore)
+  db.data.index = index
 
   db.data.docs = db.documentsStore.load(store, loaded.docs)
 
@@ -1590,6 +1592,11 @@ async function applySnapshotAsync(db: AnyZBSearch, loaded: LoadedSnapshot): Prom
   applyStoreSettings(db, loaded.meta)
 }
 
+// The store settings the database will have once the snapshot is applied (see applyStoreSettings).
+function loadedStoreSettings(db: AnyZBSearch, meta: SnapshotMeta): StoreSettings | undefined {
+  return meta.store ? resolveStoreConfig(meta.store) : db.store
+}
+
 // As in `load`: the saved store configuration wins over the one given to `create`, snapshots without one keep the
 // configuration of the target database, and every cache is cleared.
 function applyStoreSettings(db: AnyZBSearch, meta: SnapshotMeta): void {
@@ -1601,9 +1608,12 @@ function applyStoreSettings(db: AnyZBSearch, meta: SnapshotMeta): void {
 
 function applySnapshot(db: AnyZBSearch, loaded: LoadedSnapshot): void {
   const store = db.internalDocumentIDStore
+  const previousIdStore = store.save(store)
   store.load(db, loaded.idStore)
-  db.data.index =
+  const index =
     loaded.meta.index === 'builtin' ? (loaded.index as Index) : db.index.load(store, loaded.index, db.indexes)
+  assertUnstoredPropertiesRemovable(db, index, loadedStoreSettings(db, loaded.meta), previousIdStore)
+  db.data.index = index
   db.data.docs = db.documentsStore.load(store, loaded.docs)
   db.data.sorting =
     loaded.meta.sorter === 'builtin' ? (loaded.sorting as Sorter) : db.sorter.load(store, loaded.sorting)

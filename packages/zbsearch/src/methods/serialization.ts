@@ -1,5 +1,5 @@
 import { Language } from '../index.js'
-import { resolveStoreConfig } from '../components/store.js'
+import { assertUnstoredPropertiesRemovable, resolveStoreConfig } from '../components/store.js'
 import { AnyZBSearch, StoreSettings } from '../types.js'
 import { yieldToEventLoop } from '../utils.js'
 import { estimateJsonLength } from './binary-codec.js'
@@ -12,6 +12,11 @@ function loadStoreSettings<T extends AnyZBSearch>(zbsearch: T, data: RawData): v
     zbsearch.store = resolveStoreConfig(data.store)
   }
   zbsearch.caches = {}
+}
+
+// The store settings the database will have once `data` is loaded (see loadStoreSettings).
+function loadedStoreSettings<T extends AnyZBSearch>(zbsearch: T, data: RawData): StoreSettings | undefined {
+  return data.store ? resolveStoreConfig(data.store) : zbsearch.store
 }
 
 export interface RawData {
@@ -297,8 +302,11 @@ export async function fromChunkedRawDataAsync(data: ChunkedRawData): Promise<Raw
 export function load<T extends AnyZBSearch>(zbsearch: T, raw: RawData | ChunkedRawData): void {
   const data = isChunkedRawData(raw) ? fromChunkedRawData(raw) : raw
 
+  const previousIdStore = zbsearch.internalDocumentIDStore.save(zbsearch.internalDocumentIDStore)
   zbsearch.internalDocumentIDStore.load(zbsearch, data.internalDocumentIDStore)
-  zbsearch.data.index = zbsearch.index.load(zbsearch.internalDocumentIDStore, data.index, zbsearch.indexes)
+  const index = zbsearch.index.load(zbsearch.internalDocumentIDStore, data.index, zbsearch.indexes)
+  assertUnstoredPropertiesRemovable(zbsearch, index, loadedStoreSettings(zbsearch, data), previousIdStore)
+  zbsearch.data.index = index
   zbsearch.data.docs = zbsearch.documentsStore.load(zbsearch.internalDocumentIDStore, data.docs)
   zbsearch.data.sorting = zbsearch.sorter.load(zbsearch.internalDocumentIDStore, data.sorting)
   zbsearch.data.pinning = zbsearch.pinning.load(zbsearch.internalDocumentIDStore, data.pinning)
@@ -309,12 +317,15 @@ export function load<T extends AnyZBSearch>(zbsearch: T, raw: RawData | ChunkedR
 export async function loadAsync<T extends AnyZBSearch>(zbsearch: T, raw: RawData | ChunkedRawData): Promise<void> {
   const data = isChunkedRawData(raw) ? await fromChunkedRawDataAsync(raw) : raw
 
+  const previousIdStore = zbsearch.internalDocumentIDStore.save(zbsearch.internalDocumentIDStore)
   zbsearch.internalDocumentIDStore.load(zbsearch, data.internalDocumentIDStore)
   await yieldToEventLoop()
 
-  zbsearch.data.index = zbsearch.index.loadAsync
+  const index = zbsearch.index.loadAsync
     ? await zbsearch.index.loadAsync(zbsearch.internalDocumentIDStore, data.index, zbsearch.indexes)
     : zbsearch.index.load(zbsearch.internalDocumentIDStore, data.index, zbsearch.indexes)
+  assertUnstoredPropertiesRemovable(zbsearch, index, loadedStoreSettings(zbsearch, data), previousIdStore)
+  zbsearch.data.index = index
   await yieldToEventLoop()
 
   zbsearch.data.docs = zbsearch.documentsStore.load(zbsearch.internalDocumentIDStore, data.docs)

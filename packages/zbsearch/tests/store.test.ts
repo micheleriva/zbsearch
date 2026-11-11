@@ -18,9 +18,12 @@ import {
   insertMultipleAsync,
   load,
   loadAsync,
+  loadBinary,
+  loadBinarySync,
   remove,
   removeMultiple,
   save,
+  saveBinarySync,
   search,
   update,
   updateMultiple,
@@ -380,6 +383,36 @@ describe('store.exclude', () => {
     expect(db.index.getSearchablePropertiesWithTypes(db.data.index)).toEqual({ title: 'string' })
     expect(db.schema).toEqual({ title: 'string' })
     expect(count(db)).toBe(1)
+  })
+
+  it('refuses loading a snapshot with excluded searchable properties into an index component that cannot remove them', async () => {
+    const source = create({ schema: { title: 'string', text: 'string' }, store: { exclude: ['text'] } })
+    insert(source, { id: '1', title: 'one', text: 'hidden words' })
+    const raw = save(source)
+    const binary = saveBinarySync(source)
+
+    const { removeUnstored: _, ...legacyIndex } = defaultIndex.createIndex()
+    const target = () =>
+      create({ schema: { title: 'string', text: 'string' }, components: { index: legacyIndex as any } })
+    const refused = /cannot name the searchable property "text"/
+
+    expect(() => load(target(), JSON.parse(JSON.stringify(raw)) as RawData)).toThrow(refused)
+    await expect(loadAsync(target(), JSON.parse(JSON.stringify(raw)) as RawData)).rejects.toThrow(refused)
+    expect(() => loadBinarySync(target(), binary)).toThrow(refused)
+    await expect(loadBinary(target(), binary)).rejects.toThrow(refused)
+
+    // The refused snapshot left the target's index untouched.
+    const db = target()
+    insert(db, { id: 'x', title: 'kept', text: 'kept text' })
+    expect(() => load(db, JSON.parse(JSON.stringify(raw)) as RawData)).toThrow(refused)
+    expect(search(db, { term: 'kept' }).hits.map((hit) => hit.id)).toEqual(['x'])
+
+    // A snapshot that keeps every searchable property stored still loads.
+    const stored = create({ schema: { title: 'string', text: 'string' } })
+    insert(stored, { id: '1', title: 'one', text: 'stored words' })
+    const restored = target()
+    load(restored, JSON.parse(JSON.stringify(save(stored))) as RawData)
+    expect(search(restored, { term: 'stored' }).hits.map((hit) => hit.id)).toEqual(['1'])
   })
 })
 

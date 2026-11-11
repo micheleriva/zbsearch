@@ -62,6 +62,32 @@ export function isExcludedFromStore(settings: StoreSettings | undefined, prop: s
 }
 
 /**
+ * Throws if `settings` leaves a searchable, non-vector property of `indexData` out of the documents store while the
+ * index component cannot remove such values (it has no `removeUnstored`): removing those documents would leave
+ * their entries in the index. `create` and schema inference run the same check; this one covers loaded snapshots,
+ * whose store settings and inferred properties can differ from the ones given to `create`.
+ */
+export function assertUnstoredPropertiesRemovable<T extends AnyZBSearch>(
+  zbsearch: T,
+  indexData: unknown,
+  settings: StoreSettings | undefined,
+  previousIdStore: unknown
+): void {
+  if (zbsearch.index.removeUnstored || settings === undefined || settings.exclude.length === 0) {
+    return
+  }
+  const types = zbsearch.index.getSearchablePropertiesWithTypes(indexData as T['data']['index'])
+  for (const [prop, type] of Object.entries(types)) {
+    if (!isVectorType(type) && isExcludedFromStore(settings, prop)) {
+      // The loaders replace the ID store before loading the index (the index needs it): put it back, so a refused
+      // snapshot leaves the database as it was.
+      zbsearch.internalDocumentIDStore.load(zbsearch, previousIdStore)
+      throw createError('UNSTORED_PROPERTIES_NOT_SUPPORTED', prop)
+    }
+  }
+}
+
+/**
  * The `string` properties of `schema` that `store.exclude` leaves out of the documents store. They are not sortable:
  * the sorter keeps its own copy of every sortable value, which would keep the excluded text in memory.
  */

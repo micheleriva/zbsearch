@@ -99,7 +99,10 @@ is approximate and off by default.
 
 Every write is appended to a write-ahead log before it is applied. Compaction (every `compactEvery` records,
 on `compact()` and on `close()`) writes modified shards as new snapshots and then commits the global state in a
-single write. Reopening after a crash drops snapshots the state does not reference and replays the log.
+single write. Reopening after a crash drops snapshots the state does not reference and replays the log. Ops that
+failed when they were written (the write threw for them) are skipped; if any other op cannot be replayed, opening
+fails and the log is kept, so an acknowledged write is never dropped. Number properties accept `Infinity` and
+`-Infinity` as core does, but refuse `NaN`, which core's number index cannot order.
 
 ## Storage adapters
 

@@ -1,4 +1,4 @@
-import { insert, remove, update, upsert } from 'zbsearch'
+import { create, insert, remove, search as coreSearch, update, upsert } from 'zbsearch'
 import { describe, expect, it } from 'vitest'
 import { MemoryStorage, openShardedDatabase, type ShardStorage, type ShardedSearchParams } from '../src/index.js'
 import { SCHEMA, corpusWords, makeCorpus, type Passage } from './corpus.js'
@@ -168,6 +168,12 @@ describe('memory budget', () => {
 })
 
 /** Storage that fails every put (`failOn`) or get (`failGet`) of matching keys while armed. */
+async function listKeys(storage: ShardStorage, prefix: string): Promise<string[]> {
+  const keys: string[] = []
+  for await (const { key } of storage.list(prefix)) keys.push(key)
+  return keys.sort()
+}
+
 class FailingStorage extends MemoryStorage {
   failOn: ((key: string) => boolean) | undefined
   failGet: ((key: string) => boolean) | undefined
@@ -405,6 +411,116 @@ describe('write-ahead log and compaction', () => {
       delete (Object.prototype as Record<string, unknown>).polluted
       delete (Object.prototype as Record<string, unknown>).x
     }
+  })
+
+  it('keeps the numbers JSON cannot represent in the WAL, as core indexes and stores them', async () => {
+    const schema = { title: 'string', n: 'number', ns: 'number[]' } as const
+    const values = [Infinity, -Infinity, -0, 3, 0]
+    const make = () =>
+      values.map((n, i) => ({
+        id: `d${i}`,
+        title: `doc ${i}`,
+        n,
+        ns: [n, i],
+        // Not indexed: stored as it is, NaN included
+        extra: { deep: [n, NaN], $wal: 'NaN', $$wal: { $wal: 'Infinity' } }
+      }))
+    const single = create({ schema })
+    for (const doc of make()) insert(single, doc)
+
+    const storage = new MemoryStorage()
+    const sharded = await openShardedDatabase({ schema, storage, maxDocsPerShard: 2, compactEvery: 0 })
+    await sharded.insertMultiple(make())
+
+    const params = [
+      { where: { n: { gte: 0 } } },
+      { where: { n: { lt: 0 } } },
+      { where: { ns: { eq: 3 } } },
+      { where: { n: { eq: 0 } } },
+      { term: 'doc', where: { n: { lte: 3 } } }
+    ] as const
+    const expected: string[][] = []
+    for (const p of params) expected.push((await coreSearch(single, p as never)).hits.map((hit) => hit.id))
+    const results = async (db: typeof sharded) => {
+      const ids = []
+      for (const p of params) ids.push((await db.search(p as never)).hits.map((hit) => hit.id))
+      return ids
+    }
+    expect(await results(sharded)).toEqual(expected)
+
+    // NaN has no place in core's number index (which range filters match it depends on the tree's shape): refused
+    // before anything is logged
+    const logged = (await listKeys(storage, 'wal/')).length
+    await expect(sharded.insert({ id: 'nan', title: 'nan', n: NaN, ns: [1] })).rejects.toThrow(/property "n" is NaN/)
+    await expect(sharded.upsert({ id: 'd4', title: 'nan', n: 1, ns: [1, NaN] })).rejects.toThrow(/property "ns" is NaN/)
+    expect((await listKeys(storage, 'wal/')).length).toBe(logged)
+    expect(sharded.count()).toBe(values.length)
+
+    // Crash before compacting: the WAL alone holds the documents.
+    const recovered = await openShardedDatabase({ storage })
+    expect(recovered.count()).toBe(values.length)
+    expect(await results(recovered)).toEqual(expected)
+    for (const doc of make()) {
+      expect(await recovered.getByID(doc.id)).toEqual(doc)
+    }
+    expect(Object.is((await recovered.getByID('d2'))!.n, -0)).toBe(true)
+
+    await recovered.compact()
+    const reopened = await openShardedDatabase({ storage })
+    expect(reopened.count()).toBe(values.length)
+    expect(await results(reopened)).toEqual(expected)
+  })
+
+  it('fails to open, keeping the WAL, when an acknowledged write does not replay', async () => {
+    const storage = new MemoryStorage()
+    const schema = { title: 'string', n: 'number' } as const
+    const sharded = await openShardedDatabase({ schema, storage, compactEvery: 0 })
+    await sharded.insert({ id: 'a', title: 'kept', n: 1 })
+    await sharded.insert({ id: 'b', title: 'lost', n: 2 })
+    const wal = [...(await listKeys(storage, 'wal/'))]
+    expect(wal.length).toBe(2)
+
+    // The record of an acknowledged insert that cannot be replayed, as JSON wrote Infinity before (null)
+    const record = JSON.parse(new TextDecoder().decode((await storage.get(wal[1]))!.body))
+    record.ops[0].doc.n = null
+    await storage.put(wal[1], new TextEncoder().encode(JSON.stringify(record)))
+
+    await expect(openShardedDatabase({ storage })).rejects.toThrow(/cannot replay the write-ahead log record .*"b"/)
+    expect(await listKeys(storage, 'wal/')).toEqual(wal)
+
+    // Fixed, it replays
+    record.ops[0].doc.n = 2
+    await storage.put(wal[1], new TextEncoder().encode(JSON.stringify(record)))
+    const recovered = await openShardedDatabase({ storage })
+    expect(await recovered.getByID('b')).toEqual({ id: 'b', title: 'lost', n: 2 })
+  })
+
+  it('skips on replay the ops a live write reported as failed', async () => {
+    const storage = new FailingStorage()
+    const sharded = await openShardedDatabase({
+      schema: SCHEMA,
+      storage,
+      maxDocsPerShard: 50,
+      memoryBudget: 1,
+      compactEvery: 0
+    })
+    await sharded.insertMultiple(docs().slice(0, 120))
+    await sharded.compact()
+
+    // The live write fails for the documents of a shard that cannot be read, and succeeds for the others
+    storage.failGet = (key) => key.startsWith('shards/0/')
+    await expect(sharded.removeMultiple(['p0', 'p60', 'p61'])).rejects.toThrow(/simulated read failure/)
+    storage.failGet = undefined
+    const live = { count: sharded.count(), p0: await sharded.getByID('p0'), p60: await sharded.getByID('p60') }
+    expect(live.count).toBe(118)
+    expect(live.p0).toMatchObject({ id: 'p0' })
+    expect(live.p60).toBeUndefined()
+
+    const recovered = await openShardedDatabase({ storage })
+    expect(recovered.count()).toBe(live.count)
+    expect(await recovered.getByID('p0')).toEqual(live.p0)
+    expect(await recovered.getByID('p60')).toBeUndefined()
+    expect(await recovered.getByID('p61')).toBeUndefined()
   })
 
   it('a WAL record whose write failed replays to the same state', async () => {

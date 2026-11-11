@@ -85,7 +85,10 @@ records (and on `compact()` / `close()`), modified shards are written as new sna
 written: that write is the commit point. The WAL records it covers and the replaced snapshots are deleted
 afterwards. After a crash, `openShardedDatabase` deletes snapshots the state does not reference and replays the
 remaining WAL records. A shard evicted with unsaved changes is written to a new snapshot that only becomes
-current at the next commit.
+current at the next commit. The ops of a record that failed when they were applied (the write threw for them)
+are marked in the record and skipped by the replay; any other op that fails to replay makes opening fail and
+keeps the record, so an acknowledged write is never dropped. Number properties accept `Infinity` and
+`-Infinity` as core does, but refuse `NaN`, which core's number index cannot order.
 
 **Memory budget.** The budget covers the global layer and the loaded shards. A loaded shard is estimated from its
 snapshot: the bytes that are not float32 vectors times the codec's `residentFactor` (8 for the binary codec, 2.5

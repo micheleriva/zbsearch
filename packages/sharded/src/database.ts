@@ -360,6 +360,7 @@ export class ShardedDatabase {
   private readonly searchableProps: string[]
   private readonly stringProps: string[] = []
   private readonly valueProps: string[] = []
+  private readonly numberProps: string[] = []
   private readonly vectorProps: string[] = []
 
   private stats: GlobalStatistics
@@ -427,6 +428,7 @@ export class ShardedDatabase {
       if (info.kind === 'string') this.stringProps.push(prop)
       else if (info.kind === 'vector') this.vectorProps.push(prop)
       else if (info.kind !== 'geopoint') this.valueProps.push(prop)
+      if (info.kind === 'number') this.numberProps.push(prop)
     }
 
     this.stats = new GlobalStatistics(this.stringProps)
@@ -910,9 +912,7 @@ export class ShardedDatabase {
       const stored = await this.storage.get(key)
       if (!stored) continue
       const record = decodeJSON<WalRecord>(stored.body)
-      // A write that failed when it was made fails the same way here and is skipped, as it was
-      // then. A shard that cannot be read is not that: opening fails and the record stays in the log.
-      await this.applyOps(record.ops, true)
+      await this.replay(key, record)
       this.walSeq = Math.max(this.walSeq, seq)
       this.walKeys.push(key)
       await this.makeRoom(0)
@@ -937,6 +937,16 @@ export class ShardedDatabase {
     const invalid = this.template.validateSchema(doc, this.template.schema)
     if (invalid) {
       throw shardedError(`the document does not match the schema at property "${invalid}"`)
+    }
+    // Core accepts NaN in number properties, but its index has no place for it: NaN is neither less nor greater
+    // than any key, so which range filters match it depends on the shape of each shard's tree. ±Infinity are ordered
+    // and accepted, as in core.
+    const numbers = this.template.getDocumentProperties(doc, this.numberProps) as Record<string, unknown>
+    for (const prop of this.numberProps) {
+      const value = Object.hasOwn(numbers, prop) ? numbers[prop] : undefined
+      if (Array.isArray(value) ? value.some(Number.isNaN) : Number.isNaN(value)) {
+        throw shardedError(`property "${prop}" is NaN, which a sharded database cannot index`)
+      }
     }
     return id
   }
@@ -1000,35 +1010,61 @@ export class ShardedDatabase {
     this.walSeq = seq
     this.walKeys.push(key)
 
-    const error = await this.applyOps(ops)
+    // Every op is applied, also after one fails: the ones that succeed are live.
+    let first: unknown
+    const failed: number[] = []
+    for (let i = 0; i < ops.length; i++) {
+      try {
+        await this.applyOp(ops[i])
+      } catch (error) {
+        first ??= error
+        failed.push(i)
+      }
+    }
+    if (failed.length > 0) {
+      // The caller gets an error for these ops: the record says so, and the replay skips them as the live write did.
+      await this.storage.put(key, encodeJSON({ seq, ops: logged, failed } satisfies WalRecord))
+    }
+
     await this.makeRoom(0)
     if (this.compactEvery > 0 && this.walKeys.length >= this.compactEvery) {
       await this.compactNow()
     }
-    if (error) throw error
+    if (failed.length > 0) throw first
+  }
+
+  private async applyOp(op: WalOp): Promise<void> {
+    if (op.op === 'insert') {
+      await this.applyInsert(op.id, op.doc)
+    } else {
+      await this.applyRemove(op.id)
+    }
   }
 
   /**
-   * Applies every op, also after one fails (WAL replay does the same, so a
-   * failed write leaves the same state live and after recovery). Returns the
-   * first error. With `throwOnLoadFailure`, a shard that cannot be loaded
-   * throws at once instead.
+   * Replays a WAL record: the ops that succeeded live must succeed again, so that no acknowledged write is lost. If
+   * one fails (a shard cannot be read, or the op does not apply), opening fails and the record stays in the log. The
+   * ops the record marks as failed are skipped: the live write reported them as failed and did not apply them.
+   * A record written by a write that crashed before marking its failed ops cannot be told apart from an
+   * acknowledged one, so it also stops the replay.
    */
-  private async applyOps(ops: WalOp[], throwOnLoadFailure = false): Promise<unknown> {
-    let first: unknown
-    for (const op of ops) {
+  private async replay(key: string, record: WalRecord): Promise<void> {
+    const failed = new Set(record.failed)
+    for (let i = 0; i < record.ops.length; i++) {
+      if (failed.has(i)) continue
+      const op = record.ops[i]
       try {
-        if (op.op === 'insert') {
-          await this.applyInsert(op.id, op.doc)
-        } else {
-          await this.applyRemove(op.id)
-        }
+        await this.applyOp(op)
       } catch (error) {
-        if (throwOnLoadFailure && isLoadFailure(error)) throw error
-        first ??= error
+        if (isLoadFailure(error)) throw error
+        const reason = error instanceof Error ? error.message : String(error)
+        throw new Error(
+          `[zbsearch-sharded] cannot replay the write-ahead log record ${key} (${op.op} "${op.id}"): ${reason}. ` +
+            'The record is kept: opening fails until it can be replayed.',
+          { cause: error }
+        )
       }
     }
-    return first
   }
 
   private route(doc: AnyDocument): number {

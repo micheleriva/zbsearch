@@ -294,6 +294,89 @@ describe('write-ahead log and compaction', () => {
     expect(await reopened.getByID(EXTRA[0].id)).toMatchObject({ text: EXTRA[0].text })
   })
 
+  it('logs the values an insert reads through inherited getters, nested and vector paths included', async () => {
+    class Point {
+      constructor(private readonly coords: [number, number]) {}
+      get lat() {
+        return this.coords[0]
+      }
+      get lon() {
+        return this.coords[1]
+      }
+    }
+    class Meta {
+      constructor(private readonly raw: number) {}
+      get pages() {
+        return this.raw
+      }
+    }
+    class Note {
+      extra = 'kept'
+      constructor(
+        readonly id: string,
+        private readonly body: string,
+        private readonly raw: number
+      ) {}
+      get text() {
+        return this.body
+      }
+      get meta() {
+        return new Meta(this.raw)
+      }
+      get location() {
+        return new Point([this.raw, this.raw / 2])
+      }
+      get embedding() {
+        return [this.raw, 1, 0]
+      }
+    }
+
+    const schema = {
+      id: 'string',
+      text: 'string',
+      meta: { pages: 'number' },
+      location: 'geopoint',
+      embedding: 'vector[3]'
+    } as const
+    const storage = new MemoryStorage()
+    // Partitioned on an inherited value: one shard per document.
+    const sharded = await openShardedDatabase({ schema, storage, partitionBy: 'meta.pages', compactEvery: 0 })
+    await sharded.insertMultiple([new Note('n1', 'inherited getter text', 12), new Note('n2', 'other words', 40)])
+
+    const search = async (db: typeof sharded) => ({
+      text: (await db.search({ term: 'inherited' })).hits.map((hit) => hit.id),
+      pages: (await db.search({ where: { 'meta.pages': { eq: 12 } } })).hits.map((hit) => hit.id),
+      geo: (
+        await db.search({
+          where: { location: { radius: { coordinates: { lat: 40, lon: 20 }, value: 10, unit: 'km' } } }
+        })
+      ).hits.map((hit) => hit.id),
+      vector: (
+        await db.search({ mode: 'vector', vector: { value: [12, 1, 0], property: 'embedding' }, similarity: 0.9999 })
+      ).hits.map((hit) => hit.id)
+    })
+    const expected = { text: ['n1'], pages: ['n1'], geo: ['n2'], vector: ['n1'] }
+    expect(await search(sharded)).toEqual(expected)
+
+    // Crash before compacting: the WAL alone holds the documents.
+    const recovered = await openShardedDatabase({ storage })
+    expect(await search(recovered)).toEqual(expected)
+    expect(recovered.getStats().shards).toBe(2)
+    // The own properties the documents store keeps, plus the values the insert read
+    expect(await recovered.getByID('n1')).toEqual({
+      id: 'n1',
+      extra: 'kept',
+      body: 'inherited getter text',
+      raw: 12,
+      text: 'inherited getter text',
+      meta: { raw: 12, pages: 12 },
+      location: { coords: [12, 6], lat: 12, lon: 6 }
+    })
+
+    // The inserted documents are kept as they are in the live database.
+    expect(await sharded.getByID('n1')).toBeInstanceOf(Note)
+  })
+
   it('a WAL record whose write failed replays to the same state', async () => {
     const storage = new MemoryStorage() as ShardStorage
     const sharded = await openShardedDatabase({ schema: SCHEMA, storage, compactEvery: 0 })

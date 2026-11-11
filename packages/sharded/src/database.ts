@@ -937,10 +937,50 @@ export class ShardedDatabase {
     return newId
   }
 
+  /**
+   * The document as the WAL records it: a plain object with the values the insert reads (core reads document
+   * properties through property access, so inherited getters count), on top of the own enumerable properties that
+   * the documents store keeps. JSON alone would drop the inherited values and a replay would index less than the
+   * live insert did.
+   */
+  private walDocument(doc: AnyDocument): Record<string, unknown> {
+    const paths = this.partitionBy ? [...this.searchableProps, this.partitionBy] : this.searchableProps
+    const values = this.template.getDocumentProperties(doc, paths) as Record<string, unknown>
+    const out: Record<string, unknown> = { ...doc }
+    const copies = new Set<object>([out])
+
+    for (const path of paths) {
+      let value = values[path]
+      if (value === undefined) continue
+      if (this.fields[path]?.kind === 'geopoint' && typeof value === 'object' && value !== null) {
+        const point = value as { lat: number; lon: number }
+        value = { ...point, lat: point.lat, lon: point.lon }
+      }
+
+      const keys = path.split('.')
+      let source: unknown = doc
+      let target = out
+      for (let i = 0; i < keys.length - 1; i++) {
+        source = (source as Record<string, unknown>)[keys[i]]
+        let child = target[keys[i]] as Record<string, unknown>
+        if (!copies.has(child)) {
+          child = typeof source === 'object' && source !== null ? { ...source } : {}
+          copies.add(child)
+          target[keys[i]] = child
+        }
+        target = child
+      }
+      target[keys[keys.length - 1]] = value
+    }
+
+    return out
+  }
+
   private async commit(ops: WalOp[]): Promise<void> {
     const seq = this.walSeq + 1
     const key = walKey(seq)
-    await this.storage.put(key, encodeJSON({ seq, ops } satisfies WalRecord))
+    const logged = ops.map((op) => (op.op === 'insert' ? { ...op, doc: this.walDocument(op.doc) } : op))
+    await this.storage.put(key, encodeJSON({ seq, ops: logged } satisfies WalRecord))
     this.walSeq = seq
     this.walKeys.push(key)
 

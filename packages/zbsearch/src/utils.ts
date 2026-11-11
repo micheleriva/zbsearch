@@ -370,22 +370,24 @@ export function convertDistanceToMeters(distance: number, unit: GeosearchDistanc
 
 export function removeVectorsFromHits(searchResult: Results<AnyDocument>, vectorProperties: string[]): void {
   for (const result of searchResult.hits) {
-    const document = result.document
+    // `result.document` is the object held by the documents store, so it must not be mutated.
+    // Copy the document, and every nested object along each vector property's path, before nulling.
+    if (result.document == null) {
+      continue
+    }
+    const document: any = { ...result.document }
     for (const prop of vectorProperties) {
       const path = prop.split('.')
       const lastKey = path.pop()!
       let obj: any = document
       for (const key of path) {
-        if (obj == null) {
-          break
-        }
-        obj[key] = obj[key] ?? {}
+        const next = obj[key]
+        obj[key] = next != null && typeof next === 'object' ? { ...next } : {}
         obj = obj[key]
       }
-      if (obj != null) {
-        obj[lastKey!] = null
-      }
+      obj[lastKey] = null
     }
+    result.document = document
   }
 }
 

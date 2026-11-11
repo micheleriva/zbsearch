@@ -54,9 +54,17 @@ interface VectorBoundJSON {
 
 export interface ShardSummaryJSON {
   terms: BloomFilterJSON
+  exactTerms?: Record<string, string[] | null>
   fields: Record<string, FieldSummaryJSON>
   vectors: Record<string, VectorBoundJSON>
 }
+
+/**
+ * Properties with at most this many distinct terms in a shard (partition keys
+ * such as an item ID) keep them exactly, next to the Bloom filter: a filter on
+ * them then never loads a shard by a false positive.
+ */
+const MAX_EXACT_TERMS = 64
 
 /** Bits per key of the term Bloom filters: about 1% false positives at capacity. */
 const BLOOM_BITS_PER_KEY = 10
@@ -105,6 +113,10 @@ function angle(a: Float64Array, b: Float64Array): number {
 export class ShardSummary {
   terms: BloomFilter
   readonly fields: Record<string, FieldSummary> = {}
+  /** Per property, its terms in the shard while there are few of them; null once there were too many. */
+  readonly exactTerms: Record<string, Set<string> | null> = {}
+  /** False for summaries persisted without exact term sets: every property then goes through the Bloom filter. */
+  private exactTracked = true
   readonly vectors: Record<string, VectorBound> = {}
 
   constructor(expectedTerms = 1024) {
@@ -117,13 +129,28 @@ export class ShardSummary {
   }
 
   addTerms(prop: string, terms: Iterable<string>): void {
+    let exact = this.exactTerms[prop]
+    if (exact === undefined) {
+      exact = this.exactTerms[prop] = new Set()
+    }
     for (const term of terms) {
       this.terms.add(termKey(prop, term))
+      if (exact) {
+        exact.add(term)
+        if (exact.size > MAX_EXACT_TERMS) {
+          exact = this.exactTerms[prop] = null
+        }
+      }
     }
   }
 
   hasTerm(prop: string, term: string): boolean {
-    return this.terms.has(termKey(prop, term))
+    const exact = this.exactTerms[prop]
+    if (exact) {
+      return exact.has(term)
+    }
+    // A property never seen in this shard has no terms here.
+    return (exact !== undefined || !this.exactTracked) && this.terms.has(termKey(prop, term))
   }
 
   addValue(prop: string, info: FieldInfo, value: unknown): void {
@@ -357,12 +384,21 @@ export class ShardSummary {
       vectors[prop] = { centroid: Array.from(bound.centroid), maxAngle: bound.maxAngle, hasZero: bound.hasZero }
     }
 
-    return { terms: this.terms.toJSON(), fields, vectors }
+    const exactTerms: Record<string, string[] | null> = {}
+    for (const [prop, terms] of Object.entries(this.exactTerms)) {
+      exactTerms[prop] = terms ? [...terms] : null
+    }
+
+    return { terms: this.terms.toJSON(), exactTerms, fields, vectors }
   }
 
   static fromJSON(json: ShardSummaryJSON): ShardSummary {
     const summary = new ShardSummary(1)
     summary.terms = BloomFilter.fromJSON(json.terms)
+    summary.exactTracked = json.exactTerms !== undefined
+    for (const [prop, terms] of Object.entries(json.exactTerms ?? {})) {
+      summary.exactTerms[prop] = terms ? new Set(terms) : null
+    }
     for (const [prop, field] of Object.entries(json.fields)) {
       summary.fields[prop] = {
         ...field,
@@ -387,6 +423,9 @@ export class ShardSummary {
     }
     for (const field of Object.values(this.fields)) {
       total += 64 + (field.values ? field.values.size * 48 : 0)
+    }
+    for (const terms of Object.values(this.exactTerms)) {
+      total += 64 + (terms ? terms.size * 64 : 0)
     }
     return total
   }

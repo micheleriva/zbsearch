@@ -87,9 +87,11 @@ afterwards. After a crash, `openShardedDatabase` deletes snapshots the state doe
 remaining WAL records. A shard evicted with unsaved changes is written to a new snapshot that only becomes
 current at the next commit.
 
-**Memory budget.** The budget covers the global layer and the loaded shards. Shard sizes are estimated as
-1.8 × their snapshot size (`estimateShardBytes` to override), which over-approximates the heap of a shard loaded
-with the default codec. Shards in use by the running operation are never evicted.
+**Memory budget.** The budget covers the global layer and the loaded shards. A loaded shard is estimated from its
+snapshot: the bytes that are not float32 vectors times the codec's `residentFactor` (8 for the binary codec, 2.5
+for JSON), plus 4.4 bytes per vector component. Measured on V8 this lands within about 5% of the real heap,
+usually above it; pass `estimateShardBytes` to override. Shards in use by the running operation are never
+evicted.
 
 ## Storage
 
@@ -106,8 +108,9 @@ Any object with `get`, `put`, `delete` and `list(prefix)` works (`ShardStorage`)
 ## Shard format
 
 Shards are encoded by a `ShardCodec` (`{ encode(db): AsyncIterable<Uint8Array>; decode(db, source) }`).
-`defaultShardCodec` serializes core's `save()` as JSON. Pass `codec` to use another format; it must not change
-for an existing database.
+`defaultShardCodec` is `binaryShardCodec`, core's streamed binary snapshot format (`saveBinary` /
+`loadBinary`). `jsonShardCodec` (core `save()` as JSON) is available too: about 4× larger on disk and slower to
+load. A database must keep the codec it was created with.
 
 ## Options passed to every shard
 

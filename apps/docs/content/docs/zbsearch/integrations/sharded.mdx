@@ -53,9 +53,9 @@ read back) and replay the write-ahead log, so writes acknowledged before a crash
 | `packPartitions` | `false` | Let several partitions share a shard, for many small partitions |
 | `maxDocsPerShard` | `5000` | Shard size |
 | `memoryBudget` | unlimited | Bytes for the resident global layer plus the loaded shards |
-| `estimateShardBytes` | 1.8 × snapshot size | Heap estimate of a loaded shard |
+| `estimateShardBytes` | from the snapshot size and the codec | Heap estimate of a loaded shard |
 | `compactEvery` | `64` | WAL records between automatic compactions (0 disables) |
-| `codec` | `defaultShardCodec` | Shard snapshot format |
+| `codec` | `binaryShardCodec` | Shard snapshot format (core binary snapshots; `jsonShardCodec` also available) |
 | `createOptions` | `{}` | Passed to `create()` for every shard: `language`, `components`, `plugins`, `indexes`, `store` |
 
 ## Writing and searching

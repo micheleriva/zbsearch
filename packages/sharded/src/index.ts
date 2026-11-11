@@ -8,7 +8,7 @@ export type {
   ShardedSearchParams,
   ShardedSearchStats
 } from './database.js'
-export { collectBytes, defaultShardCodec, jsonShardCodec } from './codec.js'
+export { binaryShardCodec, collectBytes, defaultShardCodec, jsonShardCodec } from './codec.js'
 export type { ShardBytesSource, ShardCodec } from './codec.js'
 export { IndexedDBStorage, MemoryStorage } from './storage.js'
 export type { IndexedDBStorageOptions, ShardStorage } from './storage.js'

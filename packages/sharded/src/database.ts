@@ -34,6 +34,12 @@ export interface ShardSizeInfo {
   docs: number
   /** Size of the shard's last snapshot, 0 if it was never written. */
   snapshotBytes: number
+  /**
+   * Vector components the shard holds in exact float32 vector indexes
+   * (documents × dimensions, summed over vector properties). Quantized
+   * indexes are not counted: their data stays in the snapshot share.
+   */
+  vectorValues: number
 }
 
 /** Options forwarded to zbsearch `create()` for every shard (and for the resident template database). */
@@ -76,7 +82,11 @@ export interface ShardedDatabaseOptions {
    * are evicted to stay under it. Default: unlimited.
    */
   memoryBudget?: number
-  /** Estimated heap size of a loaded shard. Default: 1.8 × its snapshot size (measured 1.3–1.75× with the JSON codec), or 16 KiB per document before its first snapshot. */
+  /**
+   * Estimated heap size of a loaded shard. Default: the snapshot bytes that are
+   * not float32 vectors × the codec's `residentFactor`, plus 4.4 bytes per
+   * vector component; 24 KiB per document before the first snapshot.
+   */
   estimateShardBytes?: (shard: ShardSizeInfo) => number
   /** Compact (snapshot dirty shards, persist the global state, truncate the WAL) after this many WAL records. 0 disables. Default 64. */
   compactEvery?: number
@@ -221,11 +231,23 @@ const DEFAULT_SIMILARITY = 0.8
 /** Slack on vector upper bounds: core compares float32-normalized vectors. */
 const VECTOR_BOUND_EPSILON = 1e-4
 /** Heap per document inserted into a loaded shard, relative to its rough object size (index structures included). */
-const GROWTH_FACTOR = 5
+const GROWTH_FACTOR = 8
 const UNSUPPORTED_PARAMS = ['facets', 'groupBy', 'distinctOn', 'sortBy'] as const
 
-function defaultEstimate({ docs, snapshotBytes }: ShardSizeInfo): number {
-  return snapshotBytes > 0 ? Math.ceil(snapshotBytes * 1.8) : docs * 16384
+/** Heap per float32 vector component of a loaded exact vector index (the Float32Array plus Map entry overhead). */
+const VECTOR_COMPONENT_HEAP = 4.4
+
+function defaultEstimate(codec: ShardCodec): (shard: ShardSizeInfo) => number {
+  const factor = codec.residentFactor ?? 8
+  const componentBytes = codec.vectorComponentBytes ?? 4
+  return ({ docs, snapshotBytes, vectorValues }) => {
+    if (snapshotBytes <= 0) {
+      return docs * 24576
+    }
+    // Vectors load about 1:1 from a binary snapshot, while the rest (the text index above all) expands several times.
+    const rest = Math.max(snapshotBytes * 0.1, snapshotBytes - vectorValues * componentBytes)
+    return Math.ceil(rest * factor + vectorValues * VECTOR_COMPONENT_HEAP)
+  }
 }
 
 /** Rough heap size of a document, for the growth of a loaded shard between snapshots. */
@@ -345,12 +367,13 @@ export class ShardedDatabase {
   private counters = { loads: 0, evictions: 0, flushes: 0, compactions: 0 }
   /** How the current search returns vectors in its hits (core's includeVectors rules). */
   private hitVectors: { include: boolean; props: string[] } = { include: false, props: [] }
+  private vectorDims: number | undefined
 
   private constructor(options: ShardedDatabaseOptions, state: StateJSON | undefined) {
     this.storage = options.storage ?? new MemoryStorage()
     this.codec = options.codec ?? defaultShardCodec
     this.memoryBudget = options.memoryBudget ?? Infinity
-    this.estimateShardBytes = options.estimateShardBytes ?? defaultEstimate
+    this.estimateShardBytes = options.estimateShardBytes ?? defaultEstimate(this.codec)
     this.compactEvery = options.compactEvery ?? DEFAULT_COMPACT_EVERY
     this.writeBatchSize = Math.max(1, options.writeBatchSize ?? DEFAULT_BATCH)
     this.createOptions = options.createOptions ?? {}
@@ -573,7 +596,24 @@ export class ShardedDatabase {
   }
 
   private estimate(shard: Shard): number {
-    return this.estimateShardBytes({ docs: shard.docs, snapshotBytes: shard.snapshotBytes })
+    return this.estimateShardBytes({
+      docs: shard.docs,
+      snapshotBytes: shard.snapshotBytes,
+      vectorValues: shard.docs * this.exactVectorDims()
+    })
+  }
+
+  /** Dimensions summed over the vector properties held by exact (float32, unquantized) flat indexes. */
+  private exactVectorDims(): number {
+    if (this.vectorDims === undefined) {
+      const indexes = this.template.data.index.vectorIndexes as Record<string, { node: { size?: number } }>
+      this.vectorDims = 0
+      for (const prop of this.vectorProps) {
+        const node = indexes[prop]?.node
+        if (node instanceof VectorIndex) this.vectorDims += node.size ?? 0
+      }
+    }
+    return this.vectorDims
   }
 
   private globalBytes(): number {
@@ -980,7 +1020,13 @@ export class ShardedDatabase {
       }
       this.setLocation(seq, ordinal)
 
-      const growth = Math.ceil(roughSize(doc) * GROWTH_FACTOR)
+      // The stored document and its index entries; exact vectors are counted at their float32 size.
+      let growth = roughSize(doc) * GROWTH_FACTOR
+      for (const prop of this.vectorProps) {
+        const vector = (doc as Record<string, unknown>)[prop] as ArrayLike<number> | undefined
+        if (vector?.length) growth += vector.length * (VECTOR_COMPONENT_HEAP - 8 * GROWTH_FACTOR)
+      }
+      growth = Math.ceil(Math.max(growth, 1024))
       shard.docs++
       shard.dirty = true
       shard.bytes += growth

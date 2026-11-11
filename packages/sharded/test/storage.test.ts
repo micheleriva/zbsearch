@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb'
 import type { ObjectStorage } from '@zbsearch/edge-core'
 import { afterAll, describe, expect, it } from 'vitest'
+import { isBinarySnapshot } from 'zbsearch'
 import {
   IndexedDBStorage,
   MemoryStorage,
@@ -112,6 +113,36 @@ describe('FileSystemStorage', () => {
 })
 
 describe('ShardCodec', () => {
+  it('writes core binary snapshots by default, and JSON on request', async () => {
+    const corpus = makeCorpus(120, 5, 300, 1)
+    const words = corpusWords(5, 300)
+    const binary = new MemoryStorage()
+    const json = new MemoryStorage()
+    for (const [storage, codec] of [
+      [binary, undefined],
+      [json, jsonShardCodec]
+    ] as const) {
+      const db = await openShardedDatabase({ schema: SCHEMA, storage, codec, maxDocsPerShard: 50 })
+      await db.insertMultiple(structuredClone(corpus))
+      await db.close()
+    }
+
+    const snapshots = (storage: MemoryStorage) =>
+      [...storage.entries].filter(([key]) => key.startsWith('shards/')).map(([, body]) => body)
+    expect(snapshots(binary)).toHaveLength(3)
+    expect(snapshots(binary).every((body) => isBinarySnapshot(body))).toBe(true)
+    expect(snapshots(json).some((body) => isBinarySnapshot(body))).toBe(false)
+
+    const single = await singleInstance(corpus)
+    const queries = [{ term: words[0] }, { term: words[3], where: { collection: { eq: 'law' } } }]
+    await expectParity(await openShardedDatabase({ storage: binary, memoryBudget: 1 }), single, queries)
+    await expectParity(
+      await openShardedDatabase({ storage: json, codec: jsonShardCodec, memoryBudget: 1 }),
+      single,
+      queries
+    )
+  })
+
   it('is pluggable: a custom codec sees every shard write and read', async () => {
     let encoded = 0
     let decoded = 0

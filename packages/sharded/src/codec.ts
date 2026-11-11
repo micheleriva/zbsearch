@@ -1,4 +1,4 @@
-import { load, save } from 'zbsearch'
+import { load, loadBinary, save, saveBinary } from 'zbsearch'
 import type { AnyZBSearch } from 'zbsearch'
 
 export type ShardBytesSource = AsyncIterable<Uint8Array> | Iterable<Uint8Array> | Uint8Array
@@ -11,6 +11,13 @@ export type ShardBytesSource = AsyncIterable<Uint8Array> | Iterable<Uint8Array> 
 export interface ShardCodec {
   encode(db: AnyZBSearch): AsyncIterable<Uint8Array>
   decode(db: AnyZBSearch, source: ShardBytesSource): Promise<void>
+  /**
+   * Heap bytes of a loaded shard per snapshot byte, vectors aside: the memory
+   * budget's default size estimate. Over-estimating only evicts earlier.
+   */
+  residentFactor?: number
+  /** Snapshot bytes per float32 vector component. */
+  vectorComponentBytes?: number
 }
 
 export async function collectBytes(source: ShardBytesSource): Promise<Uint8Array> {
@@ -40,6 +47,10 @@ export async function collectBytes(source: ShardBytesSource): Promise<Uint8Array
 
 /** Core `save()`/`load()` serialized as UTF-8 JSON: works with every core version, but is large and slow to parse. */
 export const jsonShardCodec: ShardCodec = {
+  // Measured 1.0-2.3 heap bytes per JSON byte (V8, passages of 150-250 words).
+  residentFactor: 2.5,
+  // Shortest round-trip decimal of a float32 component, comma included.
+  vectorComponentBytes: 10,
   async *encode(db) {
     yield new TextEncoder().encode(JSON.stringify(save(db)))
   },
@@ -48,12 +59,14 @@ export const jsonShardCodec: ShardCodec = {
   }
 }
 
-/**
- * The codec used when `openShardedDatabase` is not given one. Switching every
- * sharded database to the core binary snapshot format is a one-line change:
- *
- *   export const defaultShardCodec: ShardCodec = { encode: (db) => saveBinary(db), decode: loadBinary }
- *
- * with `saveBinary` and `loadBinary` imported from 'zbsearch'.
- */
-export const defaultShardCodec: ShardCodec = jsonShardCodec
+/** Core's binary snapshot format (`saveBinary` / `loadBinary`): compact, streamed and checksummed. */
+export const binaryShardCodec: ShardCodec = {
+  // Measured 7.6 heap bytes per non-vector snapshot byte (V8, passages of 150-250 words).
+  residentFactor: 8,
+  vectorComponentBytes: 4,
+  encode: (db) => saveBinary(db),
+  decode: (db, source) => loadBinary(db, source)
+}
+
+/** The codec used when `openShardedDatabase` is not given one. */
+export const defaultShardCodec: ShardCodec = binaryShardCodec

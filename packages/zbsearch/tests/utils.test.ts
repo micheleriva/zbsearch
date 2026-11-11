@@ -7,7 +7,8 @@ import {
   flattenObject,
   setUnion,
   setIntersection,
-  isAsyncFunction
+  isAsyncFunction,
+  cloneWithValueAtPath
 } from '../src/utils.js'
 
 describe('utils', () => {
@@ -50,15 +51,20 @@ describe('utils', () => {
     })
 
     it('should return even if the hasOwn method is not available', async () => {
+      const hasOwn = Object.hasOwn
       // @ts-expect-error - we are testing the fallback
       globalThis.Object.hasOwn = undefined
 
-      const myObject = {
-        foo: 'bar'
-      }
+      try {
+        const myObject = {
+          foo: 'bar'
+        }
 
-      expect(getOwnProperty(myObject, 'foo')).toBe('bar')
-      expect(getOwnProperty(myObject, 'bar')).toBe(undefined)
+        expect(getOwnProperty(myObject, 'foo')).toBe('bar')
+        expect(getOwnProperty(myObject, 'bar')).toBe(undefined)
+      } finally {
+        globalThis.Object.hasOwn = hasOwn
+      }
     })
   })
 
@@ -157,4 +163,20 @@ it('setIntersection', async () => {
   expect(setIntersection(set2, set3, set1)).toStrictEqual(new Set([2, 3]))
   expect(setIntersection(set3, set1, set2)).toStrictEqual(new Set([2, 3]))
   expect(setIntersection(set3, set2, set1)).toStrictEqual(new Set([2, 3]))
+})
+
+describe('cloneWithValueAtPath', () => {
+  it('sets a "__proto__" path as an own property, never reaching the prototype', () => {
+    const doc = { a: 1 }
+    const clone = cloneWithValueAtPath(doc, ['__proto__', 'x'], 1)
+    expect(Object.hasOwn(Object.prototype, 'x')).toBe(false)
+    expect(Object.getPrototypeOf(clone)).toBe(Object.prototype)
+    expect(Object.getOwnPropertyDescriptor(clone, '__proto__')?.value).toEqual({ x: 1 })
+    expect(doc).toEqual({ a: 1 })
+
+    const parsed = JSON.parse('{"__proto__":{"x":1,"y":2}}')
+    const updated = cloneWithValueAtPath(parsed, ['__proto__', 'x'], 3)
+    expect(JSON.stringify(updated)).toBe('{"__proto__":{"x":3,"y":2}}')
+    expect(JSON.stringify(parsed)).toBe('{"__proto__":{"x":1,"y":2}}')
+  })
 })

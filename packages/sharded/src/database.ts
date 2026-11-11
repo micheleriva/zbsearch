@@ -313,6 +313,17 @@ function normalizeVector(vector: ArrayLike<number>): Float64Array | undefined {
   return out
 }
 
+// Reads a segment of a document path as core does (inherited getters count), except an inherited `__proto__`, which
+// is the object's prototype and not one of its properties.
+function ownOrInherited(object: object, key: string): unknown {
+  return key === '__proto__' && !Object.hasOwn(object, key) ? undefined : (object as Record<string, unknown>)[key]
+}
+
+// Sets an own data property: unlike an assignment, a `__proto__` key never changes the object's prototype.
+function setOwn(object: Record<string, unknown>, key: string, value: unknown): void {
+  Object.defineProperty(object, key, { value, writable: true, enumerable: true, configurable: true })
+}
+
 function shardedError(message: string): Error {
   return new Error(`[zbsearch-sharded] ${message}`)
 }
@@ -401,6 +412,10 @@ export class ShardedDatabase {
       this.partitionBy = options.partitionBy
       this.packPartitions = !options.partitionBy || Boolean(options.packPartitions)
       this.maxDocsPerShard = Math.max(1, options.maxDocsPerShard ?? DEFAULT_MAX_DOCS)
+    }
+    // A `__proto__` segment names the prototype of the object holding it, never a property of the document
+    if (this.partitionBy !== undefined && this.partitionBy.split('.').includes('__proto__')) {
+      throw shardedError(`partitionBy cannot name a "__proto__" property (in "${this.partitionBy}")`)
     }
 
     this.template = this.createDb(false)
@@ -950,7 +965,8 @@ export class ShardedDatabase {
     const copies = new Set<object>([out])
 
     for (const path of paths) {
-      let value = values[path]
+      // Own properties only: `values` is a plain object, whose inherited `__proto__` is not a document value
+      let value = Object.hasOwn(values, path) ? values[path] : undefined
       if (value === undefined) continue
       if (this.fields[path]?.kind === 'geopoint' && typeof value === 'object' && value !== null) {
         const point = value as { lat: number; lon: number }
@@ -961,16 +977,16 @@ export class ShardedDatabase {
       let source: unknown = doc
       let target = out
       for (let i = 0; i < keys.length - 1; i++) {
-        source = (source as Record<string, unknown>)[keys[i]]
-        let child = target[keys[i]] as Record<string, unknown>
+        source = typeof source === 'object' && source !== null ? ownOrInherited(source, keys[i]) : undefined
+        let child = ownOrInherited(target, keys[i]) as Record<string, unknown>
         if (!copies.has(child)) {
           child = typeof source === 'object' && source !== null ? { ...source } : {}
           copies.add(child)
-          target[keys[i]] = child
+          setOwn(target, keys[i], child)
         }
         target = child
       }
-      target[keys[keys.length - 1]] = value
+      setOwn(target, keys[keys.length - 1], value)
     }
 
     return out

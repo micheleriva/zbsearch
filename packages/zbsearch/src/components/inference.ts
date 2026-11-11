@@ -43,7 +43,9 @@ function inferTypeFromValue(value: unknown): SearchableType | undefined {
 
 function flattenDocument(doc: AnyDocument, prefix: string, leaves: Array<[string, unknown]>): void {
   for (const [key, value] of Object.entries(doc)) {
-    if (key === 'id' || key === RESERVED_VECTOR_INDEX_KEY) {
+    // An own `__proto__` (a document parsed from JSON can have one) is not inferred: its path would name the
+    // prototype of the objects that hold the properties of the schema and of the index.
+    if (key === 'id' || key === RESERVED_VECTOR_INDEX_KEY || key === '__proto__') {
       continue
     }
 
@@ -84,7 +86,8 @@ function setNestedSchemaProperty(schema: AnySchema, path: string, type: Searchab
   let current = schema
   for (let i = 0; i < tokens.length - 1; i++) {
     const token = tokens[i]!
-    const next = current[token]
+    // Only own properties: an inherited one (e.g. `constructor`) is not part of the schema
+    const next = Object.hasOwn(current, token) ? current[token] : undefined
     if (typeof next !== 'object' || next === null || Array.isArray(next)) {
       current[token] = {}
     }

@@ -377,6 +377,36 @@ describe('write-ahead log and compaction', () => {
     expect(await sharded.getByID('n1')).toBeInstanceOf(Note)
   })
 
+  it('logs documents with an own "__proto__" property as they are, and refuses "__proto__" in partitionBy', async () => {
+    try {
+      for (const partitionBy of ['__proto__', '__proto__.polluted', 'meta.__proto__']) {
+        await expect(openShardedDatabase({ schema: { title: 'string' }, partitionBy }), partitionBy).rejects.toThrow(
+          /partitionBy cannot name a "__proto__" property/
+        )
+      }
+
+      const schema = { title: 'string', meta: { rating: 'number' } } as const
+      for (const partitionBy of [undefined, 'meta.rating', 'constructor.prototype.polluted']) {
+        const storage = new MemoryStorage()
+        const sharded = await openShardedDatabase({ schema, storage, partitionBy, compactEvery: 0 })
+        const json = '{"id":"1","title":"one","meta":{"rating":2,"__proto__":{"x":1}},"__proto__":{"polluted":"p"}}'
+        await sharded.insert(JSON.parse(json))
+        expect(JSON.stringify(await sharded.getByID('1'))).toBe(json)
+
+        const recovered = await openShardedDatabase({ storage })
+        const doc = await recovered.getByID('1')
+        expect(JSON.stringify(doc), String(partitionBy)).toBe(json)
+        expect(Object.getPrototypeOf(doc)).toBe(Object.prototype)
+        expect((await recovered.search({ where: { 'meta.rating': { eq: 2 } } })).count).toBe(1)
+        expect(Object.hasOwn(Object.prototype, 'polluted')).toBe(false)
+        expect(Object.hasOwn(Object.prototype, 'x')).toBe(false)
+      }
+    } finally {
+      delete (Object.prototype as Record<string, unknown>).polluted
+      delete (Object.prototype as Record<string, unknown>).x
+    }
+  })
+
   it('a WAL record whose write failed replays to the same state', async () => {
     const storage = new MemoryStorage() as ShardStorage
     const sharded = await openShardedDatabase({ schema: SCHEMA, storage, compactEvery: 0 })

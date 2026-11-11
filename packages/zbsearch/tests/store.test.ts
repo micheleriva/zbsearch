@@ -494,6 +494,90 @@ describe('store.exclude', () => {
     expect(() => create({ schema: { a: 'string' }, store: [] as any })).toThrow(/expected an object/)
   })
 
+  describe('prototype safety', () => {
+    const protoKeys = ['polluted', 'x', 'y']
+
+    function expectCleanPrototypes() {
+      for (const key of protoKeys) {
+        expect(Object.hasOwn(Object.prototype, key), key).toBe(false)
+        expect(({} as Record<string, unknown>)[key], key).toBeUndefined()
+      }
+    }
+
+    it('refuses "__proto__" segments in excluded paths, also in loaded snapshots', async () => {
+      try {
+        for (const path of ['__proto__', '__proto__.polluted', 'a.__proto__.x']) {
+          expect(() => create({ schema: { title: 'string' }, store: { exclude: [path] } }), path).toThrow(
+            /Invalid "store" option: "exclude" cannot name a "__proto__" property/
+          )
+        }
+
+        const source = create({ schema: { title: 'string' }, store: { exclude: ['secret'] } })
+        insert(source, { id: '1', title: 'one', secret: 'hidden' } as any)
+        const raw = JSON.parse(JSON.stringify(save(source))) as RawData & { store: { exclude: string[] } }
+        raw.store.exclude = ['__proto__.polluted']
+        const target = create({ schema: { title: 'string' } })
+        expect(() => load(target, raw)).toThrow(/cannot name a "__proto__" property/)
+        await expect(loadAsync(target, raw)).rejects.toThrow(/cannot name a "__proto__" property/)
+        expectCleanPrototypes()
+      } finally {
+        for (const key of protoKeys) delete (Object.prototype as Record<string, unknown>)[key]
+      }
+    })
+
+    it('never writes to Object.prototype through inherited keys of excluded paths', () => {
+      try {
+        const db = create({
+          schema: { title: 'string' },
+          store: { exclude: ['constructor.prototype.polluted', 'constructor.x', 'toString.y', 'meta.constructor.y'] }
+        })
+        insert(db, { id: '1', title: 'one', meta: { a: 1 } } as any)
+        expectCleanPrototypes()
+        expect(getByID(db, '1')).toEqual({ id: '1', title: 'one', meta: { a: 1 } })
+        expect(search(db, { term: 'one' }).count).toBe(1)
+
+        // An own property with such a name is left out like any other
+        const own = create({ schema: { title: 'string' }, store: { exclude: ['constructor.prototype'] } })
+        insert(own, { id: '1', title: 'one', constructor: { prototype: 'hidden', kept: true } } as any)
+        expect(getByID(own, '1')).toEqual({ id: '1', title: 'one', constructor: { kept: true } })
+        expectCleanPrototypes()
+      } finally {
+        for (const key of protoKeys) delete (Object.prototype as Record<string, unknown>)[key]
+      }
+    })
+
+    it('stores documents with an own "__proto__" property without reaching their prototype', () => {
+      try {
+        const db = create({ schema: { title: 'string', embedding: 'vector[2]' }, store: { exclude: ['secret'] } })
+        const doc = JSON.parse('{"id":"1","title":"one","secret":"s","embedding":[1,0],"__proto__":{"x":1}}')
+        insert(db, doc)
+        const stored = getByID(db, '1')!
+        expect(Object.getPrototypeOf(stored)).toBe(Object.prototype)
+        expect(Object.hasOwn(stored, '__proto__')).toBe(true)
+        expect(stored.secret).toBeUndefined()
+        expect(search(db, { term: 'one' }).hits[0].document.embedding).toBeNull()
+        expect(search(db, { term: 'one', includeVectors: true }).hits[0].document.embedding).toEqual([1, 0])
+        expectCleanPrototypes()
+      } finally {
+        for (const key of protoKeys) delete (Object.prototype as Record<string, unknown>)[key]
+      }
+    })
+
+    it('does not infer "__proto__" properties', () => {
+      try {
+        const db = create({ inferSchema: true })
+        insert(db, JSON.parse('{"id":"1","title":"one","__proto__":{"polluted":"words"}}'))
+        insert(db, JSON.parse('{"id":"2","title":"two","__proto__":"x"}'))
+        expectCleanPrototypes()
+        expect(db.schema).toEqual({ title: 'string' })
+        expect(db.index.getSearchableProperties(db.data.index)).toEqual(['title'])
+        expect(Object.getPrototypeOf(db.schema)).toBe(Object.prototype)
+      } finally {
+        for (const key of protoKeys) delete (Object.prototype as Record<string, unknown>)[key]
+      }
+    })
+  })
+
   it('refuses excluded searchable properties with an index component that cannot remove them', () => {
     const { removeUnstored: _, ...legacyIndex } = defaultIndex.createIndex()
     expect(() =>

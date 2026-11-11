@@ -2,13 +2,14 @@ import { createError } from '../errors.js'
 import type { AnyDocument, AnySchema, AnyZBSearch, Result, StoreConfig, StoreSettings } from '../types.js'
 import { isVectorType } from './defaults.js'
 import { getInternalDocumentId } from './internal-document-id-store.js'
-import { cloneWithValueAtPath, copyDocument, placeholderProperty } from '../utils.js'
+import { cloneWithValueAtPath, copyDocument, getPathValue, placeholderProperty, setOwnValue } from '../utils.js'
 
 // The settings of a database that was not built by `create` (or that predates `store`): everything is stored.
 const LEGACY_STORE_SETTINGS: StoreSettings = { exclude: [], vectors: true }
 
 const STORE_CACHE_KEY = 'store'
 
+// Built with null prototypes, so that a key of a path (e.g. `constructor`) is never an inherited property of a node
 type PathTree = { [key: string]: PathTree | true }
 
 /**
@@ -38,6 +39,12 @@ export function resolveStoreConfig(config: StoreConfig | undefined): StoreSettin
 
   if (!Array.isArray(exclude) || exclude.some((path) => typeof path !== 'string' || path.length === 0)) {
     throw createError('INVALID_STORE_CONFIG', '"exclude" must be an array of non-empty property paths')
+  }
+
+  // A `__proto__` segment names the prototype of the object holding it, never a property a document stores
+  const unsafe = exclude.find((path: string) => path.split('.').includes('__proto__'))
+  if (unsafe !== undefined) {
+    throw createError('INVALID_STORE_CONFIG', `"exclude" cannot name a "__proto__" property (in "${unsafe}")`)
   }
 
   if (typeof vectors !== 'boolean') {
@@ -114,14 +121,20 @@ function addPath(tree: PathTree, path: string): void {
   const keys = path.split('.')
   let node = tree
   for (let i = 0; i < keys.length - 1; i++) {
-    const child = node[keys[i]]
+    const key = keys[i]
+    const child = Object.hasOwn(node, key) ? node[key] : undefined
     if (child === true) {
       // An ancestor is already omitted
       return
     }
-    node = node[keys[i]] = child ?? {}
+    let next = child
+    if (next === undefined) {
+      next = Object.create(null) as PathTree
+      setOwnValue(node, key, next)
+    }
+    node = next
   }
-  node[keys[keys.length - 1]] = true
+  setOwnValue(node, keys[keys.length - 1], true)
 }
 
 export function getStoreLayout<T extends AnyZBSearch>(zbsearch: T): StoreLayout {
@@ -150,7 +163,7 @@ export function getStoreLayout<T extends AnyZBSearch>(zbsearch: T): StoreLayout 
 
   let omit: PathTree | undefined
   if (omitted.length > 0) {
-    omit = {}
+    omit = Object.create(null) as PathTree
     // Shorter paths first, so that a path also omitted by one of its ancestors is skipped
     for (const path of omitted.sort((a, b) => a.length - b.length)) {
       addPath(omit, path)
@@ -177,7 +190,8 @@ function omitTree(doc: AnyDocument, tree: PathTree): AnyDocument {
 
   for (const key of Object.keys(tree)) {
     const own = Object.hasOwn(doc, key)
-    if (!own && !(key in doc)) {
+    // An inherited `__proto__` is the prototype of the document, not one of its properties
+    if (!own && (key === '__proto__' || !(key in doc))) {
       continue
     }
 
@@ -187,7 +201,7 @@ function omitTree(doc: AnyDocument, tree: PathTree): AnyDocument {
       if (own) {
         delete descriptors[key]
       } else {
-        descriptors[key] = placeholderProperty(undefined)
+        setOwnValue(descriptors, key, placeholderProperty(undefined))
       }
       continue
     }
@@ -200,14 +214,18 @@ function omitTree(doc: AnyDocument, tree: PathTree): AnyDocument {
     const omittedChild = omitTree(child, subtree)
     if (omittedChild !== child) {
       descriptors ??= Object.getOwnPropertyDescriptors(doc)
-      descriptors[key] = own
-        ? {
-            value: omittedChild,
-            writable: true,
-            enumerable: descriptors[key]?.enumerable ?? true,
-            configurable: true
-          }
-        : placeholderProperty(omittedChild)
+      setOwnValue(
+        descriptors,
+        key,
+        own
+          ? {
+              value: omittedChild,
+              writable: true,
+              enumerable: (getPathValue(descriptors, key) as PropertyDescriptor | undefined)?.enumerable ?? true,
+              configurable: true
+            }
+          : placeholderProperty(omittedChild)
+      )
     }
   }
 
@@ -244,7 +262,7 @@ function getAtPath(doc: AnyDocument, keys: string[]): unknown {
     if (!isPlainObject(value)) {
       return undefined
     }
-    value = value[key]
+    value = getPathValue(value, key)
   }
   return value
 }

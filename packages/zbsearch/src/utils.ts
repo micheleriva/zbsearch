@@ -523,10 +523,31 @@ export function copyDocument(obj: object, descriptors: PropertyDescriptorMap): a
 // The clone of a class instance reads its getters and methods from the instance (see `copyDocument`).
 export function cloneWithDataProperty(obj: object, key: string, value: unknown): any {
   const descriptors = Object.getOwnPropertyDescriptors(obj)
-  const previous = descriptors[key]
+  const previous = getPathValue(descriptors, key) as PropertyDescriptor | undefined
   const enumerable = previous === undefined || isPlaceholder(previous) ? true : previous.enumerable
-  descriptors[key] = { value, writable: true, enumerable, configurable: true }
+  setOwnValue(descriptors, key, { value, writable: true, enumerable, configurable: true })
   return copyDocument(obj, descriptors)
+}
+
+/**
+ * Reads the property `key` of `obj` as a segment of a document path. `__proto__` is read only when it is an own
+ * property (a document parsed from JSON can have one): otherwise it is the prototype of `obj`, which walking a path
+ * must never reach.
+ */
+export function getPathValue(obj: object, key: string): unknown {
+  return key === '__proto__' && !Object.hasOwn(obj, key) ? undefined : (obj as Record<string, unknown>)[key]
+}
+
+/**
+ * Sets `obj[key]` to `value` as an own data property. Unlike an assignment, a `__proto__` key never sets the
+ * prototype of `obj`.
+ */
+export function setOwnValue(obj: object, key: string, value: unknown): void {
+  if (key === '__proto__') {
+    Object.defineProperty(obj, key, { value, writable: true, enumerable: true, configurable: true })
+  } else {
+    ;(obj as Record<string, unknown>)[key] = value
+  }
 }
 
 const placeholderGetters = new WeakSet<() => unknown>()
@@ -561,7 +582,7 @@ export function cloneWithValueAtPath(obj: object, path: string[], value: unknown
   if (rest.length === 0) {
     return cloneWithDataProperty(obj, key, value)
   }
-  const next = (obj as any)[key]
+  const next = getPathValue(obj, key)
   const child = next != null && typeof next === 'object' ? next : {}
   return cloneWithDataProperty(obj, key, cloneWithValueAtPath(child, rest, value))
 }

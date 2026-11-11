@@ -665,6 +665,214 @@ describe('vectors in the documents store', () => {
   })
 })
 
+describe('stored documents of classes with private fields', () => {
+  // Real `#private` fields: only the instance itself passes their brand check, a copy of its own properties does not
+  class Meta {
+    #rating: number
+    #abstract: string
+    constructor(rating: number, abstract: string) {
+      this.#rating = rating
+      this.#abstract = abstract
+    }
+    get rating() {
+      return this.#rating
+    }
+    get abstract() {
+      return this.#abstract
+    }
+  }
+
+  class Article {
+    #id: string
+    #title: string
+    #body: string
+    #embedding: number[]
+    #meta: Meta
+    // An own property, kept in the documents store
+    category: string
+    constructor(id: string, title: string, body: string, embedding: number[], category = 'news') {
+      this.#id = id
+      this.#title = title
+      this.#body = body
+      this.#embedding = embedding
+      this.#meta = new Meta(title.length, `abstract of ${body}`)
+      this.category = category
+    }
+    get id() {
+      return this.#id
+    }
+    get title() {
+      return this.#title
+    }
+    get body() {
+      return this.#body
+    }
+    get embedding() {
+      return this.#embedding
+    }
+    get meta() {
+      return this.#meta
+    }
+    headline() {
+      return `${this.#title} (${this.category})`
+    }
+  }
+
+  const schema = {
+    title: 'string',
+    body: 'string',
+    category: 'string',
+    embedding: 'vector[2]',
+    meta: { rating: 'number', abstract: 'string' }
+  } as const
+
+  function createArticles() {
+    return create({ schema, store: { exclude: ['body', 'meta.abstract'] } })
+  }
+
+  function expectStored(stored: any, title: string) {
+    expect(stored).toBeInstanceOf(Article)
+    expect(stored.id).toBe('1')
+    expect(stored.title).toBe(title)
+    expect(stored.category).toBe('news')
+    expect(stored.headline()).toBe(`${title} (news)`)
+    expect(stored.body).toBeUndefined()
+    expect('body' in stored ? stored.body : undefined).toBeUndefined()
+    expect(stored.meta).toBeInstanceOf(Meta)
+    expect(stored.meta.rating).toBe(title.length)
+    expect(stored.meta.abstract).toBeUndefined()
+    expect(JSON.stringify(stored)).not.toMatch(/secret/)
+  }
+
+  it('keeps the getters and methods of the class working, and hides the unstored ones', () => {
+    const db = createArticles()
+    const doc = new Article('1', 'hello', 'secret words', [3, 4])
+    insert(db, doc as any)
+
+    const stored = getByID(db, '1') as any
+    expectStored(stored, 'hello')
+    expect(stored.embedding).toBeUndefined()
+    expect(Object.keys(stored)).toEqual(['category'])
+    expect(getByID(db, '1')).toBe(stored)
+
+    const hit = search(db, { term: 'secret' }).hits[0].document as any
+    expectStored(hit, 'hello')
+    expect(hit.embedding).toBeNull()
+
+    const rebuilt = search(db, { term: 'hello', includeVectors: true }).hits[0].document as any
+    expectStored(rebuilt, 'hello')
+    expect(rebuilt.embedding).toEqual([Math.fround(0.6), Math.fround(0.8)])
+
+    const vectorHit = search(db, { mode: 'vector', vector: { value: [3, 4], property: 'embedding' } }).hits[0]
+      .document as any
+    expectStored(vectorHit, 'hello')
+    expect(vectorHit.embedding).toBeNull()
+
+    // Neither inserting nor searching modifies the inserted document or the stored one
+    expect(doc.body).toBe('secret words')
+    expect(doc.embedding).toEqual([3, 4])
+    expect(doc.meta.abstract).toBe('abstract of secret words')
+    expect(Object.keys(doc)).toEqual(['category'])
+    expect(stored.embedding).toBeUndefined()
+    expect(stored.body).toBeUndefined()
+
+    expect(search(db, { where: { 'meta.rating': { eq: 5 } } }).count).toBe(1)
+    expect(search(db, { term: 'abstract', properties: ['meta.abstract'] }).count).toBe(1)
+  })
+
+  it('removes, updates and upserts such documents', async () => {
+    const db = createArticles()
+    insert(db, new Article('1', 'hello', 'secret words', [3, 4]) as any)
+
+    update(db, '1', new Article('1', 'goodbye', 'secret phrase', [0, 2]) as any)
+    expectStored(getByID(db, '1'), 'goodbye')
+    expect(search(db, { term: 'words' }).count).toBe(0)
+    expect(search(db, { term: 'phrase' }).count).toBe(1)
+
+    upsert(db, new Article('1', 'again', 'secret letters', [1, 1]) as any)
+    expectStored(getByID(db, '1'), 'again')
+    expect(search(db, { term: 'phrase' }).count).toBe(0)
+    expect(search(db, { term: 'letters' }).count).toBe(1)
+
+    expect(remove(db, '1')).toBe(true)
+    expect(count(db)).toBe(0)
+    expectIndexIsEmpty(db)
+  })
+
+  it('saves and loads such documents without the unstored properties', async () => {
+    const db = createArticles()
+    insert(db, new Article('1', 'hello', 'secret words', [3, 4]) as any)
+
+    for (const restore of [
+      () => {
+        const restored = createArticles()
+        load(restored, JSON.parse(JSON.stringify(save(db))) as RawData)
+        return restored
+      },
+      () => {
+        const restored = createArticles()
+        loadBinarySync(restored, saveBinarySync(db))
+        return restored
+      }
+    ]) {
+      const restored = restore()
+      expect(getByID(restored, '1')).toEqual({ category: 'news' })
+      expect(search(restored, { term: 'secret' }).hits.map((hit) => hit.id)).toEqual(['1'])
+      expect(search(restored, { term: 'hello', includeVectors: true }).hits[0].document.embedding).toEqual([
+        Math.fround(0.6),
+        Math.fround(0.8)
+      ])
+      // Snapshots keep own enumerable properties only, as for any class instance: the loaded document is a plain one
+      expect(remove(restored, '1')).toBe(true)
+      expect(count(restored)).toBe(0)
+    }
+
+    // A JSON round trip of the stored document reads the same
+    expect(JSON.parse(JSON.stringify(getByID(db, '1')))).toEqual({ category: 'news' })
+  })
+
+  it('keeps the getters working when only own vectors are left out, and on hits of stored vectors', () => {
+    class Item {
+      #name: string
+      constructor(
+        readonly id: string,
+        name: string,
+        public embedding: number[]
+      ) {
+        this.#name = name
+      }
+      get name() {
+        return this.#name
+      }
+    }
+    const itemSchema = { name: 'string', embedding: 'vector[2]' } as const
+
+    for (const store of [undefined, { vectors: true }]) {
+      const db = create({ schema: itemSchema, store })
+      const doc = new Item('1', 'lamp', [3, 4])
+      insert(db, doc as any)
+
+      const stored = getByID(db, '1') as any
+      expect(stored).toBeInstanceOf(Item)
+      expect(stored.name).toBe('lamp')
+      expect(stored.embedding).toEqual(store ? [3, 4] : undefined)
+
+      const nulled = search(db, { term: 'lamp' }).hits[0].document as any
+      expect(nulled).toBeInstanceOf(Item)
+      expect(nulled.name).toBe('lamp')
+      expect(nulled.embedding).toBeNull()
+
+      const rebuilt = search(db, { term: 'lamp', includeVectors: true }).hits[0].document as any
+      expect(rebuilt.name).toBe('lamp')
+      expect(rebuilt.embedding).toEqual(store ? [3, 4] : [Math.fround(0.6), Math.fround(0.8)])
+
+      expect(doc.embedding).toEqual([3, 4])
+      expect(remove(db, '1')).toBe(true)
+      expectIndexIsEmpty(db)
+    }
+  })
+})
+
 describe('store serialization', () => {
   function populate(db: AnyZBSearch, n: number) {
     insertMultiple(

@@ -277,6 +277,7 @@ Excluded properties are indexed exactly as before: full-text search, filters (`w
 - `facets`, `groupBy` and `distinctOn` read the stored documents, so using them on an excluded property throws a `PROPERTY_NOT_STORED` error (also for an excluded property outside the schema with `distinctOn`). `distinctOn` on a vector property that is not stored throws `VECTOR_NOT_STORED`.
 - Excluded `string` properties are not sortable: the sorter keeps its own copy of every sortable value, which would keep the text in memory. Excluded numbers and booleans stay sortable.
 - `exact: true` cannot check the case of an excluded property's text: for those properties it keeps the documents the index matched exactly (case-insensitively).
+- Documents that are instances of a class with getters or methods (for example, getters that read `#private` fields) are stored as a view of the instance that hides the unstored properties, so that the class code keeps working. The view keeps the instance in memory, with all its data: for such documents, `exclude` (and leaving vectors out of the store) hides the properties but does not save memory. Plain objects, and instances of classes without getters or methods, are copied without the unstored properties.
 
 ### Vectors are not stored by default
 

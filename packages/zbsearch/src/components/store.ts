@@ -2,7 +2,7 @@ import { createError } from '../errors.js'
 import type { AnyDocument, AnySchema, AnyZBSearch, Result, StoreConfig, StoreSettings } from '../types.js'
 import { isVectorType } from './defaults.js'
 import { getInternalDocumentId } from './internal-document-id-store.js'
-import { cloneWithValueAtPath, placeholderProperty } from '../utils.js'
+import { cloneWithValueAtPath, copyDocument, placeholderProperty } from '../utils.js'
 
 // The settings of a database that was not built by `create` (or that predates `store`): everything is stored.
 const LEGACY_STORE_SETTINGS: StoreSettings = { exclude: [], vectors: true }
@@ -170,6 +170,8 @@ function isPlainObject(value: unknown): value is AnyDocument {
 // Returns `doc` without the paths of `tree`. A document that changes is copied as `cloneWithDataProperty` copies it:
 // its prototype and the own properties that are kept (non-enumerable ones and accessors included) are preserved.
 // A path the document inherits (e.g. a getter of its class) is hidden on the copy by a placeholder own property.
+// The copy of a class instance with getters or methods reads them from the instance, which it keeps referenced
+// (see `copyDocument`).
 function omitTree(doc: AnyDocument, tree: PathTree): AnyDocument {
   let descriptors: PropertyDescriptorMap | undefined
 
@@ -209,7 +211,7 @@ function omitTree(doc: AnyDocument, tree: PathTree): AnyDocument {
     }
   }
 
-  return descriptors ? Object.create(Object.getPrototypeOf(doc), descriptors) : doc
+  return descriptors ? copyDocument(doc, descriptors) : doc
 }
 
 /**

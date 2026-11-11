@@ -368,17 +368,107 @@ export function convertDistanceToMeters(distance: number, unit: GeosearchDistanc
   return distance * ratio
 }
 
+// The instance behind each document view (see `copyDocument`)
+const viewInstances = new WeakMap<object, object>()
+
+// Whether the prototype chain below `Object.prototype` defines accessors or methods: class code, which may only work
+// on the instance itself (it can read `#private` fields, or the internal slots of a built-in, that a copy lacks).
+function hasClassCode(proto: object | null): boolean {
+  for (
+    let current = proto;
+    current !== null && current !== Object.prototype;
+    current = Object.getPrototypeOf(current)
+  ) {
+    for (const key of Reflect.ownKeys(current)) {
+      const descriptor = Reflect.getOwnPropertyDescriptor(current, key)!
+      if (key !== 'constructor' && (descriptor.get || descriptor.set || typeof descriptor.value === 'function')) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+function findClassProperty(proto: object | null, key: PropertyKey): PropertyDescriptor | undefined {
+  for (
+    let current = proto;
+    current !== null && current !== Object.prototype;
+    current = Object.getPrototypeOf(current)
+  ) {
+    const descriptor = Reflect.getOwnPropertyDescriptor(current, key)
+    if (descriptor) {
+      return descriptor
+    }
+  }
+  return undefined
+}
+
+// Wraps `copy` so that what it inherits from its class is read from `instance`: getters run, and methods are bound,
+// with `this` set to the instance. Everything else (own properties, keys, prototype, writes) is the copy's.
+function createDocumentView(copy: object, instance: object): object {
+  let boundMethods: WeakMap<Function, Function> | undefined
+
+  const view = new Proxy(copy, {
+    get(target, key, receiver) {
+      if (Object.hasOwn(target, key)) {
+        return Reflect.get(target, key, receiver)
+      }
+
+      const proto = Reflect.getPrototypeOf(target)
+      const descriptor = findClassProperty(proto, key)
+      if (descriptor === undefined) {
+        return proto === null ? undefined : Reflect.get(proto, key, receiver)
+      }
+      if (descriptor.get || descriptor.set) {
+        return descriptor.get ? Reflect.apply(descriptor.get, instance, []) : undefined
+      }
+
+      const value = descriptor.value
+      if (typeof value !== 'function' || key === 'constructor') {
+        return value
+      }
+      boundMethods ??= new WeakMap()
+      let method = boundMethods.get(value)
+      if (method === undefined) {
+        method = value.bind(instance) as Function
+        boundMethods.set(value, method)
+      }
+      return method
+    }
+  })
+
+  viewInstances.set(view, instance)
+  return view
+}
+
+/**
+ * A copy of the document `obj` with the own properties `descriptors`, keeping the prototype of `obj`.
+ *
+ * When the class of `obj` has accessors or methods, a plain copy may break them: they can read `#private` fields
+ * (or internal slots) that only the instance has. The copy is then wrapped in a view that reads what it inherits
+ * from the instance (see `createDocumentView`), so its getters and methods keep working. The view keeps the instance
+ * referenced, with all its data, including the properties the copy leaves out: for such documents, leaving
+ * properties out of the documents store hides them but does not save memory. Plain objects, and instances of
+ * classes without accessors or methods, are copied without a view and do not keep the original referenced.
+ */
+export function copyDocument(obj: object, descriptors: PropertyDescriptorMap): any {
+  const proto = Object.getPrototypeOf(obj)
+  const copy = Object.create(proto, descriptors)
+  return hasClassCode(proto) ? createDocumentView(copy, viewInstances.get(obj) ?? obj) : copy
+}
+
 // Shallow clone of `obj` that keeps its prototype and every own property (including non-enumerable ones and
 // accessors), except `key`, which becomes a plain writable data property holding `value`. Defining `key` up front,
 // instead of assigning it on the clone, never invokes a copied setter (which could write to state shared with the
 // stored document) and works when the original property is read-only or getter-only.
 // A property set over a placeholder (see `placeholderProperty`) is enumerable, as if the placeholder was not there.
+// The clone of a class instance reads its getters and methods from the instance (see `copyDocument`).
 export function cloneWithDataProperty(obj: object, key: string, value: unknown): any {
   const descriptors = Object.getOwnPropertyDescriptors(obj)
   const previous = descriptors[key]
   const enumerable = previous === undefined || isPlaceholder(previous) ? true : previous.enumerable
   descriptors[key] = { value, writable: true, enumerable, configurable: true }
-  return Object.create(Object.getPrototypeOf(obj), descriptors)
+  return copyDocument(obj, descriptors)
 }
 
 const placeholderGetters = new WeakSet<() => unknown>()

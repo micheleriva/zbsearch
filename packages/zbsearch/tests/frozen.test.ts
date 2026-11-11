@@ -377,6 +377,49 @@ describe('frozen segments', () => {
     checkAll(frozen, reference, 9)
   })
 
+  it('ranks like the mutable index on randomized histories', () => {
+    for (let seed = 101; seed < 107; seed++) {
+      const ops = history(seed, 60 + (seed % 3) * 50)
+      const options = { exclude: seed % 2 === 0 }
+      const reference = build(ops, options, () => false)
+      for (const db of [
+        build(ops, options, () => true),
+        build(ops, options, (n) => n === 1),
+        build(ops, { ...options, threshold: 5 + (seed % 4) * 6 }, () => false)
+      ]) {
+        checkAll(db, reference, seed)
+      }
+    }
+  })
+
+  it('ranks hybrid searches like the mutable index', () => {
+    const c = corpus(51)
+    const vector = () => Array.from({ length: 8 }, () => c.random() * 2 - 1)
+    const docs = Array.from({ length: 150 }, (_, i) => ({ ...c.doc(`h${i}`), embedding: vector() }))
+    const schema = { ...SCHEMA, embedding: 'vector[8]' } as const
+    const reference = create({ schema })
+    const frozen = create({ schema, store: { exclude: ['text'] } })
+    for (const db of [reference, frozen]) {
+      insertMultiple(db, structuredClone(docs) as never)
+    }
+    freeze(frozen)
+    for (const db of [reference, frozen]) {
+      remove(db, 'h3')
+      update(db, 'h4', structuredClone({ ...docs[90], id: 'h4' }) as never)
+    }
+    for (let i = 0; i < 12; i++) {
+      const term = `${c.word()} ${i % 3 === 0 ? c.word().slice(0, 3) : ''}`.trim()
+      expectParity(frozen as AnyZBSearch, reference as AnyZBSearch, {
+        mode: 'hybrid',
+        term,
+        vector: { value: vector(), property: 'embedding' },
+        similarity: 0.1,
+        ...(i % 2 ? { tolerance: 1, where: { year: { gte: 2000 } } } : {}),
+        ...(i % 4 === 1 ? { hybridWeights: { text: 0.7, vector: 0.3 } } : {})
+      })
+    }
+  })
+
   it('freezes long postings lists in blocks and still skips nothing', () => {
     const db = create({ schema: { text: 'string' } as const })
     const reference = create({ schema: { text: 'string' } as const })

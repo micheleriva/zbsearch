@@ -136,6 +136,24 @@
         "types": "./dist/commonjs/trees/vector-ivf.d.ts",
         "default": "./dist/commonjs/trees/vector-ivf.js"
       }
+    },
+    "./trees/vector-flat": {
+      "deno": {
+        "types": "./dist/deno/trees/vector-flat.d.ts",
+        "default": "./dist/deno/trees/vector-flat.js"
+      },
+      "browser": {
+        "types": "./dist/browser/trees/vector-flat.d.ts",
+        "default": "./dist/browser/trees/vector-flat.js"
+      },
+      "import": {
+        "types": "./dist/esm/trees/vector-flat.d.ts",
+        "default": "./dist/esm/trees/vector-flat.js"
+      },
+      "require": {
+        "types": "./dist/commonjs/trees/vector-flat.d.ts",
+        "default": "./dist/commonjs/trees/vector-flat.js"
+      }
     }
   },
   "scripts": {

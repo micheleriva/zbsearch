@@ -1,21 +1,30 @@
 import { RESERVED_VECTOR_INDEX_KEY } from '../constants.js'
-import type { IndexesConfig, VectorIndexConfig, VectorIndexContext, VectorIndexFactory } from '../types.js'
+import type {
+  IndexesConfig,
+  VectorBinarySnapshot,
+  VectorIndexConfig,
+  VectorIndexContext,
+  VectorIndexFactory,
+  VectorIndexLike
+} from '../types.js'
 import { createError } from '../errors.js'
 import { VectorIndex } from './vector.js'
 
 function createFactory(
   kind: VectorIndexFactory['kind'],
-  create: (ctx: VectorIndexContext) => VectorIndex,
-  fromJSON: (json: unknown) => VectorIndex
+  create: (ctx: VectorIndexContext) => VectorIndexLike,
+  fromJSON: (json: unknown) => VectorIndexLike,
+  fromBinarySnapshot?: (snapshot: VectorBinarySnapshot) => VectorIndexLike
 ): VectorIndexFactory {
-  return Object.assign(create, { kind, fromJSON })
+  return Object.assign(create, { kind, fromJSON, fromBinarySnapshot })
 }
 
 export function createFlatVectorIndexFactory(): VectorIndexFactory {
   return createFactory(
     'flat',
     (ctx) => new VectorIndex(ctx.dim),
-    (json) => VectorIndex.fromJSON(json)
+    (json) => VectorIndex.fromJSON(json),
+    (snapshot) => VectorIndex.fromBinarySnapshot(snapshot)
   )
 }
 

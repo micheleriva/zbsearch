@@ -25,6 +25,7 @@ const packages = [
   'plugin-match-highlight',
   'plugin-qps',
   'plugin-pt15',
+  'plugin-vector-quantizer',
   'highlight',
   'searchbox-core',
   'searchbox-react',

@@ -7,6 +7,19 @@ import { MODE_FULLTEXT_SEARCH, MODE_HYBRID_SEARCH, MODE_VECTOR_SEARCH, RESERVED_
 import type { InsertOptions } from './methods/insert.js'
 import { Point } from './trees/bkd.js'
 import { VectorType, VectorTypeLike } from './trees/vector.js'
+import type { VectorBinarySnapshot } from './trees/vector-quantization.js'
+
+export type {
+  BuiltinQuantization,
+  CodeBuffer,
+  QuantizationOption,
+  QuantizationOptions,
+  RescoreOption,
+  SnapshotTypedArray,
+  VectorBinarySnapshot,
+  VectorQuantizer,
+  VectorQuantizerFactory
+} from './trees/vector-quantization.js'
 
 export type { DefaultTokenizer } from './components/tokenizer/index.js'
 export { MODE_FULLTEXT_SEARCH, MODE_HYBRID_SEARCH, MODE_VECTOR_SEARCH, RESERVED_VECTOR_INDEX_KEY } from './constants.js'
@@ -26,6 +39,14 @@ export type VectorIndexContext = {
 
 export type SimilarVector = [id: InternalDocumentID, score: number]
 
+export type VectorFindOptions = {
+  /**
+   * How many results the caller will read (offset + limit). Indexes that rescore a candidate set use it to size
+   * that set; exact indexes ignore it and return every vector above the similarity threshold.
+   */
+  limit?: number
+}
+
 export interface VectorIndexLike {
   readonly size: number
   add(internalDocumentId: InternalDocumentID, value: VectorTypeLike): void
@@ -33,7 +54,8 @@ export interface VectorIndexLike {
   find(
     vector: VectorTypeLike,
     similarity: number,
-    whereFiltersIDs: Set<InternalDocumentID> | undefined
+    whereFiltersIDs: Set<InternalDocumentID> | undefined,
+    options?: VectorFindOptions
   ): SimilarVector[]
   toJSON(): unknown
   /**
@@ -42,12 +64,15 @@ export interface VectorIndexLike {
    * normalized (unit-length) copy they search on, not the original values.
    */
   getVector?(internalDocumentId: InternalDocumentID): ArrayLike<number> | undefined
+  /** Bulk data as typed arrays plus a small JSON-serializable meta object (see VectorBinarySnapshot). */
+  toBinarySnapshot?(): VectorBinarySnapshot
 }
 
 export interface VectorIndexFactory {
   (ctx: VectorIndexContext): VectorIndexLike
   kind: 'flat' | 'ivf'
   fromJSON: (json: unknown) => VectorIndexLike
+  fromBinarySnapshot?: (snapshot: VectorBinarySnapshot) => VectorIndexLike
 }
 
 export type VectorIndexConfig = 'flat' | VectorIndexFactory

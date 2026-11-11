@@ -1,0 +1,58 @@
+{
+  "name": "@zbsearch/plugin-vector-quantizer",
+  "version": "4.0.2",
+  "description": "Product quantization (PQ) for zbsearch vector indexes, powered by a WebAssembly build of vector_quantizer",
+  "keywords": [
+    "embeddings",
+    "product quantization",
+    "quantization",
+    "vector search",
+    "webassembly",
+    "zbsearch"
+  ],
+  "homepage": "https://github.com/micheleriva/zbsearch#readme",
+  "bugs": {
+    "url": "https://github.com/micheleriva/zbsearch/issues"
+  },
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/micheleriva/zbsearch.git"
+  },
+  "files": [
+    "dist",
+    "LICENSE.md"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "browser": "./dist/index.global.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "node ../../scripts/rolldown-build.mjs && tsc -p . --emitDeclarationOnly",
+    "build:wasm": "node scripts/build-wasm.mjs",
+    "check:wasm": "node scripts/build-wasm.mjs --check",
+    "lint": "oxlint --fix --fix-suggestions",
+    "test": "vitest run",
+    "test:rust": "cargo test --release --locked --manifest-path rust/Cargo.toml",
+    "prepublishOnly": "node ../../scripts/check-publish.mjs"
+  },
+  "dependencies": {
+    "zbsearch": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.9.0",
+    "rolldown": "^1.2.3",
+    "typescript": "^7.0.2"
+  }
+}

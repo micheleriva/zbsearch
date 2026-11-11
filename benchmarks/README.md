@@ -69,6 +69,7 @@ Fork PRs are supported: benchmarks run on `pull_request` (read-only token), and 
 | `npm run benchmark:avl` | AVL tree |
 | `npm run benchmark:vector` | Vector search |
 | `npm run benchmark:vector-ivf` | IVF vector index |
+| `npm run benchmark:vector-quantization` | Recall@10, memory, serialized size and latency for none / int8 / binary / PQ, flat vs IVF (see below) |
 | `npm run benchmark:memory` | Memory footprint |
 | `npm run benchmark:store-exclude` | Heap and snapshot size with indexed-but-not-stored fields (`store` option), on 10k synthetic passages (`--docs=N`, `--no-vectors`) |
 | `npm run benchmark:responsiveness` | Main-thread blocking during sync vs async indexing and loading |
@@ -76,6 +77,25 @@ Fork PRs are supported: benchmarks run on `pull_request` (read-only token), and 
 | `npm run benchmark:algorithms` | BM25 / QPS / PT15 |
 | `npm run benchmark:search-quality` | Standardized ranking quality on BEIR datasets (nDCG@10 / MAP@100 / R@100) |
 | `npm run benchmark:pagefind` | ZBSearch sharded static index vs Pagefind, end to end in a real browser |
+
+## Vector quantization
+
+`vector-quantization.js` benchmarks the vector index alone (no document store): recall@10 against exact float32
+search, memory, binary-snapshot and JSON size, build time and query latency, for `none`, `int8`, `binary`,
+`binary` + int8 rescoring and product quantization (`@zbsearch/plugin-vector-quantizer`), on flat and IVF indexes.
+
+```sh
+pnpm --filter zbsearch build && pnpm --filter @zbsearch/plugin-vector-quantizer build
+cd benchmarks
+node --expose-gc --max-old-space-size=3072 vector-quantization.js --docs=20000          # synthetic clustered set
+node --expose-gc --max-old-space-size=3072 vector-quantization.js --dataset=random --docs=30000
+node --expose-gc --max-old-space-size=3072 vector-quantization.js --dataset=minilm      # 150 real MiniLM vectors
+node --expose-gc --max-old-space-size=3072 vector-quantization.js --memory-only=160000  # int8 memory at 160k x 384
+
+# Real embeddings (BEIR SciFact with bge-small; needs access to huggingface.co):
+node scripts/embed-beir.mjs --dataset=scifact --model=bge-small
+node --expose-gc --max-old-space-size=3072 vector-quantization.js --data=benchmark/scifact-bge-small.json
+```
 
 ## ZBSearch static vs Pagefind
 

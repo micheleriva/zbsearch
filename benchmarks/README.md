@@ -72,6 +72,7 @@ Fork PRs are supported: benchmarks run on `pull_request` (read-only token), and 
 | `npm run benchmark:vector-quantization` | Recall@10, memory, serialized size and latency for none / int8 / binary / PQ, flat vs IVF (see below) |
 | `npm run benchmark:memory` | Memory footprint |
 | `npm run benchmark:store-exclude` | Heap and snapshot size with indexed-but-not-stored fields (`store` option), on 10k synthetic passages (`--docs=N`, `--no-vectors`) |
+| `npm run benchmark:binary-snapshot` | Binary snapshot (`saveBinary` / `loadBinary`) vs chunked JSON: size, save/load time, segment size and extra memory, on synthetic passages with 384-dim vectors (`node --expose-gc --max-old-space-size=3072 binary-snapshot.js 10000 50000 [--no-json] [--store-vectors]`) |
 | `npm run benchmark:responsiveness` | Main-thread blocking during sync vs async indexing and loading |
 | `npm run benchmark:bundle-size` | Serialized index size |
 | `npm run benchmark:algorithms` | BM25 / QPS / PT15 |

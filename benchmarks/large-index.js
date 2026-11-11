@@ -9,7 +9,7 @@
 // - with --freeze, the time `freeze(db)` takes and the heap afterwards;
 // - search latency (p50 / p95 / max) for a fixed Zipf query mix: plain, `tolerance: 1`, `where`, facets, `sortBy`,
 //   and hybrid when --dims is given;
-// - update and remove latency;
+// - update and remove latency, and the longest event-loop block while inserting 5,000 more passages;
 // - saveBinary size and time, loadBinary time, the heap of the loaded database and whether it returns the same
 //   results.
 //
@@ -223,6 +223,18 @@ result.update = percentiles(updateSamples)
 result.remove = percentiles(removeSamples)
 console.log(
   `update: p50 ${result.update.p50.toFixed(2)} ms, p95 ${result.update.p95.toFixed(2)} ms; remove: p50 ${result.remove.p50.toFixed(2)} ms, p95 ${result.remove.p95.toFixed(2)} ms`
+)
+
+// Inserting into the built index (into the mutable tail when frozen)
+let extraInserted = 0
+result.extraInsertLongestBlockMs = await withEventLoopMonitor(async () => {
+  for (const batch of passages(5000, { dimensions: DIMS, seed: 99 })) {
+    for (const doc of batch) doc.id = `x${extraInserted++}`
+    await zb.insertMultipleAsync(db, batch, { batchSize: 50 })
+  }
+})
+console.log(
+  `insertMultipleAsync of 5,000 more passages: longest event-loop block ${result.extraInsertLongestBlockMs.toFixed(0)} ms`
 )
 
 const loadBaseline = memory()

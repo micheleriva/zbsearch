@@ -1661,6 +1661,23 @@ type ZBSearchID = {
   id: string
   indexes?: IndexesConfig
   store?: StoreSettings
+  freeze?: FreezeSettings
+}
+
+/**
+ * Automatic freezing of the full-text index (see `freeze`). Not set by default: nothing is frozen unless `freeze` is
+ * called.
+ */
+export type FreezeConfig = {
+  /**
+   * Freeze the documents inserted, updated or removed since the last freeze into a new frozen segment once there are
+   * at least this many of them. Each automatic freeze adds a segment; past 8 segments they are merged into one.
+   */
+  threshold?: number
+}
+
+export type FreezeSettings = {
+  threshold: number
 }
 
 export type ExtractSchema<T> = T extends { schema: infer RawSchema } ? Schema<RawSchema> : never

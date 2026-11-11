@@ -49,7 +49,7 @@ const errors = {
   PLUGIN_COMPONENT_CONFLICT: `The component "%s" is already defined. The plugin "%s" is trying to redefine it.`,
   IVF_INDEX_REQUIRES_FACTORY: `Vector index "%s" was serialized as IVF. Import ivf from "zbsearch/trees/vector-ivf" and pass indexes.%s at create().`,
   INVALID_BINARY_SNAPSHOT: `Invalid binary snapshot: %s.`,
-  UNSUPPORTED_BINARY_SNAPSHOT_VERSION: `Unsupported binary snapshot version %s. This build of ZBSearch reads version %s.`,
+  UNSUPPORTED_BINARY_SNAPSHOT_VERSION: `Unsupported binary snapshot version %s. This build of ZBSearch reads versions 1 to %s.`,
   BINARY_SNAPSHOT_CHECKSUM_MISMATCH: `Binary snapshot checksum mismatch in %s: the data is corrupted or truncated.`,
   BINARY_SNAPSHOT_COMPONENT_MISMATCH: `The binary snapshot stores the %s of the built-in component, but this database uses a custom %s component.`,
   BINARY_SNAPSHOT_ASYNC_COMPONENT: `The %s component saves asynchronously. Use saveBinary instead of saveBinarySync.`,
@@ -60,7 +60,9 @@ const errors = {
   PROPERTY_NOT_STORED: `Property "%s" is excluded from the documents store (store.exclude), so it cannot be used for %s.`,
   VECTOR_NOT_STORED: `Vector property "%s" is not in the documents store (store.vectors is off), so it cannot be used for %s.`,
   UNSTORED_PROPERTIES_NOT_SUPPORTED: `The configured index component cannot remove values that are not in the documents store, so "store.exclude" cannot name the searchable property "%s". Keep it stored, or use an index component that implements "removeUnstored".`,
-  SUGGEST_NOT_SUPPORTED: `The configured index component does not support "suggest", as it cannot expand a query token into the indexed words it matches.`
+  SUGGEST_NOT_SUPPORTED: `The configured index component does not support "suggest", as it cannot expand a query token into the indexed words it matches.`,
+  FREEZE_NOT_SUPPORTED: `Freezing needs the built-in index component: the configured index component cannot be frozen.`,
+  INVALID_FREEZE_CONFIG: `Invalid "freeze" option: %s.`
 }
 
 export type ErrorCode = keyof typeof errors

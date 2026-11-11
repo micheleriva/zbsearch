@@ -15,6 +15,7 @@ import type {
   TypedDocument
 } from '../types.js'
 import { isAsyncFunction, sleep, yieldToEventLoop } from '../utils.js'
+import { trackFreezeChange } from './freeze.js'
 
 export type InsertOptions = {
   avlRebalanceThreshold?: number
@@ -280,6 +281,8 @@ async function indexAndSortDocument<T extends AnyZBSearch>(
 
     zbsearch.sorter.insert(zbsearch.data.sorting, prop, id, value, expectedType, language)
   }
+
+  trackFreezeChange(zbsearch)
 }
 
 function indexAndSortDocumentSync<T extends AnyZBSearch>(
@@ -354,6 +357,8 @@ function indexAndSortDocumentSync<T extends AnyZBSearch>(
 
     zbsearch.sorter.insert(zbsearch.data.sorting, prop, id, value, expectedType, language)
   }
+
+  trackFreezeChange(zbsearch)
 }
 
 export function insertMultiple<T extends AnyZBSearch>(

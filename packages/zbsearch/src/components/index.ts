@@ -6,6 +6,19 @@ import { BKDTree } from '../trees/bkd.js'
 import { BoolNode } from '../trees/bool.js'
 import { FlatTree } from '../trees/flat.js'
 import { FindResult, RadixNodeJSON, RadixTree } from '../trees/radix.js'
+import {
+  decodePostings,
+  deserializeFrozenSegment,
+  findOrdinals,
+  FrozenSegment,
+  isLiveDocument,
+  liveDocumentFrequency,
+  mergeSegments,
+  serializeFrozenSegment,
+  SerializedFrozenSegment,
+  termOrdinal,
+  tombstoneDocument
+} from '../trees/frozen.js'
 import { VectorType } from '../trees/vector.js'
 import { deserializeVectorIndex, resolveVectorIndexFactory } from '../trees/vector-index.js'
 import type {
@@ -100,6 +113,9 @@ export interface Index extends AnyIndexStore {
   // - booleans and vectors need nothing: they are removed by document ID.
   unstoredValues: Record<string, Record<InternalDocumentID, SearchableValue>>
   unstoredTerms: Record<string, UnstoredTerms>
+  // Frozen segments of string properties (see freeze()), oldest first. The radix tree, `frequencies` and
+  // `unstoredTerms` of a property only hold the documents inserted since its last freeze (its mutable tail).
+  frozen?: Record<string, FrozenSegment[]>
 }
 
 /**
@@ -143,6 +159,157 @@ function getIndexCorpusStatistics(index: Index): CorpusStatistics | undefined {
 function getAvgFieldLength(index: Index, prop: string): number {
   const stats = getIndexCorpusStatistics(index)
   return (stats ? stats.avgFieldLength[prop] : index.avgFieldLength[prop]) as number
+}
+
+function getFrozenSegments(index: Index, prop: string): FrozenSegment[] | undefined {
+  const segments = index.frozen?.[prop]
+  return segments !== undefined && segments.length > 0 ? segments : undefined
+}
+
+// Tombstones the frozen copy of a document. Returns false if no frozen segment of `prop` holds a live copy of it (the
+// document is in the mutable tail, or does not have the property).
+function removeFrozenDocument(index: Index, prop: string, internalId: InternalDocumentID): boolean {
+  const segments = getFrozenSegments(index, prop)
+  if (!segments) {
+    return false
+  }
+
+  for (let i = 0; i < segments.length; i++) {
+    if (tombstoneDocument(segments[i], internalId)) {
+      return true
+    }
+  }
+  return false
+}
+
+/** Whether a frozen segment of `prop` holds a live copy of the document. */
+export function isFrozenDocument(index: Index, prop: string, internalId: InternalDocumentID): boolean {
+  const segments = getFrozenSegments(index, prop)
+  if (!segments) {
+    return false
+  }
+
+  for (let i = 0; i < segments.length; i++) {
+    if (isLiveDocument(segments[i], internalId)) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * The words of `prop` that the radix tree's `find` returns for `term`, `exact` and `tolerance`, frozen segments
+ * included. Without frozen segments, this is the radix tree's own result. With them, each word lists the live
+ * postings of the segments (oldest first) and then those of the radix tree (the mutable tail): the same documents,
+ * in the same order, as the radix tree would hold if nothing had been frozen. The term frequencies of each word,
+ * position by position, go to `tfs` when given (the mutable tail's ones are read from `index.frequencies`).
+ */
+export function findWords(
+  index: Index,
+  prop: string,
+  tree: RadixTree,
+  term: string,
+  exact: boolean | undefined,
+  tolerance: number | undefined,
+  tfs?: Record<string, Float64Array>
+): FindResult {
+  const segments = getFrozenSegments(index, prop)
+  if (!segments) {
+    return tree.find({ term, exact, tolerance })
+  }
+
+  const tail = tree.find({ term, exact, tolerance })
+  const words: string[] = []
+  // Word -> pairs of (segment, term ordinal)
+  const parts = new Map<string, number[]>()
+
+  for (let s = 0; s < segments.length; s++) {
+    const segment = segments[s]
+    const ordinals = findOrdinals(segment, term, exact === true, tolerance ?? 0)
+    for (let i = 0; i < ordinals.length; i++) {
+      const word = segment.terms[ordinals[i]]
+      let wordParts = parts.get(word)
+      if (!wordParts) {
+        wordParts = []
+        parts.set(word, wordParts)
+        words.push(word)
+      }
+      wordParts.push(s, ordinals[i])
+    }
+  }
+
+  for (const word in tail) {
+    if (!parts.has(word)) {
+      words.push(word)
+    }
+  }
+
+  const frequencies = index.frequencies[prop]
+  const result: FindResult = {}
+
+  for (let w = 0; w < words.length; w++) {
+    const word = words[w]
+    const wordParts = parts.get(word)
+    const tailIds = tail[word]
+
+    let size = tailIds ? tailIds.length : 0
+    if (wordParts) {
+      for (let i = 0; i < wordParts.length; i += 2) {
+        size += segments[wordParts[i]].df[wordParts[i + 1]]
+      }
+    }
+
+    const ids = new Uint32Array(size)
+    const wordTfs = tfs ? new Float64Array(size) : undefined
+    let n = 0
+    if (wordParts) {
+      for (let i = 0; i < wordParts.length; i += 2) {
+        n += decodePostings(segments[wordParts[i]], wordParts[i + 1], ids, wordTfs, n)
+      }
+    }
+    if (tailIds) {
+      for (let i = 0; i < tailIds.length; i++) {
+        const id = tailIds[i]
+        ids[n] = id
+        if (wordTfs) {
+          wordTfs[n] = frequencies?.[id]?.[word] ?? 0
+        }
+        n++
+      }
+    }
+
+    // The arrays are only read by index, like the radix tree's postings
+    result[word] = (n === size ? ids : ids.subarray(0, n)) as unknown as InternalDocumentID[]
+    if (tfs) {
+      tfs[word] = n === size ? wordTfs! : wordTfs!.subarray(0, n)
+    }
+  }
+
+  return result
+}
+
+// Term frequency of `term` in each live frozen document of `prop` that has it
+function frozenTermFrequencies(index: Index, prop: string, term: string): Map<InternalDocumentID, number> | undefined {
+  const segments = getFrozenSegments(index, prop)
+  if (!segments) {
+    return undefined
+  }
+
+  const tfs = new Map<InternalDocumentID, number>()
+  for (const segment of segments) {
+    const ordinal = termOrdinal(segment, term)
+    if (ordinal === -1) {
+      continue
+    }
+    const df = segment.df[ordinal]
+    const ids = new Uint32Array(df)
+    const frequencies = new Float64Array(df)
+    const n = decodePostings(segment, ordinal, ids, frequencies)
+    for (let i = 0; i < n; i++) {
+      tfs.set(ids[i], frequencies[i])
+    }
+  }
+  return tfs
 }
 
 export function insertDocumentScoreParameters(
@@ -486,6 +653,11 @@ export function removeUnstored(
       return true
     }
     case 'Radix': {
+      if (removeFrozenDocument(index, prop, internalId)) {
+        implementation.removeDocumentScoreParameters(index, prop, id, docsCount)
+        return true
+      }
+
       const frequencies = index.frequencies[prop]?.[internalId]
       const dictionary = index.unstoredTerms?.[prop]
       const termIds = dictionary?.docs[internalId]
@@ -562,6 +734,10 @@ function removeRadixTokens(
 ): void {
   implementation.removeDocumentScoreParameters(index, prop, id, docsCount)
 
+  if (removeFrozenDocument(index, prop, internalId)) {
+    return
+  }
+
   for (const token of tokens) {
     implementation.removeTokenScoreParameters(index, prop, token)
     node.removeDocumentByWord(token, internalId)
@@ -596,7 +772,10 @@ function removeScalar(
       return true
     }
     case 'Radix': {
-      const tokens = tokenizer.tokenize(value as string, language, prop)
+      // A frozen document is removed by tombstoning it: no need to tokenize its value
+      const tokens = isFrozenDocument(index, prop, internalId)
+        ? []
+        : tokenizer.tokenize(value as string, language, prop)
       removeRadixTokens(implementation, index, prop, node as RadixTree, id, internalId, tokens, docsCount)
       return true
     }
@@ -646,7 +825,9 @@ export function remove(
   // Mirrors `insert`: the score parameters of a string[] value are removed once, for the field as a whole
   const { type, node } = index.indexes[prop]
   if (type === 'Radix') {
-    const tokens = tokenizeArrayElements(elements, language, prop, tokenizer)
+    const tokens = isFrozenDocument(index, prop, internalId)
+      ? []
+      : tokenizeArrayElements(elements, language, prop, tokenizer)
     removeRadixTokens(implementation, index, prop, node as RadixTree, id, internalId, tokens, docsCount)
     return true
   }
@@ -690,6 +871,8 @@ export function calculateResultScores(
   const fieldLengths = index.fieldLengths[prop]
   const zbsearchFrequencies = index.frequencies[prop]
   const termOccurrences = getTermDocumentFrequency(index, prop, term)
+  // Frozen documents have their term frequencies in the frozen postings
+  const frozenFrequencies = frozenTermFrequencies(index, prop, term)
 
   // Calculate TF-IDF value for each term, in each document, for each index.
   const documentIDsLength = ids.length
@@ -708,7 +891,7 @@ export function calculateResultScores(
       propertyMatches.set(prop, (propertyMatches.get(prop) || 0) + 1)
     }
 
-    const tf = zbsearchFrequencies?.[internalId]?.[term] ?? 0
+    const tf = zbsearchFrequencies?.[internalId]?.[term] ?? frozenFrequencies?.get(internalId) ?? 0
 
     const bm25 = BM25(tf, termOccurrences, docsCount, fieldLengths[internalId]!, avgFieldLength, bm25Relevance)
 
@@ -902,12 +1085,15 @@ function scoreTermIds(
   accumulator: ScoreAccumulator,
   boostPerProperty: number,
   whereFiltersIDs: Set<InternalDocumentID> | undefined,
-  trackMatches = false
+  trackMatches = false,
+  termFrequencies?: Float64Array
 ): void {
   const avgFieldLength = getAvgFieldLength(index, prop)
   const fieldLengths = index.fieldLengths[prop]
   const zbsearchFrequencies = index.frequencies[prop]
-  const matchingCount = getTermDocumentFrequency(index, prop, term)
+  // With frozen segments (`termFrequencies` given), `ids` lists every live posting of the term
+  const matchingCount =
+    termFrequencies && !getIndexCorpusStatistics(index) ? ids.length : getTermDocumentFrequency(index, prop, term)
 
   const { k, b, d } = bm25Relevance
   const idf = Math.log(1 + (docsCount - matchingCount + 0.5) / (matchingCount + 0.5))
@@ -927,7 +1113,7 @@ function scoreTermIds(
       continue
     }
 
-    const tf = zbsearchFrequencies?.[internalId]?.[term] ?? 0
+    const tf = termFrequencies ? termFrequencies[i] : (zbsearchFrequencies?.[internalId]?.[term] ?? 0)
     const bm25 = (idf * (d + tf * kPlusOne)) / (tf + k * (oneMinusB + (b * fieldLengths[internalId]!) / avgFieldLength))
 
     if (stamps[internalId] === stamp) {
@@ -1101,8 +1287,9 @@ function searchThresholdZero(
   const stats = getIndexCorpusStatistics(index)
   const candidateIds = new Set<InternalDocumentID>()
   const matchingProperties: string[] = []
-  // The radix search results of each matching property, one per token
+  // The radix search results of each matching property, one per token, and their term frequencies (frozen properties)
   const matchingSearchResults: FindResult[][] = []
+  const matchingSearchTfs: Array<Array<Record<string, Float64Array> | undefined>> = []
 
   for (const prop of propertiesToSearch) {
     if (!(prop in index.indexes)) {
@@ -1121,12 +1308,16 @@ function searchThresholdZero(
 
     const tokenLength = tokens.length
     const searchResults: FindResult[] = new Array(tokenLength)
+    const searchTfs: Array<Record<string, Float64Array> | undefined> = new Array(tokenLength)
     const postingsCounts: number[] = new Array(tokenLength)
+    const frozen = getFrozenSegments(index, prop) !== undefined
     let hasEmptyToken = false
 
     for (let i = 0; i < tokenLength; i++) {
-      const searchResult = (tree.node as RadixTree).find({ term: tokens[i], exact, tolerance })
+      const tfs = frozen ? {} : undefined
+      const searchResult = findWords(index, prop, tree.node as RadixTree, tokens[i], exact, tolerance, tfs)
       searchResults[i] = searchResult
+      searchTfs[i] = tfs
 
       let postingsCount = 0
       for (const word in searchResult) {
@@ -1161,6 +1352,7 @@ function searchThresholdZero(
 
     matchingProperties.push(prop)
     matchingSearchResults.push(searchResults)
+    matchingSearchTfs.push(searchTfs)
 
     for (const id of propertyIntersection) {
       if (!whereFiltersIDs || whereFiltersIDs.has(id)) {
@@ -1179,12 +1371,14 @@ function searchThresholdZero(
   for (let p = 0; p < matchingPropertiesLength; p++) {
     const prop = matchingProperties[p]
     const searchResults = matchingSearchResults[p]
+    const searchTfs = matchingSearchTfs[p]
     const boostPerProperty = boost[prop] ?? 1
     const tokenLength = tokens.length
 
     for (let i = 0; i < tokenLength; i++) {
       const token = tokens[i]
       const searchResult = searchResults[i]
+      const tfs = searchTfs[i]
 
       const words = Object.keys(searchResult)
       for (let j = 0; j < words.length; j++) {
@@ -1201,7 +1395,9 @@ function searchThresholdZero(
           accumulator,
           boostPerProperty *
             (word === token ? 1 : expansionDemotion(stats, prop, token, word, searchResult, docsCount)),
-          candidateIds
+          candidateIds,
+          false,
+          tfs?.[word]
         )
       }
     }
@@ -1282,9 +1478,11 @@ export function search(
 
     // Process each token in the search term
     const tokenLength = tokens.length
+    const frozen = getFrozenSegments(index, prop) !== undefined
     for (let i = 0; i < tokenLength; i++) {
       const token = tokens[i]
-      const searchResult = tree.node.find({ term: token, exact: radixExact, tolerance })
+      const tfs = frozen ? ({} as Record<string, Float64Array>) : undefined
+      const searchResult = findWords(index, prop, tree.node, token, radixExact, tolerance, tfs)
 
       // See if this token was found (for threshold=0 filtering)
       const termsFound = Object.keys(searchResult)
@@ -1308,7 +1506,8 @@ export function search(
           boostPerProperty *
             (word === token ? 1 : expansionDemotion(stats, prop, token, word, searchResult, docsCount)),
           whereFiltersIDs,
-          trackKeywordMatches
+          trackKeywordMatches,
+          tfs?.[word]
         )
       }
     }
@@ -1413,11 +1612,16 @@ export function searchSuggestions(
     for (let i = 0; i < tokenCount; i++) {
       const { token, exact, tolerance, completion } = queryTokens[i]
       const wholeWordWithTolerance = exact && tolerance > 0
-      const searchResult = (tree.node as RadixTree).find({
-        term: token,
-        exact: exact && !wholeWordWithTolerance,
-        tolerance
-      })
+      const tfs = getFrozenSegments(index, prop) ? ({} as Record<string, Float64Array>) : undefined
+      const searchResult = findWords(
+        index,
+        prop,
+        tree.node as RadixTree,
+        token,
+        exact && !wholeWordWithTolerance,
+        tolerance,
+        tfs
+      )
       const words = Object.keys(searchResult)
       const tokenDocumentFrequency = stats
         ? stats.documentFrequency(prop, token) || undefined
@@ -1448,6 +1652,7 @@ export function searchSuggestions(
                 docsCount
               ))
         const termOccurrences = getTermDocumentFrequency(index, prop, word)
+        const wordTfs = tfs?.[word]
 
         for (let k = 0; k < ids.length; k++) {
           const internalId = ids[k]
@@ -1455,7 +1660,7 @@ export function searchSuggestions(
             continue
           }
 
-          const tf = frequencies?.[internalId]?.[word] ?? 0
+          const tf = wordTfs ? wordTfs[k] : (frequencies?.[internalId]?.[word] ?? 0)
           const score =
             BM25(tf, termOccurrences, docsCount, fieldLengths[internalId]!, avgFieldLength, relevance) * wordBoost
 
@@ -1613,7 +1818,7 @@ export function searchByWhereClause<T extends AnyZBSearch>(
       for (const raw of [operation].flat()) {
         const term = tokenizer.tokenize(raw, language, param)
         for (const t of term) {
-          const filteredIDsResults = node.find({ term: t, exact: true })
+          const filteredIDsResults = findWords(index, param, node as RadixTree, t, true, 0)
           filteredIDs = addFindResult(filteredIDs, filteredIDsResults)
         }
       }
@@ -1739,6 +1944,7 @@ export function load<R = unknown>(
     fieldLengths
   } = raw as Index
   const { unstoredValues, unstoredTerms } = deserializeUnstored(raw)
+  const frozen = deserializeFrozen(raw)
 
   const indexes: Index['indexes'] = {}
   const vectorIndexes: Index['vectorIndexes'] = {}
@@ -1766,7 +1972,8 @@ export function load<R = unknown>(
     avgFieldLength,
     fieldLengths,
     unstoredValues,
-    unstoredTerms
+    unstoredTerms,
+    ...(frozen ? { frozen } : {})
   }
 }
 
@@ -1786,6 +1993,7 @@ export async function loadAsync<R = unknown>(
     fieldLengths
   } = raw as Index
   const { unstoredValues, unstoredTerms } = deserializeUnstored(raw)
+  const frozen = deserializeFrozen(raw)
 
   const indexes: Index['indexes'] = {}
   const vectorIndexes: Index['vectorIndexes'] = {}
@@ -1826,7 +2034,8 @@ export async function loadAsync<R = unknown>(
     avgFieldLength,
     fieldLengths,
     unstoredValues,
-    unstoredTerms
+    unstoredTerms,
+    ...(frozen ? { frozen } : {})
   }
 }
 
@@ -1875,8 +2084,92 @@ export function save<R = unknown>(index: Index): R {
     avgFieldLength,
     fieldLengths,
     unstoredValues: unstoredValues ?? {},
-    unstoredTerms: serializeUnstoredTerms(unstoredTerms ?? {})
+    unstoredTerms: serializeUnstoredTerms(unstoredTerms ?? {}),
+    // Only written when there are frozen segments, so that the snapshots of other indexes do not change
+    ...(index.frozen && Object.keys(index.frozen).length > 0 ? { frozen: serializeFrozen(index.frozen) } : {})
   } as R
+}
+
+function serializeFrozen(frozen: Record<string, FrozenSegment[]>): Record<string, SerializedFrozenSegment[]> {
+  const serialized: Record<string, SerializedFrozenSegment[]> = {}
+  for (const prop of Object.keys(frozen)) {
+    serialized[prop] = frozen[prop].map(serializeFrozenSegment)
+  }
+  return serialized
+}
+
+function deserializeFrozen(raw: unknown): Record<string, FrozenSegment[]> | undefined {
+  const rawFrozen = (raw as { frozen?: Record<string, SerializedFrozenSegment[]> }).frozen
+  if (!rawFrozen) {
+    return undefined
+  }
+
+  const frozen: Record<string, FrozenSegment[]> = {}
+  for (const prop of Object.keys(rawFrozen)) {
+    frozen[prop] = rawFrozen[prop].map(deserializeFrozenSegment)
+  }
+  return frozen
+}
+
+/** Automatic freezes add a segment per property until there are this many, then merge them all into one. */
+export const MAX_FROZEN_SEGMENTS = 8
+
+/**
+ * Freezes the mutable tail of every string property: its radix tree postings and term frequencies become a frozen
+ * segment, and the tail starts over empty. With `merge`, the new segment also takes in every existing segment of
+ * the property, leaving one segment without tombstones; otherwise it is added after them, unless that would make
+ * more than MAX_FROZEN_SEGMENTS. Scores do not change: frozen postings are read in the order the mutable index
+ * held them, with the same term frequencies.
+ */
+export function freezeIndex(index: Index, merge: boolean): void {
+  for (const prop of Object.keys(index.indexes)) {
+    const entry = index.indexes[prop]
+    if (entry.type !== 'Radix') {
+      continue
+    }
+
+    const tree = entry.node as RadixTree
+    const frequencies = index.frequencies[prop] ?? {}
+    const fieldLengths = index.fieldLengths[prop] ?? {}
+    const segments = index.frozen?.[prop] ?? []
+
+    // Documents of the tail: every document inserted with the property has an entry in `frequencies`
+    const documents: InternalDocumentID[] = []
+    const lastId = index.sharedInternalDocumentStore.internalIdToId.length
+    for (let id = 0; id <= lastId; id++) {
+      if (frequencies[id] !== undefined) {
+        documents.push(id)
+      }
+    }
+
+    const hasTail = documents.length > 0 || tree.postings.size > 0
+    const needsMerge = segments.length > 1 || segments.some((segment) => segment.deleted > 0)
+    if (!hasTail && !(merge && needsMerge)) {
+      continue
+    }
+
+    const tail = {
+      postings: tree.postings,
+      tf: (id: InternalDocumentID, term: string) => frequencies[id]?.[term] ?? 0,
+      documents
+    }
+
+    let next: FrozenSegment[]
+    if (merge || segments.length + 1 > MAX_FROZEN_SEGMENTS) {
+      next = [mergeSegments(segments, hasTail ? tail : undefined, fieldLengths)]
+    } else {
+      next = [...segments, mergeSegments([], tail, fieldLengths)]
+    }
+
+    index.frozen ??= {}
+    index.frozen[prop] = next.filter((segment) => segment.docCount > 0 || segment.terms.length > 0)
+    index.indexes[prop] = { type: 'Radix', node: new RadixTree(), isArray: entry.isArray }
+    index.frequencies[prop] = {}
+    // Frozen documents are removed by tombstoning them: their terms are no longer needed
+    if (index.unstoredTerms?.[prop]) {
+      delete index.unstoredTerms[prop]
+    }
+  }
 }
 
 function serializeUnstoredTerms(unstoredTerms: Index['unstoredTerms']): Record<string, SerializedUnstoredTerms> {
@@ -1924,7 +2217,17 @@ function getTermDocumentFrequency(index: Index, prop: string, term: string): num
 
   const treeIndex = index.indexes[prop]
   if (treeIndex?.type === 'Radix') {
-    return (treeIndex.node as RadixTree).getDocumentFrequency(term)
+    let df = (treeIndex.node as RadixTree).getDocumentFrequency(term)
+    const segments = getFrozenSegments(index, prop)
+    if (segments) {
+      for (let i = 0; i < segments.length; i++) {
+        const ordinal = termOrdinal(segments[i], term)
+        if (ordinal !== -1) {
+          df += liveDocumentFrequency(segments[i], ordinal)
+        }
+      }
+    }
+    return df
   }
 
   const stored = index.tokenOccurrences[prop]?.[term]

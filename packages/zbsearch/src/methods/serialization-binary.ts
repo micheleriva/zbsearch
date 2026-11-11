@@ -36,8 +36,10 @@ import {
 import { save as builtinDocumentsSave } from '../components/documents-store.js'
 import type { InternalDocumentID } from '../components/internal-document-id-store.js'
 import { RadixNode, RadixTree } from '../trees/radix.js'
+import { type FrozenSegment, validateFrozenSegment } from '../trees/frozen.js'
 import { deserializeVectorIndex, deserializeVectorIndexBinary } from '../trees/vector-index.js'
 import {
+  type BinarySnapshotArray,
   ByteReader,
   ByteWriter,
   crc32,
@@ -57,7 +59,14 @@ import {
   writeKey
 } from './binary-codec.js'
 
-export const BINARY_SNAPSHOT_VERSION = 1
+/**
+ * The newest binary snapshot format version this build reads and writes. Version 2 adds frozen segments (see
+ * `freeze`); a snapshot of a database without frozen segments is still written as version 1, which earlier
+ * releases read. Both versions are read.
+ */
+export const BINARY_SNAPSHOT_VERSION = 2
+const FROZEN_SNAPSHOT_VERSION = 2
+const MIN_SNAPSHOT_VERSION = 1
 export const DEFAULT_SEGMENT_SIZE = 1024 * 1024
 
 const MIN_SEGMENT_SIZE = 1024
@@ -90,6 +99,9 @@ const I_VECTOR_CHUNK = 28
 const I_VECTOR_JSON = 29
 const I_UNSTORED_VALUES = 30
 const I_UNSTORED_TERMS = 31
+const I_FROZEN = 32
+const I_FROZEN_TERMS = 33
+const I_FROZEN_CHUNK = 34
 const S_META = 40
 const S_ORDERED = 41
 const S_DOCS = 42
@@ -222,11 +234,11 @@ class SnapshotWriter {
   }
 }
 
-function fileHeader(segmentSize: number): Uint8Array {
+function fileHeader(segmentSize: number, version: number): Uint8Array {
   const header = new Uint8Array(FILE_HEADER_SIZE)
   header.set(MAGIC)
   const view = new DataView(header.buffer)
-  view.setUint16(4, BINARY_SNAPSHOT_VERSION, true)
+  view.setUint16(4, version, true)
   view.setUint32(8, segmentSize, true)
   view.setUint32(12, crc32(header.subarray(0, 12)), true)
   return header
@@ -606,6 +618,7 @@ function* writeBuiltinIndex(w: SnapshotWriter, index: Index): SegmentWriter {
   const fieldLengths = Object.keys(index.fieldLengths)
   const unstoredValues = Object.keys(index.unstoredValues ?? {})
   const unstoredTerms = Object.keys(index.unstoredTerms ?? {})
+  const frozen = frozenProperties(index)
 
   encodeValue(w.begin(I_META), w.dict, {
     searchableProperties: index.searchableProperties,
@@ -616,7 +629,9 @@ function* writeBuiltinIndex(w: SnapshotWriter, index: Index): SegmentWriter {
     frequencies,
     fieldLengths,
     unstoredValues,
-    unstoredTerms
+    unstoredTerms,
+    // Only present in version 2 snapshots
+    ...(frozen.length > 0 ? { frozen: frozen.map((prop) => [prop, index.frozen![prop].length]) } : {})
   })
   yield* w.commit()
 
@@ -661,6 +676,55 @@ function* writeBuiltinIndex(w: SnapshotWriter, index: Index): SegmentWriter {
 
   for (const prop of vectors) {
     yield* writeVectorIndex(w, index.vectorIndexes[prop].node)
+  }
+
+  for (const prop of frozen) {
+    for (const segment of index.frozen![prop]) {
+      yield* writeFrozenSegment(w, segment)
+    }
+  }
+}
+
+const FROZEN_ARRAYS = ['df', 'offsets', 'data', 'docs', 'tombstones'] as const
+
+/**
+ * A frozen segment is written as it is held in memory: a header, the terms, then its typed arrays as raw bytes, so
+ * that loading it is a copy of each array (no per-term or per-posting work).
+ */
+function* writeFrozenSegment(w: SnapshotWriter, segment: FrozenSegment): SegmentWriter {
+  const arrays = FROZEN_ARRAYS.filter((name) => segment[name] !== undefined).map((name) => {
+    const array = segment[name]!
+    return [name, typedArrayCode(array), array.length]
+  })
+
+  encodeValue(w.begin(I_FROZEN), w.dict, {
+    terms: segment.terms.length,
+    docCount: segment.docCount,
+    deleted: segment.deleted,
+    arrays
+  })
+  yield* w.commit()
+
+  let rec = w.begin(I_FROZEN_TERMS)
+  for (const term of segment.terms) {
+    rec.str(term)
+    if (rec.pos >= w.batchBytes) {
+      yield* w.commit()
+      rec = w.begin(I_FROZEN_TERMS)
+    }
+  }
+  yield* w.commit()
+
+  for (const name of FROZEN_ARRAYS) {
+    const array = segment[name]
+    if (array === undefined) {
+      continue
+    }
+    const perChunk = Math.max(1, Math.floor(w.segmentSize / array.BYTES_PER_ELEMENT))
+    for (let start = 0; start < array.length; start += perChunk) {
+      w.begin(I_FROZEN_CHUNK)
+      yield* w.commit(typedArrayBytes(array, start, Math.min(array.length, start + perChunk)))
+    }
   }
 }
 
@@ -824,6 +888,17 @@ function planSnapshot(db: AnyZBSearch): SnapshotPlan {
 
 const PLAN_PARTS = ['idStore', 'index', 'docs', 'sorting', 'pinning'] as const
 
+// Version 1 unless the snapshot has frozen segments, so that earlier releases can read it
+function snapshotVersion(db: AnyZBSearch, plan: SnapshotPlan): number {
+  return plan.meta.index === 'builtin' && frozenProperties(db.data.index as Index).length > 0
+    ? FROZEN_SNAPSHOT_VERSION
+    : MIN_SNAPSHOT_VERSION
+}
+
+function frozenProperties(index: Index): string[] {
+  return Object.keys(index.frozen ?? {}).filter((prop) => index.frozen![prop].length > 0)
+}
+
 function* writeSnapshot(db: AnyZBSearch, plan: SnapshotPlan, w: SnapshotWriter): SegmentWriter {
   encodeValue(w.begin(R_META), w.dict, plan.meta)
   yield* w.commit()
@@ -889,7 +964,7 @@ export async function* saveBinary<T extends AnyZBSearch>(
     }
   }
 
-  let header: Uint8Array | undefined = fileHeader(segmentSize)
+  let header: Uint8Array | undefined = fileHeader(segmentSize, snapshotVersion(db, plan))
   for (const segment of writeSnapshot(db, plan, new SnapshotWriter(segmentSize))) {
     if (header) {
       yield concat(header, segment)
@@ -914,7 +989,7 @@ export function saveBinarySync<T extends AnyZBSearch>(db: T, options?: SaveBinar
     }
   }
 
-  const parts: Uint8Array[] = [fileHeader(segmentSize)]
+  const parts: Uint8Array[] = [fileHeader(segmentSize, snapshotVersion(db, plan))]
   let length = FILE_HEADER_SIZE
   for (const segment of writeSnapshot(db, plan, new SnapshotWriter(segmentSize))) {
     parts.push(segment)
@@ -1085,7 +1160,7 @@ class SnapshotReader {
     }
 
     const version = view.getUint16(4, true)
-    if (version !== BINARY_SNAPSHOT_VERSION) {
+    if (version < MIN_SNAPSHOT_VERSION || version > BINARY_SNAPSHOT_VERSION) {
       throw createError('UNSUPPORTED_BINARY_SNAPSHOT_VERSION', version, BINARY_SNAPSHOT_VERSION)
     }
 
@@ -1380,6 +1455,64 @@ interface IndexMeta {
   fieldLengths: string[]
   unstoredValues?: string[]
   unstoredTerms?: string[]
+  frozen?: [string, number][]
+}
+
+function* readFrozenSegment(dict: KeyDictionary): RecordReader<FrozenSegment> {
+  const header = decodeValue(recordReader(yield, I_FROZEN, 'a frozen segment'), dict) as {
+    terms: number
+    docCount: number
+    deleted: number
+    arrays: [string, number, number][]
+  }
+
+  const terms: string[] = []
+  while (terms.length < header.terms) {
+    const record: Uint8Array = yield
+    const r = recordReader(record, I_FROZEN_TERMS, 'frozen terms')
+    while (r.pos < r.end) {
+      terms.push(r.str())
+    }
+  }
+  if (terms.length !== header.terms) {
+    throw invalid('frozen segment term count')
+  }
+
+  const arrays: Record<string, BinarySnapshotArray> = {}
+  for (const [name, code, length] of header.arrays) {
+    const array = createTypedArray(code, length)
+    let filled = 0
+    while (filled < length) {
+      const chunk: Uint8Array = yield
+      const bytes = recordReader(chunk, I_FROZEN_CHUNK, 'frozen segment data').raw(chunk.length - 1)
+      fillTypedArray(array, filled, bytes)
+      filled += bytes.length / array.BYTES_PER_ELEMENT
+    }
+    arrays[name] = array
+  }
+
+  const expect = <A>(name: string, type: new (n: number) => A): A => {
+    const array = arrays[name]
+    if (!(array instanceof type)) {
+      throw invalid(`frozen segment array ${name}`)
+    }
+    return array
+  }
+
+  try {
+    return validateFrozenSegment({
+      terms,
+      df: expect('df', Uint32Array),
+      offsets: expect('offsets', Uint32Array),
+      data: expect('data', Uint8Array),
+      docs: expect('docs', Uint32Array),
+      docCount: header.docCount,
+      tombstones: arrays.tombstones ? expect('tombstones', Uint32Array) : undefined,
+      deleted: header.deleted
+    })
+  } catch (error) {
+    throw invalid(`frozen segment (${(error as Error).message})`)
+  }
 }
 
 function* readBuiltinIndex(dict: KeyDictionary, db: AnyZBSearch): RecordReader<Index> {
@@ -1436,6 +1569,16 @@ function* readBuiltinIndex(dict: KeyDictionary, db: AnyZBSearch): RecordReader<I
     vectorIndexes[prop] = { type: 'Vector', isArray: false, node: yield* readVectorIndex(dict, prop, db) }
   }
 
+  let frozen: Record<string, FrozenSegment[]> | undefined
+  for (const [prop, count] of meta.frozen ?? []) {
+    frozen ??= {}
+    const segments: FrozenSegment[] = []
+    for (let i = 0; i < count; i++) {
+      segments.push(yield* readFrozenSegment(dict))
+    }
+    frozen[prop] = segments
+  }
+
   return {
     sharedInternalDocumentStore: db.internalDocumentIDStore,
     indexes,
@@ -1447,7 +1590,8 @@ function* readBuiltinIndex(dict: KeyDictionary, db: AnyZBSearch): RecordReader<I
     avgFieldLength: meta.avgFieldLength,
     fieldLengths,
     unstoredValues,
-    unstoredTerms
+    unstoredTerms,
+    ...(frozen ? { frozen } : {})
   }
 }
 

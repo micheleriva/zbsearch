@@ -27,11 +27,13 @@ import {
   ObjectComponents,
   SorterConfig,
   StoreConfig,
+  FreezeConfig,
   Tokenizer,
   ZBSearch,
   ZBSearchPlugin
 } from '../types.js'
 import { uniqueId } from '../utils.js'
+import { assertFreezable, resolveFreezeConfig } from './freeze.js'
 
 interface CreateArguments<ZBSearchSchema, TIndex, TDocumentStore, TSorter, TPinning> {
   schema?: ZBSearchSchema
@@ -39,6 +41,8 @@ interface CreateArguments<ZBSearchSchema, TIndex, TDocumentStore, TSorter, TPinn
   indexes?: IndexesConfig
   sort?: SorterConfig
   store?: StoreConfig
+  /** Freeze the full-text index automatically (see `freeze`). Off by default. */
+  freeze?: FreezeConfig
   language?: string
   components?: Components<
     ZBSearch<ZBSearchSchema, TIndex, TDocumentStore, TSorter, TPinning>,
@@ -100,6 +104,7 @@ export function create<
 ): ZBSearch<ZBSearchSchema, TIndex, TDocumentStore, TSorter, TPinning> {
   const { indexes, language, plugins } = args
   const store = resolveStoreConfig(args.store)
+  const freeze = resolveFreezeConfig(args.freeze)
   let { id } = args
   const schema = (args.schema ?? {}) as ZBSearchSchema
   // When no schema is provided, schema inference defaults to on.
@@ -220,6 +225,7 @@ export function create<
     id,
     indexes,
     store,
+    ...(freeze ? { freeze } : {}),
     plugins,
     version: getVersion()
   } as unknown as ZBSearch<ZBSearchSchema, TIndex, TDocumentStore, TSorter, TPinning>
@@ -229,6 +235,10 @@ export function create<
     docs: zbsearch.documentsStore.create(zbsearch, internalDocumentStore),
     sorting: zbsearch.sorter.create(zbsearch, internalDocumentStore, schema, sort),
     pinning: zbsearch.pinning.create(internalDocumentStore)
+  }
+
+  if (freeze) {
+    assertFreezable(zbsearch)
   }
 
   if (!zbsearch.index.removeUnstored && store.exclude.length > 0) {

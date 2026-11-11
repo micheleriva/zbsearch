@@ -1477,7 +1477,10 @@ export function searchSuggestions(
             completions.set(word, (completions.get(word) ?? 0) + score)
           }
 
-          if (match.words[i] === undefined || score > match.wordScores[i]) {
+          // Of two words that score the same, the smaller one wins: the choice must not depend on the order the
+          // index lists the words in (for a radix tree, the order its nodes were created in)
+          const best = match.words[i]
+          if (best === undefined || score > match.wordScores[i] || (score === match.wordScores[i] && word < best)) {
             if (match.words[i] === undefined) {
               match.matchedTokens++
             }

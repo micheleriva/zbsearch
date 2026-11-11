@@ -307,4 +307,19 @@ describe('suggest method', () => {
     ).toStrictEqual([{ suggestion: 'custom', terms: ['custom'], score: 3, count: 1 }])
     expect(calls).toBe(1)
   })
+
+  it('should break ties between equally scored words by the word, whatever the insertion order', () => {
+    const suggestions = (texts: string[]) => {
+      const db = create({ schema: { title: 'string' } as const })
+      insertMultiple(
+        db,
+        texts.map((title) => ({ title }))
+      )
+      return suggest(db, { term: 'hat gam', tolerance: 1 }).suggestions.map(({ suggestion }) => suggestion)
+    }
+
+    // "bat" and "cat" are one edit away from "hat" and score the same in the document that has both
+    expect(suggestions(['cat bat game', 'dog'])).toStrictEqual(['bat game'])
+    expect(suggestions(['bat cat game', 'dog'])).toStrictEqual(['bat game'])
+  })
 })

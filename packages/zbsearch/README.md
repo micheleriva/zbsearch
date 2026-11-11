@@ -191,6 +191,20 @@ const results = search(db, {
 })
 ```
 
+Large vector indexes can be quantized to cut memory and on-disk size: `int8` stores a byte per dimension (about 4x smaller), `binary` a bit per dimension (32x smaller, best combined with `rescore`). Product quantization is available from `@zbsearch/plugin-vector-quantizer` (GPL-3.0).
+
+```js
+import { create } from 'zbsearch'
+import { flat } from 'zbsearch/trees/vector-flat'
+
+const db = create({
+  schema: { title: 'string', embedding: 'vector[384]' },
+  indexes: {
+    embedding: flat({ quantization: 'int8' }) // or { quantization: 'binary', rescore: 'int8' }
+  }
+})
+```
+
 Have trouble generating embeddings for vector and hybrid search? Try our `zbsearch/plugin-embeddings` plugin!
 
 ```js

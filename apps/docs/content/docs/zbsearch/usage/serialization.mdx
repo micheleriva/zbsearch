@@ -168,8 +168,9 @@ memory, so prefer the streaming functions for anything large.
 
 Vector indexes are written through `toBinarySnapshot()`, which returns a small JSON-serializable
 `meta` (including the index `kind`) and a set of typed `arrays`. The factory restores them with
-`fromBinarySnapshot(snapshot)`. The flat and IVF indexes implement both; a custom vector index
-without them is written through `toJSON` instead. When loading, the database must be created with a
+`fromBinarySnapshot(snapshot)`. Every built-in index implements both - flat, IVF and their
+[quantized](/docs/zbsearch/search/vector-search) variants, whose int8 or binary codes are written as
+raw bytes - and a custom vector index without them is written through `toJSON` instead. When loading, the database must be created with a
 vector index factory of the same `kind` as the one that was saved (for example `ivf()` for an IVF
 index).
 

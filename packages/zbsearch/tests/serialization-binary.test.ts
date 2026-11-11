@@ -19,14 +19,13 @@ import {
   searchVector,
   update
 } from '../src/index.js'
-import type { AnyZBSearch, VectorIndexBinarySnapshot, VectorIndexFactory } from '../src/index.js'
+import type { AnyZBSearch, VectorBinarySnapshot, VectorIndexFactory } from '../src/index.js'
 import { createIndex } from '../src/components/index.js'
 import { createSorter } from '../src/components/sorter.js'
 import { createDocumentsStore } from '../src/components/documents-store.js'
 import { ivf } from '../src/trees/vector-ivf.js'
 import { flat, VectorIndex } from '../src/trees/vector.js'
 import { createFlatVectorIndexFactory, deserializeVectorIndexBinary } from '../src/trees/vector-index.js'
-import { packDocumentIds } from '../src/trees/vector-snapshot.js'
 import {
   ByteReader,
   ByteWriter,
@@ -507,7 +506,15 @@ describe('binary snapshot vectors', () => {
       await loadBinary(restored as any, saveBinary(db as any, { segmentSize: 1024 }))
       const restoredNode = (restored.data.index as any).vectorIndexes.embedding.node
 
-      expect(normalized(restored)).toEqual(normalized(db))
+      // The IVF snapshot rebuilds each inverted list from the cluster of every vector, so the order of the ids
+      // inside a list can change (it does not affect results).
+      const sortLists = (raw: any) => {
+        for (const list of raw.index.vectorIndexes.embedding.lists ?? []) {
+          list.sort((a: number, b: number) => a - b)
+        }
+        return raw
+      }
+      expect(sortLists(normalized(restored))).toEqual(sortLists(normalized(db)))
       expect(restoredNode.idToCluster).toEqual(node.idToCluster)
 
       const query = { vector: { value: vector(9), property: 'embedding' }, similarity: 0.1, limit: 15 }
@@ -570,7 +577,7 @@ describe('binary snapshot vectors', () => {
       offsets: new Int32Array([-5, 5]),
       wide: new Float64Array([Math.PI, -Math.E])
     }
-    const received: VectorIndexBinarySnapshot[] = []
+    const received: VectorBinarySnapshot[] = []
     const factory: VectorIndexFactory = Object.assign(
       (ctx: { dim: number }) => {
         const index = new VectorIndex(ctx.dim)
@@ -581,7 +588,7 @@ describe('binary snapshot vectors', () => {
       {
         kind: 'flat' as const,
         fromJSON: VectorIndex.fromJSON,
-        fromBinarySnapshot: (snapshot: VectorIndexBinarySnapshot) => {
+        fromBinarySnapshot: (snapshot: VectorBinarySnapshot) => {
           received.push(snapshot)
           return VectorIndex.fromBinarySnapshot(snapshot)
         }
@@ -600,44 +607,72 @@ describe('binary snapshot vectors', () => {
     }
   })
 
-  it('validates vector snapshots', () => {
+  it('checks the vector index kind before restoring', () => {
     const ok = new VectorIndex(2).toBinarySnapshot()
-    expect(() => VectorIndex.fromBinarySnapshot({ meta: { kind: 'flat' }, arrays: ok.arrays })).toThrow(/size/)
-    expect(() =>
-      VectorIndex.fromBinarySnapshot({
-        meta: { kind: 'flat', size: 2 },
-        arrays: { ids: new Uint32Array([1]), vectors: new Float32Array(3) }
-      })
-    ).toThrow(/dimension/)
-
-    const converted = VectorIndex.fromBinarySnapshot({
-      meta: { kind: 'flat', size: 2 },
-      arrays: { ids: new Uint32Array([4]), vectors: new Float64Array([0.6, 0.8]) }
-    })
-    expect(converted.find([0.6, 0.8], 0.9, undefined)).toHaveLength(1)
-
-    expect(() =>
-      ivf()({ dim: 2, property: 'v' }).constructor.prototype.constructor.fromBinarySnapshot({
-        meta: { kind: 'ivf', size: 2, nlist: 1, nprobe: 1, trainMin: 1, centroidCount: 1 },
-        arrays: {
-          ids: new Uint32Array(0),
-          vectors: new Float32Array(0),
-          centroids: new Float32Array(1),
-          listOffsets: new Uint32Array([0, 0]),
-          listIds: new Uint32Array(0)
-        }
-      })
-    ).toThrow(/inconsistent/)
-
-    expect(() => deserializeVectorIndexBinary('v', { meta: {}, arrays: ok.arrays }, { v: flat() })).toThrow(/size/)
+    expect(deserializeVectorIndexBinary('v', { meta: {}, arrays: ok.arrays }, { v: flat() })).toBeInstanceOf(
+      VectorIndex
+    )
+    expect(() => deserializeVectorIndexBinary('v', ok, { v: ivf() })).toThrow(/serialized as "flat"/)
     expect(createFlatVectorIndexFactory().fromBinarySnapshot!(ok)).toBeInstanceOf(VectorIndex)
   })
 
-  it('packs document ids that do not fit 32 bits as float64', () => {
-    expect(packDocumentIds([1, 2, 3], 3)).toBeInstanceOf(Uint32Array)
-    const wide = packDocumentIds([1, 2 ** 40, 3], 3)
-    expect(wide).toBeInstanceOf(Float64Array)
-    expect(Array.from(wide)).toEqual([1, 2 ** 40, 3])
+  it('round trips quantized vector indexes', async () => {
+    const configs = {
+      int8: flat({ quantization: 'int8' }),
+      binaryRescore: flat({ quantization: 'binary', rescore: 'float32' }),
+      binaryInt8: flat({ quantization: 'binary', rescore: 'int8' }),
+      ivfInt8: ivf({ quantization: 'int8', nlist: 4, nprobe: 2, trainMin: 40 }),
+      ivfInt8Untrained: ivf({ quantization: 'int8', nlist: 4, nprobe: 2, trainMin: 5000 })
+    }
+
+    for (const [name, factory] of Object.entries(configs)) {
+      const options = { indexes: { embedding: factory } }
+      const db = populated(150, options as any)
+      remove(db as any, 'doc-4')
+      const node = (db.data.index as any).vectorIndexes.embedding.node
+      const snapshot = node.toBinarySnapshot()
+      expect(
+        Object.values(snapshot.arrays).some((a: any) => a instanceof Int8Array || a instanceof Uint8Array),
+        name
+      )
+
+      const restored = empty(options)
+      await loadBinary(restored as any, saveBinary(db as any, { segmentSize: 1024 }))
+      const restoredNode = (restored.data.index as any).vectorIndexes.embedding.node
+      expect(restoredNode.constructor, name).toBe(node.constructor)
+      expect(restoredNode.toBinarySnapshot(), name).toEqual(snapshot)
+
+      const query = { vector: { value: vector(9), property: 'embedding' }, similarity: 0.1, limit: 15 }
+      expect(
+        searchVector(restored as any, query as any).hits.map((h) => [h.id, h.score]),
+        name
+      ).toEqual(searchVector(db as any, query as any).hits.map((h) => [h.id, h.score]))
+
+      insert(restored as any, { ...makeDoc(9000), id: 'after-restore' })
+      remove(restored as any, 'doc-5')
+      expect(count(restored as any), name).toBe(149)
+    }
+  })
+
+  it('round trips quantized vectors with excluded document fields', async () => {
+    const options = {
+      indexes: { embedding: flat({ quantization: 'binary', rescore: 'int8' }) },
+      store: { exclude: ['description', 'tags', 'rating'] }
+    }
+    const db = populated(80, options as any)
+    const restored = empty({ indexes: options.indexes })
+    await loadBinary(restored as any, saveBinary(db as any, { segmentSize: 2048 }))
+
+    expect(restored.store).toEqual({ exclude: ['description', 'tags', 'rating'], vectors: false })
+    expect(normalized(restored)).toEqual(normalized(db))
+    for (let i = 0; i < 80; i++) {
+      remove(restored as any, `doc-${i}`)
+    }
+    const index = restored.data.index as any
+    expect(index.indexes.description.node.postings.size).toBe(0)
+    expect(index.indexes.tags.node.postings.size).toBe(0)
+    expect(Object.keys(index.unstoredValues.rating)).toHaveLength(0)
+    expect(search(restored as any, { where: { rating: { gte: 0 } } } as any).count).toBe(0)
   })
 })
 

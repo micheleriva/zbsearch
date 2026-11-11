@@ -870,6 +870,28 @@ importers:
         specifier: ^3.0.0
         version: 3.3.9(typescript@5.9.3)
 
+  packages/sharded:
+    dependencies:
+      zbsearch:
+        specifier: workspace:*
+        version: link:../zbsearch
+    devDependencies:
+      '@types/node':
+        specifier: ^24.7.0
+        version: 24.13.2
+      '@zbsearch/edge-core':
+        specifier: workspace:*
+        version: link:../edge-core
+      fake-indexeddb:
+        specifier: ^6.2.5
+        version: 6.2.5
+      rolldown:
+        specifier: ^1.2.3
+        version: 1.2.3
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
   packages/static:
     dependencies:
       zbsearch:

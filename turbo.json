@@ -232,6 +232,22 @@
         "!.next/cache/**"
       ]
     },
+    "@zbsearch/sharded#build": {
+      "dependsOn": [
+        "zbsearch#build",
+        "^build"
+      ],
+      "outputs": [
+        "dist/**",
+        "!dist/node_modules/**"
+      ]
+    },
+    "@zbsearch/sharded#test": {
+      "dependsOn": [
+        "@zbsearch/sharded#build",
+        "@zbsearch/edge-core#build"
+      ]
+    },
     "@zbsearch/edge-core#build": {
       "dependsOn": [
         "zbsearch#build"

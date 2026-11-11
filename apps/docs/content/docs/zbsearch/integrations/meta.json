@@ -8,6 +8,7 @@
     "searchbox-vue",
     "highlight",
     "docs-index",
-    "static"
+    "static",
+    "sharded"
   ]
 }

@@ -15,14 +15,16 @@
 // for vectors, sort values that refer back to the stored documents). Custom components are written through
 // their `save()` output with a generic tagged encoding that splits large objects and arrays into records.
 
-import type { AnyZBSearch, SnapshotTypedArray, SortType, VectorBinarySnapshot } from '../types.js'
+import type { AnyZBSearch, SnapshotTypedArray, SortType, StoreSettings, VectorBinarySnapshot } from '../types.js'
+import { resolveStoreConfig } from '../components/store.js'
 import { createError } from '../errors.js'
 import { getNested, yieldToEventLoop } from '../utils.js'
 import {
   deserializeIndexEntry,
   load as builtinIndexLoad,
   save as builtinIndexSave,
-  type Index
+  type Index,
+  type UnstoredTerms
 } from '../components/index.js'
 import {
   ensureIsSorted,
@@ -86,6 +88,8 @@ const I_MAP_END = 26
 const I_VECTOR = 27
 const I_VECTOR_CHUNK = 28
 const I_VECTOR_JSON = 29
+const I_UNSTORED_VALUES = 30
+const I_UNSTORED_TERMS = 31
 const S_META = 40
 const S_ORDERED = 41
 const S_DOCS = 42
@@ -121,6 +125,8 @@ interface SnapshotMeta {
   index: 'builtin' | 'custom'
   sorter: 'builtin' | 'custom'
   docRefs: boolean
+  // The store configuration (see StoreConfig), absent when the database had none.
+  store?: StoreSettings
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -598,6 +604,8 @@ function* writeBuiltinIndex(w: SnapshotWriter, index: Index): SegmentWriter {
   const vectors = Object.keys(index.vectorIndexes)
   const frequencies = Object.keys(index.frequencies)
   const fieldLengths = Object.keys(index.fieldLengths)
+  const unstoredValues = Object.keys(index.unstoredValues ?? {})
+  const unstoredTerms = Object.keys(index.unstoredTerms ?? {})
 
   encodeValue(w.begin(I_META), w.dict, {
     searchableProperties: index.searchableProperties,
@@ -606,7 +614,9 @@ function* writeBuiltinIndex(w: SnapshotWriter, index: Index): SegmentWriter {
     trees: trees.map((prop) => [prop, index.indexes[prop].type, index.indexes[prop].isArray]),
     vectors,
     frequencies,
-    fieldLengths
+    fieldLengths,
+    unstoredValues,
+    unstoredTerms
   })
   yield* w.commit()
 
@@ -633,6 +643,20 @@ function* writeBuiltinIndex(w: SnapshotWriter, index: Index): SegmentWriter {
     yield* writeDocumentMap(w, I_FIELD_LENGTHS, index.fieldLengths[prop] ?? {}, (rec, value) =>
       writeNumber(rec, w.dict, value)
     )
+  }
+
+  // Values of the properties left out of the documents store, needed to remove them from the index.
+  for (const prop of unstoredValues) {
+    yield* writeDocumentMap(w, I_UNSTORED_VALUES, index.unstoredValues[prop] ?? {}, (rec, value) =>
+      encodeValue(rec, w.dict, value)
+    )
+  }
+
+  // Term dictionaries and per-document term ids (Uint32Array, stored as raw typed arrays) of unstored string[].
+  for (const prop of unstoredTerms) {
+    const { terms, docs } = index.unstoredTerms[prop]
+    yield* writeGeneric(w, terms)
+    yield* writeDocumentMap(w, I_UNSTORED_TERMS, docs, (rec, value) => encodeValue(rec, w.dict, value))
   }
 
   for (const prop of vectors) {
@@ -763,7 +787,8 @@ function planSnapshot(db: AnyZBSearch): SnapshotPlan {
       language: db.tokenizer.language,
       index: builtinIndex ? 'builtin' : 'custom',
       sorter: builtinSorter ? 'builtin' : 'custom',
-      docRefs: builtinSorter && db.documentsStore.save === builtinDocumentsSave
+      docRefs: builtinSorter && db.documentsStore.save === builtinDocumentsSave,
+      ...(db.store ? { store: db.store } : {})
     },
     idStore: db.internalDocumentIDStore.save(db.internalDocumentIDStore),
     index: builtinIndex ? undefined : db.index.save(db.data.index),
@@ -1332,6 +1357,8 @@ interface IndexMeta {
   vectors: string[]
   frequencies: string[]
   fieldLengths: string[]
+  unstoredValues?: string[]
+  unstoredTerms?: string[]
 }
 
 function* readBuiltinIndex(dict: KeyDictionary, db: AnyZBSearch): RecordReader<Index> {
@@ -1365,6 +1392,24 @@ function* readBuiltinIndex(dict: KeyDictionary, db: AnyZBSearch): RecordReader<I
     )) as Index['fieldLengths'][string]
   }
 
+  const unstoredValues: Index['unstoredValues'] = {}
+  for (const prop of meta.unstoredValues ?? []) {
+    unstoredValues[prop] = (yield* readDocumentMap(I_UNSTORED_VALUES, (r) =>
+      decodeValue(r, dict)
+    )) as Index['unstoredValues'][string]
+  }
+
+  const unstoredTerms: Index['unstoredTerms'] = {}
+  for (const prop of meta.unstoredTerms ?? []) {
+    const terms = (yield* readGeneric(dict)) as string[]
+    const docs = (yield* readDocumentMap(I_UNSTORED_TERMS, (r) => decodeValue(r, dict))) as UnstoredTerms['docs']
+    const termIds = new Map<string, number>()
+    for (let i = 0; i < terms.length; i++) {
+      termIds.set(terms[i], i)
+    }
+    unstoredTerms[prop] = { terms, termIds, docs }
+  }
+
   const vectorIndexes: Index['vectorIndexes'] = {}
   for (const prop of meta.vectors) {
     vectorIndexes[prop] = { type: 'Vector', isArray: false, node: yield* readVectorIndex(dict, prop, db) }
@@ -1379,7 +1424,9 @@ function* readBuiltinIndex(dict: KeyDictionary, db: AnyZBSearch): RecordReader<I
     frequencies,
     tokenOccurrences: {},
     avgFieldLength: meta.avgFieldLength,
-    fieldLengths
+    fieldLengths,
+    unstoredValues,
+    unstoredTerms
   }
 }
 
@@ -1543,6 +1590,16 @@ async function applySnapshotAsync(db: AnyZBSearch, loaded: LoadedSnapshot): Prom
 
   db.data.pinning = db.pinning.load(store, loaded.pinning)
   db.tokenizer.language = loaded.meta.language as typeof db.tokenizer.language
+  applyStoreSettings(db, loaded.meta)
+}
+
+// As in `load`: the saved store configuration wins over the one given to `create`, snapshots without one keep the
+// configuration of the target database, and every cache is cleared.
+function applyStoreSettings(db: AnyZBSearch, meta: SnapshotMeta): void {
+  if (meta.store) {
+    db.store = resolveStoreConfig(meta.store)
+  }
+  db.caches = {}
 }
 
 function applySnapshot(db: AnyZBSearch, loaded: LoadedSnapshot): void {
@@ -1554,6 +1611,7 @@ function applySnapshot(db: AnyZBSearch, loaded: LoadedSnapshot): void {
     loaded.meta.sorter === 'builtin' ? (loaded.sorting as Sorter) : db.sorter.load(store, loaded.sorting)
   db.data.pinning = db.pinning.load(store, loaded.pinning)
   db.tokenizer.language = loaded.meta.language as typeof db.tokenizer.language
+  applyStoreSettings(db, loaded.meta)
 }
 
 function sourceIterator(

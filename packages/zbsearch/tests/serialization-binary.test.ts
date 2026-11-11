@@ -371,6 +371,93 @@ describe('binary snapshot round trip', () => {
   })
 })
 
+describe('binary snapshot store settings', () => {
+  const allPaths = [
+    'title',
+    'description',
+    'rating',
+    'year',
+    'available',
+    'genre',
+    'genres',
+    'tags',
+    'scores',
+    'flags',
+    'location',
+    'meta',
+    'embedding'
+  ]
+
+  function indexIsEmpty(db: DB) {
+    const index = db.data.index as any
+    for (const prop of ['title', 'description', 'tags']) {
+      expect(index.indexes[prop].node.postings.size, prop).toBe(0)
+    }
+    for (const prop of ['rating', 'year', 'scores', 'meta.pages']) {
+      expect(search(db as any, { where: { [prop]: { gte: -1000 } } } as any).count, prop).toBe(0)
+    }
+    expect(index.indexes.genre.node.numberToDocumentId.size).toBe(0)
+    expect(Object.keys(index.unstoredValues.rating ?? {})).toHaveLength(0)
+    expect(Object.keys(index.unstoredTerms.tags?.docs ?? {})).toHaveLength(0)
+    expect(search(db as any, { where: { available: true } } as any).count).toBe(0)
+  }
+
+  it('restores excluded fields so that remove and update still clean the index', async () => {
+    const store = { exclude: allPaths }
+    const db = populated(60, { store } as any)
+    expect(Object.keys(getByID(db as any, 'doc-1')!)).toEqual(['id'])
+
+    // Loaded into a database created without the option: the snapshot's settings win.
+    const restored = empty()
+    await loadBinary(restored as any, saveBinary(db as any, { segmentSize: 1024 }))
+
+    expect(restored.store).toEqual({ exclude: allPaths, vectors: false })
+    expect(normalized(restored)).toEqual(normalized(db))
+    const index = restored.data.index as any
+    expect(index.unstoredTerms.tags.docs[1]).toBeInstanceOf(Uint32Array)
+    expect(index.unstoredTerms.tags.termIds.get(index.unstoredTerms.tags.terms[0])).toBe(0)
+    const excludedProbe = (target: DB) => [
+      search(target as any, { term: 'fox lazy', limit: 20 }).hits.map((h) => [h.id, h.score]),
+      search(target as any, { where: { rating: { gt: 2 }, genres: { containsAll: ['genre-1'] } } } as any).hits.map(
+        (h) => h.id
+      ),
+      search(target as any, { term: 'title', sortBy: { property: 'year' } } as any).hits.map((h) => h.id),
+      searchVector(target as any, {
+        vector: { value: vector(3), property: 'embedding' },
+        includeVectors: true
+      } as any).hits.map((h) => [h.id, h.document])
+    ]
+    expect(excludedProbe(restored)).toEqual(excludedProbe(db))
+
+    update(restored as any, 'doc-5', { ...makeDoc(5), title: 'replaced heading', tags: ['replaced'] })
+    expect(search(restored as any, { term: 'replaced' }).hits.map((h) => h.id)).toEqual(['doc-5'])
+    expect(getByID(restored as any, 'doc-5')).toEqual({ id: 'doc-5' })
+
+    for (let i = 0; i < 60; i++) {
+      remove(restored as any, `doc-${i}`)
+    }
+    expect(count(restored as any)).toBe(0)
+    indexIsEmpty(restored)
+  })
+
+  it('keeps vectors in the documents store when asked to, and the create settings for old snapshots', () => {
+    const db = populated(20, { store: { vectors: true } } as any)
+    expect(getByID(db as any, 'doc-3')!.embedding).toEqual(vector(3))
+
+    const restored = empty({ store: { exclude: ['title'] } })
+    loadBinarySync(restored as any, saveBinarySync(db as any))
+    expect(restored.store).toEqual({ exclude: [], vectors: true })
+    expect(getByID(restored as any, 'doc-3')!.embedding).toEqual(vector(3))
+
+    // A database without store settings (a snapshot from before they existed) keeps the target configuration.
+    const legacy = populated(5) as any
+    delete legacy.store
+    const target = empty({ store: { exclude: ['title'] } })
+    loadBinarySync(target as any, saveBinarySync(legacy))
+    expect(target.store).toEqual({ exclude: ['title'], vectors: false })
+  })
+})
+
 describe('binary snapshot vectors', () => {
   it('round trips flat vector indexes as raw float32', () => {
     const db = populated(100)
@@ -602,7 +689,7 @@ describe('binary snapshot streaming', () => {
 
     const restored = empty()
     await loadBinary(restored as any, saveBinary(db as any))
-    expect(getByID(restored as any, 'doc-2')).toEqual(makeDoc(2))
+    expect(getByID(restored as any, 'doc-2')).toEqual(getByID(db as any, 'doc-2'))
   })
 
   it('validates the segment size', () => {

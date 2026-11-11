@@ -705,15 +705,22 @@ function* writeFrozenSegment(w: SnapshotWriter, segment: FrozenSegment): Segment
   })
   yield* w.commit()
 
+  // The reader stops once it has the declared number of terms, so every terms record holds at least one term: none
+  // when the segment has no terms, and no empty one after a term that fills a batch.
   let rec = w.begin(I_FROZEN_TERMS)
+  let pending = 0
   for (const term of segment.terms) {
     rec.str(term)
+    pending++
     if (rec.pos >= w.batchBytes) {
       yield* w.commit()
       rec = w.begin(I_FROZEN_TERMS)
+      pending = 0
     }
   }
-  yield* w.commit()
+  if (pending > 0) {
+    yield* w.commit()
+  }
 
   for (const name of FROZEN_ARRAYS) {
     const array = segment[name]

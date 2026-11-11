@@ -382,6 +382,53 @@ describe('binary snapshot round trip', () => {
   })
 })
 
+describe('binary snapshot strings', () => {
+  it('keeps radix words that split inside a surrogate pair', () => {
+    // U+10428 and U+10429 share their high surrogate: the radix tree splits them between the two code units.
+    const words = ['\u{10428}', '\u{10429}', '\u{10428}x', '\u{10428}\u{10429}']
+    const db = create({ schema: { title: 'string' } as const }) as unknown as DB
+    words.forEach((title, i) => insert(db as any, { id: `${i}`, title }))
+
+    const restored = empty()
+    loadBinarySync(restored as any, saveBinarySync(db as any))
+
+    expect(normalized(restored)).toEqual(normalized(db))
+    const node = (restored.data.index as any).indexes.title.node
+    for (const [i, word] of words.entries()) {
+      expect(node.find({ term: word, exact: true }), word).toEqual({ [word]: [i + 1] })
+      const ids = (database: DB) => search(database as any, { term: word }).hits.map((hit) => hit.id)
+      expect(ids(restored), word).toEqual(ids(db))
+      expect(ids(restored), word).toContain(`${i}`)
+    }
+  })
+
+  it('round trips lone surrogates in documents, keys and dictionaries', () => {
+    const lone = [
+      '\uD801',
+      '\uDC28',
+      'x\uD801',
+      '\uDC28x',
+      'é\uD800',
+      '\uD83D'.repeat(70),
+      'long ' + 'é'.repeat(80) + '\uDFFF'
+    ]
+    const db = create({ schema: { title: 'string', tags: 'string[]' } as const }) as unknown as DB
+    lone.forEach((title) => insert(db as any, { id: `id-${title}`, title, tags: [title], [`key${title}`]: title }))
+
+    const restored = empty()
+    loadBinarySync(restored as any, saveBinarySync(db as any, { segmentSize: 1024 }))
+    expect(normalized(restored)).toEqual(normalized(db))
+    for (const title of lone) {
+      expect(getByID(restored as any, `id-${title}`)).toEqual({
+        id: `id-${title}`,
+        title,
+        tags: [title],
+        [`key${title}`]: title
+      })
+    }
+  })
+})
+
 describe('binary snapshot store settings', () => {
   const allPaths = [
     'title',
@@ -1006,6 +1053,14 @@ describe('binary value codec', () => {
     expect(decoded.typed).toBeInstanceOf(Float32Array)
     expect(decoded.map).toBeInstanceOf(Map)
     expect(decoded.set).toBeInstanceOf(Set)
+  })
+
+  it('round trips strings that are not well-formed UTF-16', () => {
+    const strings = ['\uD800', '\uDFFF', 'a\uD83D', '\uDE00b', 'é\uD800é', '\uD83D\uDE00', 'x'.repeat(100) + '\uDC00']
+    for (const value of strings) {
+      expect(roundTrip(value), JSON.stringify(value)).toBe(value)
+      expect(roundTrip({ [value]: [value] }), JSON.stringify(value)).toEqual({ [value]: [value] })
+    }
   })
 
   it('follows JSON semantics for undefined, functions and toJSON', () => {

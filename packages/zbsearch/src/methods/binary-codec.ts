@@ -219,6 +219,21 @@ export function invalid(reason: string) {
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
 
+// A surrogate code unit that is not part of a pair. With the `u` flag, a well-formed pair is one astral code point
+// and only lone surrogates are in the Cs category.
+const LONE_SURROGATE = /\p{Cs}/u
+
+/**
+ * Whether `value` holds a lone surrogate, which UTF-8 cannot represent (TextEncoder writes U+FFFD instead). Radix
+ * trees split words at any UTF-16 code unit, so their edge labels can end or start inside a surrogate pair.
+ */
+function hasLoneSurrogate(value: string): boolean {
+  const isWellFormed = (value as { isWellFormed?: () => boolean }).isWellFormed
+  return isWellFormed ? !isWellFormed.call(value) : LONE_SURROGATE.test(value)
+}
+
+const UTF16_CHUNK = 4096
+
 export class ByteWriter {
   public buf: Uint8Array
   public view: DataView
@@ -307,6 +322,10 @@ export class ByteWriter {
     this.pos += 4
   }
 
+  /**
+   * A string, prefixed by a varint `length * 2 + encoding`: encoding 0 is UTF-8 and `length` its byte count, 1 is
+   * UTF-16LE for strings with lone surrogates (which UTF-8 cannot hold) and `length` their code unit count.
+   */
   str(value: string): void {
     const length = value.length
 
@@ -324,19 +343,33 @@ export class ByteWriter {
       }
 
       if (i === length) {
-        buf[this.pos] = length
+        buf[this.pos] = length << 1
         this.pos = pos
         return
       }
     }
 
+    if (hasLoneSurrogate(value)) {
+      this.uvar(length * 2 + 1)
+      this.ensure(length * 2)
+      const buf = this.buf
+      let pos = this.pos
+      for (let i = 0; i < length; i++) {
+        const code = value.charCodeAt(i)
+        buf[pos++] = code & 0xff
+        buf[pos++] = code >>> 8
+      }
+      this.pos = pos
+      return
+    }
+
     // Encode past the widest possible length prefix, then move the bytes back next to the real prefix.
-    this.ensure(5 + length * 3)
+    this.ensure(6 + length * 3)
     const start = this.pos
-    const { written } = textEncoder.encodeInto(value, this.buf.subarray(start + 5))
-    this.uvar(written)
-    if (this.pos !== start + 5) {
-      this.buf.copyWithin(this.pos, start + 5, start + 5 + written)
+    const { written } = textEncoder.encodeInto(value, this.buf.subarray(start + 6))
+    this.uvar(written * 2)
+    if (this.pos !== start + 6) {
+      this.buf.copyWithin(this.pos, start + 6, start + 6 + written)
     }
     this.pos += written
   }
@@ -441,7 +474,12 @@ export class ByteReader {
   }
 
   str(): string {
-    const length = this.uvar()
+    const prefix = this.uvar()
+    const length = Math.floor(prefix / 2)
+    if (prefix % 2 === 1) {
+      return this.utf16(length)
+    }
+
     this.need(length)
     const buf = this.buf
     const start = this.pos
@@ -465,6 +503,24 @@ export class ByteReader {
 
     this.pos += length
     return textDecoder.decode(buf.subarray(start, start + length))
+  }
+
+  private utf16(length: number): string {
+    this.need(length * 2)
+    const buf = this.buf
+    let pos = this.pos
+    let out = ''
+    const units = new Array<number>(Math.min(length, UTF16_CHUNK))
+    for (let done = 0; done < length; done += UTF16_CHUNK) {
+      const n = Math.min(UTF16_CHUNK, length - done)
+      units.length = n
+      for (let i = 0; i < n; i++, pos += 2) {
+        units[i] = buf[pos] | (buf[pos + 1] << 8)
+      }
+      out += String.fromCharCode.apply(null, units)
+    }
+    this.pos = pos
+    return out
   }
 
   raw(length: number): Uint8Array {

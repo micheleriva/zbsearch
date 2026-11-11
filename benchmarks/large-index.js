@@ -6,6 +6,7 @@
 //
 // - insertMultipleAsync({ batchSize: 50 }) throughput and the longest event-loop block while it runs;
 // - the heap the database holds (heapUsed + arrayBuffers after two full GCs);
+// - with --freeze, the time `freeze(db)` takes and the heap afterwards;
 // - search latency (p50 / p95 / max) for a fixed Zipf query mix: plain, `tolerance: 1`, `where`, facets, `sortBy`,
 //   and hybrid when --dims is given;
 // - update and remove latency;
@@ -13,7 +14,7 @@
 //   results.
 //
 //   pnpm --filter zbsearch build
-//   node --expose-gc --max-old-space-size=8192 benchmarks/large-index.js [--docs=160000]
+//   node --expose-gc --max-old-space-size=8192 benchmarks/large-index.js [--docs=160000] [--freeze]
 //        [--queries=200] [--dims=384] [--zbsearch=/path/to/zbsearch/dist/esm/index.js] [--json]
 import { createReadStream, createWriteStream, mkdirSync, rmSync, statSync } from 'node:fs'
 import { once } from 'node:events'
@@ -32,6 +33,7 @@ const args = Object.fromEntries(
 const DOCS = Number(args.docs ?? 20_000)
 const QUERIES = Number(args.queries ?? 200)
 const DIMS = Number(args.dims ?? 0)
+const FREEZE = Boolean(args.freeze)
 const ZBSEARCH = args.zbsearch
   ? pathToFileURL(resolve(args.zbsearch)).href
   : new URL('../packages/zbsearch/dist/esm/index.js', import.meta.url).href
@@ -75,7 +77,7 @@ async function withEventLoopMonitor(fn) {
 }
 
 const schema = DIMS ? { ...baseSchema, embedding: `vector[${DIMS}]` } : baseSchema
-const result = { docs: DOCS, dims: DIMS, node: process.version }
+const result = { docs: DOCS, dims: DIMS, freeze: FREEZE, node: process.version }
 
 // Build
 const baseline = memory()
@@ -99,6 +101,14 @@ console.log(
   `insertMultipleAsync(batchSize 50): ${result.insertDocsPerSecond.toLocaleString()} docs/s, longest event-loop block ${result.insertLongestBlockMs.toFixed(0)} ms`
 )
 console.log(`heap after insert: ${fmt(result.heapAfterInsert)}`)
+
+if (FREEZE) {
+  const start = performance.now()
+  zb.freeze(db)
+  result.freezeMs = performance.now() - start
+  result.heapAfterFreeze = memory() - baseline
+  console.log(`freeze: ${(result.freezeMs / 1000).toFixed(2)} s, heap after freeze: ${fmt(result.heapAfterFreeze)}`)
+}
 
 // Queries: 1-3 Zipf-sampled words
 const random = prng(87)

@@ -8,9 +8,10 @@
 // GCs) is what that structure held. Every size runs in its own Node process.
 //
 //   pnpm --filter zbsearch build
-//   node benchmarks/memory-breakdown.js [--docs=20000,40000] [--max-old-space-size=8192]
+//   node benchmarks/memory-breakdown.js [--docs=20000,40000] [--max-old-space-size=8192] [--freeze]
 //        [--zbsearch=/path/to/zbsearch/dist/esm/index.js]
 //
+// --freeze calls `freeze(db)` after inserting (frozen postings, field lengths and term frequencies) before measuring.
 // --zbsearch measures another build of zbsearch (for example the previous release) with the same script.
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -28,6 +29,7 @@ const SIZES = String(args.docs ?? '20000')
   .split(',')
   .map(Number)
 const MAX_OLD_SPACE = Number(args['max-old-space-size'] ?? 8192)
+const FREEZE = Boolean(args.freeze)
 const ZBSEARCH = args.zbsearch
   ? pathToFileURL(resolve(args.zbsearch)).href
   : new URL('../packages/zbsearch/dist/esm/index.js', import.meta.url).href
@@ -55,6 +57,12 @@ async function measure(docs) {
   const insertStart = performance.now()
   for (const batch of passages(docs)) zb.insertMultiple(db, batch, BATCH)
   const insertMs = performance.now() - insertStart
+  let freezeMs
+  if (FREEZE) {
+    const start = performance.now()
+    zb.freeze(db)
+    freezeMs = performance.now() - start
+  }
   const total = heapUsed() - before
 
   const index = db.data.index
@@ -87,6 +95,9 @@ async function measure(docs) {
     drop(`${prop}: tokenOccurrences`, () => {
       if (index.tokenOccurrences) index.tokenOccurrences[prop] = {}
     })
+    drop(`${prop}: frozen segment`, () => {
+      if (index.frozen) delete index.frozen[prop]
+    })
     drop(`${prop}: postings (doc-id lists)`, () => {
       const tree = index.indexes[prop]
       if (tree?.type === 'Radix') {
@@ -113,7 +124,7 @@ async function measure(docs) {
     db.data = null
   })
 
-  return { docs, total, insertMs, parts: parts.filter(([, bytes]) => Math.abs(bytes) > 64 * 1024) }
+  return { docs, total, insertMs, freezeMs, parts: parts.filter(([, bytes]) => Math.abs(bytes) > 64 * 1024) }
 }
 
 const mb = (bytes) => `${(bytes / 1024 / 1024).toFixed(1)} MB`
@@ -129,6 +140,7 @@ if (args.child) {
         `--max-old-space-size=${MAX_OLD_SPACE}`,
         fileURLToPath(import.meta.url),
         `--child=${docs}`,
+        ...(FREEZE ? ['--freeze'] : []),
         ...(args.zbsearch ? [`--zbsearch=${args.zbsearch}`] : [])
       ],
       { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }
@@ -138,10 +150,10 @@ if (args.child) {
     }
     const r = JSON.parse(child.stdout)
     console.log(
-      `\n${r.docs.toLocaleString()} passages, text only, store.exclude: ['text'], Node ${process.version}, --max-old-space-size=${MAX_OLD_SPACE}`
+      `\n${r.docs.toLocaleString()} passages, text only, store.exclude: ['text']${FREEZE ? ', frozen' : ''}, Node ${process.version}, --max-old-space-size=${MAX_OLD_SPACE}`
     )
     console.log(
-      `heap + array buffers: ${mb(r.total)} (${((r.total / r.docs) | 0).toLocaleString()} B/passage), insert ${(r.insertMs / 1000).toFixed(1)} s\n`
+      `heap + array buffers: ${mb(r.total)} (${((r.total / r.docs) | 0).toLocaleString()} B/passage), insert ${(r.insertMs / 1000).toFixed(1)} s${r.freezeMs !== undefined ? `, freeze ${(r.freezeMs / 1000).toFixed(2)} s` : ''}\n`
     )
     console.log('| Structure | Bytes | Share |')
     console.log('|---|---|---|')

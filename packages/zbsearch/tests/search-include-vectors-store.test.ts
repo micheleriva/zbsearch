@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { create, getByID, insert, search } from '../src/index.js'
 
-// Vectors are left out of the documents store by default (see StoreConfig): these tests are about stored vectors, so
-// they opt in with `store: { vectors: true }`.
+// Vectors are left out of the documents store by default (see StoreConfig): the tests about stored vectors opt in with
+// `store: { vectors: true }`, and the last block covers hits whose vectors are not stored.
 const storeVectors = { vectors: true } as const
 
 describe('search with includeVectors: false', () => {
@@ -140,5 +140,62 @@ describe('stripping vectors from documents with accessors or write restrictions'
     const results = await search(db, { term: 'x' })
     expect(results.hits[0].document).toEqual({ id: 'a', t: 'x', v: null, nested: { w: null } })
     expect(getByID(db, 'a')).toEqual({ id: 'a', t: 'x', v: [1, 0], nested: { w: [0, 1] } })
+  })
+})
+
+describe('search hits keep the shape of documents whose vectors are not stored', () => {
+  class Doc {
+    constructor(
+      public id: string,
+      private _title: string,
+      public v?: number[]
+    ) {}
+
+    get title() {
+      return this._title
+    }
+  }
+
+  it('keeps the prototype in the documents store, and in hits with vectors nulled or rebuilt', async () => {
+    const db = create({ schema: { title: 'string', v: 'vector[2]' } as const })
+    const doc = new Doc('a', 'hello', [1, 0])
+    await insert(db, doc as any)
+
+    const stored = getByID(db, 'a') as any
+    expect(stored).not.toBe(doc)
+    expect(stored).toBeInstanceOf(Doc)
+    expect(stored.title).toBe('hello')
+    expect(Object.hasOwn(stored, 'v')).toBe(false)
+    expect(doc.v).toEqual([1, 0])
+
+    const nulled = (await search(db, { term: 'hello' })).hits[0].document as any
+    expect(nulled).toBeInstanceOf(Doc)
+    expect(nulled.title).toBe('hello')
+    expect(nulled.v).toBeNull()
+
+    const rebuilt = (await search(db, { term: 'hello', includeVectors: true })).hits[0].document as any
+    expect(rebuilt).toBeInstanceOf(Doc)
+    expect(rebuilt.title).toBe('hello')
+    expect(rebuilt.v).toEqual([1, 0])
+    expect(Object.hasOwn(stored, 'v')).toBe(false)
+  })
+
+  it('keeps non-enumerable and accessor properties of stored documents', async () => {
+    const db = create({ schema: { t: 'string', v: 'vector[2]', nested: { w: 'vector[2]' } } as const })
+    const doc = { id: 'a', t: 'x', v: [1, 0], nested: Object.freeze({ w: [0, 1], label: 'n' }) }
+    Object.defineProperty(doc, 'hidden', { value: 'h', enumerable: false })
+    Object.defineProperty(doc, 'computed', { get: () => 'c', enumerable: true })
+    await insert(db, Object.freeze(doc) as any)
+
+    const stored = getByID(db, 'a') as any
+    expect(stored).toEqual({ id: 'a', t: 'x', computed: 'c', nested: { label: 'n' } })
+    expect(stored.hidden).toBe('h')
+
+    const { hits } = await search(db, { term: 'x', includeVectors: true })
+    const hit = hits[0].document as any
+    expect(hit).toEqual({ id: 'a', t: 'x', computed: 'c', v: [1, 0], nested: { w: [0, 1], label: 'n' } })
+    expect(hit.hidden).toBe('h')
+    expect(Object.getOwnPropertyDescriptor(hit, 'computed')!.get).toBeTypeOf('function')
+    expect(getByID(db, 'a')).toEqual({ id: 'a', t: 'x', computed: 'c', nested: { label: 'n' } })
   })
 })

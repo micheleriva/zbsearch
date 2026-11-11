@@ -167,8 +167,10 @@ function isPlainObject(value: unknown): value is AnyDocument {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+// Returns `doc` without the paths of `tree`. A document that changes is copied as `cloneWithDataProperty` copies it:
+// its prototype and the own properties that are kept (non-enumerable ones and accessors included) are preserved.
 function omitTree(doc: AnyDocument, tree: PathTree): AnyDocument {
-  let copy: AnyDocument | undefined
+  let descriptors: PropertyDescriptorMap | undefined
 
   for (const key of Object.keys(tree)) {
     if (!Object.hasOwn(doc, key)) {
@@ -177,8 +179,8 @@ function omitTree(doc: AnyDocument, tree: PathTree): AnyDocument {
 
     const subtree = tree[key]
     if (subtree === true) {
-      copy ??= { ...doc }
-      delete copy[key]
+      descriptors ??= Object.getOwnPropertyDescriptors(doc)
+      delete descriptors[key]
       continue
     }
 
@@ -189,18 +191,23 @@ function omitTree(doc: AnyDocument, tree: PathTree): AnyDocument {
 
     const omittedChild = omitTree(child, subtree)
     if (omittedChild !== child) {
-      copy ??= { ...doc }
-      copy[key] = omittedChild
+      descriptors ??= Object.getOwnPropertyDescriptors(doc)
+      descriptors[key] = {
+        value: omittedChild,
+        writable: true,
+        enumerable: descriptors[key]?.enumerable ?? true,
+        configurable: true
+      }
     }
   }
 
-  return copy ?? doc
+  return descriptors ? Object.create(Object.getPrototypeOf(doc), descriptors) : doc
 }
 
 /**
  * Returns the document the documents store keeps: the document itself when nothing has to be left out, otherwise a
- * copy without the unstored properties (the objects on the way to them are copied, the inserted document is never
- * modified).
+ * copy without the unstored properties (the objects on the way to them are copied, keeping their prototype and their
+ * other own properties; the inserted document is never modified).
  */
 export function getStoredDocument<T extends AnyZBSearch>(zbsearch: T, doc: AnyDocument): AnyDocument {
   const { omit } = getStoreLayout(zbsearch)

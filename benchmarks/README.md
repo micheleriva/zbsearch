@@ -61,25 +61,25 @@ Fork PRs are supported: benchmarks run on `pull_request` (read-only token), and 
 
 ## Other suites
 
-| Script                                  | Description                                                                                                                                                                                                                                                                |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run benchmark`                     | Multi-engine insert/search (Orama, ZBSearch, FlexSearch, Fuse, Lunr, MiniSearch)                                                                                                                                                                                           |
-| `npm run benchmark:facets`              | Faceted search                                                                                                                                                                                                                                                             |
-| `npm run benchmark:bkd`                 | BKD / geopoint tree                                                                                                                                                                                                                                                        |
-| `npm run benchmark:avl`                 | AVL tree                                                                                                                                                                                                                                                                   |
-| `npm run benchmark:vector`              | Vector search                                                                                                                                                                                                                                                              |
-| `npm run benchmark:vector-ivf`          | IVF vector index                                                                                                                                                                                                                                                           |
-| `npm run benchmark:vector-quantization` | Recall@10, memory, serialized size and latency for none / int8 / binary / PQ, flat vs IVF (see below)                                                                                                                                                                      |
-| `npm run benchmark:memory`              | Memory footprint                                                                                                                                                                                                                                                           |
-| `npm run benchmark:store-exclude`       | Heap and snapshot size with indexed-but-not-stored fields (`store` option), on 10k synthetic passages (`--docs=N`, `--no-vectors`)                                                                                                                                         |
-| `npm run benchmark:memory-breakdown`    | Heap held by each structure of a text-only passage index (`store.exclude: ['text']`): radix nodes, postings, term frequencies, field lengths, sorter, filter trees, documents and id stores (`--docs=20000,160000`, `--zbsearch=<dist/esm/index.js>`)                      |
-| `npm run benchmark:large-index`         | Heap, insert throughput and event-loop blocking, search p50/p95 (plain, `tolerance`, `where`, facets, `sortBy`, hybrid with `--dims`), update/remove latency and `saveBinary`/`loadBinary` of a large passage index (`--docs=160000`, `--zbsearch=<dist/esm/index.js>`)    |
-| `npm run benchmark:binary-snapshot`     | Binary snapshot (`saveBinary` / `loadBinary`) vs chunked JSON: size, save/load time, segment size and extra memory, on synthetic passages with 384-dim vectors (`node --expose-gc --max-old-space-size=3072 binary-snapshot.js 10000 50000 [--no-json] [--store-vectors]`) |
-| `npm run benchmark:responsiveness`      | Main-thread blocking during sync vs async indexing and loading                                                                                                                                                                                                             |
-| `npm run benchmark:bundle-size`         | Serialized index size                                                                                                                                                                                                                                                      |
-| `npm run benchmark:algorithms`          | BM25 / QPS / PT15                                                                                                                                                                                                                                                          |
-| `npm run benchmark:search-quality`      | Standardized ranking quality on BEIR datasets (nDCG@10 / MAP@100 / R@100)                                                                                                                                                                                                  |
-| `npm run benchmark:pagefind`            | ZBSearch sharded static index vs Pagefind, end to end in a real browser                                                                                                                                                                                                    |
+| Script | Description |
+| --- | --- |
+| `npm run benchmark` | Multi-engine insert/search (Orama, ZBSearch, FlexSearch, Fuse, Lunr, MiniSearch) |
+| `npm run benchmark:facets` | Faceted search |
+| `npm run benchmark:bkd` | BKD / geopoint tree |
+| `npm run benchmark:avl` | AVL tree |
+| `npm run benchmark:vector` | Vector search |
+| `npm run benchmark:vector-ivf` | IVF vector index |
+| `npm run benchmark:vector-quantization` | Recall@10, memory, serialized size and latency for none / int8 / binary / PQ, flat vs IVF (see below) |
+| `npm run benchmark:memory` | Memory footprint |
+| `npm run benchmark:store-exclude` | Heap and snapshot size with indexed-but-not-stored fields (`store` option), on 10k synthetic passages (`--docs=N`, `--no-vectors`) |
+| `npm run benchmark:memory-breakdown` | Heap held by each structure of a text-only passage index (`store.exclude: ['text']`): radix nodes, postings, term frequencies, field lengths, sorter, filter trees, documents and id stores (`--docs=20000,160000`, `--zbsearch=<dist/esm/index.js>`) |
+| `npm run benchmark:large-index` | Heap, insert throughput and event-loop blocking, search p50/p95 (plain, `tolerance`, `where`, facets, `sortBy`, hybrid with `--dims`), update/remove latency and `saveBinary`/`loadBinary` of a large passage index (`--docs=160000`, `--zbsearch=<dist/esm/index.js>`) |
+| `npm run benchmark:binary-snapshot` | Binary snapshot (`saveBinary` / `loadBinary`) vs chunked JSON: size, save/load time, segment size and extra memory, on synthetic passages with 384-dim vectors (`node --expose-gc --max-old-space-size=3072 binary-snapshot.js 10000 50000 [--no-json] [--store-vectors]`) |
+| `npm run benchmark:responsiveness` | Main-thread blocking during sync vs async indexing and loading |
+| `npm run benchmark:bundle-size` | Serialized index size |
+| `npm run benchmark:algorithms` | BM25 / QPS / PT15 |
+| `npm run benchmark:search-quality` | Standardized ranking quality on BEIR datasets (nDCG@10 / MAP@100 / R@100) |
+| `npm run benchmark:pagefind` | ZBSearch sharded static index vs Pagefind, end to end in a real browser |
 
 ## Vector quantization
 
@@ -136,11 +136,11 @@ friends) applies exactly as on a real site; ZBSearch runs with the docs-index de
 
 Measures **ranking quality** (not throughput) of every engine on standard [BEIR](https://github.com/beir-cellar/beir) test collections with official relevance judgments (qrels):
 
-| Dataset  | Documents | Test queries | Qrels                         |
-| -------- | --------- | ------------ | ----------------------------- |
-| SciFact  | 5,183     | 300          | binary                        |
-| NFCorpus | 3,633     | 323          | graded (1–2)                  |
-| ArguAna  | 8,674     | 1,406        | binary (1 relevant per query) |
+| Dataset | Documents | Test queries | Qrels |
+| --- | --- | --- | --- |
+| SciFact | 5,183 | 300 | binary |
+| NFCorpus | 3,633 | 323 | graded (1–2) |
+| ArguAna | 8,674 | 1,406 | binary (1 relevant per query) |
 
 Datasets are downloaded on first run from the official BEIR hosting and cached under `.cache/beir/` (gitignored — the datasets carry per-dataset licenses, e.g. SciFact is CC BY-NC 2.0, so they are never committed).
 
@@ -187,8 +187,8 @@ How to read it:
 - Queries run with stock `search(db, { term, limit: 10 })` defaults: **prefix matching is on** (search-as-you-type), with full-token matches scoring above prefix expansions. A query like `gato` still finds `gatos` in every config. The remaining morphology gap between configs comes from stem-level changes (umlauts, verb endings, articles) that prefix matching cannot recover.
 - **multilingual ≈ per-language** on exact-form queries, diacritic-dropped queries, and non-Latin scripts: Unicode-aware tokenization plus diacritic folding covers those cases without any configuration.
 - **multilingual < per-language** on inflection/morphology queries: the tuned configs stem (e.g. `running` -> `run`, `Häuser` -> `haus`) and drop stopwords, the zero-config mode does not.
-- **multilingual ≫ english-default** on Russian and Arabic: the default English splitter discards non-Latin characters entirely, so recall collapses there. The runner prints a loud warning if multilingual ever scores _below_ english-default on those two languages, which would indicate a tokenizer bug rather than a trade-off.
-- Diacritic folding covers Latin scripts plus Cyrillic `ё`->`е` and Arabic alef variants (`آ`/`أ`/`إ`/`ٱ`->`ا`, `ى`->`ي`), and folding runs _before_ stemming so accented and unaccented surface forms of a word share a stem (e.g. Portuguese `pão`/`pao`). The residual Arabic gap vs per-language comes from the Arabic stemmer itself (weak on bare forms and verb prefixes), not from tokenization.
+- **multilingual ≫ english-default** on Russian and Arabic: the default English splitter discards non-Latin characters entirely, so recall collapses there. The runner prints a loud warning if multilingual ever scores *below* english-default on those two languages, which would indicate a tokenizer bug rather than a trade-off.
+- Diacritic folding covers Latin scripts plus Cyrillic `ё`->`е` and Arabic alef variants (`آ`/`أ`/`إ`/`ٱ`->`ا`, `ى`->`ي`), and folding runs *before* stemming so accented and unaccented surface forms of a word share a stem (e.g. Portuguese `pão`/`pao`). The residual Arabic gap vs per-language comes from the Arabic stemmer itself (weak on bare forms and verb prefixes), not from tokenization.
 
 ## Sharded runtime database (`@zbsearch/sharded`)
 

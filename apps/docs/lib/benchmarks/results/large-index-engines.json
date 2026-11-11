@@ -1,0 +1,1453 @@
+{
+  "name": "large-index-engines",
+  "date": "2026-11-11T18:28:02.828Z",
+  "machine": {
+    "node": "v22.23.4",
+    "platform": "linux 6.18.44-fc-v378 (x64)",
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "cpus": 4,
+    "totalMemoryGB": 15.7
+  },
+  "config": {
+    "sizes": [
+      20000,
+      80000,
+      160000
+    ],
+    "indexTimeoutMs": 600000,
+    "searchTimeoutMs": 300000,
+    "queryTimeoutMs": 60000,
+    "queries": 200,
+    "warmupQueries": 10,
+    "maxOldSpaceSizeMB": 8192,
+    "searchLimit": 10,
+    "fields": [
+      "text",
+      "section",
+      "title"
+    ],
+    "corpus": "src/passages-corpus.js: synthetic passages of 150-250 words from a Zipf-distributed 40,000-word vocabulary (seed 81); text, section (3 words) and title (6 words) indexed as full text",
+    "queryMix": "1-3 Zipf-sampled words per query (seed 87, as in large-index.js), all terms required, top 10 results"
+  },
+  "versions": {
+    "orama": "3.1.18",
+    "zbsearch-bm25": "4.0.3",
+    "zbsearch-bm25-frozen": "4.0.3",
+    "zbsearch-qps": "4.0.2",
+    "zbsearch-pt15": "4.0.2",
+    "flexsearch": "0.8.212",
+    "fusejs": "7.5.0",
+    "lunr": "2.3.9",
+    "minisearch": "7.2.0"
+  },
+  "stores": {
+    "orama": "full documents (default document store)",
+    "zbsearch-bm25": "documents without `text` (`store: { exclude: ['text'] }`)",
+    "zbsearch-bm25-frozen": "documents without `text` (`store: { exclude: ['text'] }`)",
+    "zbsearch-qps": "full documents (the QPS index does not support `store.exclude`)",
+    "zbsearch-pt15": "full documents (the PT15 index does not support `store.exclude`)",
+    "flexsearch": "ids only (no document store)",
+    "fusejs": "full documents (Fuse searches its own document list)",
+    "lunr": "refs only",
+    "minisearch": "ids only (no `storeFields`)"
+  },
+  "runs": [
+    {
+      "engine": "orama",
+      "label": "Orama",
+      "docs": 20000,
+      "status": "ok",
+      "error": null,
+      "store": "full documents (default document store)",
+      "corpusMs": 511.66729899999996,
+      "indexMs": 11279.819619000002,
+      "docsPerSecond": 1773,
+      "freezeMs": null,
+      "docsIndexed": 20000,
+      "heapMB": 347.8538360595703,
+      "rssMB": 545.234375,
+      "maxRssMB": 1159.12109375,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 179.1155371750001,
+        "p50Ms": 170.89759499999855,
+        "p95Ms": 500.0780949999971,
+        "p99Ms": 587.4981960000005,
+        "maxMs": 617.5537720000066,
+        "qps": 5.5829885881032
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 10621
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 5561
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 4440
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 7007
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 6,
+          "total": 6
+        }
+      ]
+    },
+    {
+      "engine": "zbsearch-bm25",
+      "label": "ZBSearch (BM25)",
+      "docs": 20000,
+      "status": "ok",
+      "error": null,
+      "store": "documents without `text` (`store: { exclude: ['text'] }`)",
+      "corpusMs": 531.073015,
+      "indexMs": 3860.4937540000005,
+      "docsPerSecond": 5181,
+      "freezeMs": null,
+      "docsIndexed": 20000,
+      "heapMB": 215.22406005859375,
+      "rssMB": 421.32421875,
+      "maxRssMB": 439.203125,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 5.574261490000003,
+        "p50Ms": 2.4720680000000357,
+        "p95Ms": 24.301558000000114,
+        "p99Ms": 28.502715000000535,
+        "maxMs": 33.598807000000306,
+        "qps": 179.395961562614
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 10621
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 570
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 4298
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 9894
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 1,
+          "total": 1
+        }
+      ]
+    },
+    {
+      "engine": "zbsearch-bm25-frozen",
+      "label": "ZBSearch (BM25, frozen)",
+      "docs": 20000,
+      "status": "ok",
+      "error": null,
+      "store": "documents without `text` (`store: { exclude: ['text'] }`)",
+      "corpusMs": 517.084598,
+      "indexMs": 4844.644840000001,
+      "docsPerSecond": 4128,
+      "freezeMs": 937.5321610000001,
+      "docsIndexed": 20000,
+      "heapMB": 17.597620964050293,
+      "rssMB": 435.57421875,
+      "maxRssMB": 456.32421875,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 2.2077686799999854,
+        "p50Ms": 1.5173350000004575,
+        "p95Ms": 7.799851000000672,
+        "p99Ms": 8.943598999999267,
+        "maxMs": 8.964915999999903,
+        "qps": 452.9460033829298
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 10621
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 570
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 4298
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 9894
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 1,
+          "total": 1
+        }
+      ]
+    },
+    {
+      "engine": "zbsearch-qps",
+      "label": "ZBSearch (QPS)",
+      "docs": 20000,
+      "status": "ok",
+      "error": null,
+      "store": "full documents (the QPS index does not support `store.exclude`)",
+      "corpusMs": 530.579903,
+      "indexMs": 4948.386867999998,
+      "docsPerSecond": 4042,
+      "freezeMs": null,
+      "docsIndexed": 20000,
+      "heapMB": 244.15716552734375,
+      "rssMB": 444.34765625,
+      "maxRssMB": 475.734375,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 18.365357800000016,
+        "p50Ms": 20.551274999999805,
+        "p95Ms": 38.5348240000003,
+        "p99Ms": 49.15106800000103,
+        "maxMs": 50.75176300000021,
+        "qps": 54.450341283304546
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 10621
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 20000
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 14404
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 18382
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 10,
+          "total": 574
+        }
+      ]
+    },
+    {
+      "engine": "zbsearch-pt15",
+      "label": "ZBSearch (PT15)",
+      "docs": 20000,
+      "status": "ok",
+      "error": null,
+      "store": "full documents (the PT15 index does not support `store.exclude`)",
+      "corpusMs": 508.535837,
+      "indexMs": 9494.584383999996,
+      "docsPerSecond": 2106,
+      "freezeMs": null,
+      "docsIndexed": 20000,
+      "heapMB": 402.2526550292969,
+      "rssMB": 675.41796875,
+      "maxRssMB": 693.53515625,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 6.45115273499996,
+        "p50Ms": 6.312191999999413,
+        "p95Ms": 14.419009999999616,
+        "p99Ms": 20.748477000001003,
+        "maxMs": 31.018831999999747,
+        "qps": 155.01105633023062
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 10621
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 20000
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 14404
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 18382
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 10,
+          "total": 574
+        }
+      ]
+    },
+    {
+      "engine": "flexsearch",
+      "label": "FlexSearch",
+      "docs": 20000,
+      "status": "ok",
+      "error": null,
+      "store": "ids only (no document store)",
+      "corpusMs": 611.06709,
+      "indexMs": 23005.235731999994,
+      "docsPerSecond": 869,
+      "freezeMs": null,
+      "docsIndexed": 20000,
+      "heapMB": 1570.0639419555664,
+      "rssMB": 1923.15234375,
+      "maxRssMB": 1952.15234375,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 0.41043210499989075,
+        "p50Ms": 0.37453499999901396,
+        "p95Ms": 0.9311100000013539,
+        "p99Ms": 1.2011429999984102,
+        "maxMs": 1.4073629999984405,
+        "qps": 2436.456573006798
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 0,
+          "total": null
+        }
+      ]
+    },
+    {
+      "engine": "fusejs",
+      "label": "Fuse.js",
+      "docs": 20000,
+      "status": "ok",
+      "error": null,
+      "store": "full documents (Fuse searches its own document list)",
+      "corpusMs": 531.881522,
+      "indexMs": 1627.5945040000001,
+      "docsPerSecond": 12288,
+      "freezeMs": null,
+      "docsIndexed": 20000,
+      "heapMB": 236.04756927490234,
+      "rssMB": 326.703125,
+      "maxRssMB": 332.640625,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 1274.75680014,
+        "p50Ms": 1248.4049840000225,
+        "p95Ms": 2048.5811909999757,
+        "p99Ms": 2121.9704809999967,
+        "maxMs": 2204.7583190000005,
+        "qps": 0.7844633579441782
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 1,
+          "total": null
+        }
+      ]
+    },
+    {
+      "engine": "lunr",
+      "label": "Lunr",
+      "docs": 20000,
+      "status": "ok",
+      "error": null,
+      "store": "refs only",
+      "corpusMs": 545.623356,
+      "indexMs": 15006.309385000004,
+      "docsPerSecond": 1333,
+      "freezeMs": null,
+      "docsIndexed": 20000,
+      "heapMB": 789.8557357788086,
+      "rssMB": 1140.46484375,
+      "maxRssMB": 3357.83203125,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 95.7674279700001,
+        "p50Ms": 73.04401400000279,
+        "p95Ms": 232.0222619999986,
+        "p99Ms": 421.6375100000005,
+        "maxMs": 2273.191641999998,
+        "qps": 10.441963632073922
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 6284
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 379
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 1136
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 6793
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 0,
+          "total": 0
+        }
+      ]
+    },
+    {
+      "engine": "minisearch",
+      "label": "MiniSearch",
+      "docs": 20000,
+      "status": "ok",
+      "error": null,
+      "store": "ids only (no `storeFields`)",
+      "corpusMs": 566.572175,
+      "indexMs": 6935.195152,
+      "docsPerSecond": 2884,
+      "freezeMs": null,
+      "docsIndexed": 20000,
+      "heapMB": 149.3765640258789,
+      "rssMB": 352.84375,
+      "maxRssMB": 658.07421875,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 16.73091952000004,
+        "p50Ms": 12.615469000000303,
+        "p95Ms": 52.7052590000003,
+        "p99Ms": 78.06307900000138,
+        "maxMs": 84.80020899999909,
+        "qps": 59.76957804408814
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 6284
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 379
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 1136
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 6793
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 0,
+          "total": 0
+        }
+      ]
+    },
+    {
+      "engine": "orama",
+      "label": "Orama",
+      "docs": 80000,
+      "status": "search-timeout",
+      "error": "search did not finish within 5 min (115 of 200 queries completed)",
+      "store": "full documents (default document store)",
+      "corpusMs": 2014.918009,
+      "indexMs": 50304.220013000006,
+      "docsPerSecond": 1590,
+      "freezeMs": null,
+      "docsIndexed": 80000,
+      "heapMB": 1302.926856994629,
+      "rssMB": 1746.0390625,
+      "maxRssMB": 1785.38671875,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 115,
+        "meanMs": 2462.7830369043486,
+        "p50Ms": 2313.8754749999935,
+        "p95Ms": 6172.249998999992,
+        "p99Ms": 8406.37732499998,
+        "maxMs": 8467.324258000008,
+        "qps": 0.4060447002497519
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 43021
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 22610
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 17909
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 27873
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 10,
+          "total": 23
+        }
+      ]
+    },
+    {
+      "engine": "zbsearch-bm25",
+      "label": "ZBSearch (BM25)",
+      "docs": 80000,
+      "status": "ok",
+      "error": null,
+      "store": "documents without `text` (`store: { exclude: ['text'] }`)",
+      "corpusMs": 1972.4228340000002,
+      "indexMs": 16780.80803799999,
+      "docsPerSecond": 4767,
+      "freezeMs": null,
+      "docsIndexed": 80000,
+      "heapMB": 768.8205413818359,
+      "rssMB": 1305.07421875,
+      "maxRssMB": 1420.1875,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 25.498686585000105,
+        "p50Ms": 9.10392999999749,
+        "p95Ms": 95.85367399999814,
+        "p99Ms": 167.2412179999992,
+        "maxMs": 177.76968099999795,
+        "qps": 39.21770624014264
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 43021
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 2311
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 17346
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 39937
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 2,
+          "total": 2
+        }
+      ]
+    },
+    {
+      "engine": "zbsearch-bm25-frozen",
+      "label": "ZBSearch (BM25, frozen)",
+      "docs": 80000,
+      "status": "ok",
+      "error": null,
+      "store": "documents without `text` (`store: { exclude: ['text'] }`)",
+      "corpusMs": 1982.247628,
+      "indexMs": 21588.542940000014,
+      "docsPerSecond": 3706,
+      "freezeMs": 4372.232602,
+      "docsIndexed": 80000,
+      "heapMB": 56.02562618255615,
+      "rssMB": 1315.43359375,
+      "maxRssMB": 1423.57421875,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 9.346939269999911,
+        "p50Ms": 5.574292000001151,
+        "p95Ms": 37.589771000002656,
+        "p99Ms": 53.01878200000283,
+        "maxMs": 57.716551000001346,
+        "qps": 106.98689390329262
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 43021
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 2311
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 17346
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 39937
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 2,
+          "total": 2
+        }
+      ]
+    },
+    {
+      "engine": "zbsearch-qps",
+      "label": "ZBSearch (QPS)",
+      "docs": 80000,
+      "status": "ok",
+      "error": null,
+      "store": "full documents (the QPS index does not support `store.exclude`)",
+      "corpusMs": 2024.536603,
+      "indexMs": 20631.498236,
+      "docsPerSecond": 3878,
+      "freezeMs": null,
+      "docsIndexed": 80000,
+      "heapMB": 878.3445129394531,
+      "rssMB": 1383.93359375,
+      "maxRssMB": 2950.9609375,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 99.47699489500032,
+        "p50Ms": 106.41975900000034,
+        "p95Ms": 208.5471949999992,
+        "p99Ms": 242.17813100000058,
+        "maxMs": 322.1239060000007,
+        "qps": 10.052575482959826
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 43021
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 80000
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 58113
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 73676
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 10,
+          "total": 2286
+        }
+      ]
+    },
+    {
+      "engine": "zbsearch-pt15",
+      "label": "ZBSearch (PT15)",
+      "docs": 80000,
+      "status": "ok",
+      "error": null,
+      "store": "full documents (the PT15 index does not support `store.exclude`)",
+      "corpusMs": 2128.792624,
+      "indexMs": 42749.31436299997,
+      "docsPerSecond": 1871,
+      "freezeMs": null,
+      "docsIndexed": 80000,
+      "heapMB": 1012.0437088012695,
+      "rssMB": 1746.00390625,
+      "maxRssMB": 2108.69921875,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 31.965180625000286,
+        "p50Ms": 32.52870300000359,
+        "p95Ms": 66.8707790000044,
+        "p99Ms": 82.26114699999744,
+        "maxMs": 83.55886000000464,
+        "qps": 31.284040335373238
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 43021
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 80000
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 58113
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 73676
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 10,
+          "total": 2286
+        }
+      ]
+    },
+    {
+      "engine": "flexsearch",
+      "label": "FlexSearch",
+      "docs": 80000,
+      "status": "ok",
+      "error": null,
+      "store": "ids only (no document store)",
+      "corpusMs": 1997.104137,
+      "indexMs": 129974.9504450001,
+      "docsPerSecond": 616,
+      "freezeMs": null,
+      "docsIndexed": 80000,
+      "heapMB": 4740.234062194824,
+      "rssMB": 5270.6796875,
+      "maxRssMB": 5273.0546875,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 0.5960729750005703,
+        "p50Ms": 0.5933190000068862,
+        "p95Ms": 1.1867780000029597,
+        "p99Ms": 1.4179950000252575,
+        "maxMs": 1.7376619999995455,
+        "qps": 1677.6469357615874
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 0,
+          "total": null
+        }
+      ]
+    },
+    {
+      "engine": "fusejs",
+      "label": "Fuse.js",
+      "docs": 80000,
+      "status": "search-timeout",
+      "error": "search did not finish within 5 min (44 of 200 queries completed)",
+      "store": "full documents (Fuse searches its own document list)",
+      "corpusMs": 1973.71092,
+      "indexMs": 6815.182296000001,
+      "docsPerSecond": 11738,
+      "freezeMs": null,
+      "docsIndexed": 80000,
+      "heapMB": 938.6489028930664,
+      "rssMB": 1046.5859375,
+      "maxRssMB": 1050.0390625,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 44,
+        "meanMs": 5602.175672636364,
+        "p50Ms": 5592.27597800002,
+        "p95Ms": 9036.341230999999,
+        "p99Ms": 9264.822551999998,
+        "maxMs": 9264.822551999998,
+        "qps": 0.1785020781987373
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 5,
+          "total": null
+        }
+      ]
+    },
+    {
+      "engine": "lunr",
+      "label": "Lunr",
+      "docs": 80000,
+      "status": "ok",
+      "error": null,
+      "store": "refs only",
+      "corpusMs": 2066.272062,
+      "indexMs": 76571.60916399994,
+      "docsPerSecond": 1045,
+      "freezeMs": null,
+      "docsIndexed": 80000,
+      "heapMB": 3073.290626525879,
+      "rssMB": 4143.578125,
+      "maxRssMB": 5898.421875,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 550.8461466550002,
+        "p50Ms": 408.621324000007,
+        "p95Ms": 1389.2954029999964,
+        "p99Ms": 5512.761193000013,
+        "maxMs": 12555.002691000002,
+        "qps": 1.8153889358625375
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 25434
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 1532
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 4462
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 27317
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 0,
+          "total": 0
+        }
+      ]
+    },
+    {
+      "engine": "minisearch",
+      "label": "MiniSearch",
+      "docs": 80000,
+      "status": "ok",
+      "error": null,
+      "store": "ids only (no `storeFields`)",
+      "corpusMs": 2056.350718,
+      "indexMs": 31775.936888000026,
+      "docsPerSecond": 2518,
+      "freezeMs": null,
+      "docsIndexed": 80000,
+      "heapMB": 528.3782501220703,
+      "rssMB": 1003.12109375,
+      "maxRssMB": 2535.9296875,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 93.60521750000022,
+        "p50Ms": 73.41100700000243,
+        "p95Ms": 311.2201239999995,
+        "p99Ms": 445.76565900000423,
+        "maxMs": 772.4656029999969,
+        "qps": 10.683165177197496
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 25434
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 1532
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 4462
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 27317
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 0,
+          "total": 0
+        }
+      ]
+    },
+    {
+      "engine": "orama",
+      "label": "Orama",
+      "docs": 160000,
+      "status": "search-timeout",
+      "error": "search did not finish within 5 min (30 of 200 queries completed)",
+      "store": "full documents (default document store)",
+      "corpusMs": 4230.498948,
+      "indexMs": 113684.71158199989,
+      "docsPerSecond": 1407,
+      "freezeMs": null,
+      "docsIndexed": 160000,
+      "heapMB": 2555.5399169921875,
+      "rssMB": 3285.49609375,
+      "maxRssMB": 3452.59375,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 30,
+        "meanMs": 7973.753533666672,
+        "p50Ms": 4155.069783999992,
+        "p95Ms": 22061.983936999983,
+        "p99Ms": 25074.777927000017,
+        "maxMs": 25074.777927000017,
+        "qps": 0.12541145092807468
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 85749
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 45154
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 35950
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 55941
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 10,
+          "total": 39
+        }
+      ]
+    },
+    {
+      "engine": "zbsearch-bm25",
+      "label": "ZBSearch (BM25)",
+      "docs": 160000,
+      "status": "ok",
+      "error": null,
+      "store": "documents without `text` (`store: { exclude: ['text'] }`)",
+      "corpusMs": 4234.711109,
+      "indexMs": 37771.61512099998,
+      "docsPerSecond": 4236,
+      "freezeMs": null,
+      "docsIndexed": 160000,
+      "heapMB": 1486.602798461914,
+      "rssMB": 2386.421875,
+      "maxRssMB": 2810.046875,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 59.84108199000035,
+        "p50Ms": 18.417332000004535,
+        "p95Ms": 237.23551999999472,
+        "p99Ms": 349.4866470000052,
+        "maxMs": 352.2182649999959,
+        "qps": 16.710927789826783
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 85749
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 4737
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 34669
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 79776
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 3,
+          "total": 3
+        }
+      ]
+    },
+    {
+      "engine": "zbsearch-bm25-frozen",
+      "label": "ZBSearch (BM25, frozen)",
+      "docs": 160000,
+      "status": "ok",
+      "error": null,
+      "store": "documents without `text` (`store: { exclude: ['text'] }`)",
+      "corpusMs": 4427.627693,
+      "indexMs": 45676.949440999946,
+      "docsPerSecond": 3503,
+      "freezeMs": 10016.281738999998,
+      "docsIndexed": 160000,
+      "heapMB": 102.50765800476074,
+      "rssMB": 2373.9765625,
+      "maxRssMB": 2622.5859375,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 21.2019950150001,
+        "p50Ms": 11.650141999998596,
+        "p95Ms": 83.11749100000452,
+        "p99Ms": 135.6863480000029,
+        "maxMs": 170.73700100000133,
+        "qps": 47.16537284781524
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 85749
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 4737
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 34669
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 79776
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 3,
+          "total": 3
+        }
+      ]
+    },
+    {
+      "engine": "zbsearch-qps",
+      "label": "ZBSearch (QPS)",
+      "docs": 160000,
+      "status": "ok",
+      "error": null,
+      "store": "full documents (the QPS index does not support `store.exclude`)",
+      "corpusMs": 4055.1639119999995,
+      "indexMs": 43707.08782100001,
+      "docsPerSecond": 3661,
+      "freezeMs": null,
+      "docsIndexed": 160000,
+      "heapMB": 1703.2893905639648,
+      "rssMB": 2488.44921875,
+      "maxRssMB": 5133.96875,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 222.90393073499996,
+        "p50Ms": 231.77683999999863,
+        "p95Ms": 481.8996360000019,
+        "p99Ms": 645.244958999996,
+        "maxMs": 1004.726422000007,
+        "qps": 4.486237621304459
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 85749
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 160000
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 116388
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 147368
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 10,
+          "total": 4628
+        }
+      ]
+    },
+    {
+      "engine": "zbsearch-pt15",
+      "label": "ZBSearch (PT15)",
+      "docs": 160000,
+      "status": "ok",
+      "error": null,
+      "store": "full documents (the PT15 index does not support `store.exclude`)",
+      "corpusMs": 4107.464343,
+      "indexMs": 86518.59096300002,
+      "docsPerSecond": 1849,
+      "freezeMs": null,
+      "docsIndexed": 160000,
+      "heapMB": 1826.8982391357422,
+      "rssMB": 2725.36328125,
+      "maxRssMB": 3643.546875,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 82.02853621500034,
+        "p50Ms": 87.675396000006,
+        "p95Ms": 169.97019800001,
+        "p99Ms": 195.41220999999496,
+        "maxMs": 637.826642,
+        "qps": 12.190879493191938
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 85749
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 160000
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 116388
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 147368
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 10,
+          "total": 4628
+        }
+      ]
+    },
+    {
+      "engine": "flexsearch",
+      "label": "FlexSearch",
+      "docs": 160000,
+      "status": "crashed",
+      "error": "out of memory (--max-old-space-size=8192) while indexing",
+      "store": "ids only (no document store)",
+      "corpusMs": 3913.274475,
+      "indexMs": null,
+      "docsPerSecond": null,
+      "freezeMs": null,
+      "docsIndexed": 149500,
+      "heapMB": null,
+      "rssMB": null,
+      "maxRssMB": null,
+      "warmupQueries": 0,
+      "search": null,
+      "sample": []
+    },
+    {
+      "engine": "fusejs",
+      "label": "Fuse.js",
+      "docs": 160000,
+      "status": "search-timeout",
+      "error": "search did not finish within 5 min (13 of 200 queries completed)",
+      "store": "full documents (Fuse searches its own document list)",
+      "corpusMs": 4243.013557,
+      "indexMs": 15219.758071,
+      "docsPerSecond": 10513,
+      "freezeMs": null,
+      "docsIndexed": 160000,
+      "heapMB": 1873.974853515625,
+      "rssMB": 2006.6328125,
+      "maxRssMB": 2018.21875,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 13,
+        "meanMs": 14195.090507230767,
+        "p50Ms": 15281.85833399999,
+        "p95Ms": 22989.119071999972,
+        "p99Ms": 22989.119071999972,
+        "maxMs": 22989.119071999972,
+        "qps": 0.07044689144395487
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": null
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 8,
+          "total": null
+        }
+      ]
+    },
+    {
+      "engine": "lunr",
+      "label": "Lunr",
+      "docs": 160000,
+      "status": "search-timeout",
+      "error": "search did not finish within 5 min (81 of 200 queries completed)",
+      "store": "refs only",
+      "corpusMs": 4405.393593,
+      "indexMs": 227886.02915500026,
+      "docsPerSecond": 702,
+      "freezeMs": null,
+      "docsIndexed": 160000,
+      "heapMB": 6117.272567749023,
+      "rssMB": 7771.625,
+      "maxRssMB": 7852.05078125,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 81,
+        "meanMs": 3611.275641098762,
+        "p50Ms": 1221.1679270000313,
+        "p95Ms": 16046.075887999963,
+        "p99Ms": 29928.29360200002,
+        "maxMs": 29928.29360200002,
+        "qps": 0.27691046028703065
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 50542
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 3131
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 8867
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 54558
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 2,
+          "total": 2
+        }
+      ]
+    },
+    {
+      "engine": "minisearch",
+      "label": "MiniSearch",
+      "docs": 160000,
+      "status": "ok",
+      "error": null,
+      "store": "ids only (no `storeFields`)",
+      "corpusMs": 4367.449449999999,
+      "indexMs": 68458.91019699995,
+      "docsPerSecond": 2337,
+      "freezeMs": null,
+      "docsIndexed": 160000,
+      "heapMB": 1032.1271286010742,
+      "rssMB": 1750.66015625,
+      "maxRssMB": 4598.78515625,
+      "warmupQueries": 10,
+      "search": {
+        "queries": 200,
+        "meanMs": 224.51598909000043,
+        "p50Ms": 178.2723479999986,
+        "p95Ms": 768.7868960000051,
+        "p99Ms": 997.3995830000058,
+        "maxMs": 1753.3209410000127,
+        "qps": 4.454025764726875
+      },
+      "sample": [
+        {
+          "term": "karu",
+          "hits": 10,
+          "total": 50542
+        },
+        {
+          "term": "figune kalo",
+          "hits": 10,
+          "total": 3131
+        },
+        {
+          "term": "zeru neti",
+          "hits": 10,
+          "total": 8867
+        },
+        {
+          "term": "zemi lomi",
+          "hits": 10,
+          "total": 54558
+        },
+        {
+          "term": "ruvoru netivone",
+          "hits": 2,
+          "total": 2
+        }
+      ]
+    }
+  ]
+}

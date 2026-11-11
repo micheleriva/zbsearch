@@ -57,6 +57,12 @@ export default function BenchmarksPage() {
           >
             Throughput
           </a>
+          <Link
+            href="/benchmarks/large-indexes"
+            className="rounded-md border border-fd-border bg-fd-card px-3 py-1.5 text-fd-foreground/70 transition-colors hover:border-fd-primary/30 hover:text-fd-foreground"
+          >
+            Large indexes →
+          </Link>
         </div>
 
         <QualityCharts between={<QualitySpeedChart />} />

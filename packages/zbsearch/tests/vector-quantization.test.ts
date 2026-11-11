@@ -167,6 +167,24 @@ describe('vector quantization: memory', () => {
     expect(node.byteLength).toBeLessThan(floatBytes * 0.4)
   })
 
+  it('releases spare capacity with shrinkToFit', async () => {
+    const db = makeDb(ivf({ nlist: 4, nprobe: 4, trainMin: 8, quantization: 'int8', rescore: 'float32' }))
+    await populate(db)
+    await remove(db, '10')
+    const node = vectorNode(db) as QuantizedVectorIndex
+    const before = node.byteLength
+    const expected = await topK(db, DATA.queries[0]!)
+    node.shrinkToFit()
+    expect(node.byteLength).toBeLessThan(before)
+    // codes (64 + 8 bytes), rescore copy (256 bytes), id and cluster per slot; the removed slot stays allocated.
+    expect(node.byteLength).toBe(DATA.vectors.length * (72 + 256 + 8) + 4 * DIM * 4)
+    expect(await topK(db, DATA.queries[0]!)).toEqual(expected)
+    node.shrinkToFit()
+    await insertMultiple(db, [{ id: 'again', name: 'n', group: 0, embedding: DATA.vectors[10]! }])
+    await insertMultiple(db, [{ id: 'more', name: 'n', group: 0, embedding: DATA.vectors[11]! }])
+    expect((await topK(db, DATA.vectors[11]!, 2)).sort()).toEqual(['11', 'more'])
+  })
+
   it('stores binary codes at 1 bit per dimension', async () => {
     const db = makeDb(flat({ quantization: 'binary' }))
     await populate(db)

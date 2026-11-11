@@ -204,21 +204,32 @@ export class QuantizedVectorIndex implements VectorIndexLike {
       return
     }
 
-    // Grow by 25% (plus a fixed step) rather than doubling: the codes are the bulk of the memory.
-    const capacity = Math.max(required, Math.ceil(this.capacity * 1.25) + 1024)
+    // Grow by 12.5% (plus a fixed step) rather than doubling: the codes are the bulk of the memory.
+    this.resize(Math.max(required, Math.ceil(this.capacity * 1.125) + 1024))
+  }
+
+  /** Releases the spare capacity kept for future inserts, e.g. after a bulk load. */
+  shrinkToFit() {
+    if (this.capacity > this.used) {
+      this.resize(this.used)
+    }
+  }
+
+  private resize(capacity: number) {
     for (const lane of this.lanes) {
       const codes = createCodeBuffer(lane.stride * capacity)
-      codes.u8.set(lane.codes.u8)
+      codes.u8.set(lane.codes.u8.subarray(0, lane.stride * Math.min(capacity, this.capacity)))
       lane.codes = codes
     }
 
+    const kept = Math.min(capacity, this.capacity)
     const slotIds = new Uint32Array(capacity).fill(EMPTY_SLOT)
-    slotIds.set(this.slotIds)
+    slotIds.set(this.slotIds.subarray(0, kept))
     this.slotIds = slotIds
 
     if (this.ivf) {
       const slotClusters = new Uint32Array(capacity)
-      slotClusters.set(this.slotClusters)
+      slotClusters.set(this.slotClusters.subarray(0, kept))
       this.slotClusters = slotClusters
     }
 

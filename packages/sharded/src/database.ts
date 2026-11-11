@@ -70,7 +70,7 @@ export interface ShardedDatabaseOptions {
    * are evicted to stay under it. Default: unlimited.
    */
   memoryBudget?: number
-  /** Estimated heap size of a loaded shard. Default: 1.6 × its snapshot size, or 4 KiB per document before its first snapshot. */
+  /** Estimated heap size of a loaded shard. Default: 1.8 × its snapshot size (measured 1.3–1.75× with the JSON codec), or 16 KiB per document before its first snapshot. */
   estimateShardBytes?: (shard: ShardSizeInfo) => number
   /** Compact (snapshot dirty shards, persist the global state, truncate the WAL) after this many WAL records. 0 disables. Default 64. */
   compactEvery?: number
@@ -137,6 +137,8 @@ export interface ShardedDatabaseStats {
   compactions: number
   /** WAL records not yet folded into snapshots. */
   pendingWalRecords: number
+  /** Distinct (property, term) pairs in the resident dictionary. */
+  terms: number
 }
 
 interface IndexShape {
@@ -207,10 +209,12 @@ const DEFAULT_BATCH = 500
 const DEFAULT_SIMILARITY = 0.8
 /** Slack on vector upper bounds: core compares float32-normalized vectors. */
 const VECTOR_BOUND_EPSILON = 1e-4
+/** Heap per document inserted into a loaded shard, relative to its rough object size (index structures included). */
+const GROWTH_FACTOR = 5
 const UNSUPPORTED_PARAMS = ['facets', 'groupBy', 'distinctOn', 'sortBy'] as const
 
 function defaultEstimate({ docs, snapshotBytes }: ShardSizeInfo): number {
-  return snapshotBytes > 0 ? Math.ceil(snapshotBytes * 1.6) : docs * 4096
+  return snapshotBytes > 0 ? Math.ceil(snapshotBytes * 1.8) : docs * 16384
 }
 
 /** Rough heap size of a document, for the growth of a loaded shard between snapshots. */
@@ -521,7 +525,8 @@ export class ShardedDatabase {
       globalBytes: this.globalBytes(),
       memoryBudget: this.memoryBudget,
       ...this.counters,
-      pendingWalRecords: this.walKeys.length
+      pendingWalRecords: this.walKeys.length,
+      terms: this.stats.terms
     }
   }
 
@@ -577,7 +582,8 @@ export class ShardedDatabase {
   }
 
   private globalBytes(): number {
-    let total = 4096 + this.ids.size * 96 + this.locations.byteLength + this.stats.terms * 160
+    // Per-entry costs measured on V8 (dictionary: radix node, postings entry and frequency entry).
+    let total = 4096 + this.ids.size * 120 + this.locations.byteLength + this.stats.terms * 500
     for (const shard of this.shards) {
       total += 160 + shard.summary.bytes
     }
@@ -935,7 +941,7 @@ export class ShardedDatabase {
       }
       this.setLocation(seq, ordinal)
 
-      const growth = Math.ceil(roughSize(doc) * 3)
+      const growth = Math.ceil(roughSize(doc) * GROWTH_FACTOR)
       shard.docs++
       shard.dirty = true
       shard.bytes += growth

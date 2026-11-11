@@ -28,7 +28,10 @@ import {
 
 const args = process.argv.slice(2)
 const flags = Object.fromEntries(
-  args.filter((a) => a.startsWith('--')).map((a) => a.slice(2).split('=')).map(([k, v]) => [k, v ?? true])
+  args
+    .filter((a) => a.startsWith('--'))
+    .map((a) => a.slice(2).split('='))
+    .map(([k, v]) => [k, v ?? true])
 )
 const sizes = args.filter((a) => !a.startsWith('--')).map(Number)
 if (sizes.length === 0) sizes.push(10_000)
@@ -52,9 +55,10 @@ function rng(seed) {
 }
 
 const random = rng(79)
-const SYLLABLES = 'ba be bi bo bu ca ce ci co cu da de di do du fa fe fi fo fu ga ge gi go gu la le li lo lu ma me mi mo mu na ne ni no nu pa pe pi po pu ra re ri ro ru sa se si so su ta te ti to tu va ve vi vo vu za ze zi zo zu'.split(
-  ' '
-)
+const SYLLABLES =
+  'ba be bi bo bu ca ce ci co cu da de di do du fa fe fi fo fu ga ge gi go gu la le li lo lu ma me mi mo mu na ne ni no nu pa pe pi po pu ra re ri ro ru sa se si so su ta te ti to tu va ve vi vo vu za ze zi zo zu'.split(
+    ' '
+  )
 
 const vocabulary = []
 const seen = new Set()

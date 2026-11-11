@@ -1183,10 +1183,7 @@ function* readGeneric(dict: KeyDictionary): RecordReader<unknown> {
   }
 }
 
-function* readDocumentMap(
-  tag: number,
-  readEntry: (r: ByteReader) => unknown
-): RecordReader<Record<string, unknown>> {
+function* readDocumentMap(tag: number, readEntry: (r: ByteReader) => unknown): RecordReader<Record<string, unknown>> {
   const out: Record<string, unknown> = {}
   const keys = new DocumentKeyCoder()
 
@@ -1605,7 +1602,8 @@ function applyStoreSettings(db: AnyZBSearch, meta: SnapshotMeta): void {
 function applySnapshot(db: AnyZBSearch, loaded: LoadedSnapshot): void {
   const store = db.internalDocumentIDStore
   store.load(db, loaded.idStore)
-  db.data.index = loaded.meta.index === 'builtin' ? (loaded.index as Index) : db.index.load(store, loaded.index, db.indexes)
+  db.data.index =
+    loaded.meta.index === 'builtin' ? (loaded.index as Index) : db.index.load(store, loaded.index, db.indexes)
   db.data.docs = db.documentsStore.load(store, loaded.docs)
   db.data.sorting =
     loaded.meta.sorter === 'builtin' ? (loaded.sorting as Sorter) : db.sorter.load(store, loaded.sorting)

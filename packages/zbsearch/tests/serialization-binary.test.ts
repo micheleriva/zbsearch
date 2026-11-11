@@ -86,7 +86,10 @@ type DB = AnyZBSearch
 
 function populated(howMany: number, options: Parameters<typeof create>[0] | Record<string, unknown> = {}): DB {
   const db = create({ schema, ...options } as Parameters<typeof create>[0]) as unknown as DB
-  insertMultiple(db as any, Array.from({ length: howMany }, (_, i) => makeDoc(i)))
+  insertMultiple(
+    db as any,
+    Array.from({ length: howMany }, (_, i) => makeDoc(i))
+  )
   return db
 }
 
@@ -130,13 +133,22 @@ function probe(db: DB) {
     } as any) as any
   )
   out['sorted'] = (
-    search(db, { term: 'title', sortBy: { property: 'year', order: 'DESC' }, limit: 30, includeVectors: true } as any) as any
+    search(db, {
+      term: 'title',
+      sortBy: { property: 'year', order: 'DESC' },
+      limit: 30,
+      includeVectors: true
+    } as any) as any
   ).hits.map((h: any) => h.id)
   out['sortedText'] = (
     search(db, { sortBy: { property: 'title' }, limit: 30, includeVectors: true } as any) as any
   ).hits.map((h: any) => h.id)
   out['facets'] = (
-    search(db, { term: 'fox', facets: { genre: {}, year: { ranges: [{ from: 1990, to: 2005 }] } }, includeVectors: true } as any) as any
+    search(db, {
+      term: 'fox',
+      facets: { genre: {}, year: { ranges: [{ from: 1990, to: 2005 }] } },
+      includeVectors: true
+    } as any) as any
   ).facets
   out['vector'] = hitIds(
     searchVector(db as any, {
@@ -422,10 +434,13 @@ describe('binary snapshot store settings', () => {
         (h) => h.id
       ),
       search(target as any, { term: 'title', sortBy: { property: 'year' } } as any).hits.map((h) => h.id),
-      searchVector(target as any, {
-        vector: { value: vector(3), property: 'embedding' },
-        includeVectors: true
-      } as any).hits.map((h) => [h.id, h.document])
+      searchVector(
+        target as any,
+        {
+          vector: { value: vector(3), property: 'embedding' },
+          includeVectors: true
+        } as any
+      ).hits.map((h) => [h.id, h.document])
     ]
     expect(excludedProbe(restored)).toEqual(excludedProbe(db))
 
@@ -508,10 +523,7 @@ describe('binary snapshot vectors', () => {
 
   it('requires a matching vector index factory', async () => {
     const ivfDb = populated(60, { indexes: { embedding: ivf({ nlist: 2, trainMin: 10 }) } } as any)
-    await expectError(
-      loadBinary(empty() as any, saveBinary(ivfDb as any)),
-      'IVF_INDEX_REQUIRES_FACTORY'
-    )
+    await expectError(loadBinary(empty() as any, saveBinary(ivfDb as any)), 'IVF_INDEX_REQUIRES_FACTORY')
 
     const flatDb = populated(20)
     await expectError(
@@ -617,9 +629,7 @@ describe('binary snapshot vectors', () => {
       })
     ).toThrow(/inconsistent/)
 
-    expect(() =>
-      deserializeVectorIndexBinary('v', { meta: {}, arrays: ok.arrays }, { v: flat() })
-    ).toThrow(/size/)
+    expect(() => deserializeVectorIndexBinary('v', { meta: {}, arrays: ok.arrays }, { v: flat() })).toThrow(/size/)
     expect(createFlatVectorIndexFactory().fromBinarySnapshot!(ok)).toBeInstanceOf(VectorIndex)
   })
 
@@ -764,7 +774,11 @@ describe('binary snapshot integrity', () => {
   it('rejects truncated snapshots', async () => {
     const snapshot = bytes()
     for (const length of [0, 10, 16, 30, 2000, snapshot.length - 1]) {
-      await expectError(loadBinary(empty() as any, snapshot.subarray(0, length)), 'INVALID_BINARY_SNAPSHOT', /truncated/)
+      await expectError(
+        loadBinary(empty() as any, snapshot.subarray(0, length)),
+        'INVALID_BINARY_SNAPSHOT',
+        /truncated/
+      )
     }
     await expectError(
       () => loadBinarySync(empty() as any, snapshot.subarray(0, 3000)),
@@ -814,7 +828,8 @@ describe('binary snapshot integrity', () => {
       [Symbol.asyncIterator]() {
         const chunks = split(snapshot, 512)
         return {
-          next: async () => (chunks.length ? { done: false, value: chunks.shift()! } : { done: true, value: undefined }),
+          next: async () =>
+            chunks.length ? { done: false, value: chunks.shift()! } : { done: true, value: undefined },
           return: async () => {
             closed = true
             return { done: true, value: undefined }
@@ -862,7 +877,10 @@ describe('binary snapshot with custom components', () => {
     const index = createIndex()
     const sorter = createSorter()
     await expectError(
-      loadBinary(empty({ components: { index: { ...index, load: (...a: any[]) => (index.load as any)(...a) } } }) as any, snapshot),
+      loadBinary(
+        empty({ components: { index: { ...index, load: (...a: any[]) => (index.load as any)(...a) } } }) as any,
+        snapshot
+      ),
       'BINARY_SNAPSHOT_COMPONENT_MISMATCH',
       /index/
     )
@@ -880,11 +898,18 @@ describe('binary snapshot with custom components', () => {
         deeper: Array.from({ length: 2000 }, (_, i) => [`k${i}`, Array.from({ length: 30 }, (_, j) => i * j)]),
         small: 1
       },
-      arrayOfBig: [Array.from({ length: 2000 }, (_, i) => `entry ${i}`), { a: Array.from({ length: 2000 }, (_, i) => i) }],
+      arrayOfBig: [
+        Array.from({ length: 2000 }, (_, i) => `entry ${i}`),
+        { a: Array.from({ length: 2000 }, (_, i) => i) }
+      ],
       sparse: [undefined, () => 1, null, 2]
     }
     const pinning = { ...(create({ schema: { a: 'string' } }) as any).pinning }
-    const customPinning = { ...pinning, save: () => big, load: (store: any, raw: any) => ({ ...pinning.load(store, { rules: [] }), raw }) }
+    const customPinning = {
+      ...pinning,
+      save: () => big,
+      load: (store: any, raw: any) => ({ ...pinning.load(store, { rules: [] }), raw })
+    }
 
     const db = create({ schema: { a: 'string' }, components: { pinning: customPinning } } as any)
     const restored = create({ schema: { a: 'string' }, components: { pinning: customPinning } } as any)
@@ -984,9 +1009,7 @@ describe('binary value codec', () => {
     expect(() => decodeValue(new ByteReader(new Uint8Array([99])), new KeyDictionary())).toThrow(/unknown value tag/)
     expect(() => decodeValue(new ByteReader(new Uint8Array([8, 100])), new KeyDictionary())).toThrow(/exceeds/)
     expect(() => decodeValue(new ByteReader(new Uint8Array([7, 5, 65])), new KeyDictionary())).toThrow(/end of record/)
-    expect(() => decodeValue(new ByteReader(new Uint8Array([9, 1, 9, 0])), new KeyDictionary())).toThrow(
-      /unknown key/
-    )
+    expect(() => decodeValue(new ByteReader(new Uint8Array([9, 1, 9, 0])), new KeyDictionary())).toThrow(/unknown key/)
     expect(() => new ByteReader(new Uint8Array([255, 255, 255, 255, 255, 255, 255, 255, 255])).uvar()).toThrow(
       /too long/
     )
@@ -1006,14 +1029,17 @@ describe('binary value codec', () => {
     expect(estimateJsonLength(-123, 10)).toBe(4)
 
     let reads = 0
-    const huge = new Proxy(Array.from({ length: 100000 }, (_, i) => i), {
-      get(target, key) {
-        if (typeof key === 'string' && /^\d+$/.test(key)) {
-          reads++
+    const huge = new Proxy(
+      Array.from({ length: 100000 }, (_, i) => i),
+      {
+        get(target, key) {
+          if (typeof key === 'string' && /^\d+$/.test(key)) {
+            reads++
+          }
+          return Reflect.get(target, key)
         }
-        return Reflect.get(target, key)
       }
-    })
+    )
     expect(estimateJsonLength(huge, 1000)).toBeGreaterThan(1000)
     expect(reads).toBeLessThan(1000)
 

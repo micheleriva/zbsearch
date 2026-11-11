@@ -140,7 +140,12 @@ async function loadEngine(key) {
     case 'orama': {
       const orama = await import('@orama/orama')
       return {
-        create: () => orama.create({ schema, components: { tokenizer: stopWordTokenizer } }),
+        create: () =>
+          orama.create({
+            schema,
+            components: { tokenizer: stopWordTokenizer },
+            sort: { unsortableProperties: FIELDS }
+          }),
         add: (db, batch) => orama.insertMultiple(db, batch, batch.length),
         search: (db, term) => {
           const result = orama.search(db, { term, limit: SEARCH_LIMIT, threshold: 0 })

@@ -71,11 +71,7 @@ function zipfPicker(words: string[], random: () => number): () => string {
 
 export const COLLECTIONS = ['physics', 'biology', 'history', 'law', 'art']
 
-/**
- * `tagsPerDoc` > 1 exercises core's per-element indexing of string[] values;
- * removing such documents turns core's average tag length into NaN (a core
- * bug the sharded statistics reproduce), so write-path tests use 1.
- */
+/** `tagsPerDoc` > 1 exercises core's per-element indexing of string[] values. */
 export function makeCorpus(count: number, seed = 42, vocabSize = 800, tagsPerDoc = 2): Passage[] {
   const random = rng(seed)
   const words = vocabulary(vocabSize, random)

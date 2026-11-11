@@ -4,8 +4,8 @@ import { MemoryStorage, openShardedDatabase, type ShardStorage, type ShardedSear
 import { SCHEMA, corpusWords, makeCorpus, type Passage } from './corpus.js'
 import { expectParity, singleInstance } from './helpers.js'
 
-const DOCS = makeCorpus(400, 7, 800, 1)
-const EXTRA = makeCorpus(520, 99, 800, 1).slice(400)
+const DOCS = makeCorpus(400, 7, 800, 2)
+const EXTRA = makeCorpus(520, 99, 800, 2).slice(400)
 const WORDS = corpusWords(7)
 const EXTRA_WORDS = corpusWords(99)
 const docs = () => structuredClone(DOCS)
@@ -79,6 +79,23 @@ describe('write path', () => {
 
     expect(await sharded.getByID('p10')).toMatchObject({ year: 1980 })
     expect(await sharded.getByID('p3')).toBeUndefined()
+  })
+
+  it('updates the average length of a stored string[] property once per removed document, as core does', async () => {
+    const corpus = makeCorpus(120, 11, 300, 3)
+    const words = corpusWords(11, 300)
+    const single = await singleInstance(corpus)
+    const sharded = await openShardedDatabase({ schema: SCHEMA, maxDocsPerShard: 32 })
+    await sharded.insertMultiple(structuredClone(corpus))
+
+    for (const id of ['p0', 'p7', 'p64', 'p100']) await remove(single, id)
+    expect(await sharded.removeMultiple(['p0', 'p7', 'p64', 'p100'])).toBe(4)
+
+    await expectParity(sharded, single, [
+      { term: words[0], properties: ['tags'] },
+      { term: `${words[1]} ${words[5]}`, properties: ['tags'] },
+      { term: `${words[2]} ${words[3]}` }
+    ])
   })
 
   it('rejects duplicate IDs and schema violations before writing anything', async () => {

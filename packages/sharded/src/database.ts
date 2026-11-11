@@ -1123,14 +1123,12 @@ export class ShardedDatabase {
           continue
         }
 
-        // Mirrors core's remove(): one score-parameters update per element, the
-        // stored field length being cleared after the first.
-        let fieldLength = index.fieldLengths[prop][local]
-        const elements = isArray ? (value as string[]) : [value]
-        for (let i = 0; i < elements.length; i++) {
+        // Mirrors core's removeDocumentScoreParameters: the elements of a string[]
+        // value share the document's score parameters, so the average is updated once.
+        const fieldLength = index.fieldLengths[prop][local]
+        if (fieldLength !== undefined) {
           stats.avgFieldLength[prop] =
-            n > 1 ? ((stats.avgFieldLength[prop] as number) * n - (fieldLength as number)) / (n - 1) : undefined
-          fieldLength = undefined
+            n > 1 ? ((stats.avgFieldLength[prop] as number) * n - fieldLength) / (n - 1) : undefined
         }
 
         if (isArray) {

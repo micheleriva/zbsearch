@@ -166,6 +166,20 @@ const db = create({
 
 On 10,000 synthetic passages with a 384-dimension embedding, the default drops the JSON snapshot from 206 MB to 130 MB and the heap from 175 MB to 150 MB; also excluding `text` brings them to 105 MB (-49%) and 138 MB (-22%). See the [docs](https://zbsearch.dev/docs/zbsearch/usage/create#indexed-but-not-stored-properties) for the trade-offs.
 
+## Freezing large indexes
+
+The full-text index is built for fast inserts and removals, which costs memory: on 160,000 text passages it takes 1.6 GB of heap, most of it per-document term frequencies. `freeze(db)` moves it into immutable, compact segments (a sorted term dictionary and delta-encoded postings in typed arrays) with the same search results and scores:
+
+```js
+import { create, insertMultiple, freeze } from 'zbsearch'
+
+const db = create({ schema, store: { exclude: ['text'] } })
+await insertMultiple(db, passages)
+freeze(db) // 1.6 GB -> 220 MB of heap on 160,000 passages; searches get faster too
+```
+
+Documents inserted afterwards go to a small mutable tail, removed or updated frozen documents are tombstoned, and the next `freeze` merges everything back. `create({ freeze: { threshold: 10_000 } })` freezes the tail automatically. Snapshots keep the frozen segments, and loading them is a copy of a few typed arrays. See the [docs](https://zbsearch.dev/docs/zbsearch/usage/freeze).
+
 ## Saving large indexes
 
 `save` / `load` serialize to JSON-compatible objects. For large indexes (and anything with vectors), `saveBinary` streams a compact, checksummed binary snapshot as `Uint8Array` segments, and `loadBinary` restores it without blocking the thread:

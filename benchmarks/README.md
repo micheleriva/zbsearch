@@ -72,6 +72,8 @@ Fork PRs are supported: benchmarks run on `pull_request` (read-only token), and 
 | `npm run benchmark:vector-quantization` | Recall@10, memory, serialized size and latency for none / int8 / binary / PQ, flat vs IVF (see below) |
 | `npm run benchmark:memory` | Memory footprint |
 | `npm run benchmark:store-exclude` | Heap and snapshot size with indexed-but-not-stored fields (`store` option), on 10k synthetic passages (`--docs=N`, `--no-vectors`) |
+| `npm run benchmark:memory-breakdown` | Heap held by each structure of a text-only passage index (`store.exclude: ['text']`): radix nodes, postings, term frequencies, field lengths, sorter, filter trees, documents and id stores (`--docs=20000,160000`, `--zbsearch=<dist/esm/index.js>`) |
+| `npm run benchmark:large-index` | Heap, insert throughput and event-loop blocking, search p50/p95 (plain, `tolerance`, `where`, facets, `sortBy`, hybrid with `--dims`), update/remove latency and `saveBinary`/`loadBinary` of a large passage index (`--docs=160000`, `--zbsearch=<dist/esm/index.js>`) |
 | `npm run benchmark:binary-snapshot` | Binary snapshot (`saveBinary` / `loadBinary`) vs chunked JSON: size, save/load time, segment size and extra memory, on synthetic passages with 384-dim vectors (`node --expose-gc --max-old-space-size=3072 binary-snapshot.js 10000 50000 [--no-json] [--store-vectors]`) |
 | `npm run benchmark:responsiveness` | Main-thread blocking during sync vs async indexing and loading |
 | `npm run benchmark:bundle-size` | Serialized index size |
@@ -205,3 +207,139 @@ node --expose-gc --max-old-space-size=3072 sharded.js --docs=20000 --dims=384 --
 Options: `--docs`, `--dims`, `--budget` (MB), `--shard-docs`, `--samples`, `--dir`, `--reuse`, `--parity`,
 `--json=<file>`. Results are in `packages/sharded/README.md`.
 
+## Large full-text indexes (issue #87)
+
+Resident memory and latency of a large passage index: 150-250 word passages drawn from a Zipf-distributed 40k-word
+vocabulary (`src/passages-corpus.js`, the corpus of `store-exclude.js`), string fields `text` / `section` / `title`
+/ `itemKey`, numbers `page` / `year`, enum `collection`, with `store: { exclude: ['text'] }`.
+
+```sh
+pnpm --filter zbsearch build
+cd benchmarks
+node memory-breakdown.js --docs=20000,160000 --max-old-space-size=8192     # bytes per structure
+node --expose-gc --max-old-space-size=8192 large-index.js --docs=160000   # heap, latency, save/load
+# --freeze calls freeze(db) after inserting (frozen segments, see the docs)
+node memory-breakdown.js --docs=20000,160000 --freeze
+node --expose-gc --max-old-space-size=8192 large-index.js --docs=160000 --freeze
+# The same scripts against another build, e.g. a worktree of the base branch:
+node memory-breakdown.js --docs=20000 --zbsearch=../../base/packages/zbsearch/dist/esm/index.js
+```
+
+`memory-breakdown.js` builds the index, then drops its structures one at a time; the heap (plus array buffers)
+freed by each drop, after two full GCs, is what it held. `large-index.js` runs 200 queries of 1-3 Zipf-sampled
+words (so most queries contain a word that is in most passages) per search mode.
+
+Measured on zbsearch 4.0.3 (4 vCPU, Node 22.23.4, `--max-old-space-size=8192`):
+
+| Structure                                                    | 20k passages | 160k passages  |
+| ------------------------------------------------------------ | ------------ | -------------- |
+| `text` term frequencies (`{ term: frequency }` per document) | 131.0 MB     | 1,046.1 MB     |
+| `text` postings (one array per term)                         | 32.9 MB      | 223.7 MB       |
+| sorter                                                       | 11.3 MB      | 90.4 MB        |
+| `title` / `section` / `itemKey` term frequencies             | 19.1 MB      | 141.5 MB       |
+| documents store                                              | 4.7 MB       | 37.6 MB        |
+| radix tree nodes (all properties)                            | 23.4 MB      | 36.6 MB        |
+| `title` / `section` / `itemKey` postings                     | 6.3 MB       | 27.3 MB        |
+| internal id store                                            | 1.5 MB       | 12.0 MB        |
+| number AVL trees (`page`, `year`)                            | 1.1 MB       | 8.6 MB         |
+| enum flat tree (`collection`)                                | 0.5 MB       | 3.8 MB         |
+| field lengths (4 properties)                                 | 0.8 MB       | 5.6 MB         |
+| **Total**                                                    | **233.6 MB** | **1,634.1 MB** |
+
+| 160k passages, 4.0.3   | p50      | p95      |
+| ---------------------- | -------- | -------- |
+| search                 | 110.6 ms | 212.5 ms |
+| search, `tolerance: 1` | 205.0 ms | 411.3 ms |
+| search, `where`        | 45.2 ms  | 80.9 ms  |
+| search, facets         | 224.8 ms | 350.5 ms |
+| search, `sortBy`       | 163.6 ms | 286.3 ms |
+| update                 | 106.2 ms | 125.6 ms |
+| remove                 | 6.6 ms   | 7.9 ms   |
+
+Insert (`insertMultipleAsync`, `batchSize: 50`): 5,649 passages/s, longest event-loop block 429 ms.
+`saveBinary`: 138.7 MB in 8.6 s; `loadBinary`: 10.9 s, 1,552.5 MB of heap once loaded.
+
+With `freeze(db)` after inserting (`--freeze`), the term frequencies, postings and radix trees of the four string
+properties become frozen segments (measured on the same machine and settings):
+
+| 160k passages                                                          | 4.0.3 (2 runs)               | frozen           | + top-k pages    | + lazy sorter cleanup        |
+| ---------------------------------------------------------------------- | ---------------------------- | ---------------- | ---------------- | ---------------------------- |
+| heap                                                                   | 1,633.7-1,633.8 MB           | 219.9 MB         | 219.9 MB         | 219.9 MB                     |
+| `freeze(db)`                                                           | -                            | 7.8 s            | 8.2 s            | 6.6-7.5 s                    |
+| search p50 / p95                                                       | 110.6-128.3 / 212.5-235.5 ms | 47.1 / 69.6 ms   | 8.2 / 17.3 ms    | 8.2-8.6 / 16.5-17.8 ms       |
+| `tolerance: 1` p50 / p95                                               | 205.0-232.7 / 411.3-411.8 ms | 63.2 / 81.3 ms   | 17.3 / 32.5 ms   | 16.9-19.1 / 31.9-36.0 ms     |
+| `where` p50 / p95                                                      | 45.2-45.8 / 80.9-83.2 ms     | 22.2 / 30.8 ms   | 19.3 / 28.2 ms   | 18.4-18.9 / 25.0-30.1 ms     |
+| facets p50 / p95                                                       | 224.8-245.7 / 350.5-398.7 ms | 160.2 / 205.2 ms | 163.4 / 243.0 ms | 147.6-158.5 / 220.5-243.3 ms |
+| `sortBy` p50 / p95                                                     | 159.8-163.6 / 277.5-286.3 ms | 76.7 / 113.5 ms  | 92.7 / 150.5 ms  | 86.4-90.9 / 128.2-142.6 ms   |
+| update p50                                                             | 106.2-120.6 ms               | 93.9 ms          | 97.4 ms          | 0.13-0.16 ms                 |
+| remove p50                                                             | 6.6-8.0 ms                   | 0.01 ms          | 0.01 ms          | 0.01 ms                      |
+| `saveBinary`                                                           | 138.7 MB, 8.4-8.6 s          | 80.0 MB, 0.83 s  | 80.0 MB, 1.00 s  | 80.0 MB, 0.82-0.86 s         |
+| `loadBinary`                                                           | 10.9-11.8 s, 1,552 MB        | 0.78 s, 249.2 MB | 0.89 s, 249.2 MB | 0.82-0.97 s, 249.1 MB        |
+| longest event-loop block, `insertMultipleAsync` of 5,000 more passages | 35 ms                        | -                | -                | 81 ms                        |
+
+Every column is a separate process on the same machine (4 vCPU, Node 22.23.4, `--max-old-space-size=8192`); the
+spread of the runs shows the run-to-run noise. Top-k pages: a search ranked by score alone (no `sortBy`, facets,
+`groupBy`, `distinctOn`, `exact` or matching pinning rule) keeps the best `offset + limit` results in a heap
+instead of sorting every match. Lazy sorter cleanup: an update no longer filters the sorted values of every
+document. Inserting into a frozen index fills a fresh mutable tail, whose radix tree has to create the nodes of
+words the frozen segments already have: on 80k passages, 500-passage batches took 82-112 ms into a frozen index and
+66-80 ms into a mutable one.
+
+Without freezing, the same build (all steps) measured search 69.3 / 171.4 ms, `tolerance: 1` 168.4 / 358.0 ms,
+`sortBy` 181.9 / 312.3 ms, facets 247.3 / 401.7 ms and update 9.1 ms at 160k; an alternating A/B of 150 queries
+per mode (two runs each) gave 4.0.3 plain 115-123 / 191-203 ms and this build 71-85 / 142-165 ms, with `sortBy`,
+facets and remove within noise of each other.
+
+## Large indexes: all engines, with timeouts
+
+`large-index-engines.js` builds every engine of the suite (Orama, ZBSearch BM25 / QPS / PT15, ZBSearch BM25 frozen,
+FlexSearch, Fuse.js, Lunr, MiniSearch) on the passage corpus above at 20k, 80k and 160k passages, and measures
+indexing time, heap after indexing and search latency. Every engine indexes `text`, `section` and `title` as full
+text with the configuration of `src/get-engines.js` / `src/alternate-engines.js` (stop-word tokenizer, sort indexes
+off), and runs 200 queries of 1-3 Zipf-sampled words (the query generator and seed of `large-index.js`, after 10
+warm-up queries) as an all-terms search with a limit of 10.
+
+```sh
+npx turbo build --filter=zbsearch --filter=@zbsearch/plugin-qps --filter=@zbsearch/plugin-pt15
+cd benchmarks
+pnpm benchmark:large-index-engines
+node large-index-engines.js --docs=20000,80000,160000 --engines=zbsearch-bm25,zbsearch-bm25-frozen,minisearch \
+  --index-timeout=10m --search-timeout=5m --query-timeout=60s --queries=200 --warmup=10 --max-old-space-size=8192
+```
+
+Every engine × size runs in its own child process (`node --expose-gc --max-old-space-size=8192`), and the parent
+enforces the timeouts by killing it:
+
+- **Indexing** (adding every passage, plus `freeze(db)` for ZBSearch frozen) must finish within `--index-timeout`
+  (10 min), counted from the moment the child has generated the corpus; otherwise the run is `index-timeout`.
+- **Search** (warm-up and measured queries) must finish within `--search-timeout` (5 min in total), and no single
+  query may take longer than `--query-timeout` (60 s); otherwise the run is `search-timeout`. A synchronous query
+  cannot be interrupted, so the child sends the latency of every query to the parent over IPC as it completes: the
+  queries completed before the timeout and their statistics are kept.
+- A child that exits on its own (an exception, or out of memory under `--max-old-space-size`) is `crashed`.
+
+Per engine × size it records indexing time and docs/s, freeze time (frozen only), heap (`heapUsed + arrayBuffers`
+after two full GCs, minus the baseline before the corpus was generated), RSS (which still includes memory the process
+has not returned to the OS, such as the generated corpus), search mean / p50 / p95 / p99 / max and QPS (1 / mean
+latency), the number of queries completed, the status, and the hit counts of the first 5 queries.
+Results go to `benchmark/results/large-index-engines.json` (written after every run, with the date, Node version,
+CPU, memory, engine versions, sizes and timeouts) and a markdown table is printed at the end. The docs page
+`/benchmarks/large-indexes` reads a copy of that file in `apps/docs/lib/benchmarks/results/large-index-engines.json`.
+
+What each engine keeps besides its index:
+
+| Engine                                   | Stores                                                                 |
+| ---------------------------------------- | ---------------------------------------------------------------------- |
+| ZBSearch (BM25), ZBSearch (BM25, frozen) | documents without `text` (`store: { exclude: ['text'] }`)              |
+| ZBSearch (QPS), ZBSearch (PT15)          | full documents (their index components do not support `store.exclude`) |
+| Orama                                    | full documents (default document store)                                |
+| FlexSearch                               | ids only (`Document` index without `store`)                            |
+| Fuse.js                                  | full documents (Fuse searches its own document list)                   |
+| Lunr                                     | refs only                                                              |
+| MiniSearch                               | ids only (no `storeFields`)                                            |
+
+FlexSearch searches each query token separately (top 1,000 per field) and intersects the matches, as in
+`src/alternate-engines.js`; Fuse.js runs with `useTokenSearch`, `tokenMatch: 'all'` and `threshold: 0`. ZBSearch
+and Orama use their default prefix matching, as in the throughput benchmarks. The match counts in the JSON sample
+differ between engines because their all-terms and prefix semantics differ (the QPS and PT15 index components do not
+apply `threshold: 0` and return documents that match any term).

@@ -3,7 +3,18 @@ import { readFileSync } from 'node:fs'
 import { rm, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { create, insertMultiple, isBinarySnapshot, save, search, searchVector, count, getByID } from 'zbsearch'
+import {
+  create,
+  freeze,
+  insertMultiple,
+  isBinarySnapshot,
+  remove,
+  save,
+  search,
+  searchVector,
+  count,
+  getByID
+} from 'zbsearch'
 import type { AnyZBSearch } from 'zbsearch'
 import { persist, restore, snapshotToBytes } from '../src/index.js'
 import { persistToFile, restoreFromFile, getDefaultFileName } from '../src/server.js'
@@ -216,5 +227,21 @@ describe("'snapshot' format", () => {
 
     await persistToStorage(db, storage, 'seq', { format: 'seqproto' })
     expect(probe(await restoreFromStorage<AnyZBSearch>(storage, 'seq', { format: 'seqproto' }))).toEqual(probe(db))
+  })
+})
+
+describe('frozen databases', () => {
+  it('round trip in every format with their frozen segments, tail and tombstones', async () => {
+    const db = populated(150)
+    freeze(db as any)
+    insertMultiple(db as any, makeDocs(170).slice(150) as any)
+    remove(db as any, 'doc-7')
+    remove(db as any, 'doc-160')
+
+    for (const format of ['json', 'dpack', 'binary', 'seqproto', 'snapshot'] as const) {
+      const restored = await restore<AnyZBSearch>(format, await persist(db, format))
+      expect((restored.data.index as any).frozen?.text, format).toHaveLength(1)
+      expect(probe(restored), format).toEqual(probe(db))
+    }
   })
 })

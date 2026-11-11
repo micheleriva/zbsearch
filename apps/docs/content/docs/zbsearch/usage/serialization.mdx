@@ -232,3 +232,7 @@ This still yields between stores and index properties, but the `JSON.parse` rema
   `loadBinary` restores them the same way `load` does. They cannot be read by versions of ZBSearch
   that predate `saveBinary`; a reader that does not know the snapshot's format version rejects it with
   `UNSUPPORTED_BINARY_SNAPSHOT_VERSION`.
+- A database with [frozen segments](/docs/zbsearch/usage/freeze) is written as binary format version 2,
+  which ZBSearch 4.0.x rejects with `UNSUPPORTED_BINARY_SNAPSHOT_VERSION`; any other database is still
+  written as version 1. Both versions load. `save` adds a `frozen` key to the index only when there are
+  frozen segments.

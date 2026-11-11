@@ -329,7 +329,7 @@ On a synthetic corpus of 10,000 passages (150-250 words from a Zipf-distributed 
 | Default (vectors not stored) | 150 MB (-14%) | 130 MB (-37%) |
 | `store: { exclude: ['text'] }` | 138 MB (-22%) | 105 MB (-49%) |
 
-Without the embedding, excluding `text` takes the heap from 143 MB to 134 MB (-6%) and the snapshot from 53 MB to 29 MB (-46%): the snapshot saved the text twice, in the documents and in the sorter. Most of the remaining heap is the inverted index itself (the radix tree and the per-document term frequencies used for scoring), which excluding properties from the store does not change.
+Without the embedding, excluding `text` takes the heap from 143 MB to 134 MB (-6%) and the snapshot from 53 MB to 29 MB (-46%): the snapshot saved the text twice, in the documents and in the sorter. Most of the remaining heap is the inverted index itself (the radix tree and the per-document term frequencies used for scoring), which excluding properties from the store does not change. To shrink that part, [freeze](/docs/zbsearch/usage/freeze) the index.
 
 ## Instance ID
 

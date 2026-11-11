@@ -9,6 +9,7 @@ import {
   InternalDocumentID
 } from '../components/internal-document-id-store.js'
 import { isAsyncFunction } from '../utils.js'
+import { trackFreezeChange } from './freeze.js'
 
 // Removes from the index a value the documents store does not have. The vector index and the default index remove
 // by document ID, using what they kept at insert time; a document that never had the property is left untouched.
@@ -150,6 +151,7 @@ async function removeAsync<T extends AnyZBSearch>(
   }
 
   zbsearch.documentsStore.remove(zbsearch.data.docs, id, internalId)
+  trackFreezeChange(zbsearch)
 
   return result
 }
@@ -246,6 +248,7 @@ function removeSync<T extends AnyZBSearch>(
   }
 
   zbsearch.documentsStore.remove(zbsearch.data.docs, id, internalId)
+  trackFreezeChange(zbsearch)
 
   return result
 }

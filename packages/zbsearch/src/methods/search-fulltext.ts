@@ -4,6 +4,7 @@ import { runAfterSearch, runBeforeSearch } from '../components/hooks.js'
 import { getInternalDocumentId } from '../components/internal-document-id-store.js'
 import { searchByGeoWhereClause } from '../components/index.js'
 import { applyPinningRules } from '../components/pinning-manager.js'
+import { getMatchingRules, type PinningStore } from '../components/pinning.js'
 import { assertPropertyIsStored, getStoreLayout, setHitsVectors } from '../components/store.js'
 import { Language } from '../components/tokenizer/languages.js'
 import { createError } from '../errors.js'
@@ -15,6 +16,7 @@ import type {
   Results,
   SearchParamsFullText,
   TokenScore,
+  TopKRequest,
   TypedDocument
 } from '../types.js'
 import { getNanosecondsTime, sortTokenScores } from '../utils.js'
@@ -56,7 +58,8 @@ export function innerFullTextSearch<T extends AnyZBSearch>(
     'term' | 'properties' | 'where' | 'exact' | 'prefix' | 'tolerance' | 'boost' | 'relevance' | 'threshold'
   >,
   language: Language | undefined,
-  precomputedWhereFiltersIDs?: Set<number>
+  precomputedWhereFiltersIDs?: Set<number>,
+  topK?: TopKRequest
 ) {
   const { term, properties } = params
 
@@ -93,7 +96,9 @@ export function innerFullTextSearch<T extends AnyZBSearch>(
       docsCount,
       whereFiltersIDs,
       threshold,
-      params.prefix
+      params.prefix,
+      // The exact filter below needs every result
+      params.exact ? undefined : topK
     )
 
     // When exact is true and we have a term, filter results to only include documents
@@ -146,6 +151,28 @@ export function innerFullTextSearch<T extends AnyZBSearch>(
   return uniqueDocsIDs
 }
 
+// Whether full-text search can ask the index for the best `offset + limit` results only: the results are ranked by
+// score alone (no sortBy, no pinning rule for the term) and nothing reads the others (facets, groupBy, distinctOn,
+// the `exact` filter). The index decides whether the threshold allows it.
+function selectsTopK<T extends AnyZBSearch, ResultDocument>(
+  zbsearch: T,
+  params: SearchParamsFullText<T, ResultDocument>
+): boolean {
+  const { limit = 10, offset = 0 } = params
+  return (
+    !params.sortBy &&
+    !params.exact &&
+    !params.distinctOn &&
+    !params.groupBy &&
+    !(params.facets && Object.keys(params.facets).length > 0) &&
+    Number.isSafeInteger(limit) &&
+    Number.isSafeInteger(offset) &&
+    limit >= 0 &&
+    offset >= 0 &&
+    getMatchingRules(zbsearch.data.pinning as PinningStore, params.term).length === 0
+  )
+}
+
 // Helper function to escape regex special characters
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -182,9 +209,19 @@ export function fullTextSearch<T extends AnyZBSearch, ResultDocument = TypedDocu
       assertPropertyIsStored(zbsearch, distinctOn as string, 'distinctOn')
     }
 
-    let uniqueDocsArray = innerFullTextSearch(zbsearch, params, language)
+    // Ranked by score alone, without anything that needs every result: only the page and the count are needed
+    const topK = selectsTopK(zbsearch, params)
+      ? { k: isPreflight ? 0 : offset + limit, count: 0, selected: false }
+      : undefined
 
-    if (params.sortBy) {
+    let uniqueDocsArray = innerFullTextSearch(zbsearch, params, language, undefined, topK)
+    // The number of results, which the top-k results alone do not tell
+    let resultsCount = uniqueDocsArray.length
+
+    if (topK?.selected) {
+      // Already the first `offset + limit` results, in the order of sortTokenScores
+      resultsCount = topK.count
+    } else if (params.sortBy) {
       if (typeof params.sortBy === 'function') {
         const ids = uniqueDocsArray.map(([id]) => id)
         const docs = zbsearch.documentsStore.getMultiple(zbsearch.data.docs, ids)
@@ -205,7 +242,10 @@ export function fullTextSearch<T extends AnyZBSearch, ResultDocument = TypedDocu
     }
 
     // Apply pinning rules after sorting but before pagination
-    uniqueDocsArray = applyPinningRules(zbsearch, zbsearch.data.pinning, uniqueDocsArray, params.term)
+    if (!topK?.selected) {
+      uniqueDocsArray = applyPinningRules(zbsearch, zbsearch.data.pinning, uniqueDocsArray, params.term)
+      resultsCount = uniqueDocsArray.length
+    }
 
     let results
     if (!isPreflight) {
@@ -220,7 +260,7 @@ export function fullTextSearch<T extends AnyZBSearch, ResultDocument = TypedDocu
         raw: 0
       },
       hits: [],
-      count: uniqueDocsArray.length
+      count: resultsCount
     }
 
     if (typeof results !== 'undefined') {

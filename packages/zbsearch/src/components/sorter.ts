@@ -158,17 +158,28 @@ function insert(sorter: Sorter, prop: string, id: DocumentID, value: SortValue):
   const internalId = getInternalDocumentId(sorter.sharedInternalDocumentStore, id)
   const s = sorter.sorts[prop]
 
-  // This happen during a document updating
-  // Because we re-use the same internalId
-  // We need to clean-up the data structure before re-inserting
-  // to avoid duplicates in the orderedDocs array
-  // See: https://github.com/oramasearch/orama/issues/629
-  if (s.orderedDocsToRemove.has(internalId)) {
-    ensureOrderedDocsAreDeletedByProperty(sorter, prop)
-  }
-
+  // An updated document is re-inserted with the same internalId while its previous entry is still in orderedDocs,
+  // pending removal (see https://github.com/oramasearch/orama/issues/629). The new entry is appended and its
+  // position recorded; ensureOrderedDocsAreDeletedByProperty, which runs before orderedDocs is read, drops the
+  // previous one (the entry of a pending id that is not at the id's recorded position). Filtering orderedDocs here
+  // instead would cost a pass over every sorted document on each update.
   s.docs.set(internalId, s.orderedDocs.length)
   s.orderedDocs.push([internalId, value])
+  compactIfMostlyStale(sorter, prop)
+}
+
+// Below this many stale entries, orderedDocs is left alone until it is next read
+const MIN_STALE_ENTRIES_TO_COMPACT = 1024
+
+// Drops stale entries (of removed documents, and the previous entries of updated ones) once they outnumber the live
+// ones, so that a history of updates without a sortBy query or a save cannot grow orderedDocs without bound. The
+// cost of the pass over orderedDocs is spread over the updates that made at least half of its entries stale.
+function compactIfMostlyStale(sorter: Sorter, prop: string): void {
+  const s = sorter.sorts[prop]
+  const stale = s.orderedDocs.length - s.docs.size
+  if (stale > MIN_STALE_ENTRIES_TO_COMPACT && stale > s.docs.size) {
+    ensureOrderedDocsAreDeletedByProperty(sorter, prop)
+  }
 }
 
 export function ensureIsSorted(sorter: Sorter): void {
@@ -193,6 +204,8 @@ function booleanSort(value: [InternalDocumentID, SortValue], d: [InternalDocumen
 }
 
 function ensurePropertyIsSorted(sorter: Sorter, prop: string): void {
+  // Entries pending removal must go first: sorting would give them positions
+  ensureOrderedDocsAreDeletedByProperty(sorter, prop)
   const s = sorter.sorts[prop]
 
   let predicate: (value: [InternalDocumentID, SortValue], d: [InternalDocumentID, SortValue]) => number
@@ -238,7 +251,9 @@ function ensureOrderedDocsAreDeletedByProperty(sorter: Sorter, prop: string): vo
 
   if (!s.orderedDocsToRemove.size) return
 
-  s.orderedDocs = s.orderedDocs.filter((doc) => !s.orderedDocsToRemove.has(doc[0]))
+  // A pending id keeps the entry at its recorded position: the one it was re-inserted with, if any
+  const { docs, orderedDocsToRemove } = s
+  s.orderedDocs = s.orderedDocs.filter((doc, i) => !orderedDocsToRemove.has(doc[0]) || docs.get(doc[0]) === i)
   s.orderedDocsToRemove.clear()
 }
 
@@ -251,10 +266,11 @@ function remove(sorter: Sorter, prop: string, id: DocumentID) {
 
   const index = s.docs.get(internalId)
 
-  if (!index) return
+  if (index === undefined) return
 
   s.docs.delete(internalId)
   s.orderedDocsToRemove.set(internalId, true)
+  compactIfMostlyStale(sorter, prop)
 }
 
 // Up to this many documents, sortBy packs each document's sort position and its index in the input into one exactly

@@ -1206,6 +1206,19 @@ export interface AnyIndexStore {
 }
 export type AnyIndex = IIndex<AnyIndexStore>
 
+/**
+ * Asks an index's `search` for the `k` best results only. It may honour it when it would otherwise return every
+ * matching document ordered by score: it then returns the `k` first results of that list once sorted by score,
+ * highest first, and by internal id for equal scores (the order full-text search sorts results in), sets
+ * `selected`, and sets `count` to the number of matching documents. Otherwise (it may also decline, for example
+ * when there are few results) it leaves `selected` false and returns its usual results.
+ */
+export interface TopKRequest {
+  k: number
+  count: number
+  selected: boolean
+}
+
 export interface IIndex<I extends AnyIndexStore> {
   create<T extends AnyZBSearch>(
     zbsearch: T,
@@ -1291,7 +1304,12 @@ export interface IIndex<I extends AnyIndexStore> {
     docsCount: number,
     whereFiltersIDs: Set<InternalDocumentID> | undefined,
     threshold?: number,
-    prefix?: boolean
+    prefix?: boolean,
+    /**
+     * Full-text search passes this when it only needs the best results (see `TopKRequest`). An index component
+     * may ignore it.
+     */
+    topK?: TopKRequest
   ): TokenScore[]
 
   /**
@@ -1661,6 +1679,23 @@ type ZBSearchID = {
   id: string
   indexes?: IndexesConfig
   store?: StoreSettings
+  freeze?: FreezeSettings
+}
+
+/**
+ * Automatic freezing of the full-text index (see `freeze`). Not set by default: nothing is frozen unless `freeze` is
+ * called.
+ */
+export type FreezeConfig = {
+  /**
+   * Freeze the documents inserted, updated or removed since the last freeze into a new frozen segment once there are
+   * at least this many of them. Each automatic freeze adds a segment; past 8 segments they are merged into one.
+   */
+  threshold?: number
+}
+
+export type FreezeSettings = {
+  threshold: number
 }
 
 export type ExtractSchema<T> = T extends { schema: infer RawSchema } ? Schema<RawSchema> : never

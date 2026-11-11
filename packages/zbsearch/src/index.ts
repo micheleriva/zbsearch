@@ -16,6 +16,7 @@ export {
 } from './methods/serialization-binary.js'
 export { autoSuggest, suggest } from './methods/suggest.js'
 export { update, updateMultiple } from './methods/update.js'
+export { freeze } from './methods/freeze.js'
 export { upsert, upsertMultiple } from './methods/upsert.js'
 
 export * from './types.js'

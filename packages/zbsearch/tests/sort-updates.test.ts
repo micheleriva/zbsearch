@@ -79,4 +79,30 @@ describe('sortBy after updates and removals', () => {
       check()
     }
   })
+
+  it('does not keep the entries of past values when no sortBy query runs', () => {
+    const db = create({ schema: { title: 'string', rank: 'number' } as const }) as AnyZBSearch
+    insertMultiple(
+      db,
+      Array.from({ length: 50 }, (_, i) => ({ id: `d${i}`, title: 'item', rank: i }))
+    )
+    const orderedDocs = () => (db.data.sorting as any).sorts.rank.orderedDocs.length as number
+
+    // Updates and removals made without a sortBy query or a save in between
+    for (let i = 0; i < 20_000; i++) {
+      update(db, `d${i % 50}`, { id: `d${i % 50}`, title: 'item', rank: 1_000_000 - i })
+      expect(orderedDocs()).toBeLessThanOrEqual(2 * 50 + 1025)
+    }
+    for (let i = 0; i < 25; i++) remove(db, `d${i}`)
+
+    const expected = Array.from({ length: 25 }, (_, i) => `d${25 + i}`).sort(
+      (a, b) => Number(b.slice(1)) - Number(a.slice(1))
+    )
+    // The last update of d(25 + k) set its rank to 1_000_000 - (19_950 + 25 + k): the larger k, the smaller the rank
+    const hits = search(db, { term: 'item', limit: 100, sortBy: { property: 'rank', order: 'ASC' } }).hits.map(
+      (h) => h.id
+    )
+    expect(hits).toStrictEqual(expected)
+    expect(orderedDocs()).toBe(25)
+  })
 })

@@ -165,6 +165,21 @@ function insert(sorter: Sorter, prop: string, id: DocumentID, value: SortValue):
   // instead would cost a pass over every sorted document on each update.
   s.docs.set(internalId, s.orderedDocs.length)
   s.orderedDocs.push([internalId, value])
+  compactIfMostlyStale(sorter, prop)
+}
+
+// Below this many stale entries, orderedDocs is left alone until it is next read
+const MIN_STALE_ENTRIES_TO_COMPACT = 1024
+
+// Drops stale entries (of removed documents, and the previous entries of updated ones) once they outnumber the live
+// ones, so that a history of updates without a sortBy query or a save cannot grow orderedDocs without bound. The
+// cost of the pass over orderedDocs is spread over the updates that made at least half of its entries stale.
+function compactIfMostlyStale(sorter: Sorter, prop: string): void {
+  const s = sorter.sorts[prop]
+  const stale = s.orderedDocs.length - s.docs.size
+  if (stale > MIN_STALE_ENTRIES_TO_COMPACT && stale > s.docs.size) {
+    ensureOrderedDocsAreDeletedByProperty(sorter, prop)
+  }
 }
 
 export function ensureIsSorted(sorter: Sorter): void {
@@ -251,10 +266,11 @@ function remove(sorter: Sorter, prop: string, id: DocumentID) {
 
   const index = s.docs.get(internalId)
 
-  if (!index) return
+  if (index === undefined) return
 
   s.docs.delete(internalId)
   s.orderedDocsToRemove.set(internalId, true)
+  compactIfMostlyStale(sorter, prop)
 }
 
 // Up to this many documents, sortBy packs each document's sort position and its index in the input into one exactly

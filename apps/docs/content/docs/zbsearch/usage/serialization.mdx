@@ -115,6 +115,11 @@ This still yields between stores and index properties, but the `JSON.parse` rema
   are now trimmed, and letters from any script are kept), searches and removals on an old index use
   the new rules against the old tokens. Rebuild and re-save the index after upgrading.
 - `load` also accepts the chunked format, so you are not forced into the async API.
+- The [`store`](/docs/zbsearch/usage/create#indexed-but-not-stored-properties) configuration is saved
+  with the index (`store`, plus `index.unstoredValues` and `index.unstoredTerms` for removing values
+  that are not in the documents store), and `load` restores it in place of the one given to `create`.
+  Indexes saved by 4.0.x have none: the configuration given to `create` applies to new documents,
+  and the vectors those indexes stored in their documents are kept and returned as they were.
 - A chunked index **cannot** be read by a version of ZBSearch that predates the format. The
   envelope carries a `version` field and a mismatched reader throws rather than misbehaving, but
   older releases have no knowledge of it at all. Keep publishing the default format until every

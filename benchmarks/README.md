@@ -70,6 +70,7 @@ Fork PRs are supported: benchmarks run on `pull_request` (read-only token), and 
 | `npm run benchmark:vector` | Vector search |
 | `npm run benchmark:vector-ivf` | IVF vector index |
 | `npm run benchmark:memory` | Memory footprint |
+| `npm run benchmark:store-exclude` | Heap and snapshot size with indexed-but-not-stored fields (`store` option), on 10k synthetic passages (`--docs=N`, `--no-vectors`) |
 | `npm run benchmark:responsiveness` | Main-thread blocking during sync vs async indexing and loading |
 | `npm run benchmark:bundle-size` | Serialized index size |
 | `npm run benchmark:algorithms` | BM25 / QPS / PT15 |

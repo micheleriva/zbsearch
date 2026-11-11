@@ -35,6 +35,17 @@ result.positions; // [{ start: 4, end: 8 }]
 [React search box](/docs/zbsearch/integrations/searchbox-react) does.
 </Callout>
 
+`Highlight` works on whatever text you give it, so it also highlights properties that the database indexes
+but does not store ([`store.exclude`](/docs/zbsearch/usage/create#indexed-but-not-stored-properties)): fetch
+the text from where it lives and highlight it there.
+
+```typescript copy
+for (const hit of results.hits) {
+  const text = await myTextStore.get(hit.id);
+  hit.excerpt = new Highlight().highlight(text, term).trim(160);
+}
+```
+
 ## Excerpts
 
 `trim` crops the text around its first match, adding an ellipsis on whichever side was cut:

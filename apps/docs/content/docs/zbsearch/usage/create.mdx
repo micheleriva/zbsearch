@@ -190,6 +190,89 @@ const db = create({
 
 **Cons:** results are approximate-you may miss the true nearest neighbor-centroids must be trained once enough vectors are inserted (`trainMin`), tuning `nlist` and `nprobe` takes experimentation, and persistence requires passing the same `indexes` config when loading a saved database. Start with flat search; reach for IVF when profiling shows vector queries are a bottleneck.
 
+## Indexed but not stored properties
+
+By default, ZBSearch keeps every inserted document in its documents store and returns it in search results. When the original text already lives elsewhere (a file, a database, a cache) and you only need IDs and a few metadata fields back, use the `store` option to index properties without storing them:
+
+```javascript copy
+const db = create({
+  schema: {
+    title: "string",
+    text: "string",
+    year: "number",
+    embedding: "vector[384]",
+  },
+  store: {
+    // Indexed and searchable, but not kept in the documents store.
+    // Dot-separated paths exclude nested properties; a path also excludes everything nested under it.
+    exclude: ["text"],
+  },
+});
+
+insert(db, { id: "p1", title: "Introduction", text: "A long passage...", year: 2020, embedding: [/* ... */] });
+
+getByID(db, "p1"); // { id: "p1", title: "Introduction", year: 2020 }
+```
+
+Excluded properties are indexed exactly as before: full-text search, filters (`where`), `exact`, boosting and BM25 scoring all work on them. The inserted document is never modified: the documents store keeps a copy without the excluded properties. What changes:
+
+- Search results and `getByID` return the stored properties only.
+- `facets`, `groupBy` and `distinctOn` read the stored documents, so using them on an excluded property throws a `PROPERTY_NOT_STORED` error.
+- Excluded `string` properties are not sortable: the sorter keeps its own copy of every sortable value, which would keep the text in memory. Excluded numbers and booleans stay sortable.
+- `exact: true` cannot check the case of an excluded property's text: for those properties it keeps the documents the index matched exactly (case-insensitively).
+
+### Vectors are not stored by default
+
+Vector properties are **not** kept in the documents store unless you opt in: the vector index already holds every vector. With `includeVectors: true`, search results rebuild them from the vector index, which holds a **normalized** (unit-length) `Float32` copy, so the returned vectors are normalized and may differ slightly from the inserted ones. To keep the original vectors in the documents (as ZBSearch did up to 4.0.x), set `store.vectors`:
+
+```javascript copy
+const db = create({
+  schema: { title: "string", embedding: "vector[384]" },
+  store: { vectors: true },
+});
+```
+
+Set it if you rebuild indexes from the stored documents (for example, by reading `getByID` or `db.data.docs`), or if you need the exact inserted values back.
+
+### Removing and updating documents
+
+`remove`, `update` and `upsert` keep working without the stored values. The index keeps what it needs to remove a document:
+
+| Property type | What is kept for removal |
+| --- | --- |
+| `string` | Nothing: the per-document term frequencies the index already keeps for BM25 list the terms to remove. |
+| `string[]` | The distinct terms of each document, as 32-bit IDs into a per-property term dictionary. |
+| `number`, `number[]`, `enum`, `enum[]`, `geopoint` | The value itself (it is small). |
+| `boolean`, `boolean[]`, vectors | Nothing: they are removed by document ID. |
+
+So excluding text costs nothing to keep removal correct, and removing a document whose text is excluded is faster, as it does not tokenize the text again. Excluding small scalar properties saves little memory, since their values are kept for removal anyway: exclude them only to keep them out of the results.
+
+### Highlighting excluded text
+
+`@zbsearch/highlight` takes the text to highlight as an argument, so pass your own copy: `new Highlight().highlight(await getMyText(hit.id), term)`. `@zbsearch/plugin-match-highlight` records the positions of excluded properties at insert time, and `searchWithHighlight` accepts a `getSourceText(id, property)` callback to compute them at search time instead:
+
+```javascript copy
+const results = await searchWithHighlight(db, { term: "passage" }, undefined, {
+  getSourceText: (id, property) => myTextStore.get(id),
+});
+```
+
+### Saving and loading
+
+`save` stores the `store` configuration and the removal data with the rest of the database, and `load` restores them, so documents inserted after loading are stored the same way. Snapshots saved by 4.0.x carry no configuration: the one given to `create` applies to new documents, while the documents already in the snapshot (vectors included) are kept and returned as they were.
+
+### Memory and snapshot size
+
+On a synthetic corpus of 10,000 passages (150-250 words from a Zipf-distributed 40k-word vocabulary, seven metadata fields and a `vector[384]` embedding), measured with `benchmarks/store-exclude.js` on Node 22:
+
+| Configuration | Heap | JSON snapshot |
+| --- | --- | --- |
+| Everything stored (`store: { vectors: true }`, the 4.0.x behavior) | 175 MB | 206 MB |
+| Default (vectors not stored) | 150 MB (-14%) | 130 MB (-37%) |
+| `store: { exclude: ['text'] }` | 138 MB (-22%) | 105 MB (-49%) |
+
+Without the embedding, excluding `text` takes the heap from 143 MB to 134 MB (-6%) and the snapshot from 53 MB to 29 MB (-46%): the snapshot saved the text twice, in the documents and in the sorter. Most of the remaining heap is the inverted index itself (the radix tree and the per-document term frequencies used for scoring), which excluding properties from the store does not change.
+
 ## Instance ID
 
 Every ZBSearch instance has a unique `id` property, which can be used to identify a given instance when working with multiple databases.

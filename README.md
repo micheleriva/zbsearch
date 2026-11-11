@@ -153,6 +153,23 @@ const db = create({
 
 Passing a schema keeps the classic strict behavior (undeclared fields are stored but not indexed). See the [official docs](https://zbsearch.dev) for the full inference rules.
 
+## Indexed but not stored properties
+
+When the original text already lives elsewhere, index it without keeping a second copy in the documents store:
+
+```js
+const db = create({
+  schema: { title: 'string', text: 'string', embedding: 'vector[384]' },
+  store: { exclude: ['text'] } // indexed and searchable, but not returned in results
+})
+```
+
+`remove`, `update` and `upsert` keep working (the index keeps what it needs to remove a document: nothing extra for `string` properties), filters and full-text search work as before, and `facets`, `groupBy` and `distinctOn` on an excluded property throw `PROPERTY_NOT_STORED`.
+
+**Vectors are not stored in the documents by default**: the vector index already holds them. With `includeVectors: true`, results rebuild them from the vector index, which holds normalized (unit-length) copies. Pass `store: { vectors: true }` to keep the original vectors in the documents, as 4.0.x did.
+
+On 10,000 synthetic passages with a 384-dimension embedding, the default drops the JSON snapshot from 206 MB to 130 MB and the heap from 175 MB to 150 MB; also excluding `text` brings them to 105 MB (-49%) and 138 MB (-22%). See the [docs](https://zbsearch.dev/docs/zbsearch/usage/create#indexed-but-not-stored-properties) for the trade-offs.
+
 # Vector and Hybrid Search Support
 
 ZBSearch supports both vector and hybrid search by just setting `mode: 'vector'` when performing search.
@@ -187,6 +204,7 @@ const results = search(db, {
   // Minimum similarity to determine a match. Defaults to `0.8`
   similarity: 0.85,
   // Defaults to `false`. Setting to 'true' will return the embeddings in the response (which can be very large).
+  // They are rebuilt from the vector index, normalized, unless the database was created with `store: { vectors: true }`.
   includeVectors: true,
 })
 ```

@@ -104,3 +104,5 @@ The returning object will be exactly the same as the one we would expect when pe
 ```
 
 Since vectors can be quite large, you can also choose to not include them in the response by setting `includeVectors` to `false` (default behavior).
+
+Vectors are not kept in the documents store by default (the vector index already holds them), so with `includeVectors: true` they are rebuilt from the vector index, which holds a **normalized** copy: the returned vectors are unit-length. Create the database with `store: { vectors: true }` to store and return the original vectors. See [indexed but not stored properties](/docs/zbsearch/usage/create#indexed-but-not-stored-properties).

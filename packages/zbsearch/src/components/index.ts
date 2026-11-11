@@ -2230,13 +2230,22 @@ export function freezeIndex(index: Index, merge: boolean): void {
     const fieldLengths = index.fieldLengths[prop] ?? {}
     const segments = index.frozen?.[prop] ?? []
 
-    // Documents of the tail: every document inserted with the property has an entry in `frequencies`
+    // Documents of the tail: every document inserted with the property since the last freeze has an entry in
+    // `frequencies` (reset on each freeze), so its keys are the tail, not the whole insertion history. Integer keys
+    // are listed in ascending order; sort anyway if they are not, to keep the segment's document order.
     const documents: InternalDocumentID[] = []
-    const lastId = index.sharedInternalDocumentStore.internalIdToId.length
-    for (let id = 0; id <= lastId; id++) {
+    let sorted = true
+    for (const key of Object.keys(frequencies)) {
+      const id = +key
       if (frequencies[id] !== undefined) {
+        if (documents.length > 0 && id < documents[documents.length - 1]) {
+          sorted = false
+        }
         documents.push(id)
       }
+    }
+    if (!sorted) {
+      documents.sort((a, b) => a - b)
     }
 
     const hasTail = documents.length > 0 || tree.postings.size > 0

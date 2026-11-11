@@ -289,3 +289,56 @@ Without freezing, the same build (all steps) measured search 69.3 / 171.4 ms, `t
 `sortBy` 181.9 / 312.3 ms, facets 247.3 / 401.7 ms and update 9.1 ms at 160k; an alternating A/B of 150 queries
 per mode (two runs each) gave 4.0.3 plain 115-123 / 191-203 ms and this build 71-85 / 142-165 ms, with `sortBy`,
 facets and remove within noise of each other.
+
+## Large indexes: all engines, with timeouts
+
+`large-index-engines.js` builds every engine of the suite (Orama, ZBSearch BM25 / QPS / PT15, ZBSearch BM25 frozen,
+FlexSearch, Fuse.js, Lunr, MiniSearch) on the passage corpus above at 20k, 80k and 160k passages, and measures
+indexing time, heap after indexing and search latency. Every engine indexes `text`, `section` and `title` as full
+text with the configuration of `src/get-engines.js` / `src/alternate-engines.js` (stop-word tokenizer, sort indexes
+off), and runs 200 queries of 1-3 Zipf-sampled words (the query generator and seed of `large-index.js`, after 10
+warm-up queries) as an all-terms search with a limit of 10.
+
+```sh
+npx turbo build --filter=zbsearch --filter=@zbsearch/plugin-qps --filter=@zbsearch/plugin-pt15
+cd benchmarks
+pnpm benchmark:large-index-engines
+node large-index-engines.js --docs=20000,80000,160000 --engines=zbsearch-bm25,zbsearch-bm25-frozen,minisearch \
+  --index-timeout=10m --search-timeout=5m --query-timeout=60s --queries=200 --warmup=10 --max-old-space-size=8192
+```
+
+Every engine × size runs in its own child process (`node --expose-gc --max-old-space-size=8192`), and the parent
+enforces the timeouts by killing it:
+
+- **Indexing** (adding every passage, plus `freeze(db)` for ZBSearch frozen) must finish within `--index-timeout`
+  (10 min), counted from the moment the child has generated the corpus; otherwise the run is `index-timeout`.
+- **Search** (warm-up and measured queries) must finish within `--search-timeout` (5 min in total), and no single
+  query may take longer than `--query-timeout` (60 s); otherwise the run is `search-timeout`. A synchronous query
+  cannot be interrupted, so the child sends the latency of every query to the parent over IPC as it completes: the
+  queries completed before the timeout and their statistics are kept.
+- A child that exits on its own (an exception, or out of memory under `--max-old-space-size`) is `crashed`.
+
+Per engine × size it records indexing time and docs/s, freeze time (frozen only), heap (`heapUsed + arrayBuffers`
+after two full GCs, minus the baseline before the corpus was generated), RSS, search mean / p50 / p95 / p99 / max
+and QPS (1 / mean latency), the number of queries completed, the status, and the hit counts of the first 5 queries.
+Results go to `benchmark/results/large-index-engines.json` (written after every run, with the date, Node version,
+CPU, memory, engine versions, sizes and timeouts) and a markdown table is printed at the end. The docs page
+`/benchmarks/large-indexes` reads a copy of that file in `apps/docs/lib/benchmarks/results/large-index-engines.json`.
+
+What each engine keeps besides its index:
+
+| Engine                                   | Stores                                                                 |
+| ---------------------------------------- | ---------------------------------------------------------------------- |
+| ZBSearch (BM25), ZBSearch (BM25, frozen) | documents without `text` (`store: { exclude: ['text'] }`)              |
+| ZBSearch (QPS), ZBSearch (PT15)          | full documents (their index components do not support `store.exclude`) |
+| Orama                                    | full documents (default document store)                                |
+| FlexSearch                               | ids only (`Document` index without `store`)                            |
+| Fuse.js                                  | full documents (Fuse searches its own document list)                   |
+| Lunr                                     | refs only                                                              |
+| MiniSearch                               | ids only (no `storeFields`)                                            |
+
+FlexSearch searches each query token separately (top 1,000 per field) and intersects the matches, as in
+`src/alternate-engines.js`; Fuse.js runs with `useTokenSearch`, `tokenMatch: 'all'` and `threshold: 0`. ZBSearch
+and Orama use their default prefix matching, as in the throughput benchmarks. The match counts in the JSON sample
+differ between engines because their all-terms and prefix semantics differ (the QPS and PT15 index components do not
+apply `threshold: 0` and return documents that match any term).

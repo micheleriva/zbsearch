@@ -23,6 +23,7 @@
     "benchmark:store-exclude": "node store-exclude.js",
     "benchmark:memory-breakdown": "node memory-breakdown.js --max-old-space-size=8192",
     "benchmark:large-index": "node --expose-gc --max-old-space-size=8192 large-index.js",
+    "benchmark:large-index-engines": "node large-index-engines.js",
     "benchmark:binary-snapshot": "node --expose-gc --max-old-space-size=3072 binary-snapshot.js",
     "benchmark:responsiveness": "node responsiveness.js",
     "benchmark:multilingual-quality": "node multilingual-quality.js",
